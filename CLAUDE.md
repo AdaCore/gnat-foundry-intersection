@@ -99,6 +99,12 @@ Spawn via the Agent tool. Each is one focused responsibility.
   source. Read-mostly; won't push, retry, or edit without confirmation.
   Use when the user asks "why did the pipeline fail?", "fix CI", or names
   a pipeline/job ID.
+- **`developer`** — implements features and fixes compile errors /
+  warnings under `src/`, `tests/unit/`, GPRs, and the Zephyr glue. Runs
+  `alr build` / `make` and the unit-test runner. Hands off SPARK,
+  requirements, safety, and CI work to the specialists. Use when the user
+  asks to "implement X", "fix this build error", "clear the warnings", or
+  picks up a backlog item.
 
 ## First-move backlog
 
