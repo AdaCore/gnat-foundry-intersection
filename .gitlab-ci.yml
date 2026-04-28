@@ -11,10 +11,10 @@
 #
 # The Alire image is recommended once the team picks one; for now we use
 # a generic Debian image and install gnat / gnatprove in before_script.
-
-#default:
-#  tags:
-#    - beast-runners
+---
+# default:
+#   tags:
+#     - beast-runners
 
 stages:
   - lint
@@ -134,3 +134,14 @@ package:release:
     paths:
       - "traffic-light-*.tar.gz"
     expire_in: never
+
+
+workflow:
+  rules:
+    - if: >-
+        $CI_PROJECT_PATH ==
+        "codesecure1/codesecure-se/demos/ada/traffic-light-controller"
+        && $CI_PIPELINE_SOURCE == "push"
+        && $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
