@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote -v:*)",
+      "Bash(alr build:*)",
+      "Bash(alr exec --:*)",
+      "Bash(alr show:*)",
+      "Bash(alr version:*)",
+      "Bash(gprbuild -P:*)",
+      "Bash(gnatprove -P:*)",
+      "Bash(gnatcheck -P:*)",
+      "Bash(python3 tools/trace-check.py:*)",
+      "Bash(python3 tools/render-srs.py:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)"
+    ]
+  }
+}
