@@ -1,0 +1,52 @@
+--  Top-level project for the traffic-light controller.
+--
+--  Build profiles:
+--    host   : builds against src/hal/host stub HAL, runs on a laptop.
+--    target : cross-compiles for arm-eabi against src/hal/stm32h5.
+--
+--  Override on the command line:
+--    gprbuild -P traffic_light.gpr -XTarget_Profile=target
+
+project Traffic_Light is
+
+   type Profile_Kind is ("host", "target");
+   Target_Profile : Profile_Kind := external ("Target_Profile", "host");
+
+   for Source_Dirs use
+     ("src/core",
+      "src/app",
+      "src/hal/" & Target_Profile);
+
+   for Object_Dir use "obj/" & Target_Profile;
+   for Exec_Dir   use "bin/" & Target_Profile;
+   for Main use ("main.adb");
+
+   case Target_Profile is
+      when "target" =>
+         for Target use "arm-eabi";
+         --  for Runtime ("Ada") use "embedded-stm32h5";
+         --  Add when the runtime crate is wired in.
+      when "host" =>
+         null;
+   end case;
+
+   package Builder is
+      for Default_Switches ("Ada") use ("-j0", "-g");
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-g",
+         "-O0",
+         "-gnatwa",     -- all warnings
+         "-gnatVa",     -- all validity checks
+         "-gnata",      -- enable assertions
+         "-gnato",      -- overflow checking
+         "-fstack-check");
+   end Compiler;
+
+   package Binder is
+      for Default_Switches ("Ada") use ("-Es");
+   end Binder;
+
+end Traffic_Light;

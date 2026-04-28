@@ -1,0 +1,27 @@
+# Default to LF line endings
+* text=auto eol=lf
+
+# Ada sources are text
+*.ads text
+*.adb text
+*.gpr text
+*.toml text
+
+# Markdown / docs
+*.md text
+*.txt text
+
+# Always treat as binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.docx binary
+*.zip binary
+*.elf binary
+*.bin binary
+*.hex binary
+
+# Git LFS for hardware deliverables (uncomment when adding real files)
+# hardware/schematics/*.kicad_pro filter=lfs diff=lfs merge=lfs -text
+# hardware/schematics/*.kicad_pcb filter=lfs diff=lfs merge=lfs -text
+# hardware/schematics/*.kicad_sch filter=lfs diff=lfs merge=lfs -text

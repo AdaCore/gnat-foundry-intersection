@@ -1,0 +1,32 @@
+name = "traffic_light"
+description = "Four-way traffic light controller with pedestrian crossings (STM32H563ZI / Ada / SPARK)"
+version = "0.1.0-dev"
+authors = ["Mark"]
+maintainers = ["Mark <mark@example.invalid>"]
+maintainers-logins = ["mark"]
+licenses = "MIT"
+website = "https://gitlab.com/mark/traffic-light-controller"
+tags = ["embedded", "ada", "spark", "stm32", "traffic"]
+
+project-files = ["traffic_light.gpr"]
+
+# Default to host build profile so `alr build` Just Works on a laptop.
+# Switch to target build for cross-compilation:
+#   alr build --profiles=target
+[build-switches]
+"*".style_checks = ["-gnaty3", "-gnatya", "-gnatyA", "-gnatyB", "-gnatyM120"]
+
+[[depends-on]]
+gnat = ">=13"
+
+# Cross toolchain (commented out for initial host-only bring-up).
+# Enable when you start cross-compiling for the Nucleo:
+# [[depends-on]]
+# gnat_arm_elf = "^14"
+
+# Add an HAL/runtime crate when ready, e.g.:
+# [[depends-on]]
+# embedded_runtimes = "*"
+
+[configuration.variables]
+Target_Profile = { type = "Enum", values = ["host", "target"], default = "host" }

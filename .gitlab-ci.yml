@@ -1,0 +1,128 @@
+# GitLab CI for the traffic-light-controller project.
+#
+# Stages:
+#   lint       - style and YAML checks
+#   build-host - build core+app with the host HAL stub
+#   test       - run unit + integration tests on host
+#   prove      - run gnatprove on the SPARK conflict-check module
+#   docs       - render SRS to docx/pdf, regenerate traceability matrix
+#   build-tgt  - cross-compile for arm-eabi (manual stage for now)
+#   package    - on tags, bundle release artifacts
+#
+# The Alire image is recommended once the team picks one; for now we use
+# a generic Debian image and install gnat / gnatprove in before_script.
+
+stages:
+  - lint
+  - build-host
+  - test
+  - prove
+  - docs
+  - build-tgt
+  - package
+
+variables:
+  GIT_DEPTH: "20"
+
+default:
+  image: debian:bookworm-slim
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends
+        ca-certificates curl git make python3 python3-pip
+        gnat gprbuild
+    - python3 --version
+    - gnat --version
+
+# ---------- lint ----------
+lint:markdown:
+  stage: lint
+  script:
+    - apt-get install -y --no-install-recommends nodejs npm
+    - npm install -g markdownlint-cli
+    - markdownlint 'docs/**/*.md' || true   # warn-only initially
+
+lint:yaml:
+  stage: lint
+  script:
+    - pip install --break-system-packages yamllint
+    - yamllint .gitlab-ci.yml
+
+# ---------- build (host) ----------
+build:host:
+  stage: build-host
+  script:
+    - gprbuild -P traffic_light.gpr -XTarget_Profile=host
+  artifacts:
+    paths:
+      - bin/host/
+      - obj/host/
+    expire_in: 1 week
+
+# ---------- test ----------
+test:unit:
+  stage: test
+  needs: ["build:host"]
+  script:
+    - gprbuild -P tests/unit/unit_tests.gpr
+    - ./tests/unit/bin/test_runner | tee unit_test_output.txt
+    - grep -q "ALL TESTS PASSED" unit_test_output.txt
+  artifacts:
+    when: always
+    paths:
+      - unit_test_output.txt
+    expire_in: 1 week
+
+# ---------- prove ----------
+prove:conflict-check:
+  stage: prove
+  allow_failure: true   # bootstrap: don't block until module is filled in
+  script:
+    - apt-get install -y --no-install-recommends gnat-spark || true
+    # gnatprove may need to be installed via Alire toolchain in production;
+    # this stub job documents intent and will be wired up properly later.
+    - which gnatprove && gnatprove -P tests/proof/conflict_check_proof.gpr --level=2 || echo "gnatprove not available in CI image yet"
+
+# ---------- docs ----------
+docs:render:
+  stage: docs
+  script:
+    - apt-get install -y --no-install-recommends pandoc texlive-xetex texlive-fonts-recommended
+    - python3 tools/render-srs.py
+    - python3 tools/trace-check.py --bootstrap
+  artifacts:
+    paths:
+      - docs/requirements/srs.docx
+      - docs/requirements/srs.pdf
+      - docs/requirements/traceability.md
+    expire_in: 1 month
+
+# ---------- build (target) ----------
+build:target:
+  stage: build-tgt
+  when: manual
+  allow_failure: true
+  script:
+    - echo "Cross-build placeholder; wire this up once the gnat_arm_elf"
+    - echo "Alire toolchain is added to alire.toml."
+
+# ---------- package ----------
+package:release:
+  stage: package
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - build:host
+    - test:unit
+    - docs:render
+  script:
+    - mkdir -p release
+    - cp -r bin/host release/
+    - cp docs/requirements/srs.docx release/ || true
+    - cp docs/requirements/srs.pdf  release/ || true
+    - cp docs/requirements/traceability.md release/ || true
+    - (cd release && tar czf "../traffic-light-${CI_COMMIT_TAG}.tar.gz" .)
+  artifacts:
+    paths:
+      - "traffic-light-*.tar.gz"
+    expire_in: never

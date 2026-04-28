@@ -1,0 +1,11 @@
+item,qty,part_number,description,notes
+1,1,NUCLEO-H563ZI,STM32H563ZI Nucleo-144 dev board,Main controller
+2,12,LED-RED-5MM,5mm red LED,Vehicle red lamp (one per movement)
+3,12,LED-YEL-5MM,5mm yellow LED,Vehicle yellow lamp
+4,12,LED-GRN-5MM,5mm green LED,Vehicle green lamp
+5,4,LED-WHT-10MM,10mm white LED,Pedestrian WALK
+6,4,LED-RED-10MM,10mm red LED,Pedestrian DON'T WALK
+7,28,RES-330R-1/4W,330 ohm 1/4W resistor,Current limit for LEDs
+8,4,SW-MOMENTARY-PB,Momentary push button SPST-NO,Pedestrian buttons
+9,4,RES-10K-1/4W,10k ohm 1/4W resistor,Pull-up backup (internal pull-up also enabled)
+10,1,PROTOBOARD,Solderable prototyping board,For initial bring-up

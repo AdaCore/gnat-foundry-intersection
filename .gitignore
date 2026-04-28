@@ -1,0 +1,51 @@
+# Ada / GPRbuild
+obj/
+lib/
+bin/
+*.o
+*.ali
+*.adt
+*.gpr.user
+b__*.adb
+b__*.ads
+gnatprove/
+*.prj.cgpr
+*.cgpr
+
+# Alire
+alire/
+config/
+
+# Generated documentation artifacts
+docs/build/
+docs/requirements/srs.docx
+docs/requirements/srs.pdf
+docs/requirements/traceability.md
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Python (for tools/)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# CI / local builds
+build/
+dist/
+release/
+
+# Hardware CAD scratch
+hardware/schematics/cache/
+hardware/schematics/*.bak
+hardware/schematics/*-backups/
