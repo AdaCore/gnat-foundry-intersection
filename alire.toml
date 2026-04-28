@@ -1,5 +1,5 @@
 name = "traffic_light"
-description = "Four-way traffic light controller with pedestrian crossings (STM32H563ZI / Ada / SPARK)"
+description = "Four-way traffic-light controller (STM32H563ZI, Ada/SPARK)"
 version = "0.1.0-dev"
 authors = ["Mark"]
 maintainers = ["Mark <mark@example.invalid>"]
@@ -30,3 +30,6 @@ gnat = ">=13"
 
 [configuration.variables]
 Target_Profile = { type = "Enum", values = ["host", "target"], default = "host" }
+
+[[depends-on]]
+gnat_arm_elf = "^12.2.1"

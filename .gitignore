@@ -45,6 +45,9 @@ build/
 dist/
 release/
 
+# Zephyr / west
+.west/
+
 # Hardware CAD scratch
 hardware/schematics/cache/
 hardware/schematics/*.bak

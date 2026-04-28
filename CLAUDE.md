@@ -15,8 +15,14 @@ project; not for public-road deployment. See `README.md`.
 # Host build (default profile, stub HAL)
 alr build
 
-# Cross-build for arm-eabi target (requires gnat_arm_elf — currently commented in alire.toml)
+# Bare-metal cross-build for arm-eabi (existing target profile — stub HAL only)
 alr build --profiles=target
+
+# Zephyr build for nucleo_h563zi (one-time setup: west init -l . && west update)
+make                              # incremental
+make pristine                     # clean rebuild
+make flash                        # flash via on-board ST-LINK
+make BOARD=<other_board>          # override target board
 
 # Unit tests (host)
 alr exec -- gprbuild -P tests/unit/unit_tests.gpr
@@ -104,9 +110,24 @@ From `IMPORT_NOTES.md`, in priority order:
 3. Implement transitions in `src/core/phase_sequencer.adb` per
    `docs/architecture/state-machine.md`.
 4. Replace hand-rolled `tests/unit/test_runner.adb` with AUnit or gnattest.
-5. Wire up cross-toolchain: uncomment `gnat_arm_elf` in `alire.toml`; update
-   `.gitlab-ci.yml` `build:target` job.
+5. ~~Wire up cross-toolchain: uncomment `gnat_arm_elf` in `alire.toml`~~
+   (done — toolchain pinned, Zephyr build wired). Still TODO: update
+   `.gitlab-ci.yml` `build:target` job to invoke `make` (Zephyr) or the
+   bare-metal `target` profile.
 6. Resolve PD8/PD9 ST-LINK VCP conflict in `hardware/pinout.md`.
+
+## Zephyr build layout
+
+Top-level: `CMakeLists.txt`, `prj.conf`, `west.yml`, `Makefile`,
+`traffic_light_zephyr.gpr`. Zephyr owns the build; gprbuild emits
+`libada_app.a`, gnatbind emits `ada_bind.o`, CMake links both into the
+firmware via the C trampoline at `src/hal/zephyr/ada_main.c`. C shims for
+inline Zephyr APIs live in `src/hal/zephyr/hal_zephyr.c` (Ada calls them as
+`tlc_zephyr_*` via `pragma Import`). Cortex-M33F runtime: `light-cortex-m33f`,
+hard-float ABI — keep `CONFIG_FPU=y` and the `-mfpu=fpv5-sp-d16
+-mfloat-abi=hard` flags in lockstep across the GPR, the binder invocation in
+CMake, and `prj.conf`. See the alire skill `zephyr.md` for the full pattern
+and pitfall list.
 
 ## Pointers
 
