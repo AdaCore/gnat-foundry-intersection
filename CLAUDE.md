@@ -94,6 +94,11 @@ Spawn via the Agent tool. Each is one focused responsibility.
 - **`documentation`** — owns README, CHANGELOG, CONTRIBUTING, ADRs,
   `docs/architecture/`, render pipelines. Does **not** edit SRS content
   (that's `requirements-tracer`) or safety docs (that's `safety-reviewer`).
+- **`pipeline-fixer`** — pulls GitLab CI pipeline status / job traces via
+  `glab`, diagnoses failures, and proposes fixes to `.gitlab-ci.yml` or
+  source. Read-mostly; won't push, retry, or edit without confirmation.
+  Use when the user asks "why did the pipeline fail?", "fix CI", or names
+  a pipeline/job ID.
 
 ## First-move backlog
 

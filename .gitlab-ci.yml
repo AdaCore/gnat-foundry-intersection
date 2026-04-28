@@ -12,6 +12,10 @@
 # The Alire image is recommended once the team picks one; for now we use
 # a generic Debian image and install gnat / gnatprove in before_script.
 
+default:
+  tags:
+    - beast-runners
+
 stages:
   - lint
   - build-host
@@ -81,13 +85,17 @@ prove:conflict-check:
     - apt-get install -y --no-install-recommends gnat-spark || true
     # gnatprove may need to be installed via Alire toolchain in production;
     # this stub job documents intent and will be wired up properly later.
-    - which gnatprove && gnatprove -P tests/proof/conflict_check_proof.gpr --level=2 || echo "gnatprove not available in CI image yet"
+    - |
+      which gnatprove \
+        && gnatprove -P tests/proof/conflict_check_proof.gpr --level=2 \
+        || echo "gnatprove not available in CI image yet"
 
 # ---------- docs ----------
 docs:render:
   stage: docs
   script:
-    - apt-get install -y --no-install-recommends pandoc texlive-xetex texlive-fonts-recommended
+    - apt-get install -y --no-install-recommends
+        pandoc texlive-xetex texlive-fonts-recommended
     - python3 tools/render-srs.py
     - python3 tools/trace-check.py --bootstrap
   artifacts:
