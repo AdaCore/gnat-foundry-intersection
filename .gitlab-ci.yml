@@ -12,9 +12,9 @@
 # The Alire image is recommended once the team picks one; for now we use
 # a generic Debian image and install gnat / gnatprove in before_script.
 
-default:
-  tags:
-    - beast-runners
+#default:
+#  tags:
+#    - beast-runners
 
 stages:
   - lint
