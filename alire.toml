@@ -10,26 +10,14 @@ tags = ["embedded", "ada", "spark", "stm32", "traffic"]
 
 project-files = ["traffic_light.gpr"]
 
-# Default to host build profile so `alr build` Just Works on a laptop.
-# Switch to target build for cross-compilation:
-#   alr build --profiles=target
+# `alr build` produces the host executable via traffic_light.gpr.
+# The Zephyr cross-build (gnat_arm_elf) is driven by Zephyr's CMake/west
+# through the Makefile (`make`); see CMakeLists.txt and ADR-0004.
 [build-switches]
 "*".style_checks = ["-gnaty3", "-gnatya", "-gnatyA", "-gnatyB", "-gnatyM120"]
 
 [[depends-on]]
 gnat = ">=13"
-
-# Cross toolchain (commented out for initial host-only bring-up).
-# Enable when you start cross-compiling for the Nucleo:
-# [[depends-on]]
-# gnat_arm_elf = "^14"
-
-# Add an HAL/runtime crate when ready, e.g.:
-# [[depends-on]]
-# embedded_runtimes = "*"
-
-[configuration.variables]
-Target_Profile = { type = "Enum", values = ["host", "target"], default = "host" }
 
 [[depends-on]]
 gnat_arm_elf = "^12.2.1"

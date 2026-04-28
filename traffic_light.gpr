@@ -1,34 +1,16 @@
---  Top-level project for the traffic-light controller.
+--  Top-level project for the traffic-light controller (host build).
 --
---  Build profiles:
---    host   : builds against src/hal/host stub HAL, runs on a laptop.
---    target : cross-compiles for arm-eabi against src/hal/stm32h5.
---
---  Override on the command line:
---    gprbuild -P traffic_light.gpr -XTarget_Profile=target
+--  Builds the host executable using src/hal/host as the stub HAL. The
+--  cross-target build for STM32H563ZI is driven by Zephyr's CMake/west
+--  via the project Makefile and traffic_light_zephyr.gpr (see ADR-0004).
 
 project Traffic_Light is
 
-   type Profile_Kind is ("host", "target");
-   Target_Profile : Profile_Kind := external ("Target_Profile", "host");
+   for Source_Dirs use ("src/core", "src/app", "src/hal/host");
 
-   for Source_Dirs use
-     ("src/core",
-      "src/app",
-      "src/hal/" & Target_Profile);
-
-   for Object_Dir use "obj/" & Target_Profile;
-   for Exec_Dir   use "bin/" & Target_Profile;
+   for Object_Dir use "obj/host";
+   for Exec_Dir   use "bin/host";
    for Main use ("main.adb");
-
-   case Target_Profile is
-      when "target" =>
-         for Target use "arm-eabi";
-         --  for Runtime ("Ada") use "embedded-stm32h5";
-         --  Add when the runtime crate is wired in.
-      when "host" =>
-         null;
-   end case;
 
    package Builder is
       for Default_Switches ("Ada") use ("-j0", "-g");

@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `alire.toml` description shortened to fit Alire's 72-char limit.
+- `traffic_light.gpr` simplified to a host-only build (profile mechanism
+  removed). Cross-target builds go through `traffic_light_zephyr.gpr`.
+- `docs/architecture/overview.md` updated to describe the Zephyr-backed
+  HAL and the C-shim bridge pattern.
+
+### Removed
+- Bare-metal STM32H5 HAL stub (`src/hal/stm32h5/`) — superseded by the
+  Zephyr-backed HAL per ADR-0004.
+- `Target_Profile` configuration variable from `alire.toml` (no longer
+  needed; Zephyr cross-build is a separate GPR + CMake pipeline).
 
 ### Notes
 - Toolchain pinned via `alire.toml`.

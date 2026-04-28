@@ -27,8 +27,9 @@ alr exec -- gprbuild -P tests/unit/unit_tests.gpr
 # Run SPARK proofs on the conflict-check module
 alr exec -- gnatprove -P tests/proof/conflict_check_proof.gpr --level=2
 
-# Cross-compile for the target board (requires gnat_arm_elf toolchain)
-alr build --profiles=target
+# Build firmware for the Nucleo-H563ZI via Zephyr
+# (one-time: west init -l . && west update)
+make
 ```
 
 ## Repository layout
@@ -40,7 +41,7 @@ alr build --profiles=target
 | `docs/safety/` | Hazard analysis and safety case |
 | `docs/adr/` | Architecture Decision Records |
 | `src/core/` | Pure logic — host-buildable, SPARK-targetable |
-| `src/hal/stm32h5/` | STM32H5-specific hardware abstraction |
+| `src/hal/zephyr/` | Zephyr-backed HAL (STM32H5 and other Zephyr-supported boards) |
 | `src/hal/host/` | Stub HAL for desktop simulation and unit tests |
 | `src/app/` | Top-level application, diagnostics |
 | `tests/unit/` | Unit tests (host-runnable) |

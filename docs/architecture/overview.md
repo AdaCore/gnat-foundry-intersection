@@ -15,7 +15,7 @@
 │    └── timing             (build-time constants)        │
 ├─────────────────────────────────────────────────────────┤
 │  HAL (board-specific, thin)                             │
-│    src/hal/stm32h5/   (target)                          │
+│    src/hal/zephyr/    (Zephyr-backed; STM32H5 et al.)   │
 │    src/hal/host/      (stub for laptop / unit tests)    │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -26,9 +26,12 @@
    into the HAL. It defines abstract operations (read button state, set lamp
    output) as types and procedures with no implementation, deferred to the
    HAL. This keeps the core fully testable on a laptop and provable in SPARK.
-2. **HAL implements core's abstractions.** Both `stm32h5` and `host` HAL
-   variants provide the same package specs (just different bodies). The
-   build profile selects which body is linked.
+2. **HAL implements core's abstractions.** Both `zephyr` and `host` HAL
+   variants provide the same package spec (just different bodies). For
+   the host build, `traffic_light.gpr` selects `src/hal/host`. For the
+   Zephyr cross-build, `traffic_light_zephyr.gpr` selects `src/hal/zephyr`,
+   whose body bridges through C shims (`hal_zephyr.c`) to Zephyr's GPIO,
+   timer, and printk APIs (see ADR-0004).
 3. **App orchestrates.** `main.adb` initializes the HAL, then drives the
    core state machine on a periodic tick.
 
@@ -70,5 +73,7 @@ PED_REQ <crosswalk> <state>
 FAULT <code> <details>
 ```
 
-The host HAL writes these to stdout; the target HAL writes them to USART3
-(the ST-LINK virtual COM port on the Nucleo-H563ZI).
+The host HAL writes these to stdout; the Zephyr HAL writes them via
+`printk` (configurable to UART/RTT/etc. through Zephyr's logging
+backends), with USART3 (the ST-LINK virtual COM port on the
+Nucleo-H563ZI) as the conventional default.

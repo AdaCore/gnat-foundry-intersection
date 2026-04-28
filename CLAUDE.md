@@ -12,11 +12,8 @@ project; not for public-road deployment. See `README.md`.
 ## Commands
 
 ```bash
-# Host build (default profile, stub HAL)
+# Host build (stub HAL)
 alr build
-
-# Bare-metal cross-build for arm-eabi (existing target profile — stub HAL only)
-alr build --profiles=target
 
 # Zephyr build for nucleo_h563zi (one-time setup: west init -l . && west update)
 make                              # incremental
@@ -111,9 +108,9 @@ From `IMPORT_NOTES.md`, in priority order:
    `docs/architecture/state-machine.md`.
 4. Replace hand-rolled `tests/unit/test_runner.adb` with AUnit or gnattest.
 5. ~~Wire up cross-toolchain: uncomment `gnat_arm_elf` in `alire.toml`~~
-   (done — toolchain pinned, Zephyr build wired). Still TODO: update
-   `.gitlab-ci.yml` `build:target` job to invoke `make` (Zephyr) or the
-   bare-metal `target` profile.
+   (done — toolchain pinned, Zephyr build wired; bare-metal stub retired
+   per ADR-0004). Still TODO: update `.gitlab-ci.yml` `build:target` job
+   to invoke `make` (Zephyr).
 6. Resolve PD8/PD9 ST-LINK VCP conflict in `hardware/pinout.md`.
 
 ## Zephyr build layout
@@ -131,7 +128,7 @@ and pitfall list.
 
 ## Pointers
 
-- ADRs: `docs/adr/` (0001 platform, 0002 SPARK use, 0003 leading protected left)
+- ADRs: `docs/adr/` (0001 platform, 0002 SPARK use, 0003 leading protected left, 0004 Zephyr for HAL)
 - Hazards: `docs/safety/hazard-analysis.md`
 - State machine: `docs/architecture/state-machine.md`
 - MR/issue templates: `.gitlab/`
