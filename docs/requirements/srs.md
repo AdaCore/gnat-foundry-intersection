@@ -153,6 +153,18 @@ when no demand is registered.
   request state, and last fault code.
 - **FR-UI-02** The controller shall provide a manual reset input that returns
   the system to the startup state.
+- **FR-UI-03** The controller shall emit a phase-transition record on the
+  diagnostic UART (UART0) immediately following each phase transition, in
+  the line format defined in [`wire-protocol.md`](wire-protocol.md) § 1.1.
+- **FR-UI-04** The controller shall emit a heartbeat record on the
+  diagnostic UART (UART0) at no less than 1 Hz independent of phase
+  transitions, in the format defined in
+  [`wire-protocol.md`](wire-protocol.md) § 1.2. This is distinct from the
+  MMU safety heartbeat (FR-SF-06), which is on a separate channel.
+- **FR-UI-05** The controller shall accept newline-terminated commands on
+  the command UART (UART1) in the forms defined in
+  [`wire-protocol.md`](wire-protocol.md) § 2, and shall silently discard
+  malformed or unknown commands.
 
 # 4. Conflict Matrix
 
@@ -221,7 +233,9 @@ Cortex-M33, 250 MHz, 2 MB flash, 640 KB RAM).
 
 ## 7.4 Diagnostics
 
-- **NFR-DG-01** Diagnostic record emitted on every phase transition over UART.
+- **NFR-DG-01** Diagnostic record emitted on every phase transition over
+  UART, in the format defined by FR-UI-03 (see
+  [`wire-protocol.md`](wire-protocol.md) § 1.1).
 - **NFR-DG-02** Fault codes retained in non-volatile memory (one most-recent
   record) and readable over UART after reset.
 
