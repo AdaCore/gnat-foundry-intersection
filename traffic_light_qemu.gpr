@@ -1,0 +1,56 @@
+--  GPRbuild project for the bare-metal arm-eabi (Cortex-M3) QEMU build.
+--
+--  Targets QEMU's `mps2-an385` machine via Alire's `bare_runtime` crate
+--  (no Zephyr, no AdaCore Pro tooling — fully FOSS, the same toolchain
+--  exercised by ../arm-echo/guest/).
+--
+--  Build:
+--    alr exec -- gprbuild -P traffic_light_qemu.gpr
+--  Run:
+--    qemu-system-arm -M mps2-an385 -cpu cortex-m3 -nographic \
+--                    -serial tcp:127.0.0.1:5555,server,nowait \
+--                    -kernel bin/qemu_mps2/main
+--
+--  See .claude/skills/qemu/SKILL.md and docs/requirements/wire-protocol.md.
+
+with "bare_runtime.gpr";
+
+project Traffic_Light_Qemu is
+
+   for Languages   use ("Ada", "ASM_CPP");
+   for Source_Dirs use ("src/core", "src/app", "src/hal/qemu_mps2");
+   for Object_Dir  use "obj/qemu_mps2";
+   for Exec_Dir    use "bin/qemu_mps2";
+   for Main        use ("main.adb");
+
+   for Target              use "arm-eabi";
+   for Runtime ("Ada")     use Bare_Runtime'Runtime ("Ada");
+
+   package Builder is
+      for Default_Switches ("Ada") use ("-j0", "-g");
+   end Builder;
+
+   package Compiler is
+      --  -mcpu / -mthumb / -mfloat-abi MUST match BARE_RUNTIME_SWITCHES
+      --  in alire.toml (the runtime is compiled with those flags).
+      for Default_Switches ("Ada") use
+        ("-mcpu=cortex-m3", "-mthumb", "-mfloat-abi=soft",
+         "-g",
+         "-O0",
+         "-gnatwa",     --  all warnings
+         "-gnata",      --  enable assertions
+         "-gnato",      --  overflow checking
+         "-ffunction-sections",
+         "-fdata-sections");
+   end Compiler;
+
+   package Linker is
+      for Switches ("Ada") use
+        ("-T", Project'Project_Dir & "/src/hal/qemu_mps2/link.ld");
+   end Linker;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es");
+   end Binder;
+
+end Traffic_Light_Qemu;

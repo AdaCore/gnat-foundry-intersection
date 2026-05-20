@@ -13,6 +13,8 @@ project-files = ["traffic_light.gpr"]
 # `alr build` produces the host executable via traffic_light.gpr.
 # The Zephyr cross-build (gnat_arm_elf) is driven by Zephyr's CMake/west
 # through the Makefile (`make`); see CMakeLists.txt and ADR-0004.
+# The bare-metal QEMU cross-build (gnat_arm_elf + bare_runtime) is driven
+# directly by gprbuild via traffic_light_qemu.gpr; see that project file.
 [build-switches]
 "*".style_checks = ["-gnaty3", "-gnatya", "-gnatyA", "-gnatyB", "-gnatyM120"]
 
@@ -20,4 +22,13 @@ project-files = ["traffic_light.gpr"]
 gnat = ">=13"
 
 [[depends-on]]
-gnat_arm_elf = "^12.2.1"
+gnat_arm_elf = "*"
+
+[[depends-on]]
+bare_runtime = "*"
+
+# Compile/link switches that bare_runtime's own GPR uses to build libgnat
+# for our target. MUST match the compiler switches in
+# traffic_light_qemu.gpr (Cortex-M3, thumb, soft-float).
+[gpr-set-externals]
+BARE_RUNTIME_SWITCHES = "-mlittle-endian -mthumb -mcpu=cortex-m3 -mfloat-abi=soft"
