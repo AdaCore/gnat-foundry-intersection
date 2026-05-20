@@ -1,7 +1,8 @@
 --  Phase sequencer body — drives the controller through the 13-state cycle
 --  defined in docs/architecture/state-machine.md.
 --
---  @req FR-PH-01, FR-PH-02, FR-PH-03, FR-PH-04, FR-PH-05, FR-PH-06
+--  @req FR-PH-01, FR-PH-02, FR-PH-03, FR-PH-04, FR-PH-05, FR-PH-06,
+--       FR-PD-03, FR-PD-04, FR-PD-06
 
 package body Phase_Sequencer is
 
@@ -10,6 +11,25 @@ package body Phase_Sequencer is
    --  Next_Phase below is where the skip-on-no-demand branch lands.
    Left_Demand_Always_On : constant Boolean := True;
    pragma Unreferenced (Left_Demand_Always_On);
+
+   --  Map a through-phase to the two crosswalks served by its concurrent
+   --  ped phase (per srs.md § 2.3, FR-PD-03/04).
+   --
+   --  NOTE: literal naming convention only — NS_North/NS_South aggregate
+   --  to the Ped-NS phase served alongside NS_Through. The Ped-row
+   --  inversion flagged in conflict-matrix.md (backlog #1) may flip this
+   --  mapping; that change is gated on a requirement_change issue.
+   type Crosswalk_Pair is array (1 .. 2) of Pedestrian.Crosswalk;
+
+   function Ped_Pair_For (P : Phase_Id) return Crosswalk_Pair is
+   begin
+      case P is
+         when NS_Through_Green | NS_Through_Yellow =>
+            return (Pedestrian.NS_North, Pedestrian.NS_South);
+         when others =>
+            return (Pedestrian.EW_East, Pedestrian.EW_West);
+      end case;
+   end Ped_Pair_For;
 
    --  Static next-phase table for the nominal cycle (v0.1: no skips).
    --  @req FR-PH-01, FR-PH-05
@@ -57,12 +77,27 @@ package body Phase_Sequencer is
       return M;
    end Movements_For;
 
+   --  True if a ped phase concurrent with P is currently being served
+   --  (Walk or Flashing_Dont_Walk). Drives the FR-PD-06 green extension.
+   function Ped_Active_For (S : State; P : Phase_Id) return Boolean is
+      Pair : constant Crosswalk_Pair := Ped_Pair_For (P);
+   begin
+      case P is
+         when NS_Through_Green | EW_Through_Green =>
+            return Pedestrian.Is_Serving (S.Peds (Pair (1)))
+              or else Pedestrian.Is_Serving (S.Peds (Pair (2)));
+         when others =>
+            return False;
+      end case;
+   end Ped_Active_For;
+
    --  Duration after which the current phase's exit guard fires.
-   --  For through-green, v0.1 has no concurrent ped phase plumbed in
-   --  yet, so green_done from state-machine.md collapses to T_Min_G
-   --  (FR-PH-03). When pedestrian state lands, this returns the
-   --  max of T_Min_G and (T_Walk + T_FDW) when a ped phase is served.
-   function Phase_Duration (P : Phase_Id) return Timing.Milliseconds is
+   --  For through-greens, FR-PD-06 extends to max (T_Min_G, T_Walk+T_FDW)
+   --  while a concurrent ped phase is being served. Once both crosswalks
+   --  reach Dont_Walk, the active predicate goes false and the duration
+   --  collapses back to T_Min_G (which is already <= elapsed by then).
+   function Phase_Duration (S : State; P : Phase_Id)
+                            return Timing.Milliseconds is
    begin
       case P is
          when Startup =>
@@ -75,11 +110,45 @@ package body Phase_Sequencer is
          when All_Red_1 | All_Red_2 | All_Red_3 | All_Red_4 =>
             return Timing.T_AR;
          when NS_Through_Green | EW_Through_Green =>
-            return Timing.T_Min_G;
+            if Ped_Active_For (S, P) then
+               return Timing.Milliseconds'Max
+                  (Timing.T_Min_G, Timing.T_Walk + Timing.T_FDW);
+            else
+               return Timing.T_Min_G;
+            end if;
          when Fault =>
             return Timing.Milliseconds'Last;
       end case;
    end Phase_Duration;
+
+   --  Enter a phase: refresh Active, then signal Start_Phase / End_Phase
+   --  on the appropriate ped pair so the ped sub-machine tracks the
+   --  vehicle-phase boundary.
+   procedure Enter (S : in out State; P : Phase_Id) is
+      Pair : Crosswalk_Pair;
+   begin
+      S.Current       := P;
+      S.Time_In_Phase := 0;
+      S.Active        := Movements_For (P);
+
+      case P is
+         when NS_Through_Green | EW_Through_Green =>
+            Pair := Ped_Pair_For (P);
+            Pedestrian.Start_Phase (S.Peds (Pair (1)));
+            Pedestrian.Start_Phase (S.Peds (Pair (2)));
+         when NS_Through_Yellow | EW_Through_Yellow =>
+            Pair := Ped_Pair_For (P);
+            Pedestrian.End_Phase (S.Peds (Pair (1)));
+            Pedestrian.End_Phase (S.Peds (Pair (2)));
+         when others =>
+            null;
+      end case;
+   end Enter;
+
+   procedure Press_Ped (S : in out State; CW : Pedestrian.Crosswalk) is
+   begin
+      Pedestrian.Press (S.Peds (CW));
+   end Press_Ped;
 
    procedure Tick (S : in out State) is
    begin
@@ -90,13 +159,15 @@ package body Phase_Sequencer is
          S.Time_In_Phase := S.Time_In_Phase + 1;
       end if;
 
+      for CW in Pedestrian.Crosswalk loop
+         Pedestrian.Tick (S.Peds (CW));
+      end loop;
+
       --  FR-SF-05: no auto-recovery from Fault.
       if S.Current /= Fault
-        and then S.Time_In_Phase >= Phase_Duration (S.Current)
+        and then S.Time_In_Phase >= Phase_Duration (S, S.Current)
       then
-         S.Current       := Next_Phase (S.Current);
-         S.Time_In_Phase := 0;
-         S.Active        := Movements_For (S.Current);
+         Enter (S, Next_Phase (S.Current));
       end if;
    end Tick;
 

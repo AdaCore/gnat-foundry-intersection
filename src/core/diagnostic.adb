@@ -1,4 +1,5 @@
 with HAL;
+with Pedestrian;
 
 package body Diagnostic is
 
@@ -25,14 +26,35 @@ package body Diagnostic is
       return S (S'First + 1 .. S'Last);
    end Image;
 
-   procedure Emit_Transition (S : Phase_Sequencer.State) is
+   --  Aggregate per-axis ped state for the wire field (wire-protocol § 1.4).
+   --  Per-corner Crosswalk → axis mapping uses literal enum naming;
+   --  Ped-row inversion (backlog #1) may flip these groupings, gated on
+   --  a requirement_change issue.
+   function Ped_Axis_Token (Peds : Pedestrian.Crosswalk_States;
+                            A, B : Pedestrian.Crosswalk) return String is
    begin
-      --  PED / LT / FAULT fields are placeholders until the corresponding
-      --  state plumbing lands. T_in_phase is real.
+      if Peds (A).Request_Latched or else Peds (B).Request_Latched
+        or else Pedestrian.Is_Serving (Peds (A))
+        or else Pedestrian.Is_Serving (Peds (B))
+      then
+         return "req";
+      else
+         return "clr";
+      end if;
+   end Ped_Axis_Token;
+
+   procedure Emit_Transition (S : Phase_Sequencer.State) is
+      NS_Tok : constant String :=
+        Ped_Axis_Token (S.Peds, Pedestrian.NS_North, Pedestrian.NS_South);
+      EW_Tok : constant String :=
+        Ped_Axis_Token (S.Peds, Pedestrian.EW_East, Pedestrian.EW_West);
+   begin
+      --  LT / FAULT fields are placeholders until the corresponding
+      --  state plumbing lands. T_in_phase and PED are real.
       HAL.Diag_Write_Line
         ("PH="    & Phase_Name (S.Current)
          & " T="   & Image (Natural (S.Time_In_Phase))
-         & " PED=NS:clr,EW:clr"
+         & " PED=NS:" & NS_Tok & ",EW:" & EW_Tok
          & " LT=NS:0,EW:0"
          & " FAULT=0");
    end Emit_Transition;
