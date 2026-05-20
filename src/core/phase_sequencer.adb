@@ -2,15 +2,9 @@
 --  defined in docs/architecture/state-machine.md.
 --
 --  @req FR-PH-01, FR-PH-02, FR-PH-03, FR-PH-04, FR-PH-05, FR-PH-06,
---       FR-PD-03, FR-PD-04, FR-PD-06
+--       FR-PD-03, FR-PD-04, FR-PD-06, FR-SF-05, FR-SF-07, FR-UI-02
 
 package body Phase_Sequencer is
-
-   --  v0.1 hard-wires left-turn demand to always-present per
-   --  state-machine.md § Guards. When demand becomes a real input,
-   --  Next_Phase below is where the skip-on-no-demand branch lands.
-   Left_Demand_Always_On : constant Boolean := True;
-   pragma Unreferenced (Left_Demand_Always_On);
 
    --  Map a through-phase to the two crosswalks served by its concurrent
    --  ped phase (per srs.md § 2.3, FR-PD-03/04).
@@ -31,24 +25,43 @@ package body Phase_Sequencer is
       end case;
    end Ped_Pair_For;
 
-   --  Static next-phase table for the nominal cycle (v0.1: no skips).
-   --  @req FR-PH-01, FR-PH-05
-   function Next_Phase (P : Phase_Id) return Phase_Id is
+   --  Static next-phase table for the nominal cycle, with FR-PH-02 skip
+   --  branches on All_Red_4 → NS_Left_Green and All_Red_2 → EW_Left_Green
+   --  when the corresponding axis has no left-turn demand. The same skip
+   --  also applies to the Startup → NS_Left_Green entry so a cold start
+   --  with !Left_Demand(NS) goes straight to the through phase.
+   --  @req FR-PH-01, FR-PH-02, FR-PH-05
+   function Next_Phase (S : State; P : Phase_Id) return Phase_Id is
    begin
       case P is
-         when Startup           => return NS_Left_Green;
+         when Startup =>
+            if S.Left_Demand (NS) then
+               return NS_Left_Green;
+            else
+               return NS_Through_Green;
+            end if;
          when NS_Left_Green     => return NS_Left_Yellow;
          when NS_Left_Yellow    => return All_Red_1;
          when All_Red_1         => return NS_Through_Green;
          when NS_Through_Green  => return NS_Through_Yellow;
          when NS_Through_Yellow => return All_Red_2;
-         when All_Red_2         => return EW_Left_Green;
+         when All_Red_2 =>
+            if S.Left_Demand (EW) then
+               return EW_Left_Green;
+            else
+               return EW_Through_Green;
+            end if;
          when EW_Left_Green     => return EW_Left_Yellow;
          when EW_Left_Yellow    => return All_Red_3;
          when All_Red_3         => return EW_Through_Green;
          when EW_Through_Green  => return EW_Through_Yellow;
          when EW_Through_Yellow => return All_Red_4;
-         when All_Red_4         => return NS_Left_Green;
+         when All_Red_4 =>
+            if S.Left_Demand (NS) then
+               return NS_Left_Green;
+            else
+               return NS_Through_Green;
+            end if;
          when Fault             => return Fault;
       end case;
    end Next_Phase;
@@ -150,6 +163,27 @@ package body Phase_Sequencer is
       Pedestrian.Press (S.Peds (CW));
    end Press_Ped;
 
+   procedure Set_Left_Demand
+     (S : in out State; A : Axis; Demanded : Boolean) is
+   begin
+      S.Left_Demand (A) := Demanded;
+   end Set_Left_Demand;
+
+   procedure Set_Fault (S : in out State; Asserted : Boolean) is
+   begin
+      --  Latching the input here; the Fault entry itself happens on the
+      --  next Tick so the rest of the loop (pedestrian, diagnostics) sees
+      --  a consistent state. FR-SF-05: clearing the input does NOT exit
+      --  Fault — only Reset_Controller does that.
+      S.Fault_Latched := Asserted;
+   end Set_Fault;
+
+   procedure Reset_Controller (S : in out State) is
+      Fresh : State;
+   begin
+      S := Fresh;
+   end Reset_Controller;
+
    procedure Tick (S : in out State) is
    begin
       --  Saturating add: Fault has no exit guard, so we could sit there
@@ -163,11 +197,21 @@ package body Phase_Sequencer is
          Pedestrian.Tick (S.Peds (CW));
       end loop;
 
+      --  FR-SF-07: a latched MMU fault input forces Fault entry from any
+      --  non-Fault phase. Checked before the nominal exit guard so a
+      --  fault asserted on the same tick that the phase would naturally
+      --  exit still wins (and we don't emit a spurious nominal-next-phase
+      --  transition first).
+      if S.Fault_Latched and then S.Current /= Fault then
+         Enter (S, Fault);
+         return;
+      end if;
+
       --  FR-SF-05: no auto-recovery from Fault.
       if S.Current /= Fault
         and then S.Time_In_Phase >= Phase_Duration (S, S.Current)
       then
-         Enter (S, Next_Phase (S.Current));
+         Enter (S, Next_Phase (S, S.Current));
       end if;
    end Tick;
 

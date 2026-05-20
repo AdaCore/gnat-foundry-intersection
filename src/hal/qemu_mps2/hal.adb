@@ -48,6 +48,24 @@ package body HAL is
    STATE_TX_FULL : constant Unsigned_32 := 16#01#;
 
    ----------------------------------------------------------------------
+   --  CMSDK UART1 (command input — wire-protocol § 2)
+   ----------------------------------------------------------------------
+
+   UART1_BASE : constant := 16#4000_5000#;
+
+   U1_DATA    : Unsigned_32 with
+     Volatile, Address => To_Address (UART1_BASE + 16#00#), Import;
+   U1_STATE   : Unsigned_32 with
+     Volatile, Address => To_Address (UART1_BASE + 16#04#), Import;
+   U1_CTRL    : Unsigned_32 with
+     Volatile, Address => To_Address (UART1_BASE + 16#08#), Import;
+   U1_BAUDDIV : Unsigned_32 with
+     Volatile, Address => To_Address (UART1_BASE + 16#10#), Import;
+
+   STATE_RX_FULL  : constant Unsigned_32 := 16#02#;
+   CTRL_RX_ENABLE : constant Unsigned_32 := 16#02#;
+
+   ----------------------------------------------------------------------
    --  Cortex-M SysTick — 1 ms tick source
    ----------------------------------------------------------------------
    --  mps2-an385's nominal core clock is 25 MHz, so (25_000 - 1) cycles
@@ -92,6 +110,12 @@ package body HAL is
       U0_BAUDDIV := 16;
       U0_CTRL    := 16#03#;        --  TX + RX enable
 
+      --  UART1 — RX-only on this profile (host visualizer writes
+      --  commands to us). Real CMSDK requires BAUDDIV >= 16; QEMU
+      --  accepts any non-zero value so this also keeps the IP happy.
+      U1_BAUDDIV := 16;
+      U1_CTRL    := CTRL_RX_ENABLE;
+
       SYST_RVR := SYSTICK_RELOAD_1MS;
       SYST_CVR := 0;                --  any write clears CVR and COUNTFLAG
       SYST_CSR := SYST_ENABLE_PROC_CLK;
@@ -126,10 +150,23 @@ package body HAL is
    function Read_Button (CW : Crosswalk) return Boolean is
       pragma Unreferenced (CW);
    begin
-      --  UART1 PRESS PED wire-command parsing (wire-protocol § 2) is a
-      --  follow-up; until then, the bare-metal target sees no presses.
+      --  No physical GPIO on the emulated machine. Pedestrian presses
+      --  arrive via the UART1 cmd-in channel (see Read_Cmd_Byte +
+      --  src/app/cmd_input.adb + src/core/cmd_parser.adb), not via this
+      --  primitive.
       return False;
    end Read_Button;
+
+   procedure Read_Cmd_Byte (C : out Character; Got : out Boolean) is
+   begin
+      if (U1_STATE and STATE_RX_FULL) /= 0 then
+         C   := Character'Val (Integer (U1_DATA and 16#FF#));
+         Got := True;
+      else
+         C   := ASCII.NUL;
+         Got := False;
+      end if;
+   end Read_Cmd_Byte;
 
    procedure Tick_Wait is
       Status : Unsigned_32;

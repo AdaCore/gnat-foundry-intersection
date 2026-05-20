@@ -43,20 +43,26 @@ package body Diagnostic is
       end if;
    end Ped_Axis_Token;
 
+   function Bit (B : Boolean) return String is
+     (if B then "1" else "0");
+
    procedure Emit_Transition (S : Phase_Sequencer.State) is
-      NS_Tok : constant String :=
+      use type Phase_Sequencer.Phase_Id;
+      NS_Tok    : constant String :=
         Ped_Axis_Token (S.Peds, Pedestrian.NS_North, Pedestrian.NS_South);
-      EW_Tok : constant String :=
+      EW_Tok    : constant String :=
         Ped_Axis_Token (S.Peds, Pedestrian.EW_East, Pedestrian.EW_West);
+      Fault_Now : constant Boolean :=
+        S.Fault_Latched
+          or else S.Current = Phase_Sequencer.Fault;
    begin
-      --  LT / FAULT fields are placeholders until the corresponding
-      --  state plumbing lands. T_in_phase and PED are real.
       HAL.Diag_Write_Line
         ("PH="    & Phase_Name (S.Current)
          & " T="   & Image (Natural (S.Time_In_Phase))
          & " PED=NS:" & NS_Tok & ",EW:" & EW_Tok
-         & " LT=NS:0,EW:0"
-         & " FAULT=0");
+         & " LT=NS:" & Bit (S.Left_Demand (Phase_Sequencer.NS))
+         & ",EW:"     & Bit (S.Left_Demand (Phase_Sequencer.EW))
+         & " FAULT="  & Bit (Fault_Now));
    end Emit_Transition;
 
    procedure Emit_Heartbeat (Now_Ms : Natural) is

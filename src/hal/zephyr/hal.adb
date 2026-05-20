@@ -47,6 +47,12 @@ package body HAL is
       return False;  --  TODO
    end Read_Button;
 
+   procedure Read_Cmd_Byte (C : out Character; Got : out Boolean) is
+   begin
+      C   := ASCII.NUL;
+      Got := False;  --  TODO: bridge to a Zephyr UART via tlc_zephyr_*
+   end Read_Cmd_Byte;
+
    procedure Tick_Wait is
    begin
       null;  --  TODO: import k_msleep wrapper from hal_zephyr.c.

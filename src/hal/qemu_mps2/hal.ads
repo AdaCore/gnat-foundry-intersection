@@ -20,6 +20,17 @@ package HAL is
    procedure Set_Walk           (CW : Crosswalk; Walking : Boolean);
    procedure Set_Dont_Walk      (CW : Crosswalk; Steady : Boolean; Flashing : Boolean);
    function  Read_Button        (CW : Crosswalk) return Boolean;
+
+   --  Non-blocking byte poll on the cmd-input channel (wire-protocol § 2,
+   --  CMSDK UART1 on this profile). Got=True means C holds one
+   --  freshly-read byte; Got=False means no byte was available at the
+   --  moment of the call. To route UART1 over TCP at qemu launch, pass a
+   --  second -serial flag, e.g.
+   --    qemu-system-arm ... -serial tcp:127.0.0.1:5578 \
+   --                         -serial tcp:127.0.0.1:5577,server,nowait
+   --  (first -serial = UART0 = diag-out; second = UART1 = cmd-in).
+   procedure Read_Cmd_Byte (C : out Character; Got : out Boolean);
+
    procedure Tick_Wait;
    procedure Diag_Write_Line    (S : String);
 

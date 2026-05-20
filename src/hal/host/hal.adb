@@ -1,17 +1,70 @@
 --  HAL host stub — prints lamp state changes to stdout, simulates the
 --  1 kHz tick with a delay. Buttons read False by default; tests inject
 --  presses by overriding via a separate test fixture (TBD).
+--
+--  Cmd-input on this profile is wired to STDIN with O_NONBLOCK so the
+--  developer can pipe wire-protocol § 2 lines in (e.g.
+--  `echo "PRESS PED NE" | ./bin/host/main`). On bare metal the equivalent
+--  channel is CMSDK UART1; see src/hal/qemu_mps2/hal.adb.
 
 with Ada.Text_IO;
 with Ada.Calendar;
+with Ada.Unchecked_Conversion;
+with Interfaces;
+with Interfaces.C;
+with System;
 
 package body HAL is
 
    use Ada.Text_IO;
+   use Interfaces;
+
+   ----------------------------------------------------------------------
+   --  Non-blocking stdin for the cmd-input channel
+   ----------------------------------------------------------------------
+
+   STDIN_FD : constant Interfaces.C.int := 0;
+
+   --  Linux fcntl constants (glibc <bits/fcntl-linux.h> on x86_64/arm):
+   F_GETFL    : constant Interfaces.C.int := 3;
+   F_SETFL    : constant Interfaces.C.int := 4;
+   O_NONBLOCK : constant Unsigned_32      := 8#04000#;
+
+   function C_Fcntl_Get (Fd, Cmd : Interfaces.C.int) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "fcntl";
+
+   function C_Fcntl_Set
+     (Fd, Cmd, Arg : Interfaces.C.int) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "fcntl";
+
+   function C_Read
+     (Fd  : Interfaces.C.int;
+      Buf : System.Address;
+      N   : Interfaces.C.size_t) return Interfaces.C.long
+     with Import, Convention => C, External_Name => "read";
+
+   function To_U is new Ada.Unchecked_Conversion
+     (Interfaces.C.int, Unsigned_32);
+   function To_I is new Ada.Unchecked_Conversion
+     (Unsigned_32, Interfaces.C.int);
+
+   procedure Set_Stdin_Nonblocking is
+      Flags : Interfaces.C.int;
+      Rc    : Interfaces.C.int;
+      pragma Unreferenced (Rc);
+      use type Interfaces.C.int;
+   begin
+      Flags := C_Fcntl_Get (STDIN_FD, F_GETFL);
+      if Flags >= 0 then
+         Rc := C_Fcntl_Set
+                 (STDIN_FD, F_SETFL, To_I (To_U (Flags) or O_NONBLOCK));
+      end if;
+   end Set_Stdin_Nonblocking;
 
    procedure Initialize is
    begin
       Put_Line ("[HAL/host] Initialize");
+      Set_Stdin_Nonblocking;
    end Initialize;
 
    procedure Set_Through_Lamp (App : Approach; L : Lamp; On : Boolean) is
@@ -50,6 +103,25 @@ package body HAL is
    begin
       return False;
    end Read_Button;
+
+   procedure Read_Cmd_Byte (C : out Character; Got : out Boolean) is
+      use type Interfaces.C.long;
+      Buf : Character := ASCII.NUL;
+      N   : Interfaces.C.long;
+   begin
+      N := C_Read (STDIN_FD, Buf'Address, 1);
+      if N = 1 then
+         C   := Buf;
+         Got := True;
+      else
+         --  0 = EOF, -1 = EAGAIN / EWOULDBLOCK / other error → no byte
+         --  available this tick. We do not propagate EOF specially; the
+         --  caller continues polling and will simply see no further
+         --  bytes after stdin closes.
+         C   := ASCII.NUL;
+         Got := False;
+      end if;
+   end Read_Cmd_Byte;
 
    procedure Tick_Wait is
       use Ada.Calendar;

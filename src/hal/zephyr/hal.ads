@@ -19,6 +19,13 @@ package HAL is
    procedure Set_Walk           (CW : Crosswalk; Walking : Boolean);
    procedure Set_Dont_Walk      (CW : Crosswalk; Steady : Boolean; Flashing : Boolean);
    function  Read_Button        (CW : Crosswalk) return Boolean;
+
+   --  Non-blocking byte poll on the cmd-input channel (wire-protocol § 2).
+   --  Stub on the Zephyr profile; a future implementation would source
+   --  this from a Zephyr UART (e.g. uart_poll_in via a tlc_zephyr_*
+   --  bridge in src/hal/zephyr/hal_zephyr.c).
+   procedure Read_Cmd_Byte (C : out Character; Got : out Boolean);
+
    procedure Tick_Wait;
    procedure Diag_Write_Line    (S : String);
 

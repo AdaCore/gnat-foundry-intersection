@@ -6,6 +6,7 @@ with HAL;
 with Phase_Sequencer;
 with Pedestrian;
 with Diagnostic;
+with Cmd_Input;
 
 procedure Main is
    use type Phase_Sequencer.Phase_Id;
@@ -19,9 +20,10 @@ procedure Main is
         when HAL.EW_East  => Pedestrian.EW_East,
         when HAL.EW_West  => Pedestrian.EW_West);
 
-   S          : Phase_Sequencer.State;
-   Last_Phase : Phase_Sequencer.Phase_Id := S.Current;
-   Ms_Counter : Natural := 0;
+   S            : Phase_Sequencer.State;
+   Last_Phase   : Phase_Sequencer.Phase_Id := S.Current;
+   Ms_Counter   : Natural := 0;
+   Cmd_Applied  : Boolean;
 begin
    HAL.Initialize;
    HAL.Diag_Write_Line ("startup");
@@ -29,6 +31,17 @@ begin
 
    loop
       HAL.Tick_Wait;
+
+      --  Drain any cmd-input lines that arrived during the prior tick
+      --  (wire-protocol § 2). A successful dispatch may mutate
+      --  Left_Demand / Fault_Latched / Peds / Current (via RESET) — we
+      --  emit a fresh transition record afterward so the wire reflects
+      --  the new state without waiting for the next phase transition.
+      Cmd_Input.Pump (S, Cmd_Applied);
+      if Cmd_Applied then
+         Diagnostic.Emit_Transition (S);
+         Last_Phase := S.Current;
+      end if;
 
       --  Poll ped buttons; HAL is responsible for the FR-PD-01 50 ms
       --  debounce, so any True here is a real press.
