@@ -26,6 +26,7 @@ procedure Test_Runner is
    --  implementation lands.
 
    procedure Test_Sequencer_Initial_State is
+      use type Phase_Sequencer.Phase_Id;
       S : Phase_Sequencer.State;
    begin
       Check (S.Current = Phase_Sequencer.Startup,
