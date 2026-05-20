@@ -6,6 +6,7 @@
 with Ada.Text_IO;
 with Phase_Sequencer;
 with Conflict_Check;
+with Timing;
 
 procedure Test_Runner is
 
@@ -33,6 +34,19 @@ procedure Test_Runner is
              "sequencer starts in Startup");
    end Test_Sequencer_Initial_State;
 
+   procedure Test_Sequencer_Advances_Past_Startup is
+      use type Phase_Sequencer.Phase_Id;
+      S : Phase_Sequencer.State;
+   begin
+      for I in 1 .. Timing.T_Startup + 1 loop
+         Phase_Sequencer.Tick (S);
+      end loop;
+      Check (S.Current = Phase_Sequencer.NS_Left_Green,
+             "Startup advances to NS_Left_Green after T_Startup");
+      Check (Phase_Sequencer.Invariant_Holds (S),
+             "post-Startup state satisfies invariant");
+   end Test_Sequencer_Advances_Past_Startup;
+
    procedure Test_Conflict_Matrix_Reflexivity is
       use Conflict_Check;
    begin
@@ -45,6 +59,7 @@ procedure Test_Runner is
 
 begin
    Test_Sequencer_Initial_State;
+   Test_Sequencer_Advances_Past_Startup;
    Test_Conflict_Matrix_Reflexivity;
 
    if Failures = 0 then
