@@ -26,7 +26,8 @@ SRC = ROOT / "src"
 TESTS = ROOT / "tests"
 
 REQ_ID_RE = re.compile(r"\b(FR|NFR)-[A-Z]{2}-\d{2,}\b")
-ANNOTATION_RE = re.compile(r"--\s*@req\s+(.+)$")
+#  Ada-style `-- @req ...` for .ads/.adb/.gpr and `# @req ...` for .py.
+ANNOTATION_RE = re.compile(r"(?:--|#)\s*@req\s+(.+)$")
 OBSOLETE_RE = re.compile(r"~~((?:FR|NFR)-[A-Z]{2}-\d{2,})~~")
 
 
@@ -47,7 +48,9 @@ def collect_references(root: Path) -> dict[str, list[str]]:
     if not root.exists():
         return refs
     for path in root.rglob("*"):
-        if path.is_dir() or path.suffix not in {".ads", ".adb", ".gpr", ".md"}:
+        if path.is_dir() or path.suffix not in {
+            ".ads", ".adb", ".gpr", ".md", ".py"
+        }:
             continue
         try:
             for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

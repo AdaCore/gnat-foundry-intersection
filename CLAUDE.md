@@ -25,6 +25,10 @@ make BOARD=<other_board>          # override target board
 alr exec -- gprbuild -P tests/unit/unit_tests.gpr
 ./tests/unit/bin/test_runner
 
+# Requirements-based tests (QEMU mps2-an385; ~3 min wall)
+alr exec -- gprbuild -P traffic_light_qemu.gpr
+python3 tests/requirements/run.py
+
 # SPARK proofs on the conflict-check module
 alr exec -- gnatprove -P tests/proof/conflict_check_proof.gpr --level=2
 
