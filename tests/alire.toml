@@ -1,0 +1,18 @@
+name = "traffic_light_tests"
+description = "Unit tests for the traffic_light crate (AUnit harness via gnattest)"
+version = "0.0.0"
+authors = ["Mark"]
+maintainers = ["Mark <mark@example.invalid>"]
+maintainers-logins = ["mark"]
+licenses = "MIT"
+
+project-files = ["tests.gpr"]
+
+[[depends-on]]
+traffic_light = "*"
+
+[[depends-on]]
+aunit = "*"
+
+[[pins]]
+traffic_light = { path = '..' }
