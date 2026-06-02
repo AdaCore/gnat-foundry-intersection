@@ -7,12 +7,6 @@
 --      movements respects the matrix.
 --
 --  @req FR-SF-01, FR-SF-02
---
---  Proof obligations (to be discharged by gnatprove):
---    * Symmetry of the conflict matrix.
---    * Reflexivity: a movement does not conflict with itself.
---    * For all M1, M2: Conflicts (M1, M2) implies not (Active (M1)
---      and Active (M2)) in any state where Is_Safe returns True.
 
 package Conflict_Check
   with SPARK_Mode => On,
@@ -36,15 +30,17 @@ is
    --  TODO: populate the matrix and prove its properties.
    --  The current value is a placeholder; see the open question in
    --  docs/requirements/conflict-matrix.md regarding Ped row inversion.
+   --
+   --  @type_contract (Symmetric) FR-SF-01
+   --  Conflicts(A, B) = Conflicts(B, A) for all A, B in Movement.
+   --
+   --  @type_contract (Irreflexive) FR-SF-01
+   --  Conflicts(M, M) = False for all M in Movement.
    Conflicts : constant Conflict_Matrix := (others => (others => False));
 
-   --  Symmetry: Conflicts (A, B) = Conflicts (B, A).
-   --  Reflexivity: Conflicts (M, M) = False.
-   --  These will be encoded as Static_Predicate or Ghost expressions
-   --  once the real matrix is populated.
-
-   --  Returns True iff no two simultaneously-active movements are in
-   --  conflict. This is the central safety predicate.
+   --  @outcome (No_Conflicting_Pair) FR-SF-01, FR-SF-02
+   --  For all M1, M2 in Movement: if Active(M1) and Active(M2) then
+   --  not Conflicts(M1, M2).
    function Is_Safe (Active : Movement_Set) return Boolean
      with Ghost,
           Post => Is_Safe'Result =

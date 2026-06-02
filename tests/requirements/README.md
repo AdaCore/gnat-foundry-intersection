@@ -85,6 +85,8 @@ the regex used to parse it lives in `harness.py`'s `PH_RE` /
 | FR-UI-03, NFR-DG-01 | `test_fr_ui.test_fr_ui_03_phase_transition_record_format` | Every PH= line parses against the canonical grammar |
 | FR-UI-04 | `test_fr_ui.test_fr_ui_04_heartbeat_at_one_hz` | ≥5 heartbeats in a 6-second window, 1000 ms ±100 ms cadence |
 | FR-UI-05 | `test_fr_ui.test_fr_ui_05_command_dispatch_round_trip` | All four verbs round-trip; malformed lines produce no cmd-applied re-emit |
+| NFR-PF-01 | `test_nfr.test_nfr_pf_01_button_press_to_latch_within_100ms` | PRESS PED → PED=req re-emit within 100 ms wall-clock (proxy for GPIO-edge → latch on real hardware) |
+| NFR-PF-02 | `test_nfr.test_nfr_pf_02_lamp_output_within_50ms_of_transition` | FAULT 1 → PH=FAULT within 50 ms; all transition records carry T=0 (same-tick emit) |
 | NFR-PF-03 | `test_nfr.test_nfr_pf_03_phase_timing_accuracy_within_50ms` | Every nominal phase's wall duration within ±50 ms (with +250 ms jitter ceiling) of its `timing.ads` constant |
 
 ## What's intentionally **not** covered here
@@ -101,7 +103,6 @@ or upstream SPARK proof).
 | NFR-MN-01..03 | Structural — module layout / SPARK amenability. Static-analysed by code review and (for the conflict-check module) by `gnatprove`. |
 | NFR-RL-01..03 | RAM/CRC/clock self-tests + IWDG/WWDG — all device-specific; no equivalent peripheral on mps2-an385. |
 | NFR-DG-02 | Fault-code retention in non-volatile memory — no flash on mps2-an385 in this build. |
-| NFR-PF-01, NFR-PF-02 | Both phrased in terms of GPIO-edge → state-change latency; no GPIO. Conceptually verified by the bound on cmd-applied transition latency (sub-tick = ≤ 1 ms) but the SRS phrasing is hardware-specific. |
 
 If any of these become testable in a future build (e.g. a Zephyr
 integration profile that wires real GPIO into the wire protocol),
@@ -114,6 +115,7 @@ empirically each phase's wall duration matches the `timing.ads`
 constant within < 5 ms. Consequently each test takes roughly as
 long as the controller-time interval it observes:
 
+- NFR-PF-01 / -02 (latency measurement): ~6–7 s
 - Smoke / cmd round-trip tests: 0.1–1 s
 - FR-SF-03 (startup duration): ~5 s
 - FR-PH-04 / -05 / -06 (covers two greens): ~28 s

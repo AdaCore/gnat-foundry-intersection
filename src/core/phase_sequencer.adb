@@ -2,7 +2,8 @@
 --  defined in docs/architecture/state-machine.md.
 --
 --  @req FR-PH-01, FR-PH-02, FR-PH-03, FR-PH-04, FR-PH-05, FR-PH-06,
---       FR-PD-03, FR-PD-04, FR-PD-06, FR-SF-05, FR-SF-07, FR-UI-02
+--       FR-PD-03, FR-PD-04, FR-PD-06, FR-SF-04, FR-SF-05, FR-SF-07,
+--       FR-SF-08, FR-SF-09, FR-UI-02
 
 package body Phase_Sequencer is
 
@@ -70,6 +71,7 @@ package body Phase_Sequencer is
    --  Startup and all-red phases yield the empty set (flashing red /
    --  clearance). Yellow phases keep the same movement asserted as the
    --  preceding green per FR-PH-04.
+   --  @req FR-SF-08, FR-SF-09
    function Movements_For (P : Phase_Id) return Conflict_Check.Movement_Set is
       use Conflict_Check;
       M : Movement_Set := (others => False);
@@ -197,11 +199,7 @@ package body Phase_Sequencer is
          Pedestrian.Tick (S.Peds (CW));
       end loop;
 
-      --  FR-SF-07: a latched MMU fault input forces Fault entry from any
-      --  non-Fault phase. Checked before the nominal exit guard so a
-      --  fault asserted on the same tick that the phase would naturally
-      --  exit still wins (and we don't emit a spurious nominal-next-phase
-      --  transition first).
+      --  @req FR-SF-04, FR-SF-07
       if S.Fault_Latched and then S.Current /= Fault then
          Enter (S, Fault);
          return;

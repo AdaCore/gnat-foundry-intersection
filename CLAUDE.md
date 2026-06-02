@@ -58,8 +58,16 @@ this — it's load-bearing for the proof story. See
 
 - IDs (`FR-*`, `NFR-*`) are **stable forever**. To remove, mark obsolete:
   `~~FR-XX-NN~~ (obsolete in vX.Y — superseded by FR-XX-MM)`.
-- Every code/test unit implementing a requirement must carry an `-- @req <ID>[, <ID>...]`
-  comment. CI runs `tools/trace-check.py` and fails on uncovered active reqs.
+- Every requirement in `srs.md` must carry a `[verification-method]` tag
+  (`[proof]`, `[test]`, `[inspect]`, or `[hw-test]`) per MR-07. See
+  `docs/requirements/meta-requirements.md` for the full quality checklist
+  (MR-01..MR-07) adapted from the NVIDIA SPARK Process.
+- **Non-SPARK code**: annotate with coarse `-- @req <ID>[, <ID>...]`.
+- **SPARK-proven code**: annotate with fine-grained tags (`@outcome`,
+  `@pre`, `@type_contract`) per `docs/requirements/traceability-guide.md`.
+- CI runs `tools/trace-check.py` and fails on uncovered active reqs. The
+  checker also cross-validates verification methods (e.g., `[proof]` reqs
+  must have SPARK code refs; `[test]` reqs must have test refs).
 - Changing a requirement → open a `requirement_change` issue **first** (template at
   `.gitlab/issue_templates/requirement_change.md`). Use the
   `requirement-change-issuer` agent to draft.
@@ -155,6 +163,8 @@ and pitfall list.
 ## Pointers
 
 - ADRs: `docs/adr/` (0001 platform, 0002 SPARK use, 0003 leading protected left, 0004 Zephyr for HAL)
+- Meta-requirements: `docs/requirements/meta-requirements.md` (MR-01..MR-07 quality checklist)
+- Traceability guide: `docs/requirements/traceability-guide.md` (coarse @req + fine-grained SPARK tags)
 - Hazards: `docs/safety/hazard-analysis.md`
 - State machine: `docs/architecture/state-machine.md`
 - MR/issue templates: `.gitlab/`

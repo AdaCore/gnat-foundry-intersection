@@ -3,7 +3,8 @@
 --  in docs/architecture/state-machine.md.
 --
 --  @req FR-PH-01, FR-PH-02, FR-PH-03, FR-PH-04, FR-PH-05, FR-PH-06,
---       FR-PD-03, FR-PD-04, FR-PD-06, FR-SF-07, FR-UI-02
+--       FR-PD-03, FR-PD-04, FR-PD-06, FR-SF-04, FR-SF-07, FR-SF-08,
+--       FR-SF-09, FR-UI-02
 
 with Timing;
 with Conflict_Check;

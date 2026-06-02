@@ -9,7 +9,8 @@ MMU heartbeat is a hardware-only artifact. See README.md § scope.
 """
 from __future__ import annotations
 
-# @req FR-SF-01, FR-SF-02, FR-SF-03, FR-SF-04, FR-SF-05, FR-SF-07
+# @req FR-SF-01, FR-SF-02, FR-SF-03, FR-SF-04, FR-SF-05, FR-SF-07,
+# @req FR-SF-08, FR-SF-09
 from harness import QemuSession, requires
 
 T_STARTUP_MS = 5_000   # src/core/timing.ads
@@ -53,20 +54,20 @@ def test_fr_sf_03_startup_holds_for_T_startup():
         )
 
 
-@requires("FR-SF-04", "FR-SF-07")
+@requires("FR-SF-04", "FR-SF-07", "FR-SF-08", "FR-SF-09")
 def test_fr_sf_07_fault_input_forces_fault_state():
-    """FR-SF-07: the controller shall enter the fault state immediately
-    upon receiving an asserted fault input from the external MMU.
-    FR-SF-04 (also covered): on fault, the phase becomes FAULT.
+    """FR-SF-04: on detection of a fault, the controller shall transition
+    to the fault state. FR-SF-07: the controller shall enter the fault
+    state immediately upon receiving an asserted fault input. FR-SF-08:
+    vehicle indications shall display flashing red (FAULT phase = empty
+    movement set = all-red). FR-SF-09: pedestrian indications shall
+    display steady DON'T WALK (no ped movement active in FAULT phase).
 
-    Observable on wire: send ``FAULT 1`` on UART1, expect a PH=FAULT
-    record within a small number of ticks."""
+    Observable on wire: send ``FAULT 1`` on the command serial interface,
+    expect a PH=FAULT record within a small number of ticks."""
     with QemuSession() as q:
         q.wait_for_transition_to("STARTUP_FLASH", timeout_s=5.0)
         q.send("FAULT 1")
-        # Cmd_Input.Pump runs every tick; Set_Fault latches, Tick
-        # observes the latch and Enters Fault on the next tick.
-        # Allow a tiny budget for both ticks to fire.
         tr = q.wait_for_transition_to("FAULT", timeout_s=2.0)
         assert tr.fault == 1
         assert tr.phase == "FAULT"

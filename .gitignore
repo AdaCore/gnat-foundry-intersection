@@ -56,3 +56,6 @@ release/
 hardware/schematics/cache/
 hardware/schematics/*.bak
 hardware/schematics/*-backups/
+
+tests/coverage-report
+tests/traces
