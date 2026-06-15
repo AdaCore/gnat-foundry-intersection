@@ -22,5 +22,17 @@
       "Bash(rg:*)",
       "Bash(wc:*)"
     ]
+  },
+  "enabledPlugins": {
+    "adacore@adacore-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "adacore-skills": {
+      "source": {
+        "source": "github",
+        "repo": "adacore/skills"
+      },
+      "autoUpdate": true
+    }
   }
 }
