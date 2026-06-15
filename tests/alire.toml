@@ -13,7 +13,12 @@ traffic_light = "*"
 
 [[depends-on]]
 aunit = "*"
+gnattest_bin = "*"
 
 [[pins]]
 traffic_light = { path = '..' }
 
+# Build `traffic_light` in the `development` profile (dependencies default to
+# `release`).
+[build-profiles]
+traffic_light = "development"
