@@ -47,4 +47,8 @@ project Traffic_Light is
       for Skeletons_Default use "pass";
    end Gnattest;
 
+   package Format is
+      for Charset ("some_source.ads") use "utf-8";
+   end Format;
+   
 end Traffic_Light;

@@ -21,12 +21,12 @@ package body Pedestrian is
       end if;
       --  FR-PD-02: latch is consumed when the phase is served.
       S.Request_Latched := False;
-      S.Time_In_State   := 0;
+      S.Time_In_State := 0;
    end Start_Phase;
 
    procedure End_Phase (S : in out Crosswalk_State) is
    begin
-      S.Indication    := Idle;
+      S.Indication := Idle;
       S.Time_In_State := 0;
    end End_Phase;
 
@@ -41,17 +41,19 @@ package body Pedestrian is
 
       --  FR-PD-05: Walk -> FDW after T_Walk; FDW -> Dont_Walk after T_FDW.
       case S.Indication is
-         when Walk =>
+         when Walk               =>
             if S.Time_In_State >= Timing.T_Walk then
-               S.Indication    := Flashing_Dont_Walk;
+               S.Indication := Flashing_Dont_Walk;
                S.Time_In_State := 0;
             end if;
+
          when Flashing_Dont_Walk =>
             if S.Time_In_State >= Timing.T_FDW then
-               S.Indication    := Dont_Walk;
+               S.Indication := Dont_Walk;
                S.Time_In_State := 0;
             end if;
-         when Idle | Dont_Walk =>
+
+         when Idle | Dont_Walk   =>
             null;
       end case;
    end Tick;

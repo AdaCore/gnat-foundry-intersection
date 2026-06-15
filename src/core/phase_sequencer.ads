@@ -10,18 +10,21 @@ with Timing;
 with Conflict_Check;
 with Pedestrian;
 
-package Phase_Sequencer
-is
+package Phase_Sequencer is
 
    type Phase_Id is
      (Startup,
-      NS_Left_Green,   NS_Left_Yellow,
+      NS_Left_Green,
+      NS_Left_Yellow,
       All_Red_1,
-      NS_Through_Green, NS_Through_Yellow,
+      NS_Through_Green,
+      NS_Through_Yellow,
       All_Red_2,
-      EW_Left_Green,   EW_Left_Yellow,
+      EW_Left_Green,
+      EW_Left_Yellow,
       All_Red_3,
-      EW_Through_Green, EW_Through_Yellow,
+      EW_Through_Green,
+      EW_Through_Yellow,
       All_Red_4,
       Fault);
 
@@ -33,12 +36,12 @@ is
    type Left_Demand_Set is array (Axis) of Boolean;
 
    type State is record
-      Current        : Phase_Id := Startup;
-      Time_In_Phase  : Timing.Milliseconds := 0;
-      Active         : Conflict_Check.Movement_Set := (others => False);
-      Peds           : Pedestrian.Crosswalk_States := (others => <>);
-      Left_Demand    : Left_Demand_Set := (others => True);
-      Fault_Latched  : Boolean := False;
+      Current       : Phase_Id := Startup;
+      Time_In_Phase : Timing.Milliseconds := 0;
+      Active        : Conflict_Check.Movement_Set := (others => False);
+      Peds          : Pedestrian.Crosswalk_States := (others => <>);
+      Left_Demand   : Left_Demand_Set := (others => True);
+      Fault_Latched : Boolean := False;
    end record;
 
    --  Latch a pedestrian request on one crosswalk. Delegates to
@@ -50,8 +53,7 @@ is
    --  Set the per-axis left-turn demand. Consumed by Next_Phase to skip
    --  the *_Left_Green/*_Left_Yellow pair when False (FR-PH-02).
    --  @req FR-PH-02
-   procedure Set_Left_Demand
-     (S : in out State; A : Axis; Demanded : Boolean);
+   procedure Set_Left_Demand (S : in out State; A : Axis; Demanded : Boolean);
 
    --  Assert / clear the MMU fault input. Asserted=True latches a request
    --  to enter Fault on the next Tick; Asserted=False clears the latch but

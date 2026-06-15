@@ -66,17 +66,17 @@ package body Cmd_Parser is
    --  found. Tokens are separated by single ASCII spaces; we tolerate any
    --  run of spaces between tokens.
    procedure Next_Token
-     (S          : String;
-      From       : Positive;
+     (S                             : String;
+      From                          : Positive;
       Token_First, Token_Last, Next : out Natural;
-      Found      : out Boolean)
+      Found                         : out Boolean)
    is
       I : Natural := From;
    begin
       Token_First := 0;
-      Token_Last  := 0;
-      Next        := S'Last + 1;
-      Found       := False;
+      Token_Last := 0;
+      Next := S'Last + 1;
+      Found := False;
 
       while I <= S'Last and then S (I) = ' ' loop
          I := I + 1;
@@ -91,21 +91,19 @@ package body Cmd_Parser is
          I := I + 1;
       end loop;
       Token_Last := I - 1;
-      Next       := I;
-      Found      := True;
+      Next := I;
+      Found := True;
    end Next_Token;
 
    procedure Dispatch
-     (S       : in out Phase_Sequencer.State;
-      Line    : String;
-      Applied : out Boolean)
+     (S : in out Phase_Sequencer.State; Line : String; Applied : out Boolean)
    is
-      F1, L1, N1 : Natural;
-      F2, L2, N2 : Natural;
-      F3, L3, N3 : Natural;
-      F4, L4, N4 : Natural;
+      F1, L1, N1                     : Natural;
+      F2, L2, N2                     : Natural;
+      F3, L3, N3                     : Natural;
+      F4, L4, N4                     : Natural;
       Have_1, Have_2, Have_3, Have_4 : Boolean;
-      Ok         : Boolean;
+      Ok                             : Boolean;
    begin
       Applied := False;
 
@@ -142,6 +140,7 @@ package body Cmd_Parser is
             Next_Token (Line, N2, F3, L3, N3, Have_3);
             if Have_3 then
                return;  --  unexpected extra token
+
             end if;
             declare
                Bit : constant Boolean := To_Bit (Line (F2 .. L2), Ok);
@@ -169,7 +168,7 @@ package body Cmd_Parser is
             end if;
             declare
                CW : constant Pedestrian.Crosswalk :=
-                  To_Crosswalk (Line (F3 .. L3), Ok);
+                 To_Crosswalk (Line (F3 .. L3), Ok);
             begin
                if not Ok then
                   return;
@@ -203,7 +202,7 @@ package body Cmd_Parser is
             end;
             declare
                A   : constant Phase_Sequencer.Axis :=
-                  To_Axis (Line (F3 .. L3), Ok);
+                 To_Axis (Line (F3 .. L3), Ok);
                Bit : Boolean;
             begin
                if not Ok then

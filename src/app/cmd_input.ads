@@ -19,8 +19,6 @@ package Cmd_Input is
    --  completed lines. Applied is True iff at least one line successfully
    --  mutated S — caller emits a fresh diagnostic transition record when
    --  this is True so the wire reflects the new state immediately.
-   procedure Pump
-     (S       : in out Phase_Sequencer.State;
-      Applied : out Boolean);
+   procedure Pump (S : in out Phase_Sequencer.State; Applied : out Boolean);
 
 end Cmd_Input;

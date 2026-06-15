@@ -9,15 +9,11 @@
 --  @req FR-SF-01, FR-SF-02
 
 package Conflict_Check
-  with SPARK_Mode => On,
-       Pure
+  with SPARK_Mode => On, Pure
 is
 
    --  All controllable movements.
-   type Movement is
-     (NS_Through, NS_Left,
-      EW_Through, EW_Left,
-      Ped_NS, Ped_EW);
+   type Movement is (NS_Through, NS_Left, EW_Through, EW_Left, Ped_NS, Ped_EW);
 
    --  A bit-set of movements: True means "active" (showing green/yellow
    --  for vehicles, WALK / FDW for pedestrians).
@@ -42,11 +38,12 @@ is
    --  For all M1, M2 in Movement: if Active(M1) and Active(M2) then
    --  not Conflicts(M1, M2).
    function Is_Safe (Active : Movement_Set) return Boolean
-     with Ghost,
-          Post => Is_Safe'Result =
-            (for all M1 in Movement =>
-               (for all M2 in Movement =>
-                  (if Active (M1) and Active (M2)
-                   then not Conflicts (M1, M2))));
+   with
+     Ghost,
+     Post =>
+       Is_Safe'Result
+       = (for all M1 in Movement =>
+            (for all M2 in Movement =>
+               (if Active (M1) and Active (M2) then not Conflicts (M1, M2))));
 
 end Conflict_Check;

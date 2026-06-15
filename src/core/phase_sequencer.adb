@@ -21,7 +21,8 @@ package body Phase_Sequencer is
       case P is
          when NS_Through_Green | NS_Through_Yellow =>
             return (Pedestrian.NS_North, Pedestrian.NS_South);
-         when others =>
+
+         when others                               =>
             return (Pedestrian.EW_East, Pedestrian.EW_West);
       end case;
    end Ped_Pair_For;
@@ -35,35 +36,59 @@ package body Phase_Sequencer is
    function Next_Phase (S : State; P : Phase_Id) return Phase_Id is
    begin
       case P is
-         when Startup =>
+         when Startup           =>
             if S.Left_Demand (NS) then
                return NS_Left_Green;
             else
                return NS_Through_Green;
             end if;
-         when NS_Left_Green     => return NS_Left_Yellow;
-         when NS_Left_Yellow    => return All_Red_1;
-         when All_Red_1         => return NS_Through_Green;
-         when NS_Through_Green  => return NS_Through_Yellow;
-         when NS_Through_Yellow => return All_Red_2;
-         when All_Red_2 =>
+
+         when NS_Left_Green     =>
+            return NS_Left_Yellow;
+
+         when NS_Left_Yellow    =>
+            return All_Red_1;
+
+         when All_Red_1         =>
+            return NS_Through_Green;
+
+         when NS_Through_Green  =>
+            return NS_Through_Yellow;
+
+         when NS_Through_Yellow =>
+            return All_Red_2;
+
+         when All_Red_2         =>
             if S.Left_Demand (EW) then
                return EW_Left_Green;
             else
                return EW_Through_Green;
             end if;
-         when EW_Left_Green     => return EW_Left_Yellow;
-         when EW_Left_Yellow    => return All_Red_3;
-         when All_Red_3         => return EW_Through_Green;
-         when EW_Through_Green  => return EW_Through_Yellow;
-         when EW_Through_Yellow => return All_Red_4;
-         when All_Red_4 =>
+
+         when EW_Left_Green     =>
+            return EW_Left_Yellow;
+
+         when EW_Left_Yellow    =>
+            return All_Red_3;
+
+         when All_Red_3         =>
+            return EW_Through_Green;
+
+         when EW_Through_Green  =>
+            return EW_Through_Yellow;
+
+         when EW_Through_Yellow =>
+            return All_Red_4;
+
+         when All_Red_4         =>
             if S.Left_Demand (NS) then
                return NS_Left_Green;
             else
                return NS_Through_Green;
             end if;
-         when Fault             => return Fault;
+
+         when Fault             =>
+            return Fault;
       end case;
    end Next_Phase;
 
@@ -77,16 +102,24 @@ package body Phase_Sequencer is
       M : Movement_Set := (others => False);
    begin
       case P is
-         when Startup | All_Red_1 | All_Red_2 | All_Red_3 | All_Red_4
-            | Fault =>
+         when Startup | All_Red_1 | All_Red_2 | All_Red_3 | All_Red_4 | Fault
+         =>
             null;
-         when NS_Left_Green | NS_Left_Yellow =>
+
+         when NS_Left_Green | NS_Left_Yellow
+         =>
             M (NS_Left) := True;
-         when NS_Through_Green | NS_Through_Yellow =>
+
+         when NS_Through_Green | NS_Through_Yellow
+         =>
             M (NS_Through) := True;
-         when EW_Left_Green | EW_Left_Yellow =>
+
+         when EW_Left_Green | EW_Left_Yellow
+         =>
             M (EW_Left) := True;
-         when EW_Through_Green | EW_Through_Yellow =>
+
+         when EW_Through_Green | EW_Through_Yellow
+         =>
             M (EW_Through) := True;
       end case;
       return M;
@@ -99,9 +132,11 @@ package body Phase_Sequencer is
    begin
       case P is
          when NS_Through_Green | EW_Through_Green =>
-            return Pedestrian.Is_Serving (S.Peds (Pair (1)))
+            return
+              Pedestrian.Is_Serving (S.Peds (Pair (1)))
               or else Pedestrian.Is_Serving (S.Peds (Pair (2)));
-         when others =>
+
+         when others                              =>
             return False;
       end case;
    end Ped_Active_For;
@@ -111,27 +146,35 @@ package body Phase_Sequencer is
    --  while a concurrent ped phase is being served. Once both crosswalks
    --  reach Dont_Walk, the active predicate goes false and the duration
    --  collapses back to T_Min_G (which is already <= elapsed by then).
-   function Phase_Duration (S : State; P : Phase_Id)
-                            return Timing.Milliseconds is
+   function Phase_Duration (S : State; P : Phase_Id) return Timing.Milliseconds
+   is
    begin
       case P is
-         when Startup =>
+         when Startup                                       =>
             return Timing.T_Startup;
-         when NS_Left_Green | EW_Left_Green =>
+
+         when NS_Left_Green | EW_Left_Green                 =>
             return Timing.T_LT_G;
-         when NS_Left_Yellow | NS_Through_Yellow
-            | EW_Left_Yellow | EW_Through_Yellow =>
+
+         when NS_Left_Yellow
+            | NS_Through_Yellow
+            | EW_Left_Yellow
+            | EW_Through_Yellow                             =>
             return Timing.T_Y;
+
          when All_Red_1 | All_Red_2 | All_Red_3 | All_Red_4 =>
             return Timing.T_AR;
-         when NS_Through_Green | EW_Through_Green =>
+
+         when NS_Through_Green | EW_Through_Green           =>
             if Ped_Active_For (S, P) then
-               return Timing.Milliseconds'Max
-                  (Timing.T_Min_G, Timing.T_Walk + Timing.T_FDW);
+               return
+                 Timing.Milliseconds'Max
+                   (Timing.T_Min_G, Timing.T_Walk + Timing.T_FDW);
             else
                return Timing.T_Min_G;
             end if;
-         when Fault =>
+
+         when Fault                                         =>
             return Timing.Milliseconds'Last;
       end case;
    end Phase_Duration;
@@ -142,20 +185,22 @@ package body Phase_Sequencer is
    procedure Enter (S : in out State; P : Phase_Id) is
       Pair : Crosswalk_Pair;
    begin
-      S.Current       := P;
+      S.Current := P;
       S.Time_In_Phase := 0;
-      S.Active        := Movements_For (P);
+      S.Active := Movements_For (P);
 
       case P is
-         when NS_Through_Green | EW_Through_Green =>
+         when NS_Through_Green | EW_Through_Green   =>
             Pair := Ped_Pair_For (P);
             Pedestrian.Start_Phase (S.Peds (Pair (1)));
             Pedestrian.Start_Phase (S.Peds (Pair (2)));
+
          when NS_Through_Yellow | EW_Through_Yellow =>
             Pair := Ped_Pair_For (P);
             Pedestrian.End_Phase (S.Peds (Pair (1)));
             Pedestrian.End_Phase (S.Peds (Pair (2)));
-         when others =>
+
+         when others                                =>
             null;
       end case;
    end Enter;
@@ -165,8 +210,8 @@ package body Phase_Sequencer is
       Pedestrian.Press (S.Peds (CW));
    end Press_Ped;
 
-   procedure Set_Left_Demand
-     (S : in out State; A : Axis; Demanded : Boolean) is
+   procedure Set_Left_Demand (S : in out State; A : Axis; Demanded : Boolean)
+   is
    begin
       S.Left_Demand (A) := Demanded;
    end Set_Left_Demand;
@@ -220,8 +265,7 @@ package body Phase_Sequencer is
    begin
       for M1 in Movement loop
          for M2 in Movement loop
-            if S.Active (M1) and then S.Active (M2)
-              and then Conflicts (M1, M2)
+            if S.Active (M1) and then S.Active (M2) and then Conflicts (M1, M2)
             then
                return False;
             end if;

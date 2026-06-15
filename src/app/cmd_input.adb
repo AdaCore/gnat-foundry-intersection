@@ -10,19 +10,16 @@ package body Cmd_Input is
    --  256 is comfortable padding for whitespace tolerance.
    Buffer_Size : constant := 256;
 
-   Buffer : String (1 .. Buffer_Size) := (others => ' ');
-   Cursor : Natural := 0;      --  bytes currently buffered
+   Buffer     : String (1 .. Buffer_Size) := (others => ' ');
+   Cursor     : Natural := 0;      --  bytes currently buffered
    Overflowed : Boolean := False;
    --  True after we've dropped at least one byte for the in-progress
    --  line; the rest of that line is discarded up to and including LF.
 
-   procedure Pump
-     (S       : in out Phase_Sequencer.State;
-      Applied : out Boolean)
-   is
-      C     : Character;
-      Got   : Boolean;
-      One   : Boolean;
+   procedure Pump (S : in out Phase_Sequencer.State; Applied : out Boolean) is
+      C   : Character;
+      Got : Boolean;
+      One : Boolean;
    begin
       Applied := False;
 
@@ -33,7 +30,7 @@ package body Cmd_Input is
          if C = ASCII.LF then
             if Overflowed then
                Overflowed := False;
-               Cursor     := 0;
+               Cursor := 0;
             else
                --  Strip an optional trailing CR (wire-protocol says LF-only,
                --  but a CRLF source shouldn't break the dispatcher).

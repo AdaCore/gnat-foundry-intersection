@@ -27,8 +27,6 @@ package Cmd_Parser is
    --  diagnostic transition record so the wire reflects the new state
    --  without waiting for the next phase transition.
    procedure Dispatch
-     (S       : in out Phase_Sequencer.State;
-      Line    : String;
-      Applied : out Boolean);
+     (S : in out Phase_Sequencer.State; Line : String; Applied : out Boolean);
 
 end Cmd_Parser;

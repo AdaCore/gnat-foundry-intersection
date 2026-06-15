@@ -13,7 +13,7 @@ package Pedestrian is
    type Indication is (Idle, Walk, Flashing_Dont_Walk, Dont_Walk);
 
    type Crosswalk_State is record
-      Request_Latched : Boolean    := False;
+      Request_Latched : Boolean := False;
       Indication      : Pedestrian.Indication := Idle;
       Time_In_State   : Timing.Milliseconds := 0;
    end record;
