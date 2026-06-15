@@ -18,8 +18,6 @@ project-files = ["traffic_light_qemu.gpr"]
 
 [[depends-on]]
 gnat_arm_elf = "*"
-
-[[depends-on]]
 bare_runtime = "*"
 
 # Compile/link switches that bare_runtime's own GPR uses to build libgnat

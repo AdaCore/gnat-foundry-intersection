@@ -9,6 +9,3 @@ website = "https://gitlab.com/mark/traffic-light-controller"
 tags = ["embedded", "ada", "spark", "stm32", "traffic"]
 
 project-files = ["traffic_light.gpr"]
-
-[[depends-on]]
-gnat_native = ">=13"
