@@ -1,17 +1,17 @@
 --  Top-level project for the traffic-light controller (host build).
 --
 --  Builds the host executable using src/hal/host as the stub HAL. The
---  cross-target build for STM32H563ZI is driven by Zephyr's CMake/west
---  via the project Makefile and traffic_light_zephyr.gpr (see ADR-0004).
+--  bare-metal arm-eabi cross-target build (QEMU mps2-an385) lives in its
+--  own Alire crate, traffic_light_qemu/ (see that crate's GPR).
 
 with "config/traffic_light_config.gpr";
 
 project Traffic_Light is
 
    --  Structured src/: the host build selects ONLY src/hal/host (the stub
-   --  HAL). src/hal/qemu_mps2 and src/hal/zephyr belong to the cross builds
-   --  and must NOT be compiled here -- hence an explicit dir list rather
-   --  than "src/**". config/ holds the Alire-generated config package.
+   --  HAL). src/hal/qemu_mps2 belongs to the arm-eabi cross build and must
+   --  NOT be compiled here -- hence an explicit dir list rather than
+   --  "src/**". config/ holds the Alire-generated config package.
    for Source_Dirs use ("src/core", "src/app", "src/hal/host", "config/");
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.

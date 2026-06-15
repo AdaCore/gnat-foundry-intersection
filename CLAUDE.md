@@ -11,15 +11,19 @@ project; not for public-road deployment. See `README.md`.
 
 ## Commands
 
-```bash
-# Host build (stub HAL)
-alr build
+**Python: always run via `uv`** (e.g. `uv run <script>.py`, `uv run python`,
+`uv pip ...`) — never bare `python`/`python3`. This keeps every invocation in
+the project's managed environment.
 
-# Zephyr build for nucleo_h563zi (one-time setup: west init -l . && west update)
-make                              # incremental
-make pristine                     # clean rebuild
-make flash                        # flash via on-board ST-LINK
-make BOARD=<other_board>          # override target board
+```bash
+# Host build (native crate, stub HAL) -> bin/traffic_light
+alr build                         # or: make build-native
+make run-native                   # build + run the host executable
+
+# Bare-metal arm-eabi cross build (Cortex-M3, QEMU mps2-an385).
+# Sibling Alire crate; emits bin/qemu_mps2/traffic_light.
+make build-target                 # cd traffic_light_qemu && alr build
+make run-target                   # build + run under qemu-system-arm
 
 # Unit tests (host, AUnit harness via gnattest)
 # One-time setup if gnattest is not installed: `alr install gnattest`
@@ -33,7 +37,7 @@ alr -n exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -car
 # The QEMU build is its own Alire crate (arm-eabi cross toolchain); it
 # emits bin/qemu_mps2/traffic_light at the repo root.
 (cd traffic_light_qemu && alr build)
-python3 tests/requirements/run.py
+uv run tests/requirements/run.py
 
 # SPARK proofs (silver level) across the default project; only SPARK_Mode
 # units (currently conflict_check) are analyzed. Also: `make prove`.
@@ -43,15 +47,15 @@ alr exec -- gnatprove -P traffic_light.gpr --level=2
 alr exec -- gnatcheck -P traffic_light.gpr
 
 # Requirement coverage check (writes docs/requirements/traceability.md)
-python3 tools/trace-check.py
+uv run tools/trace-check.py
 
 # Render SRS to .docx + .pdf (gitignored output)
-python3 tools/render-srs.py
+uv run tools/render-srs.py
 ```
 
 ## Architecture in one rule
 
-`src/core/` has **no** dependency on `src/hal/`. The HAL layer (`stm32h5/`,
+`src/core/` has **no** dependency on `src/hal/`. The HAL layer (`qemu_mps2/`,
 `host/`) implements specs the core defines. App orchestrates. This is what
 makes the core host-buildable, host-testable, and SPARK-provable. Don't break
 this — it's load-bearing for the proof story. See
@@ -120,7 +124,7 @@ Spawn via the Agent tool. Each is one focused responsibility.
   a pipeline/job ID.
 - **`developer`** — implements features and fixes compile errors /
   warnings under `src/`, `tests/` (the nested AUnit test crate), GPRs,
-  and the Zephyr glue. Runs `alr build` / `make` and the gnattest
+  and the arm-eabi cross build. Runs `alr build` / `make` and the gnattest
   harness (`obj/development/gnattest/harness/test_runner`). Hands off SPARK,
   requirements, safety, and CI work to the specialists. Use when the user
   asks to "implement X", "fix this build error", "clear the warnings", or
@@ -145,27 +149,27 @@ From `IMPORT_NOTES.md`, in priority order:
    default via `Skeletons_Default = "pass"` in `traffic_light.gpr`'s
    `package Gnattest`. See `/gnattest` skill for the full pattern.)
 5. ~~Wire up cross-toolchain: uncomment `gnat_arm_elf` in `alire.toml`~~
-   (done — toolchain pinned, Zephyr build wired; bare-metal stub retired
-   per ADR-0004). Still TODO: update `.gitlab-ci.yml` `build:target` job
-   to invoke `make` (Zephyr).
+   (done — arm-eabi toolchain pinned; bare-metal QEMU build lives in the
+   `traffic_light_qemu/` sibling crate). Still TODO: update `.gitlab-ci.yml`
+   `build:target` job to invoke `make build-target`.
 6. Resolve PD8/PD9 ST-LINK VCP conflict in `hardware/pinout.md`.
 
-## Zephyr build layout
+## arm-eabi cross build layout
 
-Top-level: `CMakeLists.txt`, `prj.conf`, `west.yml`, `Makefile`,
-`traffic_light_zephyr.gpr`. Zephyr owns the build; gprbuild emits
-`libada_app.a`, gnatbind emits `ada_bind.o`, CMake links both into the
-firmware via the C trampoline at `src/hal/zephyr/ada_main.c`. C shims for
-inline Zephyr APIs live in `src/hal/zephyr/hal_zephyr.c` (Ada calls them as
-`tlc_zephyr_*` via `pragma Import`). Cortex-M33F runtime: `light-cortex-m33f`,
-hard-float ABI — keep `CONFIG_FPU=y` and the `-mfpu=fpv5-sp-d16
--mfloat-abi=hard` flags in lockstep across the GPR, the binder invocation in
-CMake, and `prj.conf`. See the alire skill `zephyr.md` for the full pattern
-and pitfall list.
+The bare-metal arm-eabi build lives in the sibling Alire crate
+`traffic_light_qemu/` (its own `alire.toml` + `traffic_light_qemu.gpr`).
+It needs the arm-eabi cross toolchain + `bare_runtime`, which can't coexist
+with the native compiler in the root crate's dependency solution — hence the
+separate crate. Sources are shared from the repo root's `src/` tree (via
+`../src/core`, `../src/app`, `../src/hal/qemu_mps2`); artifacts land at
+`../bin/qemu_mps2/traffic_light` so the requirements harness finds them.
+Target `arm-eabi`, `-mcpu=cortex-m3 -mthumb -mfloat-abi=soft` — these MUST
+match the flags `bare_runtime` was compiled with. Run via `make run-target`
+(`qemu-system-arm -M mps2-an385`). Wire protocol: `docs/requirements/wire-protocol.md`.
 
 ## Pointers
 
-- ADRs: `docs/adr/` (0001 platform, 0002 SPARK use, 0003 leading protected left, 0004 Zephyr for HAL)
+- ADRs: `docs/adr/` (0001 platform, 0002 SPARK use, 0003 leading protected left)
 - Meta-requirements: `docs/requirements/meta-requirements.md` (MR-01..MR-07 quality checklist)
 - Traceability guide: `docs/requirements/traceability-guide.md` (coarse @req + fine-grained SPARK tags)
 - Hazards: `docs/safety/hazard-analysis.md`

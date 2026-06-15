@@ -97,16 +97,16 @@ or upstream SPARK proof).
 
 | ID | Why not on QEMU |
 |----|------------------|
-| FR-PD-01 (50 ms button debounce) | The cmd-in `PRESS PED` line injects an *already-debounced* press; the debounce path lives in the HAL boundary. Covered by Zephyr/STM32 bring-up. |
+| FR-PD-01 (50 ms button debounce) | The cmd-in `PRESS PED` line injects an *already-debounced* press; the debounce path lives in the HAL boundary. Covered by on-target hardware bring-up. |
 | FR-PD-08 (visible request indicator) | The button-mounted LED is GPIO; no equivalent in this build (HAL `Set_Lamp` is a no-op on `qemu_mps2`). |
 | FR-SF-06 (≥1 Hz MMU heartbeat) | A discrete GPIO pulse on a separate channel; no MMIO routing on mps2-an385. Distinct from the FR-UI-04 UART0 heartbeat, which **is** tested above. |
 | NFR-MN-01..03 | Structural — module layout / SPARK amenability. Static-analysed by code review and (for the conflict-check module) by `gnatprove`. |
 | NFR-RL-01..03 | RAM/CRC/clock self-tests + IWDG/WWDG — all device-specific; no equivalent peripheral on mps2-an385. |
 | NFR-DG-02 | Fault-code retention in non-volatile memory — no flash on mps2-an385 in this build. |
 
-If any of these become testable in a future build (e.g. a Zephyr
-integration profile that wires real GPIO into the wire protocol),
-add a new test module here and remove the row from this table.
+If any of these become testable in a future build (e.g. an on-target
+profile that wires real GPIO into the wire protocol), add a new test
+module here and remove the row from this table.
 
 ## Timing budget
 
