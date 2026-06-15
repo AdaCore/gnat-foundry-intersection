@@ -4,35 +4,40 @@
 --  cross-target build for STM32H563ZI is driven by Zephyr's CMake/west
 --  via the project Makefile and traffic_light_zephyr.gpr (see ADR-0004).
 
+with "config/traffic_light_config.gpr";
+
 project Traffic_Light is
 
-   for Source_Dirs use ("src/core", "src/app", "src/hal/host");
+   --  Structured src/: the host build selects ONLY src/hal/host (the stub
+   --  HAL). src/hal/qemu_mps2 and src/hal/zephyr belong to the cross builds
+   --  and must NOT be compiled here -- hence an explicit dir list rather
+   --  than "src/**". config/ holds the Alire-generated config package.
+   for Source_Dirs use ("src/core", "src/app", "src/hal/host", "config/");
 
-   for Object_Dir use "obj/host";
-   for Exec_Dir   use "bin/host";
+   --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
+   --  Both are two levels / one level below the root respectively, which the
+   --  Gnattest Tests_Root below relies on. CI and docs reference these paths.
+   for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
+   for Exec_Dir   use "bin";
+   for Create_Missing_Dirs use "True";
    for Main use ("main.adb");
 
-   package Builder is
-      for Default_Switches ("Ada") use ("-j0", "-g");
-   end Builder;
-
    package Compiler is
+      --  Common switches come from the Alire config (driven by alire.toml's
+      --  [build-switches]). Append the safety switches the default profile
+      --  omits: -gnata (assertions/contracts), -gnato (overflow checks),
+      --  -fstack-check.
       for Default_Switches ("Ada") use
-        ("-g",
-         "-O0",
-         "-gnatwa",     -- all warnings
-         "-gnatVa",     -- all validity checks
-         "-gnata",      -- enable assertions
-         "-gnato",      -- overflow checking
-         "-fstack-check");
+        Traffic_Light_Config.Ada_Compiler_Switches &
+        ("-gnata", "-gnato", "-fstack-check");
    end Compiler;
 
    package Binder is
-      for Default_Switches ("Ada") use ("-Es");
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
    end Binder;
 
    --  GNATtest configuration. Skeleton bodies land under <root>/tests/
-   --  (Object_Dir = obj/host -> two levels up); unimplemented skeletons
+   --  (Object_Dir = obj/<profile> -> two levels up); unimplemented skeletons
    --  pass by default so the alire-testing harness stays green until the
    --  cmd_input / diagnostic / hal stubs are fleshed out. Re-run with
    --  `PATH="$HOME/.alire/bin:$PATH" alr exec -- gnattest -P traffic_light.gpr`

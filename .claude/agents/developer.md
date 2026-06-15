@@ -37,8 +37,8 @@ requirements, safety, and CI work to the specialists.
   markers): `cd tests && alr -n exec -- bash -c
   'PATH="$HOME/.alire/bin:$PATH" gnattest -P ../traffic_light.gpr'`.
   Build: `alr -n exec -- gprbuild -P
-  obj/host/gnattest/harness/test_driver.gpr -cargs:Ada -gnat2022`. Run:
-  `./obj/host/gnattest/harness/test_runner` — exit status 0 if all
+  obj/development/gnattest/harness/test_driver.gpr -cargs:Ada -gnat2022`. Run:
+  `./obj/development/gnattest/harness/test_runner` — exit status 0 if all
   pass. Unimplemented skeletons pass by default (Skeletons_Default in
   `traffic_light.gpr`), so a passing run can still mask a TODO; check
   the per-test PASS/FAIL log when extending coverage.

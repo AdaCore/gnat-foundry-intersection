@@ -1,0 +1,29 @@
+name = "traffic_light_qemu"
+description = "Bare-metal arm-eabi (Cortex-M3) QEMU build of traffic_light"
+version = "0.1.0-dev"
+authors = ["Mark"]
+maintainers = ["Mark <mark@example.invalid>"]
+maintainers-logins = ["mark"]
+licenses = "MIT"
+website = "https://gitlab.com/mark/traffic-light-controller"
+tags = ["embedded", "ada", "spark", "arm", "qemu"]
+
+# Cross-target sibling of the root `traffic_light` crate. The root crate is
+# native-only (host build, gnattest, gnatprove); this crate owns the
+# arm-eabi cross toolchain + bare_runtime. They are separate crates because
+# native and gnat_arm_elf both provide the abstract `gnat`, and an Alire
+# dependency solution allows only one compiler. Sources are shared from the
+# repo-root src/ tree, referenced via ../ in the GPR (no path pin needed).
+project-files = ["traffic_light_qemu.gpr"]
+
+[[depends-on]]
+gnat_arm_elf = "*"
+
+[[depends-on]]
+bare_runtime = "*"
+
+# Compile/link switches that bare_runtime's own GPR uses to build libgnat
+# for our target. MUST match the compiler switches in
+# traffic_light_qemu.gpr (Cortex-M3, thumb, soft-float).
+[gpr-set-externals]
+BARE_RUNTIME_SWITCHES = "-mlittle-endian -mthumb -mcpu=cortex-m3 -mfloat-abi=soft"

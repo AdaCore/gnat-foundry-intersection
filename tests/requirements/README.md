@@ -19,8 +19,8 @@ These tests complement, not replace:
 ## Running
 
 ```bash
-# 1. Build the QEMU binary.
-alr -n exec -- gprbuild -P traffic_light_qemu.gpr
+# 1. Build the QEMU binary (its own Alire crate; emits bin/qemu_mps2/main).
+(cd traffic_light_qemu && alr build)
 
 # 2. Run the full suite (~3 minutes; each test launches its own QEMU).
 python3 tests/requirements/run.py

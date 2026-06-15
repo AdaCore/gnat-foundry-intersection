@@ -10,25 +10,19 @@ tags = ["embedded", "ada", "spark", "stm32", "traffic"]
 
 project-files = ["traffic_light.gpr"]
 
-# `alr build` produces the host executable via traffic_light.gpr.
-# The Zephyr cross-build (gnat_arm_elf) is driven by Zephyr's CMake/west
-# through the Makefile (`make`); see CMakeLists.txt and ADR-0004.
-# The bare-metal QEMU cross-build (gnat_arm_elf + bare_runtime) is driven
-# directly by gprbuild via traffic_light_qemu.gpr; see that project file.
+# This is the NATIVE (host) crate: `alr build` produces the host executable
+# via traffic_light.gpr, and it backs gnattest and gnatprove. It pins the
+# native compiler -- depending on the abstract `gnat` would let a cross
+# compiler satisfy it (every compiler provides `gnat`, and a solution allows
+# only one), starving the host build of a native toolchain.
+#
+# Cross-target builds live in SEPARATE crates so each gets its own compiler:
+#   * Zephyr (STM32H563ZI) -- driven by Zephyr's CMake/west through the
+#     Makefile (`make`); see CMakeLists.txt and ADR-0004.
+#   * Bare-metal QEMU (Cortex-M3) -- the sibling crate traffic_light_qemu/
+#     (gnat_arm_elf + bare_runtime); build with `cd traffic_light_qemu && alr build`.
 [build-switches]
 "*".style_checks = ["-gnaty3", "-gnatya", "-gnatyA", "-gnatyB", "-gnatyM120"]
 
 [[depends-on]]
-gnat = ">=13"
-
-[[depends-on]]
-gnat_arm_elf = "*"
-
-[[depends-on]]
-bare_runtime = "*"
-
-# Compile/link switches that bare_runtime's own GPR uses to build libgnat
-# for our target. MUST match the compiler switches in
-# traffic_light_qemu.gpr (Cortex-M3, thumb, soft-float).
-[gpr-set-externals]
-BARE_RUNTIME_SWITCHES = "-mlittle-endian -mthumb -mcpu=cortex-m3 -mfloat-abi=soft"
+gnat_native = ">=13"

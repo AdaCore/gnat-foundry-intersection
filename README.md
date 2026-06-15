@@ -24,8 +24,8 @@ alr build
 # One-time: `alr install gnattest` (lands at $HOME/.alire/bin/gnattest)
 (cd tests && alr -n exec -- bash -c \
    'PATH="$HOME/.alire/bin:$PATH" gnattest -P ../traffic_light.gpr')
-alr exec -- gprbuild -P obj/host/gnattest/harness/test_driver.gpr -cargs:Ada -gnat2022
-./obj/host/gnattest/harness/test_runner
+alr exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -cargs:Ada -gnat2022
+./obj/development/gnattest/harness/test_runner
 
 # Run SPARK proofs on the conflict-check module
 alr exec -- gnatprove -P tests/proof/conflict_check_proof.gpr --level=2

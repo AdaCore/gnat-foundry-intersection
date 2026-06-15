@@ -1,8 +1,0 @@
-manifest:
-  projects:
-    - name: zephyr
-      url: https://github.com/zephyrproject-rtos/zephyr
-      revision: v4.4.0
-      import: true
-  self:
-    path: traffic-light-controller

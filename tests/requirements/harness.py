@@ -144,7 +144,7 @@ class QemuSession:
         if not self.qemu_binary.exists():
             raise FileNotFoundError(
                 f"{self.qemu_binary} not found — build with "
-                f"`alr -n exec -- gprbuild -P traffic_light_qemu.gpr`"
+                f"`(cd traffic_light_qemu && alr build)`"
             )
         qemu_exe = shutil.which("qemu-system-arm")
         if qemu_exe is None:

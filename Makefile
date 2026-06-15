@@ -1,14 +1,10 @@
-BOARD     ?= nucleo_h563zi
-BUILD_DIR ?= build
+.DEFAULT_GOAL := build-native
+.PHONY: build-native build-target
 
-build:
-	alr exec -- west build -b $(BOARD) -d $(BUILD_DIR)
+# Host build (native crate, stub HAL) -> bin/main.
+build-native:
+	alr build
 
-pristine:
-	alr exec -- west build -b $(BOARD) -d $(BUILD_DIR) --pristine
-
-flash:
-	alr exec -- west flash -d $(BUILD_DIR)
-
-clean:
-	rm -rf $(BUILD_DIR)
+# Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_mps2/main.
+build-target:
+	cd traffic_light_qemu && alr build

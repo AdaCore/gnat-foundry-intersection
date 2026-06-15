@@ -59,8 +59,8 @@ build:host:
     - gprbuild -P traffic_light.gpr -XTarget_Profile=host
   artifacts:
     paths:
-      - bin/host/
-      - obj/host/
+      - bin/
+      - obj/
     expire_in: 1 week
 
 # ---------- test ----------
@@ -125,7 +125,7 @@ package:release:
     - docs:render
   script:
     - mkdir -p release
-    - cp -r bin/host release/
+    - cp -r bin release/
     - cp docs/requirements/srs.docx release/ || true
     - cp docs/requirements/srs.pdf  release/ || true
     - cp docs/requirements/traceability.md release/ || true
