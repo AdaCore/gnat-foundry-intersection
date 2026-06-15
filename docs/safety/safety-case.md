@@ -17,7 +17,7 @@ G1: The controller never displays a dangerous combination of indications.
  │   └─ E1.1.1: Manual review against intersection geometry; ADR-0003.
  ├─ G1.2: Software respects the conflict matrix at every tick.
  │   ├─ G1.2.1: Conflict-check module's invariants hold.
- │   │   └─ E1.2.1.1: SPARK proof in tests/proof/.
+ │   │   └─ E1.2.1.1: SPARK proof of conflict_check (gnatprove -P traffic_light.gpr).
  │   └─ G1.2.2: Sequencer only requests states the conflict-check accepts.
  │       └─ E1.2.2.1: Integration tests in tests/integration/.
  └─ G1.3: External MMU forces fail-safe on any violation.

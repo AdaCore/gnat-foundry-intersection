@@ -13,8 +13,9 @@ plus a written rationale).
 
 ## Project context
 
-- Proof target: `tests/proof/conflict_check_proof.gpr`. Run with
-  `alr exec -- gnatprove -P tests/proof/conflict_check_proof.gpr --level=2`.
+- Proof target: the default project `traffic_light.gpr` (silver level for
+  now; only SPARK_Mode units are analyzed). Run with
+  `alr exec -- gnatprove -P traffic_light.gpr --level=2`, or `make prove`.
 - The conflict matrix in `src/core/conflict_check.ads` must satisfy
   **symmetry** (`Conflicts(A,B) = Conflicts(B,A)`) and **reflexivity**
   (`Conflicts(M,M) = False`). Encode these as ghost predicates or
@@ -28,9 +29,9 @@ plus a written rationale).
 
 ## How to work
 
-1. **Read the current state first** — `src/core/conflict_check.ads`,
-   `.adb`, and `tests/proof/conflict_check_proof.gpr`. Check the comments at
-   the top of `conflict_check.ads` for stated proof obligations.
+1. **Read the current state first** — `src/core/conflict_check.ads` and
+   `.adb`. Check the comments at the top of `conflict_check.ads` for stated
+   proof obligations.
 2. **Run `gnatprove`** at `--level=2` and capture the unproved-check list.
    Don't trust prior runs.
 3. **Classify each unproved VC**: missing precondition, missing loop

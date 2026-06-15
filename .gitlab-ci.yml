@@ -87,7 +87,7 @@ prove:conflict-check:
     # this stub job documents intent and will be wired up properly later.
     - |
       which gnatprove \
-        && gnatprove -P tests/proof/conflict_check_proof.gpr --level=2 \
+        && gnatprove -P traffic_light.gpr --level=2 \
         || echo "gnatprove not available in CI image yet"
 
 # ---------- docs ----------

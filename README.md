@@ -27,8 +27,8 @@ alr build
 alr exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -cargs:Ada -gnat2022
 ./obj/development/gnattest/harness/test_runner
 
-# Run SPARK proofs on the conflict-check module
-alr exec -- gnatprove -P tests/proof/conflict_check_proof.gpr --level=2
+# Run SPARK proofs (silver level) across the default project
+alr exec -- gnatprove -P traffic_light.gpr --level=2
 
 # Build firmware for the Nucleo-H563ZI via Zephyr
 # (one-time: west init -l . && west update)
@@ -49,7 +49,6 @@ make
 | `src/app/` | Top-level application, diagnostics |
 | `tests/` | Nested Alire test crate (AUnit harness via gnattest, host-runnable) |
 | `tests/integration/` | Reserved for in-process Ada scenario harnesses (now empty — scenarios migrated to `tests/requirements/`) |
-| `tests/proof/` | SPARK proof configuration |
 | `tests/requirements/` | Requirements-based QEMU end-to-end tests (Python harness, drives `bin/qemu_mps2/main`) |
 | `tools/` | Traceability check, doc rendering, helpers |
 | `hardware/` | Pinout, schematics, bill of materials |

@@ -113,8 +113,8 @@ def test_fr_sf_01_02_conflict_invariant_holds_over_nominal_cycle():
     through an ALL_RED clearance, so no two vehicle phases are ever
     active simultaneously. Walking one full cycle of the nominal
     sequence is sufficient evidence that the ordering invariant holds
-    in this build. (The deeper proof obligation lives in
-    ``tests/proof/conflict_check_proof.gpr``.)"""
+    in this build. (The deeper proof obligation is discharged by SPARK
+    on the conflict_check module via ``gnatprove -P traffic_light.gpr``.)"""
     with QemuSession() as q:
         # Each yellow must be followed by its corresponding all-red.
         # Walk through the nominal cycle.

@@ -35,8 +35,9 @@ alr -n exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -car
 (cd traffic_light_qemu && alr build)
 python3 tests/requirements/run.py
 
-# SPARK proofs on the conflict-check module
-alr exec -- gnatprove -P tests/proof/conflict_check_proof.gpr --level=2
+# SPARK proofs (silver level) across the default project; only SPARK_Mode
+# units (currently conflict_check) are analyzed. Also: `make prove`.
+alr exec -- gnatprove -P traffic_light.gpr --level=2
 
 # Lint
 alr exec -- gnatcheck -P traffic_light.gpr

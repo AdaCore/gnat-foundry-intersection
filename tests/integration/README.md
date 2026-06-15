@@ -15,4 +15,4 @@ against the SRS:
   `tests/requirements/test_fr_ph.py::test_fr_ph_05_06_*`
 - `test_conflict_invariant` →
   `tests/requirements/test_fr_sf.py::test_fr_sf_01_02_*` (wire-level)
-  + `tests/proof/conflict_check_proof.gpr` (formal proof)
+  + SPARK proof of `conflict_check` via `gnatprove -P traffic_light.gpr` (formal proof)
