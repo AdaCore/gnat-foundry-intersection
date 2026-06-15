@@ -37,7 +37,7 @@ package body Phase_Sequencer.Test_Data.Tests is
    procedure Test_Press_Ped_f7e55c (Gnattest_T : in out Test) renames Test_Press_Ped;
 --  id:2.2/f7e55cc1bdfa8583/Press_Ped/1/0/
    procedure Test_Press_Ped (Gnattest_T : in out Test) is
-   --  phase_sequencer.ads:48:4:Press_Ped
+   --  phase_sequencer.ads:51:4:Press_Ped
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -77,7 +77,7 @@ package body Phase_Sequencer.Test_Data.Tests is
    procedure Test_Set_Left_Demand_3a0ae3 (Gnattest_T : in out Test) renames Test_Set_Left_Demand;
 --  id:2.2/3a0ae308cafa95fc/Set_Left_Demand/1/0/
    procedure Test_Set_Left_Demand (Gnattest_T : in out Test) is
-   --  phase_sequencer.ads:53:4:Set_Left_Demand
+   --  phase_sequencer.ads:56:4:Set_Left_Demand
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -123,7 +123,7 @@ package body Phase_Sequencer.Test_Data.Tests is
    procedure Test_Set_Fault_4ff9be (Gnattest_T : in out Test) renames Test_Set_Fault;
 --  id:2.2/4ff9bed62f797aee/Set_Fault/1/0/
    procedure Test_Set_Fault (Gnattest_T : in out Test) is
-   --  phase_sequencer.ads:60:4:Set_Fault
+   --  phase_sequencer.ads:62:4:Set_Fault
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -155,7 +155,7 @@ package body Phase_Sequencer.Test_Data.Tests is
    procedure Test_Reset_Controller_6b8f4b (Gnattest_T : in out Test) renames Test_Reset_Controller;
 --  id:2.2/6b8f4b2871edaf07/Reset_Controller/1/0/
    procedure Test_Reset_Controller (Gnattest_T : in out Test) is
-   --  phase_sequencer.ads:65:4:Reset_Controller
+   --  phase_sequencer.ads:67:4:Reset_Controller
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -182,7 +182,7 @@ package body Phase_Sequencer.Test_Data.Tests is
    procedure Test_Tick_88969f (Gnattest_T : in out Test) renames Test_Tick;
 --  id:2.2/88969f896222755c/Tick/1/0/
    procedure Test_Tick (Gnattest_T : in out Test) is
-   --  phase_sequencer.ads:69:4:Tick
+   --  phase_sequencer.ads:71:4:Tick
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -225,7 +225,7 @@ package body Phase_Sequencer.Test_Data.Tests is
    procedure Test_Invariant_Holds_a21b50 (Gnattest_T : in out Test) renames Test_Invariant_Holds;
 --  id:2.2/a21b50bb7db1b650/Invariant_Holds/1/0/
    procedure Test_Invariant_Holds (Gnattest_T : in out Test) is
-   --  phase_sequencer.ads:74:4:Invariant_Holds
+   --  phase_sequencer.ads:76:4:Invariant_Holds
 --  end read only
 
       pragma Unreferenced (Gnattest_T);

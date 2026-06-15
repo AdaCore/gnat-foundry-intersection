@@ -1,6 +1,7 @@
 .DEFAULT_GOAL := build-native
 .PHONY: build-native build-target run-native run-target prove \
-        format format-ada check check-ada
+        format format-ada check check-ada generate-tests-pro test-pro \
+		generate-tests-community test-community
 
 # TCP port for QEMU's UART1 (wire-protocol command channel).
 QEMU_UART1 ?= 5556
@@ -46,3 +47,26 @@ format-ada:
 # Verify formatting without editing; exits non-zero if any file would change.
 check-ada:
 	alr exec -- gnatformat -P traffic_light.gpr -U --charset utf-8 --check
+
+
+# Generate/refresh GNATtest skeletons
+generate-tests-pro:
+	alr build --stop-after=generation
+	alr exec -- gnattest -P traffic_light.gpr
+
+# Build and run the AUnit harness
+HARNESS := obj/development/gnattest/harness
+test-pro: generate-tests-pro
+	alr exec -- gprbuild -P $(HARNESS)/test_driver.gpr
+	$(HARNESS)/test_runner
+
+
+# To use community tools, we run from inside `tests/` to pick up `alr`-managed
+# `gnattest_bin` and `aunit`.
+generate-tests-community:
+	alr build --stop-after=generation
+	alr -C tests exec -- gnattest -P ../traffic_light.gpr
+
+test-community: generate-tests-community
+	alr -C tests exec -- gprbuild -P ../$(HARNESS)/test_driver.gpr
+	$(HARNESS)/test_runner

@@ -139,7 +139,7 @@ package body HAL.Test_Data.Tests is
    procedure Test_Read_Button_2b2d1e (Gnattest_T : in out Test) renames Test_Read_Button;
 --  id:2.2/2b2d1eae874119c0/Read_Button/1/0/
    procedure Test_Read_Button (Gnattest_T : in out Test) is
-   --  hal.ads:15:4:Read_Button
+   --  hal.ads:16:4:Read_Button
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -160,7 +160,7 @@ package body HAL.Test_Data.Tests is
    procedure Test_Read_Cmd_Byte_04b64e (Gnattest_T : in out Test) renames Test_Read_Cmd_Byte;
 --  id:2.2/04b64e819d7e21ae/Read_Cmd_Byte/1/0/
    procedure Test_Read_Cmd_Byte (Gnattest_T : in out Test) is
-   --  hal.ads:23:4:Read_Cmd_Byte
+   --  hal.ads:24:4:Read_Cmd_Byte
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -181,7 +181,7 @@ package body HAL.Test_Data.Tests is
    procedure Test_Tick_Wait_1b30a1 (Gnattest_T : in out Test) renames Test_Tick_Wait;
 --  id:2.2/1b30a17efa19dcef/Tick_Wait/1/0/
    procedure Test_Tick_Wait (Gnattest_T : in out Test) is
-   --  hal.ads:25:4:Tick_Wait
+   --  hal.ads:26:4:Tick_Wait
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -202,7 +202,7 @@ package body HAL.Test_Data.Tests is
    procedure Test_Diag_Write_Line_751432 (Gnattest_T : in out Test) renames Test_Diag_Write_Line;
 --  id:2.2/751432547ed5b558/Diag_Write_Line/1/0/
    procedure Test_Diag_Write_Line (Gnattest_T : in out Test) is
-   --  hal.ads:26:4:Diag_Write_Line
+   --  hal.ads:27:4:Diag_Write_Line
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
