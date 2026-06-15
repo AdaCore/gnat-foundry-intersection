@@ -10,19 +10,5 @@ tags = ["embedded", "ada", "spark", "stm32", "traffic"]
 
 project-files = ["traffic_light.gpr"]
 
-# This is the NATIVE (host) crate: `alr build` produces the host executable
-# via traffic_light.gpr, and it backs gnattest and gnatprove. It pins the
-# native compiler -- depending on the abstract `gnat` would let a cross
-# compiler satisfy it (every compiler provides `gnat`, and a solution allows
-# only one), starving the host build of a native toolchain.
-#
-# Cross-target builds live in SEPARATE crates so each gets its own compiler:
-#   * Zephyr (STM32H563ZI) -- driven by Zephyr's CMake/west through the
-#     Makefile (`make`); see CMakeLists.txt and ADR-0004.
-#   * Bare-metal QEMU (Cortex-M3) -- the sibling crate traffic_light_qemu/
-#     (gnat_arm_elf + bare_runtime); build with `cd traffic_light_qemu && alr build`.
-[build-switches]
-"*".style_checks = ["-gnaty3", "-gnatya", "-gnatyA", "-gnatyB", "-gnatyM120"]
-
 [[depends-on]]
 gnat_native = ">=13"
