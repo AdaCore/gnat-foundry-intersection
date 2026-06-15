@@ -49,7 +49,7 @@ make
 | `src/app/` | Top-level application, diagnostics |
 | `tests/` | Nested Alire test crate (AUnit harness via gnattest, host-runnable) |
 | `tests/integration/` | Reserved for in-process Ada scenario harnesses (now empty — scenarios migrated to `tests/requirements/`) |
-| `tests/requirements/` | Requirements-based QEMU end-to-end tests (Python harness, drives `bin/qemu_mps2/main`) |
+| `tests/requirements/` | Requirements-based QEMU end-to-end tests (Python harness, drives `bin/qemu_mps2/traffic_light`) |
 | `tools/` | Traceability check, doc rendering, helpers |
 | `hardware/` | Pinout, schematics, bill of materials |
 

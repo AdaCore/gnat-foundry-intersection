@@ -1,6 +1,6 @@
 """QEMU integration test harness for the traffic-light controller.
 
-Launches `qemu-system-arm` against the bare-metal `bin/qemu_mps2/main`
+Launches `qemu-system-arm` against the bare-metal `bin/qemu_mps2/traffic_light`
 binary with two TCP-routed UARTs and exposes a synchronous API for
 sending wire-protocol commands on UART1 and reading diagnostic records
 off UART0.
@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Iterator
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-QEMU_BIN = ROOT / "bin" / "qemu_mps2" / "main"
+QEMU_BIN = ROOT / "bin" / "qemu_mps2" / "traffic_light"
 
 # Port pool — tests run sequentially so a single pair is fine, but we
 # offset by os.getpid() to avoid TIME_WAIT collisions across re-runs.

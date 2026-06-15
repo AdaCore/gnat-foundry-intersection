@@ -31,7 +31,7 @@ alr -n exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -car
 
 # Requirements-based tests (QEMU mps2-an385; ~3 min wall)
 # The QEMU build is its own Alire crate (arm-eabi cross toolchain); it
-# emits bin/qemu_mps2/main at the repo root.
+# emits bin/qemu_mps2/traffic_light at the repo root.
 (cd traffic_light_qemu && alr build)
 python3 tests/requirements/run.py
 

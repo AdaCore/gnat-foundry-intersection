@@ -8,7 +8,7 @@ with Pedestrian;
 with Diagnostic;
 with Cmd_Input;
 
-procedure Main is
+procedure Traffic_Light is
    use type Phase_Sequencer.Phase_Id;
 
    --  HAL.Crosswalk and Pedestrian.Crosswalk are parallel enums with
@@ -65,4 +65,4 @@ begin
       --  TODO: dispatch S.Active to HAL outputs.
       --  TODO: exit condition for host build (e.g., N ticks then quit).
    end loop;
-end Main;
+end Traffic_Light;

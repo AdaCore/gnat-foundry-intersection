@@ -11,14 +11,14 @@
 --
 --  Sources live in the repo root's src/ tree (referenced via ../); build
 --  artifacts land at the repo root (../obj, ../bin) so the requirements
---  harness finds bin/qemu_mps2/main unchanged.
+--  harness finds bin/qemu_mps2/traffic_light unchanged.
 --
 --  Build:
 --    cd traffic_light_qemu && alr build
 --  Run:
 --    qemu-system-arm -M mps2-an385 -cpu cortex-m3 -nographic \
 --                    -serial tcp:127.0.0.1:5555,server,nowait \
---                    -kernel bin/qemu_mps2/main
+--                    -kernel bin/qemu_mps2/traffic_light
 --
 --  See .claude/skills/qemu/SKILL.md and docs/requirements/wire-protocol.md.
 
