@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build-native
-.PHONY: build-native build-target prove \
+.PHONY: build-native build-target run-native run-target prove \
         format format-ada check check-ada
 
 # Host build (native crate, stub HAL) -> bin/main.
@@ -9,6 +9,11 @@ build-native:
 # Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_mps2/main.
 build-target:
 	cd traffic_light_qemu && alr build
+
+# Run the host executable (alr run builds first, then runs the crate main).
+# Reads commands on stdin, emits diagnostics on stdout; runs until Ctrl-C.
+run-native:
+	alr run
 
 # SPARK proofs (silver level: absence of run-time errors) across the default
 # project. Only SPARK_Mode units are analyzed; the rest are skipped.
