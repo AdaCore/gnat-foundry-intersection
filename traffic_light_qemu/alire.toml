@@ -1,10 +1,9 @@
 name = "traffic_light_qemu"
 description = "Bare-metal arm-eabi (Cortex-M3) QEMU build of traffic_light"
 version = "0.1.0-dev"
-authors = ["Mark"]
-maintainers = ["Mark <mark@example.invalid>"]
-maintainers-logins = ["mark"]
-licenses = "MIT"
+authors = ["AdaCore"]
+maintainers = ["AdaCore <support@adacore.com>"]
+licenses = "Apache-2.0 WITH LLVM-exception"
 website = "https://gitlab.com/mark/traffic-light-controller"
 tags = ["embedded", "ada", "spark", "arm", "qemu"]
 
