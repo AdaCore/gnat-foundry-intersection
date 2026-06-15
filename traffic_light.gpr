@@ -20,7 +20,7 @@ project Traffic_Light is
    for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
    for Exec_Dir   use "bin";
    for Create_Missing_Dirs use "True";
-   for Main use ("main.adb");
+   for Main use ("traffic_light.adb");
 
    package Compiler is
       --  Common switches come from the Alire config (driven by alire.toml's
