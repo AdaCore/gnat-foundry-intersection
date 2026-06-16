@@ -3,7 +3,7 @@ SHELL := bash
 .ONESHELL:
 
 .DEFAULT_GOAL := build-native
-.PHONY: setup build-native build-target run-native run-target prove \
+.PHONY: build-native build-target run-native run-target prove \
         format format-ada check check-ada \
         generate-tests-pro test-pro generate-tests-community test-community \
         setup-community setup-uv setup-alire setup-toolchains \
@@ -15,7 +15,8 @@ SHELL := bash
 QEMU_UART1 ?= 5556
 
 # Wall-clock microseconds per logical 1 ms tick in the QEMU firmware (see
-# traffic_light_qemu.gpr / hal.adb). 1000 = faithful real time; 300 runs the
+# traffic_light_qemu.gpr / hal.adb). Selects a pre-defined profile spec; valid
+# values are 1000, 300, 10. 1000 = faithful real time; 300 runs the
 # requirements suite faster by compensating upstream QEMU's ~3.33x-slow timer.
 #   make build-target TICK_PERIOD_US=300
 TICK_PERIOD_US ?= 1000
@@ -62,7 +63,7 @@ endif
 build-native:
 	$(ALR) build
 
-# Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
+# QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
 build-target:
 	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
@@ -76,7 +77,7 @@ run-native: build-native
 # terminal; UART1 (wire-protocol commands) is served on 127.0.0.1:$(QEMU_UART1)
 # for an optional client. Quit QEMU with Ctrl-A x. Needs qemu-system-arm.
 run-target: build-target
-	qemu-system-aarch64 -M xilinx-zynq-a9 -m 1G -nographic \
+	qemu-system-arm -M xilinx-zynq-a9 -m 1G -nographic \
 	  -serial mon:stdio \
 	  -serial tcp:127.0.0.1:$(QEMU_UART1),server,nowait \
 	  -kernel bin/qemu_zynq7000/traffic_light

@@ -28,6 +28,7 @@
 with Interfaces;              use Interfaces;
 with System.Storage_Elements; use System.Storage_Elements;
 with Ada.Real_Time;           use Ada.Real_Time;
+with HAL.Tick_Config;
 
 package body HAL is
 
@@ -79,19 +80,15 @@ package body HAL is
    ----------------------------------------------------------------------
    --  Logical 1 ms tick (Ada.Real_Time, Zynq private timer)
    ----------------------------------------------------------------------
-   --  Tick_Period is the Ada.Real_Time span one logical 1 ms tick waits.
-   --  $Tick_Period_Us is injected by the build from the TICK_PERIOD_US GPR
-   --  external (traffic_light_qemu.gpr) via integrated preprocessing.
-   --
-   --  At the 1000 us default the tick is faithful real time, so this binary
-   --  keeps true time on a real Zynq-7000 or a clock-correct QEMU. Lower
-   --  values shorten the wall-clock cost of each tick to run the requirements
-   --  suite faster: e.g. 300 compensates upstream QEMU 8.2.2, whose Cortex-A9
-   --  private timer runs ~3.33x slow (it clocks the timer at ~100.000 MHz vs
-   --  the ZC702 PERIPHCLK of 333_333_343 Hz the runtime assumes), making one
-   --  tick ~1 ms of wall clock again. A non-1000 build is NOT faithful real
-   --  time and must not be flashed.
-   Tick_Period : constant Time_Span := Microseconds ($Tick_Period_Us);
+   --  Wall-clock span one logical tick waits. The µs value comes from the
+   --  TICK_PERIOD_US profile spec the GPR picks (see hal-tick_config__*.ads).
+   --  1000 = faithful real time (true time on a real Zynq-7000 or clock-correct
+   --  QEMU). Lower values shorten each tick for a faster requirements suite:
+   --  300 compensates QEMU's ~3.33x-slow Cortex-A9 timer (~100 MHz vs the
+   --  runtime's assumed 333 MHz PERIPHCLK), giving ~1 ms wall/tick.
+   --  Any non-1000 build is NOT faithful and should not be flashed.
+   Tick_Period : constant Time_Span :=
+     Microseconds (HAL.Tick_Config.Tick_Period_Us);
    Next_Tick   : Time;
 
    ----------------------------------------------------------------------

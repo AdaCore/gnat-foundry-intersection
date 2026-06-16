@@ -121,7 +121,8 @@ wall clock on upstream QEMU — the controller runs ~3.33× slower than real
 time.
 
 The per-tick wall-clock cost is a **build-time knob**, `TICK_PERIOD_US` (a GPR
-scenario external; see `traffic_light_qemu.gpr` and
+scenario external selecting one of the pre-defined profile specs
+`hal-tick_config__{1000,300,10}.ads`; see `traffic_light_qemu.gpr` and
 `src/hal/qemu_zynq7000/hal.adb`). It defaults to **1000 µs** — faithful real
 time, correct on real hardware and on a clock-correct QEMU. To keep this suite
 fast and ~1:1 with the real-ms spec constants on upstream QEMU, build with
