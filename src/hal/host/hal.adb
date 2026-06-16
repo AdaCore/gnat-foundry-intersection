@@ -5,7 +5,7 @@
 --  Cmd-input on this profile is wired to STDIN with O_NONBLOCK so the
 --  developer can pipe wire-protocol § 2 lines in (e.g.
 --  `echo "PRESS PED NE" | ./bin/host/main`). On bare metal the equivalent
---  channel is CMSDK UART1; see src/hal/qemu_mps2/hal.adb.
+--  channel is Cadence UART1; see src/hal/qemu_zynq7000/hal.adb.
 
 with Ada.Text_IO;
 with Ada.Calendar;

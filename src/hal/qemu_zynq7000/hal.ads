@@ -1,12 +1,14 @@
---  HAL package — bare-metal arm-eabi (Cortex-M3) profile for QEMU's
---  `mps2-an385` machine. Same spec as src/hal/host/ so the core code is
---  profile-agnostic.
+--  HAL package — bare-metal arm-eabi (Cortex-A9) profile for QEMU's
+--  `xilinx-zynq-a9` machine. Same spec as src/hal/host/ so the core code
+--  is profile-agnostic.
 --
---  The body drives the CMSDK UART0 at 0x4000_4000 via direct volatile
---  MMIO and uses Cortex-M SysTick as the 1 ms tick source. There is no
---  physical GPIO on the emulated machine, so the lamp / walk operations
---  are no-ops; lamp state is reconstructed by the Bevy visualizer from
---  the wire-protocol phase token (docs/requirements/wire-protocol.md).
+--  The body drives the Cadence UART (XUartPs) UART0 at 0xE000_0000 via
+--  direct volatile MMIO and derives its 1 ms tick from Ada.Real_Time
+--  (the light-tasking-zynq7000 runtime, backed by the Zynq private
+--  timer). There is no physical GPIO on the emulated machine, so the
+--  lamp / walk operations are no-ops; lamp state is reconstructed by the
+--  Bevy visualizer from the wire-protocol phase token
+--  (docs/requirements/wire-protocol.md).
 
 package HAL is
 
@@ -22,7 +24,7 @@ package HAL is
    function  Read_Button        (CW : Crosswalk) return Boolean;
 
    --  Non-blocking byte poll on the cmd-input channel (wire-protocol § 2,
-   --  CMSDK UART1 on this profile). Got=True means C holds one
+   --  Cadence UART1 on this profile). Got=True means C holds one
    --  freshly-read byte; Got=False means no byte was available at the
    --  moment of the call. To route UART1 over TCP at qemu launch, pass a
    --  second -serial flag, e.g.

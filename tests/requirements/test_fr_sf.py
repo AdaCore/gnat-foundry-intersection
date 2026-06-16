@@ -4,7 +4,7 @@ Driven against the arm32-eabi QEMU binary built from
 ``traffic_light_qemu.gpr``. Each test gets a fresh QEMU instance.
 
 FR-SF-06 (MMU GPIO heartbeat pulse) is intentionally not covered here:
-the QEMU mps2-an385 build has no GPIO mapped to a discrete pin; the
+the QEMU xilinx-zynq-a9 build has no GPIO mapped to a discrete pin; the
 MMU heartbeat is a hardware-only artifact. See README.md § scope.
 """
 from __future__ import annotations

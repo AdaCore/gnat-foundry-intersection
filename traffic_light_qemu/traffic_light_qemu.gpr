@@ -1,50 +1,51 @@
---  GPRbuild project for the bare-metal arm-eabi (Cortex-M3) QEMU build.
+--  GPRbuild project for the bare-metal arm-eabi (Cortex-A9) QEMU build.
 --
 --  Lives in its own Alire crate (traffic_light_qemu/) because it needs the
---  arm-eabi cross toolchain + bare_runtime, which cannot coexist with the
---  native compiler in the root crate's dependency solution (every compiler
---  provides the abstract `gnat` crate, and Alire allows only one per
---  solution). See the root alire.toml.
+--  arm-eabi cross toolchain, which cannot coexist with the native compiler
+--  in the root crate's dependency solution (every compiler provides the
+--  abstract `gnat` crate, and Alire allows only one per solution). See the
+--  root alire.toml.
 --
---  Targets QEMU's `mps2-an385` machine via Alire's `bare_runtime` crate
---  (fully FOSS — no AdaCore Pro tooling required).
+--  Targets QEMU's `xilinx-zynq-a9` machine via the toolchain-bundled
+--  `light-tasking-zynq7000` GNAT runtime (Ravenscar tasking). The runtime
+--  supplies the Cortex-A9 / hard-float / VFPv3 compiler switches and its
+--  own startup + linker script (ram.ld), so this project does not carry a
+--  crt0 or link.ld of its own.
 --
 --  Sources live in the repo root's src/ tree (referenced via ../); build
 --  artifacts land at the repo root (../obj, ../bin) so the requirements
---  harness finds bin/qemu_mps2/traffic_light unchanged.
+--  harness finds bin/qemu_zynq7000/traffic_light unchanged.
 --
 --  Build:
 --    cd traffic_light_qemu && alr build
 --  Run:
---    qemu-system-arm -M mps2-an385 -cpu cortex-m3 -nographic \
+--    qemu-system-arm -M xilinx-zynq-a9 -nographic \
 --                    -serial tcp:127.0.0.1:5555,server,nowait \
---                    -kernel bin/qemu_mps2/traffic_light
+--                    -serial tcp:127.0.0.1:5556,server,nowait \
+--                    -kernel bin/qemu_zynq7000/traffic_light
 --
 --  See .claude/skills/qemu/SKILL.md and docs/requirements/wire-protocol.md.
 
-with "bare_runtime.gpr";
-
 project Traffic_Light_Qemu is
 
-   for Languages   use ("Ada", "ASM_CPP");
-   for Source_Dirs use ("../src/core", "../src/app", "../src/hal/qemu_mps2");
-   for Object_Dir  use "../obj/qemu_mps2";
-   for Exec_Dir    use "../bin/qemu_mps2";
+   for Languages   use ("Ada");
+   for Source_Dirs use ("../src/core", "../src/app", "../src/hal/qemu_zynq7000");
+   for Object_Dir  use "../obj/qemu_zynq7000";
+   for Exec_Dir    use "../bin/qemu_zynq7000";
    for Main        use ("traffic_light.adb");
 
    for Target              use "arm-eabi";
-   for Runtime ("Ada")     use Bare_Runtime'Runtime ("Ada");
+   for Runtime ("Ada")     use "light-tasking-zynq7000";
 
    package Builder is
       for Default_Switches ("Ada") use ("-j0", "-g");
    end Builder;
 
    package Compiler is
-      --  -mcpu / -mthumb / -mfloat-abi MUST match BARE_RUNTIME_SWITCHES
-      --  in alire.toml (the runtime is compiled with those flags).
+      --  CPU / FPU / float-abi switches come from the runtime's runtime.xml
+      --  (Leading_Required_Switches: cortex-a9, vfpv3, hard float, -marm).
       for Default_Switches ("Ada") use
-        ("-mcpu=cortex-m3", "-mthumb", "-mfloat-abi=soft",
-         "-g",
+        ("-g",
          "-O0",
          "-gnatwa",     --  all warnings
          "-gnata",      --  enable assertions
@@ -54,8 +55,9 @@ project Traffic_Light_Qemu is
    end Compiler;
 
    package Linker is
-      for Switches ("Ada") use
-        ("-T", Project'Project_Dir & "/../src/hal/qemu_mps2/link.ld");
+      --  The runtime links in its own ram.ld (-T ram.ld via runtime.xml);
+      --  pair gc-sections with the -ffunction/-fdata-sections above.
+      for Switches ("Ada") use ("-Wl,--gc-sections");
    end Linker;
 
    package Binder is

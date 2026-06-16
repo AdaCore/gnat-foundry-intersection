@@ -3,7 +3,7 @@ SHELL := bash
 .ONESHELL:
 
 .DEFAULT_GOAL := build-native
-.PHONY: build-native build-target run-native run-target prove \
+.PHONY: setup build-native build-target run-native run-target prove \
         format format-ada check check-ada \
         generate-tests-pro test-pro generate-tests-community test-community \
         setup-community setup-uv setup-alire setup-toolchains \
@@ -52,11 +52,15 @@ endif
 # Build / run / prove / format
 # ----------------------------------------------------------------------------
 
+# Bootstrap external tooling (clones the serotonic plugin). Idempotent.
+setup:
+	bash tools/setup-tools.sh
+
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
 	$(ALR) build
 
-# Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_mps2/traffic_light.
+# Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
 build-target:
 	cd traffic_light_qemu && $(ALR) build
 
@@ -66,14 +70,14 @@ build-target:
 run-native: build-native
 	./bin/traffic_light
 
-# Run the firmware under QEMU (mps2-an385). UART0 (diagnostics) is on your
+# Run the firmware under QEMU (xilinx-zynq-a9). UART0 (diagnostics) is on your
 # terminal; UART1 (wire-protocol commands) is served on 127.0.0.1:$(QEMU_UART1)
 # for an optional client. Quit QEMU with Ctrl-A x. Needs qemu-system-arm.
 run-target: build-target
-	qemu-system-arm -M mps2-an385 -cpu cortex-m3 -nographic \
+	qemu-system-arm -M xilinx-zynq-a9 -m 1G -nographic \
 	  -serial mon:stdio \
 	  -serial tcp:127.0.0.1:$(QEMU_UART1),server,nowait \
-	  -kernel bin/qemu_mps2/traffic_light
+	  -kernel bin/qemu_zynq7000/traffic_light
 
 # SPARK proofs (silver level: absence of run-time errors) across the default
 # project. Only SPARK_Mode units are analyzed; the rest are skipped.

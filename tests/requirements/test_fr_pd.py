@@ -71,12 +71,15 @@ def test_fr_pd_02_reset_clears_latch():
                     return tr
             return None
         q.read_until(pred, timeout_s=2.0)
-        # Reset and confirm the latch clears on the next emitted line.
-        reset_wall = q.elapsed_ms()
+        # Reset and confirm the latch clears on the next emitted transition.
+        # Match by transition index rather than wall-clock time: this build
+        # can process RESET and emit the clearing record inside the same
+        # wall-millisecond as the press, so a strict wall_ms comparison races.
+        n_before = len(q.log.transitions)
         q.send("RESET")
         def after_reset(log):
-            for tr in log.transitions:
-                if tr.wall_ms > reset_wall and tr.phase == "STARTUP_FLASH":
+            for tr in log.transitions[n_before:]:
+                if tr.phase == "STARTUP_FLASH":
                     return tr
             return None
         tr = q.read_until(after_reset, timeout_s=2.0)

@@ -1,6 +1,6 @@
 """QEMU integration test harness for the traffic-light controller.
 
-Launches `qemu-system-arm` against the bare-metal `bin/qemu_mps2/traffic_light`
+Launches `qemu-system-arm` against the bare-metal `bin/qemu_zynq7000/traffic_light`
 binary with two TCP-routed UARTs and exposes a synchronous API for
 sending wire-protocol commands on UART1 and reading diagnostic records
 off UART0.
@@ -32,7 +32,15 @@ from pathlib import Path
 from typing import Iterator
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-QEMU_BIN = ROOT / "bin" / "qemu_mps2" / "traffic_light"
+QEMU_BIN = ROOT / "bin" / "qemu_zynq7000" / "traffic_light"
+
+# NOTE: the QEMU HAL scales its tick to 300 us so the controller runs ~1:1
+# with wall clock under QEMU (see src/hal/qemu_zynq7000/hal.adb). That keeps
+# this harness simple — wall-clock timeouts and durations map directly to the
+# real-ms spec constants, as on the old mps2 build. If that QEMU-only fudge is
+# ever removed (TODO(#4)), this harness must compensate for QEMU's
+# ~3.33x slower emulated timer (scale timeouts; convert wall intervals to
+# controller time).
 
 # Port pool — tests run sequentially so a single pair is fine, but we
 # offset by os.getpid() to avoid TIME_WAIT collisions across re-runs.
@@ -154,7 +162,7 @@ class QemuSession:
         # 'startup' banner or the first PH= record.
         cmd = [
             qemu_exe,
-            "-M", "mps2-an385", "-cpu", "cortex-m3", "-nographic",
+            "-M", "xilinx-zynq-a9", "-m", "1G", "-nographic",
             "-serial", f"tcp:127.0.0.1:{self.uart0_port},server",
             "-serial", f"tcp:127.0.0.1:{self.uart1_port},server",
             "-kernel", str(self.qemu_binary),
