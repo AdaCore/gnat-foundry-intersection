@@ -160,7 +160,6 @@ setup-uv:
 	esac
 	case "$$os" in
 	  Linux)  triple="$$uarch-unknown-linux-gnu" ;;
-	  Darwin) triple="$$uarch-apple-darwin" ;;
 	  *) echo "Unsupported OS: $$os" >&2; exit 1 ;;
 	esac
 	url="https://github.com/astral-sh/uv/releases/latest/download/uv-$$triple.tar.gz"
@@ -192,7 +191,6 @@ setup-alire:
 	esac
 	case "$$os" in
 	  Linux)  aos=linux ;;
-	  Darwin) aos=macos ;;
 	  *) echo "Unsupported OS: $$os" >&2; exit 1 ;;
 	esac
 	url=$$( (curl -fsSL https://api.github.com/repos/alire-project/alire/releases/latest \
