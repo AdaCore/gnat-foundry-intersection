@@ -18,26 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Claude Code agentic scaffolding: `CLAUDE.md`, `.claude/settings.json`,
   five subagents (`spark-prover`, `requirements-tracer`, `safety-reviewer`,
   `requirement-change-issuer`, `documentation`).
-- Zephyr build path for the STM32H563ZI / Cortex-M33F target:
-  `gnat_arm_elf` toolchain pinned via Alire; `traffic_light_zephyr.gpr`
-  static-library GPR (`light-cortex-m33f` runtime, hard-float ABI);
-  `CMakeLists.txt` driving gprbuild and linking via `_ada_main` trampoline;
-  `prj.conf`, `west.yml` (Zephyr v4.4.0), `Makefile` wrapping `west` with
-  `alr exec`. Default board: `nucleo_h563zi`. New HAL stub at
-  `src/hal/zephyr/`.
+- Bare-metal arm-eabi cross-target build (Cortex-M3, QEMU mps2-an385) in a
+  sibling Alire crate (`traffic_light_qemu/`) using the FOSS `bare_runtime`
+  crate; emits `bin/qemu_mps2/traffic_light`. New HAL at
+  `src/hal/qemu_mps2/`. Driven via `make build-target` / `make run-target`.
 
 ### Changed
 - `alire.toml` description shortened to fit Alire's 72-char limit.
 - `traffic_light.gpr` simplified to a host-only build (profile mechanism
-  removed). Cross-target builds go through `traffic_light_zephyr.gpr`.
-- `docs/architecture/overview.md` updated to describe the Zephyr-backed
-  HAL and the C-shim bridge pattern.
-
-### Removed
-- Bare-metal STM32H5 HAL stub (`src/hal/stm32h5/`) — superseded by the
-  Zephyr-backed HAL per ADR-0004.
-- `Target_Profile` configuration variable from `alire.toml` (no longer
-  needed; Zephyr cross-build is a separate GPR + CMake pipeline).
+  removed). The arm-eabi cross-target build lives in its own crate.
+- `docs/architecture/overview.md` updated to describe the host and
+  bare-metal arm-eabi HAL variants.
 
 ### Notes
 - Toolchain pinned via `alire.toml`.

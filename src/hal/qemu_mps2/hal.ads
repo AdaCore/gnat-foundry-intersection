@@ -1,6 +1,6 @@
 --  HAL package — bare-metal arm-eabi (Cortex-M3) profile for QEMU's
---  `mps2-an385` machine. Same spec as src/hal/host/ and src/hal/zephyr/
---  so the core code is profile-agnostic.
+--  `mps2-an385` machine. Same spec as src/hal/host/ so the core code is
+--  profile-agnostic.
 --
 --  The body drives the CMSDK UART0 at 0x4000_4000 via direct volatile
 --  MMIO and uses Cortex-M SysTick as the 1 ms tick source. There is no

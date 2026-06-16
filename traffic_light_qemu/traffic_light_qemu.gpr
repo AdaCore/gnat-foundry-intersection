@@ -4,10 +4,10 @@
 --  arm-eabi cross toolchain + bare_runtime, which cannot coexist with the
 --  native compiler in the root crate's dependency solution (every compiler
 --  provides the abstract `gnat` crate, and Alire allows only one per
---  solution). See the root alire.toml and ADR-0004.
+--  solution). See the root alire.toml.
 --
 --  Targets QEMU's `mps2-an385` machine via Alire's `bare_runtime` crate
---  (no Zephyr, no AdaCore Pro tooling — fully FOSS).
+--  (fully FOSS — no AdaCore Pro tooling required).
 --
 --  Sources live in the repo root's src/ tree (referenced via ../); build
 --  artifacts land at the repo root (../obj, ../bin) so the requirements

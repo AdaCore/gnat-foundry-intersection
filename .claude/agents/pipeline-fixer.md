@@ -17,8 +17,9 @@ files), and propose the smallest fix that would turn the pipeline green.
 - Stages: `lint → build-host → test → prove → docs → build-tgt → package`.
 - Runner tag: `beast-runners` (default).
 - Known-fragile jobs: `prove:conflict-check` (allow_failure: true while module
-  is being filled in), `build:target` (manual; Zephyr wiring per ADR-0004 is
-  the open TODO from `IMPORT_NOTES.md` item 5).
+  is being filled in), `build:target` (manual placeholder; wiring it to
+  `make build-target` for the arm-eabi build is the open TODO from
+  `IMPORT_NOTES.md` item 5).
 - `glab` is installed and authenticated. Always operate against this project
   using `-R codesecure1/codesecure-se/demos/ada/traffic-light-controller` so
   you don't accidentally hit the wrong remote.

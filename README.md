@@ -30,9 +30,8 @@ alr exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -cargs:
 # Run SPARK proofs (silver level) across the default project
 alr exec -- gnatprove -P traffic_light.gpr --level=2
 
-# Build firmware for the Nucleo-H563ZI via Zephyr
-# (one-time: west init -l . && west update)
-make
+# Build the bare-metal arm-eabi firmware (runs under QEMU mps2-an385)
+make build-target
 ```
 
 ## Repository layout
@@ -44,7 +43,7 @@ make
 | `docs/safety/` | Hazard analysis and safety case |
 | `docs/adr/` | Architecture Decision Records |
 | `src/core/` | Pure logic — host-buildable, SPARK-targetable |
-| `src/hal/zephyr/` | Zephyr-backed HAL (STM32H5 and other Zephyr-supported boards) |
+| `src/hal/qemu_mps2/` | Bare-metal arm-eabi HAL (Cortex-M3, QEMU mps2-an385) |
 | `src/hal/host/` | Stub HAL for desktop simulation and unit tests |
 | `src/app/` | Top-level application, diagnostics |
 | `tests/` | Nested Alire test crate (AUnit harness via gnattest, host-runnable) |
