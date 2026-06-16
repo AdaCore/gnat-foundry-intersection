@@ -70,7 +70,9 @@ pro:x86_64-linux:
     - make coverage-instrumentation
     - make coverage-build
     - make coverage-test-pro
-    - make coverage-report
+    - make coverage-report-html
+    - make coverage-report-cobertura
+    - make coverage-report-text
 
     # Publish the HTML coverage report
     - gnatcov_report_dir=$(pwd)/reports/coverage/
