@@ -13,7 +13,6 @@ traffic_light = "*"
 
 [[depends-on]]
 aunit = "*"
-gnattest_bin = "*"
 
 [[pins]]
 traffic_light = { path = '..' }

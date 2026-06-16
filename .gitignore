@@ -16,6 +16,9 @@ gnatprove/
 alire/
 config/
 
+# Locally-provisioned developer tooling (make setup-community / reset-hard)
+install/
+
 # GNATtest — regenerated test specs (the .adb bodies are yours, do not gitignore)
 tests/**/*-test_data.ads
 tests/**/*-test_data-tests.ads
