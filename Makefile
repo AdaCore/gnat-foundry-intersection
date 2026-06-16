@@ -58,10 +58,6 @@ endif
 # Build / run / prove / format
 # ----------------------------------------------------------------------------
 
-# Bootstrap external tooling (clones the serotonic plugin). Idempotent.
-setup:
-	bash tools/setup-tools.sh
-
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
 	$(ALR) build
