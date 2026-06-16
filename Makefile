@@ -26,7 +26,7 @@ ALIRE_PREFIX   := $(TOOLS_DIR)/alire/prefix
 UV_DATA_DIR    := $(TOOLS_DIR)/uv
 
 # Prefer the locally-installed binaries; fall back to PATH if absent.
-ALR := $(if $(wildcard $(LOCAL_BIN)/alr),$(LOCAL_BIN)/alr,alr)
+ALR := $(if $(wildcard $(LOCAL_BIN)/alr),$(LOCAL_BIN)/alr -n,alr -n)
 UV  := $(if $(wildcard $(LOCAL_BIN)/uv),$(LOCAL_BIN)/uv,uv)
 
 # Once the local Alire settings exist (i.e. setup has run), point every alr
@@ -100,7 +100,7 @@ check-ada:
 
 # Generate/refresh GNATtest skeletons
 generate-tests-pro:
-	$(ALR) -n build --stop-after=generation     # Generate `config/`
+	$(ALR) build --stop-after=generation     # Generate `config/`
 	$(ALR) exec -- gnattest -P traffic_light.gpr
 
 # Build and run the AUnit harness
@@ -112,8 +112,8 @@ test-pro: generate-tests-pro
 # To use community tools, we run from inside `tests/` to pick up `alr`-managed
 # `gnattest_bin` and `aunit`.
 generate-tests-community:
-	$(ALR) -n -C tests build --stop-after=sync  # Sync `aunit` sources
-	$(ALR) -n build --stop-after=generation     # Generate `config/`
+	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
+	$(ALR) build --stop-after=generation     # Generate `config/`
 	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr
 
 test-community: generate-tests-community
@@ -263,17 +263,17 @@ GNATCOV_RTS := $$(pwd)/obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
 
 # Local gnatcov RTS
 coverage-rts:
-	gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
+	$(ALR) exec -- gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
 
 # Create the instrumented sources
 coverage-instrumentation:
-	alr exec -P2 -- gnatcov instrument \
+	$(ALR) exec -P2 -- gnatcov instrument \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
 
 # Build the intrumented sources
 coverage-build:
-	alr -n build -- -g -O0 \
+	$(ALR) build -- -g -O0 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 
@@ -281,26 +281,54 @@ coverage-build:
 coverage-test-pro: generate-tests-pro
 	rm -rf $(GNATCOV_TRACES)
 	mkdir -p $(GNATCOV_TRACES)
-	alr exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
+	$(ALR) exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
-	alr exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
+	$(ALR) exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
 	    -g -O0 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	    $(HARNESS)/test_runner
 
-# TODO: coverage-test-community
+# Instrument, build and run the tests for coverage
+coverage-test-community: generate-tests-community
+	rm -rf $(GNATCOV_TRACES)
+	mkdir -p $(GNATCOV_TRACES)
+	$(ALR) -C tests exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
+		--level=stmt+mcdc \
+	    --runtime-project $(GNATCOV_RTS)
+	$(ALR) -C tests exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
+	    -g -O0 \
+	    --src-subdirs=gnatcov-instr \
+	    --implicit-with=$(GNATCOV_RTS)
+	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
+	    $(HARNESS)/test_runner
 
-# Generate a coverage report from the traces
-coverage-report:
+# Generate a cobertura coverage report (XML) from the traces.
+coverage-report-cobertura:
 	mkdir -p reports/coverage
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
-	alr exec -P2 -- gnatcov coverage \
+	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
-		--annotate=html,cobertura,report \
-		-o report.txt \
-		--output-dir reports/coverage \
+		--annotate=cobertura \
+		--output-dir reports/coverage/cobertura \
 		$(GNATCOV_TRACES)/
-	mv report.txt reports/coverage/
+
+# Generate the coverage HTML report (not available with community gnatcov)
+coverage-report-html:
+	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
+	$(ALR) exec -P2 -- gnatcov coverage \
+	    --level=stmt+mcdc \
+		--annotate=html \
+		--output-dir reports/coverage/html \
+		$(GNATCOV_TRACES)/
+
+# Generate the coverage text report
+coverage-report-text:
+	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
+	$(ALR) exec -P2 -- gnatcov coverage \
+	    --level=stmt+mcdc \
+		--annotate=report \
+		-o reports/coverage/report.txt \
+		$(GNATCOV_TRACES)/
