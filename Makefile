@@ -70,3 +70,57 @@ generate-tests-community:
 test-community: generate-tests-community
 	alr -C tests exec -- gprbuild -P ../$(HARNESS)/test_driver.gpr
 	$(HARNESS)/test_runner
+
+####################
+# Coverage support #
+####################
+
+# Where the traces will be emitted
+GNATCOV_TRACES := $$(pwd)/obj/gnatcov-traces
+
+# The RTS project
+GNATCOV_RTS := $$(pwd)/obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
+
+# Local gnatcov RTS
+coverage-rts:
+	gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
+
+# Create the instrumented sources
+coverage-instrumentation:
+	alr exec -P2 -- gnatcov instrument \
+		--level=stmt+mcdc \
+	    --runtime-project $(GNATCOV_RTS)
+
+# Build the intrumented sources
+coverage-build:
+	alr -n build -- -g -O0 \
+	    --src-subdirs=gnatcov-instr \
+	    --implicit-with=$(GNATCOV_RTS)
+
+# Instrument, build and run the tests for coverage
+coverage-test-pro: generate-tests-pro
+	rm -rf $(GNATCOV_TRACES)
+	mkdir -p $(GNATCOV_TRACES)
+	alr exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
+		--level=stmt+mcdc \
+	    --runtime-project $(GNATCOV_RTS)
+	alr exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
+	    -g -O0 \
+	    --src-subdirs=gnatcov-instr \
+	    --implicit-with=$(GNATCOV_RTS)
+	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
+	    $(HARNESS)/test_runner
+
+# TODO: coverage-test-community
+
+# Generate a coverage report from the traces
+coverage-report:
+	mkdir -p reports/coverage
+	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
+	alr exec -P2 -- gnatcov coverage \
+	    --level=stmt+mcdc \
+		--annotate=html,cobertura,report \
+		-o report.txt \
+		--output-dir reports/coverage \
+		$(GNATCOV_TRACES)/
+	mv report.txt reports/coverage/
