@@ -1,0 +1,5 @@
+--  GNAT integrated-preprocessing data file (see -gnatep in
+--  traffic_light_qemu.gpr). Enables preprocessing for hal.adb; the
+--  $Tick_Period_Us symbol is supplied on the command line via -gnateD,
+--  so no per-unit definitions file is needed here.
+"hal.adb"

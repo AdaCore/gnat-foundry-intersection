@@ -34,13 +34,14 @@ from typing import Iterator
 ROOT = Path(__file__).resolve().parent.parent.parent
 QEMU_BIN = ROOT / "bin" / "qemu_zynq7000" / "traffic_light"
 
-# NOTE: the QEMU HAL scales its tick to 300 us so the controller runs ~1:1
-# with wall clock under QEMU (see src/hal/qemu_zynq7000/hal.adb). That keeps
-# this harness simple — wall-clock timeouts and durations map directly to the
-# real-ms spec constants, as on the old mps2 build. If that QEMU-only fudge is
-# ever removed (TODO(#4)), this harness must compensate for QEMU's
-# ~3.33x slower emulated timer (scale timeouts; convert wall intervals to
-# controller time).
+# NOTE: this harness assumes the controller runs ~1:1 with wall clock, so
+# wall-clock timeouts and durations map directly to the real-ms spec constants.
+# The firmware's tick is now a build-time knob (TICK_PERIOD_US in
+# traffic_light_qemu.gpr; see src/hal/qemu_zynq7000/hal.adb), defaulting to a
+# faithful 1000 us. Upstream QEMU 8.2.2 clocks the Cortex-A9 private timer
+# ~3.33x slow, so on upstream QEMU build the firmware with TICK_PERIOD_US=300
+# (`make build-target TICK_PERIOD_US=300`) to restore ~1:1 before running this
+# suite. A clock-correct QEMU (or real hardware) needs the 1000 us default.
 
 # Port pool — tests run sequentially so a single pair is fine, but we
 # offset by os.getpid() to avoid TIME_WAIT collisions across re-runs.

@@ -108,22 +108,31 @@ If any of these become testable in a future build (e.g. an on-target
 profile that wires real GPIO into the wire protocol), add a new test
 module here and remove the row from this table.
 
-## Timing budget (and the QEMU tick fudge)
+## Timing budget (and the configurable QEMU tick)
 
 The controller's wall-clock duration checks (e.g. each phase within `T ±50/
 +250` ms) assume controller time ≈ wall time. The old mps2 build got that
-for free; on Zynq it does **not**, because QEMU clocks the Cortex-A9 private
-timer (the source behind `Ada.Real_Time` on the light-tasking runtime) at a
-measured **100.000 MHz**, while the runtime assumes the ZC702's
-**333_333_343 Hz** PERIPHCLK (`System.BB.Parameters`: CPU 666_666_687 Hz /
-2). A faithful 1 ms `delay until` would therefore take 10/3 ms of wall clock
-— the controller would run ~3.33× slower than real time under QEMU.
+for free; on Zynq it does **not** on *upstream* QEMU, which clocks the
+Cortex-A9 private timer (the source behind `Ada.Real_Time` on the
+light-tasking runtime) at a measured **100.000 MHz**, while the runtime
+assumes the ZC702's **333_333_343 Hz** PERIPHCLK (`System.BB.Parameters`: CPU
+666_666_687 Hz / 2). A faithful 1 ms `delay until` therefore takes 10/3 ms of
+wall clock on upstream QEMU — the controller runs ~3.33× slower than real
+time.
 
-To keep the suite fast and its assertions ~1:1 with the real-ms spec
-constants, the QEMU HAL scales its tick to **300 µs** (= 1 ms ÷ 10/3) so one
-tick ≈ 1 ms of wall clock — see `src/hal/qemu_zynq7000/hal.adb`. With that in
-place this harness needs no time conversion, and each test takes roughly as
-long as the controller-time interval it observes:
+The per-tick wall-clock cost is a **build-time knob**, `TICK_PERIOD_US` (a GPR
+scenario external; see `traffic_light_qemu.gpr` and
+`src/hal/qemu_zynq7000/hal.adb`). It defaults to **1000 µs** — faithful real
+time, correct on real hardware and on a clock-correct QEMU. To keep this suite
+fast and ~1:1 with the real-ms spec constants on upstream QEMU, build with
+**300 µs** (= 1 ms ÷ 10/3) so one tick ≈ 1 ms of wall clock:
+
+```
+make build-target TICK_PERIOD_US=300
+```
+
+With that build this harness needs no time conversion, and each test takes
+roughly as long as the controller-time interval it observes:
 
 - NFR-PF-01 / -02 (latency measurement): ~6–7 s
 - Smoke / cmd round-trip tests: 0.1–1 s
@@ -134,11 +143,7 @@ long as the controller-time interval it observes:
 
 Total full-suite wall time is ~3–4 minutes.
 
-> **Known limitation (TODO(#4)).** The 300 µs fudge means the
-> firmware does **not** keep true real time, so the `make build-target`
-> binary is **not flashable to real hardware as-is** — the period must be
-> 1 ms there. This is a deliberate, temporary trade-off (fast tests now); a
-> tracking ticket covers the proper fix (faithful 1 ms tick + absorb QEMU's
-> slow clock in the harness, or run QEMU with `-icount shift=N,sleep=off` to
-> fast-forward the idle `delay until` and assert on controller-reported
-> time).
+> **Note.** A `TICK_PERIOD_US` below 1000 trades real-time fidelity for speed,
+> so such a binary is **not** flashable to real hardware. Build (or flash)
+> with the default 1000 µs for a faithful firmware; a clock-correct QEMU runs
+> the suite ~1:1 at that default with no override needed.

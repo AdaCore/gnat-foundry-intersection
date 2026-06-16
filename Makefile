@@ -14,6 +14,12 @@ SHELL := bash
 # TCP port for QEMU's UART1 (wire-protocol command channel).
 QEMU_UART1 ?= 5556
 
+# Wall-clock microseconds per logical 1 ms tick in the QEMU firmware (see
+# traffic_light_qemu.gpr / hal.adb). 1000 = faithful real time; 300 runs the
+# requirements suite faster by compensating upstream QEMU's ~3.33x-slow timer.
+#   make build-target TICK_PERIOD_US=300
+TICK_PERIOD_US ?= 1000
+
 # --- Local tooling layout ---------------------------------------------------
 # The locally-installed alr/uv under install/ are preferred when present;
 # otherwise we fall back to whatever is on PATH. Setup *output* (toolchains +
@@ -62,7 +68,7 @@ build-native:
 
 # Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
 build-target:
-	cd traffic_light_qemu && $(ALR) build
+	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
 # identically-named binary under bin/, so `alr run` finds two candidates and
@@ -74,7 +80,7 @@ run-native: build-native
 # terminal; UART1 (wire-protocol commands) is served on 127.0.0.1:$(QEMU_UART1)
 # for an optional client. Quit QEMU with Ctrl-A x. Needs qemu-system-arm.
 run-target: build-target
-	qemu-system-arm -M xilinx-zynq-a9 -m 1G -nographic \
+	qemu-system-aarch64 -M xilinx-zynq-a9 -m 1G -nographic \
 	  -serial mon:stdio \
 	  -serial tcp:127.0.0.1:$(QEMU_UART1),server,nowait \
 	  -kernel bin/qemu_zynq7000/traffic_light

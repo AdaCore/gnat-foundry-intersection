@@ -77,30 +77,21 @@ package body HAL is
      Volatile, Address => To_Address (UART1_BASE + FIFO_OFFSET), Import;
 
    ----------------------------------------------------------------------
-   --  1 ms tick (Ada.Real_Time, Zynq private timer)
+   --  Logical 1 ms tick (Ada.Real_Time, Zynq private timer)
    ----------------------------------------------------------------------
-   --  !!! QEMU-ONLY CALIBRATION — this binary is NOT flashable to real
-   --  hardware as-is; the period must be 1 ms on a real Zynq-7000. !!!
+   --  Tick_Period is the Ada.Real_Time span one logical 1 ms tick waits.
+   --  $Tick_Period_Us is injected by the build from the TICK_PERIOD_US GPR
+   --  external (traffic_light_qemu.gpr) via integrated preprocessing.
    --
-   --  The light-tasking-zynq7000 runtime derives Ada.Real_Time from the
-   --  Cortex-A9 private timer, assuming the ZC702's PERIPHCLK of
-   --  333_333_343 Hz (System.BB.Parameters: CPU 666_666_687 Hz / 2). QEMU
-   --  8.2.2 clocks that timer at a measured 100.000 MHz, so a true 1 ms
-   --  `delay until` takes 333_333_343 / 100_000_000 = 10/3 ms of wall
-   --  clock — the controller runs ~3.33x slower than real time under QEMU.
-   --
-   --  We scale the period to 1 ms / (10/3) = 300 us so one tick == ~1 ms
-   --  of WALL clock, which keeps the requirements suite fast (~3-4 min vs
-   --  ~12 min) and its wall-clock duration checks ~1:1 with the real-ms
-   --  spec constants. The cost: this firmware no longer keeps true real
-   --  time, so it cannot be flashed unchanged.
-   --
-   --  This is a deliberate, temporary trade-off. The right fix (keep a
-   --  faithful 1 ms tick and absorb QEMU's slow clock elsewhere — e.g.
-   --  harness-side time scaling, asserting on controller-reported time, or
-   --  `-icount` fast-forward) is deferred to a tracking ticket.
-   --  TODO(#4): replace this fudge per that ticket.
-   Tick_Period : constant Time_Span := Microseconds (300);
+   --  At the 1000 us default the tick is faithful real time, so this binary
+   --  keeps true time on a real Zynq-7000 or a clock-correct QEMU. Lower
+   --  values shorten the wall-clock cost of each tick to run the requirements
+   --  suite faster: e.g. 300 compensates upstream QEMU 8.2.2, whose Cortex-A9
+   --  private timer runs ~3.33x slow (it clocks the timer at ~100.000 MHz vs
+   --  the ZC702 PERIPHCLK of 333_333_343 Hz the runtime assumes), making one
+   --  tick ~1 ms of wall clock again. A non-1000 build is NOT faithful real
+   --  time and must not be flashed.
+   Tick_Period : constant Time_Span := Microseconds ($Tick_Period_Us);
    Next_Tick   : Time;
 
    ----------------------------------------------------------------------
