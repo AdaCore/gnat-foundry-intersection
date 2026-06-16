@@ -40,6 +40,10 @@ prove:
 format: format-ada
 check: check-ada
 
+# Remove build products and outputs
+clean:
+	rm -rf obj reports
+
 # Reformat all Ada sources of the default project in place (gnatformat).
 format-ada:
 	alr exec -- gnatformat -P traffic_light.gpr -U --charset utf-8
