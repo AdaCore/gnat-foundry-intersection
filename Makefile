@@ -3,7 +3,7 @@ SHELL := bash
 .ONESHELL:
 
 .DEFAULT_GOAL := build-native
-.PHONY: build-native build-target run-native run-target prove \
+.PHONY: printenv build-native build-target run-native run-target prove \
         format format-ada check check-ada \
         generate-tests-pro test-pro generate-tests-community test-community \
         setup-community setup-uv setup-alire setup-toolchains \
@@ -47,6 +47,14 @@ export UV_TOOL_DIR           := $(UV_DATA_DIR)/tools
 export UV_TOOL_BIN_DIR       := $(LOCAL_BIN)
 export UV_PYTHON_INSTALL_DIR := $(UV_DATA_DIR)/python
 endif
+
+# Print environment for tools/dependencies
+printenv:
+	@$(ALR) printenv
+	# We don't need to print `PATH` because it is already printed by `alr printenv`.
+	for var in ALIRE_SETTINGS_DIR UV_CACHE_DIR UV_TOOL_DIR UV_TOOL_BIN_DIR UV_PYTHON_INSTALL_DIR; do
+	  if [ -v "$$var" ]; then echo "export $$var=\"$${!var}\""; fi
+	done
 
 # ----------------------------------------------------------------------------
 # Build / run / prove / format
