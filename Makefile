@@ -8,11 +8,11 @@ QEMU_UART1 ?= 5556
 
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
-	alr build
+	alr -n build
 
 # Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_mps2/traffic_light.
 build-target:
-	cd traffic_light_qemu && alr build
+	cd traffic_light_qemu && alr -n build
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
 # identically-named binary under bin/, so `alr run` finds two candidates and
@@ -51,7 +51,7 @@ check-ada:
 
 # Generate/refresh GNATtest skeletons
 generate-tests-pro:
-	alr build --stop-after=generation
+	alr -n build --stop-after=generation
 	alr exec -- gnattest -P traffic_light.gpr
 
 # Build and run the AUnit harness
@@ -64,7 +64,7 @@ test-pro: generate-tests-pro
 # To use community tools, we run from inside `tests/` to pick up `alr`-managed
 # `gnattest_bin` and `aunit`.
 generate-tests-community:
-	alr build --stop-after=generation
+	alr build -n --stop-after=generation
 	alr -C tests exec -- gnattest -P ../traffic_light.gpr
 
 test-community: generate-tests-community
