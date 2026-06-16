@@ -26,7 +26,7 @@ ALIRE_PREFIX   := $(TOOLS_DIR)/alire/prefix
 UV_DATA_DIR    := $(TOOLS_DIR)/uv
 
 # Prefer the locally-installed binaries; fall back to PATH if absent.
-ALR := $(if $(wildcard $(LOCAL_BIN)/alr),$(LOCAL_BIN)/alr,alr)
+ALR := $(if $(wildcard $(LOCAL_BIN)/alr),$(LOCAL_BIN)/alr -n,alr -n)
 UV  := $(if $(wildcard $(LOCAL_BIN)/uv),$(LOCAL_BIN)/uv,uv)
 
 # Once the local Alire settings exist (i.e. setup has run), point every alr
@@ -267,13 +267,13 @@ coverage-rts:
 
 # Create the instrumented sources
 coverage-instrumentation:
-	alr exec -P2 -- gnatcov instrument \
+	$(ALR) exec -P2 -- gnatcov instrument \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
 
 # Build the intrumented sources
 coverage-build:
-	alr -n build -- -g -O0 \
+	$(ALR) -n build -- -g -O0 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 
@@ -281,10 +281,10 @@ coverage-build:
 coverage-test-pro: generate-tests-pro
 	rm -rf $(GNATCOV_TRACES)
 	mkdir -p $(GNATCOV_TRACES)
-	alr exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
+	$(ALR) exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
-	alr exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
+	$(ALR) exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
 	    -g -O0 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
@@ -297,10 +297,14 @@ coverage-test-pro: generate-tests-pro
 coverage-report:
 	mkdir -p reports/coverage
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
-	alr exec -P2 -- gnatcov coverage \
+	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
-		--annotate=html,cobertura,report \
-		-o report.txt \
+		--annotate=html,cobertura \
 		--output-dir reports/coverage \
 		$(GNATCOV_TRACES)/
-	mv report.txt reports/coverage/
+	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
+	$(ALR) exec -P2 -- gnatcov coverage \
+	    --level=stmt+mcdc \
+		--annotate=report \
+		-o reports/coverage/report.txt \
+		$(GNATCOV_TRACES)/

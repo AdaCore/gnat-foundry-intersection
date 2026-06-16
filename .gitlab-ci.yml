@@ -1,147 +1,101 @@
-# GitLab CI for the traffic-light-controller project.
-#
-# Stages:
-#   lint       - style and YAML checks
-#   build-host - build core+app with the host HAL stub
-#   test       - run unit + integration tests on host
-#   prove      - run gnatprove on the SPARK conflict-check module
-#   docs       - render SRS to docx/pdf, regenerate traceability matrix
-#   build-tgt  - cross-compile for arm-eabi (manual stage for now)
-#   package    - on tags, bundle release artifacts
-#
-# The Alire image is recommended once the team picks one; for now we use
-# a generic Debian image and install gnat / gnatprove in before_script.
----
-# default:
-#   tags:
-#     - beast-runners
+variables:
+  BASE_URL: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_DEPENDENCY_PROXY_SERVER}
+  ANOD: $BASE_URL/eng/shared/anod
+  INTERNAL_ALIRE_SCRIPTS: $BASE_URL/eng/devops/internal-alire-scripts.git
+  INTERNAL_ALIRE_INDEX: $BASE_URL/eng/devops/internal-alire-index
+  UV_PYTHON_DOWNLOADS: never
 
 stages:
-  - lint
-  - build-host
-  - test
-  - prove
-  - docs
-  - build-tgt
-  - package
-
-variables:
-  GIT_DEPTH: "20"
+  - build
 
 default:
-  image: debian:bookworm-slim
-  before_script:
-    - apt-get update -qq
-    - apt-get install -y --no-install-recommends
-        ca-certificates curl git make python3 python3-pip
-        gnat gprbuild
-    - python3 --version
+  interruptible: true
+
+.default_rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.x86_64-linux:
+  variables:
+    OS: Linux
+    PLATFORM: x86_64-linux
+  services:
+    - image:e3
+    - cpu:4
+
+# Install the latest wavefront GNAT toolchain and alire via anod, and set the
+# internal index. Used by every job that needs to build or test Ada code.
+pro:x86_64-linux:
+  stage: build
+  extends:
+     - .x86_64-linux
+     - .default_rules
+  script:
+    # Deploy a sandbox
+    - anod init wave
+    - export ANOD_DEFAULT_SANDBOX_DIR=$(pwd)/wave
+
+    # Install stable specs
+    - for spec in gnat gnatformat spark2014 gnatcov gnattest ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+
+    # The target compiler, commented out for now
+    # - anod install gnat -Qstable --target=arm-elf
+    # - eval $(anod printenv gnat -Qstable --target=arm-elf)
+
+    # Install alire
+    - anod install alire
+    - eval $(anod printenv alire)
+
+    # Setup alire to use our local index
+    - alr -n index --name=adacore --add=git+$INTERNAL_ALIRE_INDEX
+
+    # Setup alire to use our downloader helper
+    - git clone --depth=1 $INTERNAL_ALIRE_SCRIPTS /tmp/internal-alire-scripts
+    - alr -n settings --global --set origins.archive.download_cmd \
+        "/tmp/internal-alire-scripts/adacore_registries_download.py"
+
+    # Sanity check
     - gnat --version
+    - gnatprove --version
+    - alr --version
 
-# ---------- lint ----------
-lint:markdown:
-  stage: lint
-  script:
-    - apt-get install -y --no-install-recommends nodejs npm
-    - npm install -g markdownlint-cli
-    - markdownlint 'docs/**/*.md' || true   # warn-only initially
+    # Build
+    - make build-native
 
-lint:yaml:
-  stage: lint
-  script:
-    - pip install --break-system-packages yamllint
-    - yamllint .gitlab-ci.yml
+    # Test with coverage
+    - make coverage-rts
+    - make coverage-instrumentation
+    - make coverage-build
+    - make coverage-test-pro
+    - make coverage-report
 
-# ---------- build (host) ----------
-build:host:
-  stage: build-host
-  script:
-    - gprbuild -P traffic_light.gpr -XTarget_Profile=host
-  artifacts:
-    paths:
-      - bin/
-      - obj/
-    expire_in: 1 week
-
-# ---------- test ----------
-test:unit:
-  stage: test
-  needs: ["build:host"]
-  script:
-    - gprbuild -P tests/unit/unit_tests.gpr
-    - ./tests/unit/bin/test_runner | tee unit_test_output.txt
-    - grep -q "ALL TESTS PASSED" unit_test_output.txt
-  artifacts:
-    when: always
-    paths:
-      - unit_test_output.txt
-    expire_in: 1 week
-
-# ---------- prove ----------
-prove:conflict-check:
-  stage: prove
-  allow_failure: true   # bootstrap: don't block until module is filled in
-  script:
-    - apt-get install -y --no-install-recommends gnat-spark || true
-    # gnatprove may need to be installed via Alire toolchain in production;
-    # this stub job documents intent and will be wired up properly later.
+    # Publish the HTML coverage report
+    - gnatcov_report_dir=$(pwd)/reports/coverage/
     - |
-      which gnatprove \
-        && gnatprove -P traffic_light.gpr --level=2 \
-        || echo "gnatprove not available in CI image yet"
+      if [[ $CI_PIPELINE_SOURCE = "merge_request_event" ]]; then
+        target_subdir=MRs/$CI_MERGE_REQUEST_IID ;
+      else
+        target_subdir=$CI_COMMIT_BRANCH ;
+      fi
+    - publish-pages $gnatcov_report_dir/html --target-subdir $target_subdir --expires 30
 
-# ---------- docs ----------
-docs:render:
-  stage: docs
-  script:
-    - apt-get install -y --no-install-recommends
-        pandoc texlive-xetex texlive-fonts-recommended
-    - python3 tools/render-srs.py
-    - python3 tools/trace-check.py --bootstrap
+    # Compute coverage precentage
+    - cobertura=$gnatcov_report_dir/cobertura/cobertura.xml
+    - line_rate=$(cat $cobertura | grep -o 'line-rate="\([^"]\+\)"' | head -1 | grep -o '[0-9.]\+' || true )
+    - line_perc=$(python -c "print($line_rate * 100)")
+    - >
+      echo "Line Coverage: $line_perc"
+
+  coverage: '/^Line Coverage:\s+(\d+\.\d+)$/'
   artifacts:
+    when: always #  Upload on errors too
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/coverage/cobertura/cobertura.xml
     paths:
-      - docs/requirements/srs.docx
-      - docs/requirements/srs.pdf
-      - docs/requirements/traceability.md
-    expire_in: 1 month
-
-# ---------- build (target) ----------
-build:target:
-  stage: build-tgt
-  when: manual
-  allow_failure: true
-  script:
-    - echo "Cross-build placeholder; wire this up once the gnat_arm_elf"
-    - echo "Alire toolchain is added to alire.toml."
-
-# ---------- package ----------
-package:release:
-  stage: package
-  rules:
-    - if: $CI_COMMIT_TAG
-  needs:
-    - build:host
-    - test:unit
-    - docs:render
-  script:
-    - mkdir -p release
-    - cp -r bin release/
-    - cp docs/requirements/srs.docx release/ || true
-    - cp docs/requirements/srs.pdf  release/ || true
-    - cp docs/requirements/traceability.md release/ || true
-    - (cd release && tar czf "../traffic-light-${CI_COMMIT_TAG}.tar.gz" .)
-  artifacts:
-    paths:
-      - "traffic-light-*.tar.gz"
-    expire_in: never
-
-
-workflow:
-  rules:
-    - if: >-
-        $CI_PROJECT_PATH ==
-        "codesecure1/codesecure-se/demos/ada/traffic-light-controller"
-        && $CI_PIPELINE_SOURCE == "push"
-        && $CI_COMMIT_BRANCH == "main"
-      when: always
-    - when: never
+      # Upload the entire reports/ directory as an artifact
+      - reports/
