@@ -100,7 +100,7 @@ check-ada:
 
 # Generate/refresh GNATtest skeletons
 generate-tests-pro:
-	$(ALR) build --stop-after=generation
+	$(ALR) -n build --stop-after=generation     # Generate `config/`
 	$(ALR) exec -- gnattest -P traffic_light.gpr
 
 # Build and run the AUnit harness
@@ -112,7 +112,8 @@ test-pro: generate-tests-pro
 # To use community tools, we run from inside `tests/` to pick up `alr`-managed
 # `gnattest_bin` and `aunit`.
 generate-tests-community:
-	$(ALR) build --stop-after=generation
+	$(ALR) -n -C tests build --stop-after=sync  # Sync `aunit` sources
+	$(ALR) -n build --stop-after=generation     # Generate `config/`
 	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr
 
 test-community: generate-tests-community
