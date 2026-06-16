@@ -1,9 +1,9 @@
 # Traffic Light Controller
 
 A four-way intersection traffic light controller with dedicated left-turn
-phases and concurrent pedestrian crossings, targeting the STM32H563ZI
-(Nucleo-H563ZI development board), implemented in Ada with SPARK-proven
-conflict-detection logic.
+phases and concurrent pedestrian crossings, targeting the Xilinx Zynq-7000
+(dual-core Cortex-A9, run under QEMU's xilinx-zynq-a9 machine), implemented
+in Ada with SPARK-proven conflict-detection logic.
 
 This is a learning / hobby project. **It is not intended for deployment on
 public roads** and has not been certified to any traffic-control or
@@ -30,7 +30,7 @@ alr exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -cargs:
 # Run SPARK proofs (silver level) across the default project
 alr exec -- gnatprove -P traffic_light.gpr --level=2
 
-# Build the bare-metal arm-eabi firmware (runs under QEMU mps2-an385)
+# Build the bare-metal arm-eabi firmware (runs under QEMU xilinx-zynq-a9)
 make build-target
 ```
 
@@ -43,12 +43,12 @@ make build-target
 | `docs/safety/` | Hazard analysis and safety case |
 | `docs/adr/` | Architecture Decision Records |
 | `src/core/` | Pure logic — host-buildable, SPARK-targetable |
-| `src/hal/qemu_mps2/` | Bare-metal arm-eabi HAL (Cortex-M3, QEMU mps2-an385) |
+| `src/hal/qemu_zynq7000/` | Bare-metal arm-eabi HAL (Cortex-A9, QEMU xilinx-zynq-a9, light-tasking runtime) |
 | `src/hal/host/` | Stub HAL for desktop simulation and unit tests |
 | `src/app/` | Top-level application, diagnostics |
 | `tests/` | Nested Alire test crate (AUnit harness via gnattest, host-runnable) |
 | `tests/integration/` | Reserved for in-process Ada scenario harnesses (now empty — scenarios migrated to `tests/requirements/`) |
-| `tests/requirements/` | Requirements-based QEMU end-to-end tests (Python harness, drives `bin/qemu_mps2/traffic_light`) |
+| `tests/requirements/` | Requirements-based QEMU end-to-end tests (Python harness, drives `bin/qemu_zynq7000/traffic_light`) |
 | `tools/` | Traceability check, doc rendering, helpers |
 | `hardware/` | Pinout, schematics, bill of materials |
 

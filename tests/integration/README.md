@@ -4,7 +4,7 @@ Reserved for in-process Ada scenario harnesses (no real binary, no
 emulator) — currently empty. The system-level scenarios this directory
 was originally sketched for now live in
 [`../requirements/`](../requirements/), which drives the actual
-`bin/qemu_mps2/traffic_light` binary under `qemu-system-arm` and asserts
+`bin/qemu_zynq7000/traffic_light` binary under `qemu-system-arm` and asserts
 against the SRS:
 
 - `test_no_demand_idle` →
