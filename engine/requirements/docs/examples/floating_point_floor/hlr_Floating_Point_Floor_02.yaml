@@ -1,0 +1,13 @@
+derived: True
+
+description:
+  1: |-
+    When `X` is `NaN`, `+Infinity`, or `-Infinity`, the S'Floor attribute shall
+    return `X`.
+
+rationale: |-
+  There is no information in the Ada Reference manual about how the Floor
+  attribute shall behave when `X` has these values.
+
+  The IEEE-754 standard neither predefines a result for this particular case.
+  Therefore this behaviour is an implementation choice.

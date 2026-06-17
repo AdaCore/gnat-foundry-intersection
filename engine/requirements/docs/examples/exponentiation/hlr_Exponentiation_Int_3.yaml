@@ -1,0 +1,15 @@
+source:
+  - ADA2022-ARM 4.5.6(13)
+
+context: |-
+  Given `Int` a specific integer type.
+
+terminal: True
+
+description:
+  1: |-
+    When `Right` is strictly negative, the `"**"` shall raise a `Constraint_Error`.
+
+rationale: |-
+  The compiler is responsible for raising the `Constraint_Error` exception when
+  `Right` is negative.

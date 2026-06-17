@@ -1,0 +1,49 @@
+parent_req:
+  - hlr_Floating_Point_Floor_01
+  - hlr_Floating_Point_Floor_02
+
+visibility: compiler
+
+context: |-
+  Given `T`, the type Float, or Long_Float
+
+description:
+  1: |-
+    The RTL shall implement the Floor function following the specification:
+
+    ```ada
+    function Floor (X : T) return T;
+
+    --  X : A parameter of type T
+    --  Floor'Result : Result of the Floor operation
+    ```
+
+  2: |-
+    The function Floor shall return the largest integral value less than, or
+    equal to `X`.
+
+  3: |-
+    When `X` is zero, the function shall return zero with the sign of `X`.
+
+  4: |-
+    When `X` is `NaN`, `+Infinity`, or `-Infinity`, the function Floor shall
+    return `X`.
+
+algorithm_aspects: |-
+  Calling `Truncation(X)` will remove the decimal part of `X`.
+
+  When `Truncation(X)` equals `X`, this means that `X` did not have any decimal
+  part. In this case, we have `Truncation(X)` = `Floor(X)` = `X`.
+
+  If not, we have:
+
+  $$
+  \begin{cases}
+  \operatorname{Floor}(X) = \operatorname{Truncation}(X) - 1 & \text{if } X \le 0, \\
+  \operatorname{Floor}(X) = \operatorname{Truncation}(X) & \text{if } X > 0.
+  \end{cases}
+  $$
+
+implemented_by:
+  - System.Fat_LFlt.Attr_Long_Float.Floor
+  - System.Fat_Flt.Attr_Float.Floor
