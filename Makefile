@@ -61,7 +61,7 @@ endif
 
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
-	$(ALR) build
+	$(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
 build-target:
@@ -282,7 +282,8 @@ coverage-instrumentation:
 coverage-build:
 	$(ALR) build -- -g -O0 \
 	    --src-subdirs=gnatcov-instr \
-	    --implicit-with=$(GNATCOV_RTS)
+	    --implicit-with=$(GNATCOV_RTS) \
+		-XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Instrument, build and run the tests for coverage
 coverage-test-pro: generate-tests-pro

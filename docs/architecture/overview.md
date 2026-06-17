@@ -3,21 +3,21 @@
 ## Layered structure
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Application      src/app/                              │
-│    main.adb, diagnostics.adb                            │
-├─────────────────────────────────────────────────────────┤
-│  Core (pure logic, host-buildable, SPARK-targetable)    │
-│    src/core/                                            │
-│    ├── conflict_check     (SPARK proof target)          │
-│    ├── phase_sequencer    (state machine)               │
-│    ├── pedestrian         (WALK / FDW / DW)             │
-│    └── timing             (build-time constants)        │
-├─────────────────────────────────────────────────────────┤
-│  HAL (board-specific, thin)                             │
+┌────────────────────────────────────────────────────────────┐
+│  Application      src/app/                                 │
+│    main.adb, diagnostics.adb                               │
+├────────────────────────────────────────────────────────────┤
+│  Core (pure logic, host-buildable, SPARK-targetable)       │
+│    src/core/                                               │
+│    ├── conflict_check     (SPARK proof target)             │
+│    ├── phase_sequencer    (state machine)                  │
+│    ├── pedestrian         (WALK / FDW / DW)                │
+│    └── timing             (build-time constants)           │
+├────────────────────────────────────────────────────────────┤
+│  HAL (board-specific, thin)                                │
 │    src/hal/qemu_zynq7000/ (bare-metal arm-eabi; Cortex-A9) │
-│    src/hal/host/      (stub for laptop / unit tests)    │
-└─────────────────────────────────────────────────────────┘
+│    src/hal/host/      (stub for laptop / unit tests)       │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ## Design rules
