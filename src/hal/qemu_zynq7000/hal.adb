@@ -58,24 +58,24 @@ package body HAL is
    SR_TXFULL  : constant Unsigned_32 := 16#10#;
 
    --  UART0 registers.
-   U0_CR   : Unsigned_32 with
-     Volatile, Address => To_Address (UART0_BASE + CR_OFFSET),   Import;
-   U0_MR   : Unsigned_32 with
-     Volatile, Address => To_Address (UART0_BASE + MR_OFFSET),   Import;
-   U0_SR   : Unsigned_32 with
-     Volatile, Address => To_Address (UART0_BASE + SR_OFFSET),   Import;
-   U0_FIFO : Unsigned_32 with
-     Volatile, Address => To_Address (UART0_BASE + FIFO_OFFSET), Import;
+   U0_CR   : Unsigned_32
+   with Volatile, Address => To_Address (UART0_BASE + CR_OFFSET), Import;
+   U0_MR   : Unsigned_32
+   with Volatile, Address => To_Address (UART0_BASE + MR_OFFSET), Import;
+   U0_SR   : Unsigned_32
+   with Volatile, Address => To_Address (UART0_BASE + SR_OFFSET), Import;
+   U0_FIFO : Unsigned_32
+   with Volatile, Address => To_Address (UART0_BASE + FIFO_OFFSET), Import;
 
    --  UART1 registers.
-   U1_CR   : Unsigned_32 with
-     Volatile, Address => To_Address (UART1_BASE + CR_OFFSET),   Import;
-   U1_MR   : Unsigned_32 with
-     Volatile, Address => To_Address (UART1_BASE + MR_OFFSET),   Import;
-   U1_SR   : Unsigned_32 with
-     Volatile, Address => To_Address (UART1_BASE + SR_OFFSET),   Import;
-   U1_FIFO : Unsigned_32 with
-     Volatile, Address => To_Address (UART1_BASE + FIFO_OFFSET), Import;
+   U1_CR   : Unsigned_32
+   with Volatile, Address => To_Address (UART1_BASE + CR_OFFSET), Import;
+   U1_MR   : Unsigned_32
+   with Volatile, Address => To_Address (UART1_BASE + MR_OFFSET), Import;
+   U1_SR   : Unsigned_32
+   with Volatile, Address => To_Address (UART1_BASE + SR_OFFSET), Import;
+   U1_FIFO : Unsigned_32
+   with Volatile, Address => To_Address (UART1_BASE + FIFO_OFFSET), Import;
 
    ----------------------------------------------------------------------
    --  Logical 1 ms tick (Ada.Real_Time, Zynq private timer)
@@ -161,10 +161,10 @@ package body HAL is
    procedure Read_Cmd_Byte (C : out Character; Got : out Boolean) is
    begin
       if (U1_SR and SR_RXEMPTY) = 0 then
-         C   := Character'Val (Integer (U1_FIFO and 16#FF#));
+         C := Character'Val (Integer (U1_FIFO and 16#FF#));
          Got := True;
       else
-         C   := ASCII.NUL;
+         C := ASCII.NUL;
          Got := False;
       end if;
    end Read_Cmd_Byte;

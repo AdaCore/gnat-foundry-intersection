@@ -86,7 +86,7 @@ run-target: build-target
 # project. Only SPARK_Mode units are analyzed; the rest are skipped.
 # gnatprove resolves via the local prefix (on PATH) under `alr exec`.
 prove:
-	$(ALR) exec -- gnatprove -P traffic_light.gpr --level=2 --report=statistics --checks-as-errors=on
+	$(ALR) exec -P -- gnatprove --level=2 --report=statistics --checks-as-errors=on
 
 # Format / check aggregators. For now they just delegate to the Ada targets;
 # add format-<lang> / check-<lang> prerequisites here as more land.
@@ -99,16 +99,20 @@ clean:
 
 # Reformat all Ada sources of the default project in place (gnatformat).
 format-ada:
-	$(ALR) exec -- gnatformat -P traffic_light.gpr -U --charset utf-8
+	$(ALR) exec -P -- gnatformat -U --charset utf-8
+	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8
+	$(ALR) -C tests exec -P -- gnatformat -U --charset utf-8
 
 # Verify formatting without editing; exits non-zero if any file would change.
 check-ada:
-	$(ALR) exec -- gnatformat -P traffic_light.gpr -U --charset utf-8 --check
+	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
+	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
+	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
 
 # Generate/refresh GNATtest skeletons
 generate-tests-pro:
 	$(ALR) build --stop-after=generation     # Generate `config/`
-	$(ALR) exec -- gnattest -P traffic_light.gpr
+	$(ALR) exec -P -- gnattest
 
 # Build and run the AUnit harness
 HARNESS := obj/development/gnattest/harness
