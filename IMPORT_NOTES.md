@@ -45,8 +45,9 @@ moves:
 5. **Wire up the cross-toolchain.** Uncomment `gnat_arm_elf` in
    `alire.toml`, then update `.gitlab-ci.yml`'s `build:target` job.
 
-6. **Resolve PD8/PD9 conflict in `hardware/pinout.md`.** The ST-LINK VCP
-   pins overlap with the through-lamp assignments; pick different lamp pins.
+6. ~~**Resolve PD8/PD9 conflict in `hardware/pinout.md`.**~~ Obsolete —
+   ST-LINK/STM32-specific. The project now targets Zynq-7000 (see retired
+   ADR 0001); `hardware/pinout.md` needs a separate Zynq pinout pass.
 
 ## Things deliberately left out
 

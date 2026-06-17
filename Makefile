@@ -14,6 +14,13 @@ SHELL := bash
 # TCP port for QEMU's UART1 (wire-protocol command channel).
 QEMU_UART1 ?= 5556
 
+# Wall-clock microseconds per logical 1 ms tick in the QEMU firmware (see
+# traffic_light_qemu.gpr / hal.adb). Selects a pre-defined profile spec; valid
+# values are 1000, 300, 10. 1000 = faithful real time; 300 runs the
+# requirements suite faster by compensating upstream QEMU's ~3.33x-slow timer.
+#   make build-target TICK_PERIOD_US=300
+TICK_PERIOD_US ?= 1000
+
 # --- Local tooling layout ---------------------------------------------------
 # The locally-installed alr/uv under install/ are preferred when present;
 # otherwise we fall back to whatever is on PATH. Setup *output* (toolchains +
@@ -54,11 +61,11 @@ endif
 
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
-	$(ALR) build
+	$(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
-# Bare-metal arm-eabi QEMU build (sibling crate) -> bin/qemu_mps2/traffic_light.
+# QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
 build-target:
-	cd traffic_light_qemu && $(ALR) build
+	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
 # identically-named binary under bin/, so `alr run` finds two candidates and
@@ -66,14 +73,14 @@ build-target:
 run-native: build-native
 	./bin/traffic_light
 
-# Run the firmware under QEMU (mps2-an385). UART0 (diagnostics) is on your
+# Run the firmware under QEMU (xilinx-zynq-a9). UART0 (diagnostics) is on your
 # terminal; UART1 (wire-protocol commands) is served on 127.0.0.1:$(QEMU_UART1)
 # for an optional client. Quit QEMU with Ctrl-A x. Needs qemu-system-arm.
 run-target: build-target
-	qemu-system-arm -M mps2-an385 -cpu cortex-m3 -nographic \
+	qemu-system-arm -M xilinx-zynq-a9 -m 1G -nographic \
 	  -serial mon:stdio \
 	  -serial tcp:127.0.0.1:$(QEMU_UART1),server,nowait \
-	  -kernel bin/qemu_mps2/traffic_light
+	  -kernel bin/qemu_zynq7000/traffic_light
 
 # SPARK proofs (silver level: absence of run-time errors) across the default
 # project. Only SPARK_Mode units are analyzed; the rest are skipped.
@@ -275,7 +282,8 @@ coverage-instrumentation:
 coverage-build:
 	$(ALR) build -- -g -O0 \
 	    --src-subdirs=gnatcov-instr \
-	    --implicit-with=$(GNATCOV_RTS)
+	    --implicit-with=$(GNATCOV_RTS) \
+		-XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Instrument, build and run the tests for coverage
 coverage-test-pro: generate-tests-pro

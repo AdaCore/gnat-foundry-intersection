@@ -1,6 +1,8 @@
 # 0001 — Target the STM32H563ZI on the Nucleo-H563ZI dev board
 
-- **Status:** Accepted
+- **Status:** Retired (2026-06-16) — the project now targets the Xilinx
+  Zynq-7000 (dual-core Cortex-A9), run under QEMU's `xilinx-zynq-a9` machine.
+  The STM32H563 is no longer planned. The decision below is kept for history.
 - **Date:** 2026-04-27
 - **Deciders:** Mark
 

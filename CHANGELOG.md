@@ -18,10 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Claude Code agentic scaffolding: `CLAUDE.md`, `.claude/settings.json`,
   five subagents (`spark-prover`, `requirements-tracer`, `safety-reviewer`,
   `requirement-change-issuer`, `documentation`).
-- Bare-metal arm-eabi cross-target build (Cortex-M3, QEMU mps2-an385) in a
-  sibling Alire crate (`traffic_light_qemu/`) using the FOSS `bare_runtime`
-  crate; emits `bin/qemu_mps2/traffic_light`. New HAL at
-  `src/hal/qemu_mps2/`. Driven via `make build-target` / `make run-target`.
+- Bare-metal arm-eabi cross-target build (Cortex-A9, QEMU xilinx-zynq-a9)
+  in a sibling Alire crate (`traffic_light_qemu/`) using the
+  toolchain-bundled `light-tasking-zynq7000` GNAT runtime (Ravenscar
+  tasking); emits `bin/qemu_zynq7000/traffic_light`. New HAL at
+  `src/hal/qemu_zynq7000/` (Cadence XUartPs UART; 1 ms tick via
+  Ada.Real_Time `delay until`). Driven via `make build-target` /
+  `make run-target`.
 
 ### Changed
 - `alire.toml` description shortened to fit Alire's 72-char limit.

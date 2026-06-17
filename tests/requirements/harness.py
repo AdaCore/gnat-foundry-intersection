@@ -1,6 +1,6 @@
 """QEMU integration test harness for the traffic-light controller.
 
-Launches `qemu-system-arm` against the bare-metal `bin/qemu_mps2/traffic_light`
+Launches `qemu-system-arm` against the bare-metal `bin/qemu_zynq7000/traffic_light`
 binary with two TCP-routed UARTs and exposes a synchronous API for
 sending wire-protocol commands on UART1 and reading diagnostic records
 off UART0.
@@ -32,7 +32,16 @@ from pathlib import Path
 from typing import Iterator
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-QEMU_BIN = ROOT / "bin" / "qemu_mps2" / "traffic_light"
+QEMU_BIN = ROOT / "bin" / "qemu_zynq7000" / "traffic_light"
+
+# NOTE: this harness assumes the controller runs ~1:1 with wall clock, so
+# wall-clock timeouts and durations map directly to the real-ms spec constants.
+# The firmware's tick is now a build-time knob (TICK_PERIOD_US in
+# traffic_light_qemu.gpr; see src/hal/qemu_zynq7000/hal.adb), defaulting to a
+# faithful 1000 us. Upstream QEMU 8.2.2 clocks the Cortex-A9 private timer
+# ~3.33x slow, so on upstream QEMU build the firmware with TICK_PERIOD_US=300
+# (`make build-target TICK_PERIOD_US=300`) to restore ~1:1 before running this
+# suite. A clock-correct QEMU (or real hardware) needs the 1000 us default.
 
 # Port pool — tests run sequentially so a single pair is fine, but we
 # offset by os.getpid() to avoid TIME_WAIT collisions across re-runs.
@@ -154,7 +163,7 @@ class QemuSession:
         # 'startup' banner or the first PH= record.
         cmd = [
             qemu_exe,
-            "-M", "mps2-an385", "-cpu", "cortex-m3", "-nographic",
+            "-M", "xilinx-zynq-a9", "-m", "1G", "-nographic",
             "-serial", f"tcp:127.0.0.1:{self.uart0_port},server",
             "-serial", f"tcp:127.0.0.1:{self.uart1_port},server",
             "-kernel", str(self.qemu_binary),

@@ -1,7 +1,7 @@
 """User-interface requirement tests (FR-UI-*).
 
 FR-UI-01 (serial 115200 8N1) is covered structurally by the fact that
-the QEMU CMSDK UART driver in ``src/hal/qemu_mps2/hal.adb`` is the
+the QEMU Cadence UART driver in ``src/hal/qemu_zynq7000/hal.adb`` is the
 sole writer on UART0 and the binary builds; the baud-rate detail is
 not observable on QEMU's TCP-tunnelled chardev (QEMU doesn't enforce
 baud on TCP transport). The wire grammar — which is the *functional*

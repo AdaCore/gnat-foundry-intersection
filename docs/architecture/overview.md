@@ -3,21 +3,21 @@
 ## Layered structure
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Application      src/app/                              │
-│    main.adb, diagnostics.adb                            │
-├─────────────────────────────────────────────────────────┤
-│  Core (pure logic, host-buildable, SPARK-targetable)    │
-│    src/core/                                            │
-│    ├── conflict_check     (SPARK proof target)          │
-│    ├── phase_sequencer    (state machine)               │
-│    ├── pedestrian         (WALK / FDW / DW)             │
-│    └── timing             (build-time constants)        │
-├─────────────────────────────────────────────────────────┤
-│  HAL (board-specific, thin)                             │
-│    src/hal/qemu_mps2/ (bare-metal arm-eabi; Cortex-M3)  │
-│    src/hal/host/      (stub for laptop / unit tests)    │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│  Application      src/app/                                 │
+│    main.adb, diagnostics.adb                               │
+├────────────────────────────────────────────────────────────┤
+│  Core (pure logic, host-buildable, SPARK-targetable)       │
+│    src/core/                                               │
+│    ├── conflict_check     (SPARK proof target)             │
+│    ├── phase_sequencer    (state machine)                  │
+│    ├── pedestrian         (WALK / FDW / DW)                │
+│    └── timing             (build-time constants)           │
+├────────────────────────────────────────────────────────────┤
+│  HAL (board-specific, thin)                                │
+│    src/hal/qemu_zynq7000/ (bare-metal arm-eabi; Cortex-A9) │
+│    src/hal/host/      (stub for laptop / unit tests)       │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ## Design rules
@@ -26,12 +26,13 @@
    into the HAL. It defines abstract operations (read button state, set lamp
    output) as types and procedures with no implementation, deferred to the
    HAL. This keeps the core fully testable on a laptop and provable in SPARK.
-2. **HAL implements core's abstractions.** Both `qemu_mps2` and `host` HAL
-   variants provide the same package spec (just different bodies). For
+2. **HAL implements core's abstractions.** Both `qemu_zynq7000` and `host`
+   HAL variants provide the same package spec (just different bodies). For
    the host build, `traffic_light.gpr` selects `src/hal/host`. For the
    bare-metal arm-eabi cross-build, the sibling `traffic_light_qemu` crate
-   selects `src/hal/qemu_mps2`, whose body drives the QEMU mps2-an385
-   peripherals (UART, SysTick) directly.
+   selects `src/hal/qemu_zynq7000`, whose body drives the QEMU
+   xilinx-zynq-a9 peripherals (Cadence UART) directly and takes its 1 ms
+   tick from Ada.Real_Time on the light-tasking-zynq7000 runtime.
 3. **App orchestrates.** `main.adb` initializes the HAL, then drives the
    core state machine on a periodic tick.
 
@@ -74,5 +75,5 @@ FAULT <code> <details>
 ```
 
 The host HAL writes these to stdout; the bare-metal arm-eabi HAL writes
-them to the QEMU mps2-an385 UART0 (diagnostics channel), with UART1
+them to the QEMU xilinx-zynq-a9 UART0 (diagnostics channel), with UART1
 reserved for the wire-protocol command stream.

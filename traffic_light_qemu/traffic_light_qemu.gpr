@@ -1,50 +1,33 @@
---  GPRbuild project for the bare-metal arm-eabi (Cortex-M3) QEMU build.
---
---  Lives in its own Alire crate (traffic_light_qemu/) because it needs the
---  arm-eabi cross toolchain + bare_runtime, which cannot coexist with the
---  native compiler in the root crate's dependency solution (every compiler
---  provides the abstract `gnat` crate, and Alire allows only one per
---  solution). See the root alire.toml.
---
---  Targets QEMU's `mps2-an385` machine via Alire's `bare_runtime` crate
---  (fully FOSS — no AdaCore Pro tooling required).
---
---  Sources live in the repo root's src/ tree (referenced via ../); build
---  artifacts land at the repo root (../obj, ../bin) so the requirements
---  harness finds bin/qemu_mps2/traffic_light unchanged.
---
---  Build:
---    cd traffic_light_qemu && alr build
---  Run:
---    qemu-system-arm -M mps2-an385 -cpu cortex-m3 -nographic \
---                    -serial tcp:127.0.0.1:5555,server,nowait \
---                    -kernel bin/qemu_mps2/traffic_light
---
---  See .claude/skills/qemu/SKILL.md and docs/requirements/wire-protocol.md.
-
-with "bare_runtime.gpr";
-
 project Traffic_Light_Qemu is
 
-   for Languages   use ("Ada", "ASM_CPP");
-   for Source_Dirs use ("../src/core", "../src/app", "../src/hal/qemu_mps2");
-   for Object_Dir  use "../obj/qemu_mps2";
-   for Exec_Dir    use "../bin/qemu_mps2";
+   --  Wall-clock microseconds budgeted for one logical 1 ms controller tick
+   --  (see hal.adb). 1000 keeps faithful real time on clock-correct hardware
+   --  or QEMU; lower values shorten each tick so the requirements suite runs
+   --  faster (300 compensates upstream QEMU 8.2.2, whose Cortex-A9 private
+   --  timer runs ~3.33x slow). Each value selects a pre-defined profile spec
+   --  (hal-tick_config__<value>.ads) via the Naming package below — no source
+   --  preprocessing, so the sources stay valid Ada for ALS / GNAT Studio.
+   --  Override per build:
+   --    alr build -- -XTICK_PERIOD_US=300
+   type Tick_Period_Us_Type is ("1000", "300", "10");
+   Tick_Period_Us : Tick_Period_Us_Type := external ("TICK_PERIOD_US", "1000");
+
+   for Languages   use ("Ada");
+   for Source_Dirs use ("../src/core", "../src/app", "../src/hal/qemu_zynq7000");
+   for Object_Dir  use "../obj/qemu_zynq7000";
+   for Exec_Dir    use "../bin/qemu_zynq7000";
    for Main        use ("traffic_light.adb");
 
    for Target              use "arm-eabi";
-   for Runtime ("Ada")     use Bare_Runtime'Runtime ("Ada");
+   for Runtime ("Ada")     use "light-tasking-zynq7000";
 
    package Builder is
       for Default_Switches ("Ada") use ("-j0", "-g");
    end Builder;
 
    package Compiler is
-      --  -mcpu / -mthumb / -mfloat-abi MUST match BARE_RUNTIME_SWITCHES
-      --  in alire.toml (the runtime is compiled with those flags).
       for Default_Switches ("Ada") use
-        ("-mcpu=cortex-m3", "-mthumb", "-mfloat-abi=soft",
-         "-g",
+        ("-g",
          "-O0",
          "-gnatwa",     --  all warnings
          "-gnata",      --  enable assertions
@@ -53,9 +36,17 @@ project Traffic_Light_Qemu is
          "-fdata-sections");
    end Compiler;
 
+   package Naming is
+      --  Map the TICK_PERIOD_US profile onto the HAL.Tick_Config spec. The
+      --  unselected hal-tick_config__*.ads files stay out of the build.
+      for Specification ("HAL.Tick_Config")
+        use "hal-tick_config__" & Tick_Period_Us & ".ads";
+   end Naming;
+
    package Linker is
-      for Switches ("Ada") use
-        ("-T", Project'Project_Dir & "/../src/hal/qemu_mps2/link.ld");
+      --  The runtime links in its own ram.ld (-T ram.ld via runtime.xml);
+      --  pair gc-sections with the -ffunction/-fdata-sections above.
+      for Switches ("Ada") use ("-Wl,--gc-sections");
    end Linker;
 
    package Binder is

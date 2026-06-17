@@ -5,9 +5,10 @@ detail, follow links into `docs/`.
 
 ## What this is
 
-Four-way traffic-light controller targeting STM32H563ZI (Nucleo-H563ZI),
-implemented in Ada with the **conflict-check module proven in SPARK**. Hobby
-project; not for public-road deployment. See `README.md`.
+Four-way traffic-light controller targeting the Xilinx Zynq-7000 (dual-core
+Cortex-A9), exercised under QEMU's `xilinx-zynq-a9` machine. Implemented in
+Ada with the **conflict-check module proven in SPARK**. Hobby project; not
+for public-road deployment. See `README.md`.
 
 ## Commands
 
@@ -20,8 +21,8 @@ the project's managed environment.
 alr build                         # or: make build-native
 make run-native                   # build + run the host executable
 
-# Bare-metal arm-eabi cross build (Cortex-M3, QEMU mps2-an385).
-# Sibling Alire crate; emits bin/qemu_mps2/traffic_light.
+# Bare-metal arm-eabi cross build (Cortex-A9, QEMU xilinx-zynq-a9).
+# Sibling Alire crate; emits bin/qemu_zynq7000/traffic_light.
 make build-target                 # cd traffic_light_qemu && alr build
 make run-target                   # build + run under qemu-system-arm
 
@@ -33,9 +34,9 @@ cd tests && alr -n exec -- bash -c \
 alr -n exec -- gprbuild -P obj/development/gnattest/harness/test_driver.gpr -cargs:Ada -gnat2022
 ./obj/development/gnattest/harness/test_runner
 
-# Requirements-based tests (QEMU mps2-an385; ~3 min wall)
+# Requirements-based tests (QEMU xilinx-zynq-a9; ~3 min wall)
 # The QEMU build is its own Alire crate (arm-eabi cross toolchain); it
-# emits bin/qemu_mps2/traffic_light at the repo root.
+# emits bin/qemu_zynq7000/traffic_light at the repo root.
 (cd traffic_light_qemu && alr build)
 uv run tests/requirements/run.py
 
@@ -55,7 +56,7 @@ uv run tools/render-srs.py
 
 ## Architecture in one rule
 
-`src/core/` has **no** dependency on `src/hal/`. The HAL layer (`qemu_mps2/`,
+`src/core/` has **no** dependency on `src/hal/`. The HAL layer (`qemu_zynq7000/`,
 `host/`) implements specs the core defines. App orchestrates. This is what
 makes the core host-buildable, host-testable, and SPARK-provable. Don't break
 this — it's load-bearing for the proof story. See
@@ -150,22 +151,27 @@ From `IMPORT_NOTES.md`, in priority order:
    `package Gnattest`. See `/gnattest` skill for the full pattern.)
 5. ~~Wire up cross-toolchain: uncomment `gnat_arm_elf` in `alire.toml`~~
    (done — arm-eabi toolchain pinned; bare-metal QEMU build lives in the
-   `traffic_light_qemu/` sibling crate). Still TODO: update `.gitlab-ci.yml`
-   `build:target` job to invoke `make build-target`.
-6. Resolve PD8/PD9 ST-LINK VCP conflict in `hardware/pinout.md`.
+   `traffic_light_qemu/` sibling crate, now on the `light-tasking-zynq7000`
+   runtime). `.gitlab-ci.yml` `build:target` now invokes `make build-target`
+   (manual + allow_failure until an Alire-provisioned runner is wired up).
+6. ~~Resolve PD8/PD9 ST-LINK VCP conflict in `hardware/pinout.md`~~
+   (obsolete — STM32-specific; the project now targets Zynq-7000, see retired
+   ADR 0001. `hardware/pinout.md` needs a separate Zynq pinout pass.)
 
 ## arm-eabi cross build layout
 
 The bare-metal arm-eabi build lives in the sibling Alire crate
 `traffic_light_qemu/` (its own `alire.toml` + `traffic_light_qemu.gpr`).
-It needs the arm-eabi cross toolchain + `bare_runtime`, which can't coexist
-with the native compiler in the root crate's dependency solution — hence the
-separate crate. Sources are shared from the repo root's `src/` tree (via
-`../src/core`, `../src/app`, `../src/hal/qemu_mps2`); artifacts land at
-`../bin/qemu_mps2/traffic_light` so the requirements harness finds them.
-Target `arm-eabi`, `-mcpu=cortex-m3 -mthumb -mfloat-abi=soft` — these MUST
-match the flags `bare_runtime` was compiled with. Run via `make run-target`
-(`qemu-system-arm -M mps2-an385`). Wire protocol: `docs/requirements/wire-protocol.md`.
+It needs the arm-eabi cross toolchain, which can't coexist with the native
+compiler in the root crate's dependency solution — hence the separate crate.
+Sources are shared from the repo root's `src/` tree (via `../src/core`,
+`../src/app`, `../src/hal/qemu_zynq7000`); artifacts land at
+`../bin/qemu_zynq7000/traffic_light` so the requirements harness finds them.
+Target `arm-eabi`, runtime `light-tasking-zynq7000` (toolchain-bundled,
+Ravenscar tasking) — the runtime supplies the Cortex-A9 / VFPv3 / hard-float
+switches and its own startup + `ram.ld`, so the GPR carries no crt0, linker
+script, or `-mcpu` flags of its own. Run via `make run-target`
+(`qemu-system-arm -M xilinx-zynq-a9`). Wire protocol: `docs/requirements/wire-protocol.md`.
 
 ## Pointers
 
