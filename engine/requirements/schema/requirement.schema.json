@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://serotonic/engine/requirements/requirement.schema.json",
+  "title": "Requirement file (YAML)",
+  "description": "Structural contract for requirement YAML files under engine/requirements/. A file is a requirement *container*; its `description` map holds the numbered shall-statements. The file's level is determined by its filename prefix: `hlr_` -> high-level (validate against $defs/hlr), `llr_` -> low-level (validate against $defs/llr). Cross-field and cross-file rules that JSON Schema cannot express (description-key contiguity, RS.2 ID uniqueness, parent_req referential integrity, the RS.3 one-shall lint) are enforced by src/reqs/checks/schema.py.",
+  "$defs": {
+    "descriptionMap": {
+      "$comment": "Numbered, atomic shall-statements. YAML integer keys are stringified before schema validation; the validator separately enforces that keys are integers contiguous from 1.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[1-9][0-9]*$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "refList": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "hlr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description"],
+      "$comment": "Exactly one of `source` / `derived` (oneOf: both-present yields two matches and fails; neither yields zero and fails).",
+      "oneOf": [
+        { "required": ["source"] },
+        { "required": ["derived"] }
+      ],
+      "properties": {
+        "source": { "$ref": "#/$defs/refList" },
+        "derived": { "const": true },
+        "terminal": { "const": true },
+        "context": { "type": "string", "minLength": 1 },
+        "description": { "$ref": "#/$defs/descriptionMap" },
+        "rationale": { "type": "string", "minLength": 1 }
+      }
+    },
+    "llr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "parent_req"],
+      "properties": {
+        "parent_req": { "$ref": "#/$defs/refList" },
+        "visibility": {
+          "$comment": "Audience/exposure of the implemented entity. The vocabulary is project-defined; the schema fixes only the slot's shape (a non-empty string), not its value set. Runtime examples use compiler/api/internal.",
+          "type": "string",
+          "minLength": 1
+        },
+        "context": { "type": "string", "minLength": 1 },
+        "description": { "$ref": "#/$defs/descriptionMap" },
+        "preconditions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "implemented_by": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "algorithm_aspects": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

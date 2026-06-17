@@ -1,0 +1,5 @@
+# E-PREFIX: filename must start with hlr_ or llr_.
+source:
+  - SPEC 1(1)
+description:
+  1: The widget shall do the thing.
