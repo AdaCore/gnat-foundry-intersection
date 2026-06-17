@@ -23,6 +23,18 @@
       "Bash(wc:*)"
     ]
   },
+  "hooks": {
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -e '[.tool_calls[]? | select((.tool_name | test(\"^(Write|Edit|MultiEdit)$\")) and ((.tool_input.file_path // \"\") | test(\"\\\\.(ads|adb)$\")))] | length > 0' >/dev/null && make -C \"$CLAUDE_PROJECT_DIR\" format-ada >&2 || true"
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "adacore@adacore-skills": true
   },
