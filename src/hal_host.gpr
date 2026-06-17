@@ -1,0 +1,31 @@
+with "../config/traffic_light_config.gpr";
+
+project Hal_Host is
+
+   --  Structured src/: the host build selects ONLY src/hal/host (the stub
+   --  HAL). src/hal/qemu_mps2 belongs to the arm-eabi cross build and must
+   --  NOT be compiled here -- hence an explicit dir list rather than
+   --  "src/**". config/ holds the Alire-generated config package.
+   for Source_Dirs use ("hal/host");
+
+   --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
+   --  Both are two levels / one level below the root respectively, which the
+   --  Gnattest Tests_Root below relies on. CI and docs reference these paths.
+   for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+
+   package Compiler is
+      --  Common switches come from the Alire config (driven by alire.toml's
+      --  [build-switches]). Append the safety switches the default profile
+      --  omits: -gnata (assertions/contracts), -gnato (overflow checks),
+      --  -fstack-check.
+      for Default_Switches ("Ada") use
+        Traffic_Light_Config.Ada_Compiler_Switches &
+      ("-gnata", "-gnato", "-fstack-check");
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+end Hal_Host;
