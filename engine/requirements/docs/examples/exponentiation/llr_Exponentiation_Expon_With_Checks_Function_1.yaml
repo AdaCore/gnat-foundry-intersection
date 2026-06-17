@@ -1,0 +1,50 @@
+parent_req:
+  - hlr_Exponentiation_Int_1
+  - hlr_Exponentiation_Int_2
+
+visibility: compiler
+
+context:
+  Given `Int` the `Integer` or `Long_Long_Integer` type.
+
+description:
+  1: |-
+    The RTL shall implement the `Expon` function in the `System.Expont` package
+    with the following specification:
+
+    ```ada
+    function Expon (Left : Int; Right : Natural) return Int;
+    -- Left: The base of the exponentiation of type Int
+    -- Right: The exponent of type Natural
+    -- Expon'Result: the exponentiation of Left by Right
+    ```
+
+  2: |-
+    When `Right` is strictly positive, the `Expon` function of the `System.Expont`
+    package shall return the result of the multiplication of `Left` by itself
+    `Right - 1` times.
+
+  3: |-
+    When `Right` is equal to 0, the `Expon` function of the `System.Expont`
+    package shall return 1.
+
+  4: |-
+    When `Right` is different from 0 and `Left` is equal to 0, the `Expon`
+    function of the `System.Expont` package shall return 0.
+
+  5: |-
+    When the multiplications result in an overflow, the `Expon` function of the
+    `System.Expont` package shall raise `Constraint_Error`.
+
+implemented_by:
+  - System.Exp_Int
+  - System.Exp_LLI
+
+algorithm_aspects:
+  This function uses the **exponentiation by squaring** approach.
+  The case `Left = 0` is handled directly to avoid unnecessary multiplications.
+
+rationale: |-
+  When the application using exponentiation is compiled with overflow checks,
+  the compiler will create a call to the instantiation of this function for the
+  corresponding type.

@@ -1,0 +1,63 @@
+parent_req:
+  - hlr_BitOperations_1
+  - hlr_BitOperations_LogicalOperators_1
+
+visibility: compiler
+
+description:
+  1: |-
+    The RTL shall implement the Bit_And procedure following the specification:
+
+    ```ada
+    procedure Bit_And  (Left   : System.Address;
+                        Llen   : Natural;
+                        Right  : System.Address;
+                        Rlen   : Natural;
+                        Result : System.Address)
+
+    -- Left: address of left bit-packed array
+    -- Llen: number of bits to process, starting from the `Left` address
+    -- Right: address of right bit-packed array
+    -- Rlen: number of bits to process, starting from the `Right` address
+    -- Result: address of the result of the bitwise "and" operation
+    ```
+
+  2: |-
+    The procedure Bit_And shall perform a bitwise "and" operation on the first
+    Llen bits of the bit-packed array located at address Left and the first Rlen
+    bits of the bit-packed array located at address Right.
+
+  3: |-
+    The result of the Bit_And procedure shall be stored in the memory area
+    referenced by Result.
+
+  4: |-
+    When Llen or Rlen are not multiples of 8, the Bit_And procedure shall perform
+    the bitwise operation on all bits up to the next full byte.
+
+  5: |-
+    If Llen and Rlen are different, then the procedure Bit_And shall raise a
+    Constraint_Error.
+
+preconditions:
+  - Llen > 0
+  - Rlen <= Natural'Last - 7
+
+implemented_by:
+  - System.Bit_Ops.Bit_And
+
+rationale: |-
+  1. At a language level, performing the bitwise operation on all bits up to the
+     next full byte might not be the expected behaviour. However it's the expected
+     behaviour of the Bit_And procedure. The compiler expects this behaviour and
+     will make appropriate modifications to match the expectations.
+
+  2. The conventional meaning of the "and" operation is given by the following
+     truth table:
+
+     | A | B | A "and" B |
+     | --- | --- | --- |
+     | 0 | 0 | 0 |
+     | 0 | 1 | 0 |
+     | 1 | 0 | 0 |
+     | 1 | 1 | 1 |
