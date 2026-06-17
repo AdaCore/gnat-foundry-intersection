@@ -7,7 +7,7 @@ SHELL := bash
         format format-ada check check-ada \
         generate-tests-pro test-pro generate-tests-community test-community \
         setup-community setup-uv setup-alire setup-toolchains \
-        setup-tools reset-hard \
+        setup-tools setup-codex-plugin reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
         coverage-test-pro coverage-report
 
@@ -142,7 +142,7 @@ test-community: generate-tests-community
 # One-shot: provision the full toolchain locally under install/ — uv, Alire,
 # the GNAT toolchains, and gnattest/gnatcov/gnatprove. Everything a contributor
 # needs to build, test, and prove.
-setup-community: setup-uv setup-alire setup-toolchains setup-tools
+setup-community: setup-uv setup-alire setup-toolchains setup-tools setup-codex-plugin
 	@echo ""
 	echo "=== setup-community complete ==="
 	echo "Local tooling installed under $(TOOLS_DIR):"
@@ -254,6 +254,16 @@ setup-tools: setup-alire
 	fi
 	echo "Installing:$$need ..."
 	"$$ALR" -n install --prefix="$(ALIRE_PREFIX)" $$need
+
+# Install the AdaCore's Codex plugin (if the codex CLI is available)
+setup-codex-plugin:
+	@if ! command -v codex >/dev/null 2>&1; then
+	  echo "codex not found on PATH. Skipping AdaCore plugin install."
+	  exit 0
+	fi
+	echo "Installing AdaCore Codex plugin ..."
+	codex plugin marketplace add adacore/skills
+	codex plugin add adacore@adacore-skills
 
 # ----------------------------------------------------------------------------
 # Reset: remove everything the setup-* targets installed.
