@@ -5,6 +5,8 @@
 --  its own Alire crate, traffic_light_qemu/ (see that crate's GPR).
 
 with "config/traffic_light_config.gpr";
+with "src/core.gpr";
+with "src/hal_host.gpr";
 
 project Traffic_Light is
 
@@ -12,7 +14,7 @@ project Traffic_Light is
    --  HAL). src/hal/qemu_zynq7000 belongs to the arm-eabi cross build and
    --  must NOT be compiled here -- hence an explicit dir list rather than
    --  "src/**". config/ holds the Alire-generated config package.
-   for Source_Dirs use ("src/core", "src/app", "src/hal/host", "config/");
+   for Source_Dirs use ("src/app", "config/");
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
    --  Both are two levels / one level below the root respectively, which the
@@ -29,7 +31,7 @@ project Traffic_Light is
       --  -fstack-check.
       for Default_Switches ("Ada") use
         Traffic_Light_Config.Ada_Compiler_Switches &
-        ("-gnata", "-gnato", "-fstack-check");
+      ("-gnata", "-gnato", "-fstack-check");
    end Compiler;
 
    package Binder is
@@ -47,8 +49,4 @@ project Traffic_Light is
       for Skeletons_Default use "pass";
    end Gnattest;
 
-   package Format is
-      for Charset ("some_source.ads") use "utf-8";
-   end Format;
-   
 end Traffic_Light;

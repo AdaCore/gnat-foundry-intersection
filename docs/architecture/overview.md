@@ -2,37 +2,35 @@
 
 ## Layered structure
 
+The project structure is as follows:
+
+Native application:
+
 ```
-┌────────────────────────────────────────────────────────────┐
-│  Application      src/app/                                 │
-│    main.adb, diagnostics.adb                               │
-├────────────────────────────────────────────────────────────┤
-│  Core (pure logic, host-buildable, SPARK-targetable)       │
-│    src/core/                                               │
-│    ├── conflict_check     (SPARK proof target)             │
-│    ├── phase_sequencer    (state machine)                  │
-│    ├── pedestrian         (WALK / FDW / DW)                │
-│    └── timing             (build-time constants)           │
-├────────────────────────────────────────────────────────────┤
-│  HAL (board-specific, thin)                                │
-│    src/hal/qemu_zynq7000/ (bare-metal arm-eabi; Cortex-A9) │
-│    src/hal/host/      (stub for laptop / unit tests)       │
-└────────────────────────────────────────────────────────────┘
+traffic_light.gpr: The application.                Sources: src/app/
+  ├── src/core.gpr: The core logic (SPARK target)  Sources: src/core/
+  └── src/hal_host.gpr: The host HAL               Sources: src/hal/host/
+```
+
+Target application (bare-metal arm-eabi cross build):
+
+```
+traffic_light_qemu/traffic_light_qemu.gpr: The application. Sources: src/app/
+  ├── src/core.gpr: The core logic (SPARK target)           Sources: src/core/
+  └── src/hal_target.gpr: The QEMU HAL                      Sources: src/hal/qemu_mps2/
 ```
 
 ## Design rules
 
+The `.gpr` files enforce the following rules:
+
 1. **Core depends on nothing.** The core layer has no `with` clauses pointing
    into the HAL. It defines abstract operations (read button state, set lamp
    output) as types and procedures with no implementation, deferred to the
-   HAL. This keeps the core fully testable on a laptop and provable in SPARK.
-2. **HAL implements core's abstractions.** Both `qemu_zynq7000` and `host`
-   HAL variants provide the same package spec (just different bodies). For
-   the host build, `traffic_light.gpr` selects `src/hal/host`. For the
-   bare-metal arm-eabi cross-build, the sibling `traffic_light_qemu` crate
-   selects `src/hal/qemu_zynq7000`, whose body drives the QEMU
-   xilinx-zynq-a9 peripherals (Cadence UART) directly and takes its 1 ms
-   tick from Ada.Real_Time on the light-tasking-zynq7000 runtime.
+   HAL. This keeps the core fully testable on a native host and provable in SPARK.
+2. **HAL implements core's abstractions.** Both `hal_host.gpr` and `hal_target.gpr`
+   HAL variants provide the same interface. `hal_target.gpr` drives the QEMU mps2-an385
+   peripherals (UART, SysTick) directly.
 3. **App orchestrates.** `main.adb` initializes the HAL, then drives the
    core state machine on a periodic tick.
 

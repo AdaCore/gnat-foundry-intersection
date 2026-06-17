@@ -54,13 +54,9 @@ uv run tools/trace-check.py
 uv run tools/render-srs.py
 ```
 
-## Architecture in one rule
+## Architecture
 
-`src/core/` has **no** dependency on `src/hal/`. The HAL layer (`qemu_zynq7000/`,
-`host/`) implements specs the core defines. App orchestrates. This is what
-makes the core host-buildable, host-testable, and SPARK-provable. Don't break
-this — it's load-bearing for the proof story. See
-`docs/architecture/overview.md`.
+See `docs/architecture/overview.md`.
 
 ## Requirement discipline (non-negotiable)
 
