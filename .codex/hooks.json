@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -e '(.tool_input.command // \"\" | split(\"\\n\") | any(test(\"^\\\\*\\\\*\\\\* ((Add|Update|Delete) File|Move to): .*\\\\.(adb|ads)$\"; \"i\")))' >/dev/null && cd \"$(git rev-parse --show-toplevel)\" && make format-ada >&2 || true",
+            "statusMessage": "Formatting Ada sources",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
