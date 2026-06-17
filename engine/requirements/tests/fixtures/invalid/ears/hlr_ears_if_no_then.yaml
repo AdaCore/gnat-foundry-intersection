@@ -1,0 +1,4 @@
+# E-EARS-IFTHEN: an If statement must use "If <trigger>, then ... shall ...".
+derived: True
+description:
+  1: If the input is invalid, the system shall reject it.

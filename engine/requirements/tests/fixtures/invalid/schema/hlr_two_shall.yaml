@@ -1,0 +1,4 @@
+# W-RS3 (warning): a statement should contain exactly one "shall".
+derived: True
+description:
+  1: The widget shall do the thing and the gadget shall do the other thing.

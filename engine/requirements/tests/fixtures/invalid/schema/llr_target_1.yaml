@@ -1,0 +1,8 @@
+# Companion for the E-PARENT-TYPE case: a valid LLR that another LLR wrongly
+# names as its parent. (Its own parent_req is intentionally unresolved -> a
+# warning, which does not affect the E-PARENT-TYPE assertion.)
+parent_req:
+  - hlr_Widget_1
+visibility: compiler
+description:
+  1: The widget shall do the target thing.

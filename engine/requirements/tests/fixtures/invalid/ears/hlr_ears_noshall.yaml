@@ -1,0 +1,4 @@
+# E-EARS-NOSHALL: the statement states no obligation ("shall").
+derived: True
+description:
+  1: The system beeps when the button is pressed.

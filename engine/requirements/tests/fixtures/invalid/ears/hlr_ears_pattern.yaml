@@ -1,0 +1,4 @@
+# E-EARS-PATTERN: no leading keyword and no "the <system> shall <response>" core.
+derived: True
+description:
+  1: Beeping shall occur whenever the button is pressed.

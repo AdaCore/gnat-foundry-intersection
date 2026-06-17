@@ -1,0 +1,4 @@
+# E-SCHEMA: description statements must be non-empty strings (minLength 1).
+derived: True
+description:
+  1: ""
