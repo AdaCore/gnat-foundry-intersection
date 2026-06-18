@@ -288,7 +288,7 @@ reset-hard:
 GNATCOV_TRACES := $$(pwd)/obj/gnatcov-traces
 
 # The RTS project
-GNATCOV_RTS := obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
+GNATCOV_RTS := $$(pwd)/obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
 
 # Local gnatcov RTS
 $(GNATCOV_RTS):
@@ -364,9 +364,9 @@ coverage-report-text:
 		$(GNATCOV_TRACES)/
 
 # "quiet" all-in-one coverage, for use by agents: create a
-# a coverage report and print only the errors, if any.
+# coverage report and print only the errors, if any.
 COVERAGE_LOG := coverage.log
 all-coverage-pro:
 	@make coverage-instrumentation coverage-build coverage-test-pro > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
 	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
-	@cat reports/coverage/report.txt | grep -e '^.*:[0-9]\+:[0-9]\+: .*$$'
+	@grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' reports/coverage/report.txt || true
