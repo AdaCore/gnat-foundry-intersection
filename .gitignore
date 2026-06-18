@@ -59,3 +59,6 @@ hardware/schematics/*-backups/
 
 tests/coverage-report
 tests/traces
+coverage.log
+reports/
+.env

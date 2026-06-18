@@ -125,7 +125,7 @@ generate-tests-pro:
 # Build and run the AUnit harness
 HARNESS := obj/development/gnattest/harness
 test-pro: generate-tests-pro
-	$(ALR) exec -- gprbuild -P $(HARNESS)/test_driver.gpr
+	$(ALR) exec -- gprbuild -q -P $(HARNESS)/test_driver.gpr
 	$(HARNESS)/test_runner
 
 # To use community tools, we run from inside `tests/` to pick up `alr`-managed
@@ -288,21 +288,21 @@ reset-hard:
 GNATCOV_TRACES := $$(pwd)/obj/gnatcov-traces
 
 # The RTS project
-GNATCOV_RTS := $$(pwd)/obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
+GNATCOV_RTS := obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
 
 # Local gnatcov RTS
-coverage-rts:
+$(GNATCOV_RTS):
 	$(ALR) exec -- gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
 
 # Create the instrumented sources
-coverage-instrumentation:
+coverage-instrumentation: $(GNATCOV_RTS)
 	$(ALR) exec -P2 -- gnatcov instrument \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
 
 # Build the intrumented sources
 coverage-build:
-	$(ALR) build -- -g -O0 \
+	$(ALR) build -- -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS) \
 		-XTICK_PERIOD_US=$(TICK_PERIOD_US)
@@ -315,7 +315,7 @@ coverage-test-pro: generate-tests-pro
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
 	$(ALR) exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
-	    -g -O0 \
+	    -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
@@ -329,7 +329,7 @@ coverage-test-community: generate-tests-community
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
 	$(ALR) -C tests exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
-	    -g -O0 \
+	    -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
@@ -362,3 +362,11 @@ coverage-report-text:
 		--annotate=report \
 		-o reports/coverage/report.txt \
 		$(GNATCOV_TRACES)/
+
+# "quiet" all-in-one coverage, for use by agents: create a
+# a coverage report and print only the errors, if any.
+COVERAGE_LOG := coverage.log
+all-coverage-pro:
+	@make coverage-instrumentation coverage-build coverage-test-pro > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
+	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
+	@cat reports/coverage/report.txt | grep -e '^.*:[0-9]\+:[0-9]\+: .*$$'
