@@ -6,12 +6,14 @@ variables:
   UV_PYTHON_DOWNLOADS: never
 
 stages:
+  - validate
   - build
 
 default:
   interruptible: true
 
 .default_rules:
+  needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
@@ -22,6 +24,21 @@ default:
   services:
     - image:e3
     - cpu:4
+
+# Test the `reqs` requirements validation tool, then validate the requirements
+# with it.
+validate-requirements:
+  stage: validate
+  extends:
+    - .default_rules
+  services:
+    - image:e3-py313
+    - cpu:2
+  script:
+    - pip install uv
+    - unset VIRTUAL_ENV
+    - make test-reqs-engine
+    - make validate-reqs
 
 # Install the latest wavefront GNAT toolchain and alire via anod, and set the
 # internal index. Used by every job that needs to build or test Ada code.
