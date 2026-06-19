@@ -77,8 +77,8 @@ def iter_yaml_files(paths) -> list[Path]:
     files: list[Path] = []
     for raw in paths:
         p = Path(raw)
-        files.extend(sorted(p.rglob("*.yaml")) if p.is_dir() else [p])
-    return files
+        files.extend([p] if p.is_file() else p.rglob("*.yaml"))
+    return sorted(files)
 
 
 def compose_lines(text: str) -> dict[tuple[str, ...], int]:
