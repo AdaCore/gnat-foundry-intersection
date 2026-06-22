@@ -49,4 +49,8 @@ project Traffic_Light is
       for Skeletons_Default use "pass";
    end Gnattest;
 
+   package Format is
+      for Ignore use ".gnatformat_ignore.txt";
+   end Format;
+
 end Traffic_Light;
