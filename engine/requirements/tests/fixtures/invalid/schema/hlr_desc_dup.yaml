@@ -1,0 +1,6 @@
+# E-DESCKEY-DUP: statement number 1 is repeated. safe_load would silently merge
+# the two (last wins); the duplicate is caught from the raw YAML node tree.
+derived: True
+description:
+  1: The widget shall do the first thing.
+  1: The widget shall do the first thing differently.

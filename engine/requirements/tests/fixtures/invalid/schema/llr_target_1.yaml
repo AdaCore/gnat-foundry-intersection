@@ -2,7 +2,7 @@
 # names as its parent. (Its own parent_req is intentionally unresolved -> a
 # warning, which does not affect the E-PARENT-TYPE assertion.)
 parent_req:
-  - hlr_Widget_1
+  - hlr_Widget_1.1
 visibility: compiler
 description:
   1: The widget shall do the target thing.

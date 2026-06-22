@@ -81,41 +81,56 @@ def iter_yaml_files(paths) -> list[Path]:
     return sorted(files)
 
 
-def compose_lines(text: str) -> dict[tuple[str, ...], int]:
-    """Map top-level keys and `description` sub-keys to 1-based source lines."""
+def compose_lines(text: str) -> tuple[dict[tuple[str, ...], int], list[str]]:
+    """
+    Walk the compose node tree once, returning ``(lines, dups)``.
+
+    ``lines`` maps top-level keys and `description` sub-keys to 1-based source
+    lines. ``dups`` lists `description` sub-keys that appear more than once:
+    ``safe_load`` silently merges duplicate mapping keys (last value wins), so a
+    repeated statement number is invisible after parsing -- the node tree
+    preserves every occurrence, so we surface them from the same pass.
+    """
     lines: dict[tuple[str, ...], int] = {}
+    dups: list[str] = []
     try:
         root = yaml.compose(text)
     except yaml.YAMLError:
-        return lines
+        return lines, dups
     if not isinstance(root, yaml.MappingNode):
-        return lines
+        return lines, dups
     for key_node, value_node in root.value:
         key = str(key_node.value)
         lines[(key,)] = key_node.start_mark.line + 1
         if key == "description" and isinstance(value_node, yaml.MappingNode):
+            seen: set[str] = set()
             for sub_key, _ in value_node.value:
-                lines[("description", str(sub_key.value))] = sub_key.start_mark.line + 1
-    return lines
+                k = str(sub_key.value)
+                lines[("description", k)] = sub_key.start_mark.line + 1
+                if k in seen and k not in dups:
+                    dups.append(k)
+                seen.add(k)
+    return lines, dups
 
 
 def load_yaml(path: Path):
     """
     Parse a requirement file.
 
-    Returns ``(data, lines, error)``: ``data`` is the parsed mapping (or None),
-    ``lines`` is the source-line map from :func:`compose_lines`, and ``error`` is
-    a Diagnostic to report when the file fails to parse or isn't a mapping.
+    Returns ``(data, lines, dups, error)``: ``data`` is the parsed mapping (or
+    None), ``lines`` and ``dups`` are the source-line map and duplicate
+    `description` sub-keys from :func:`compose_lines`, and ``error`` is a
+    Diagnostic to report when the file fails to parse or isn't a mapping.
     """
     text = path.read_text(encoding="utf-8")
-    lines = compose_lines(text)
+    lines, dups = compose_lines(text)
     try:
         data = yaml.safe_load(text)
     except yaml.YAMLError as exc:
-        return None, lines, Diagnostic("error", "E-YAML", f"YAML parse error: {exc}", path)
+        return None, lines, dups, Diagnostic("error", "E-YAML", f"YAML parse error: {exc}", path)
     if not isinstance(data, dict):
-        return None, lines, Diagnostic("error", "E-YAML", "top level must be a mapping", path)
-    return data, lines, None
+        return None, lines, dups, Diagnostic("error", "E-YAML", "top level must be a mapping", path)
+    return data, lines, dups, None
 
 
 def report(diags: list[Diagnostic], paths, *, quiet: bool = False) -> int:

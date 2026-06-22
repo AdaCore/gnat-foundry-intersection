@@ -3,6 +3,9 @@ Schema + structural validation of requirement YAML files.
 
 File level is chosen by filename prefix: ``hlr_`` -> high-level, ``llr_`` -> low-level.
 
+A requirement's ID is ``<stem>.<number>`` (see docs/README.md): the file's stem
+identifies the *container*, the ``description`` key identifies the statement.
+
 Layered checks:
 
   Schema (JSON Schema 2020-12, ``schema/requirement.schema.json``)
@@ -13,10 +16,14 @@ Layered checks:
     - non-empty description statements
 
   Structural (this module)
-    - E-DESCKEY : description keys are integers, contiguous from 1
-    - E-DUPID   : RS.2 - filename stems (IDs) unique across the validated set
-    - E-PARENT-TYPE : an LLR parent_req that resolves to a non-HLR file
-    - {E,W}-PARENT-MISSING : a parent_req that resolves to no file in the set.
+    - E-DESCKEY     : description keys are integers, contiguous from 1
+    - E-DESCKEY-DUP : a statement number is repeated within a file (``safe_load``
+      silently merges duplicate keys, so it is caught from the raw node tree)
+    - E-DUPID       : RS.2 - container stems unique across the validated set
+    - E-PARENT-FORMAT : a parent_req entry that is not a ``<stem>.<number>``
+      statement ID (e.g. a bare container stem)
+    - E-PARENT-TYPE : a parent_req whose resolved statement lives in a non-HLR file
+    - {E,W}-PARENT-MISSING : a parent_req that resolves to no statement in the set.
       Warning by default (the curated examples are deliberately partial);
       error when ``complete=True`` (a full requirement set must trace cleanly).
 
@@ -30,6 +37,7 @@ Layered checks:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +57,10 @@ HLR_PREFIX = "hlr_"
 LLR_PREFIX = "llr_"
 RS3_OPTOUT = "rs3:skip"
 
+# A full requirement ID is '<stem>.<number>' (see docs/README.md). Split on the
+# final dot; <number> is a positive integer (a description key).
+_REF_RE = re.compile(r"^(?P<stem>.+)\.(?P<number>[1-9][0-9]*)$")
+
 
 def _level_of(path: Path) -> str | None:
     name = path.name
@@ -59,9 +71,19 @@ def _level_of(path: Path) -> str | None:
     return None
 
 
-def _req_id(path: Path) -> str:
-    """Return the requirement ID (currently the filename stem; deferred item #1)."""
+def _stem(path: Path) -> str:
+    """Return the requirement container's ID (the filename stem)."""
     return path.stem
+
+
+def _number(key: Any) -> str:
+    """Return a statement's number (a description key) as its ID component."""
+    return str(key)
+
+
+def _req_id(stem: str, number: Any) -> str:
+    """Assemble a full statement ID '<stem>.<number>' (see docs/README.md)."""
+    return f"{stem}.{_number(number)}"
 
 
 def _jsonify_keys(obj: Any) -> Any:
@@ -95,7 +117,7 @@ class RequirementChecker:
         # First pass: parse, schema-validate, structural per-file checks.
         # Records (path, level, data) feed the cross-file pass.
         records: list[tuple[Path, str, dict]] = []
-        seen_ids: dict[str, Path] = {}
+        seen_stems: dict[str, Path] = {}
 
         for path in iter_yaml_files(paths):
             level = _level_of(path)
@@ -110,31 +132,32 @@ class RequirementChecker:
                 )
                 continue
 
-            req_id = _req_id(path)
-            if req_id in seen_ids:
+            stem = _stem(path)
+            if stem in seen_stems:
                 diags.append(
                     Diagnostic(
                         "error",
                         "E-DUPID",
-                        f"duplicate requirement ID {req_id!r} (also {seen_ids[req_id]})",
+                        f"duplicate container stem {stem!r} (also {seen_stems[stem]})",
                         path,
                     )
                 )
             else:
-                seen_ids[req_id] = path
+                seen_stems[stem] = path
 
-            data, lines, error = load_yaml(path)
+            data, lines, dups, error = load_yaml(path)
             if error is not None:
                 diags.append(error)
                 continue
 
             diags.extend(self._schema_check(path, level, data, lines))
             diags.extend(self._description_keys(path, data, lines))
+            diags.extend(self._duplicate_keys(path, lines, dups))
             diags.extend(self._rs3_lint(path, data, lines))
             records.append((path, level, data))
 
         # Second pass: referential integrity needs the whole set.
-        diags.extend(self._referential_integrity(records, seen_ids))
+        diags.extend(self._referential_integrity(records))
         return diags
 
     def _schema_check(self, path, level, data, lines) -> list[Diagnostic]:
@@ -187,6 +210,19 @@ class RequirementChecker:
             )
         return out
 
+    def _duplicate_keys(self, path, lines, dups) -> list[Diagnostic]:
+        return [
+            Diagnostic(
+                "error",
+                "E-DESCKEY-DUP",
+                f"duplicate description key {k!r}; statement numbers must be unique within a file",
+                path,
+                line=lines.get(("description", k)),
+                path=("description", k),
+            )
+            for k in dups
+        ]
+
     def _rs3_lint(self, path, data, lines) -> list[Diagnostic]:
         desc = data.get("description")
         if not isinstance(desc, dict):
@@ -210,7 +246,19 @@ class RequirementChecker:
                 )
         return out
 
-    def _referential_integrity(self, records, seen_ids) -> list[Diagnostic]:
+    def _referential_integrity(self, records) -> list[Diagnostic]:
+        # Build the registry from the whole set: every statement ID and its
+        # container's level, plus which container stems exist at all.
+        statements: dict[str, str] = {}  # "<stem>.<number>" -> container level
+        stem_levels: dict[str, str] = {}  # "<stem>" -> level
+        for path, level, data in records:
+            stem = _stem(path)
+            stem_levels[stem] = level
+            desc = data.get("description")
+            if isinstance(desc, dict):
+                for key in desc:
+                    statements[_req_id(stem, key)] = level
+
         out: list[Diagnostic] = []
         for path, level, data in records:
             if level != "llr":
@@ -219,26 +267,44 @@ class RequirementChecker:
             if not isinstance(parents, list):
                 continue  # schema already flagged a malformed/missing parent_req
             for parent in parents:
-                target = seen_ids.get(parent)
-                if target is None:
-                    miss_level = "error" if self.complete else "warning"
+                match = _REF_RE.match(parent) if isinstance(parent, str) else None
+                if match is None:
                     out.append(
                         Diagnostic(
-                            miss_level,
+                            "error",
+                            "E-PARENT-FORMAT",
+                            f"parent_req {parent!r} must be a '<stem>.<number>' statement ID, "
+                            "not a bare container stem",
+                            path,
+                            path=("parent_req",),
+                        )
+                    )
+                    continue
+                target_level = statements.get(parent)
+                if target_level is None:
+                    pstem = match["stem"]
+                    detail = (
+                        f"no statement {parent!r} in {pstem!r}"
+                        if pstem in stem_levels
+                        else f"no requirement container {pstem!r} in the set"
+                    )
+                    out.append(
+                        Diagnostic(
+                            "error" if self.complete else "warning",
                             "E-PARENT-MISSING" if self.complete else "W-PARENT-MISSING",
-                            f"parent_req {parent!r} resolves to no requirement in the set"
+                            f"parent_req {parent!r} resolves to nothing ({detail})"
                             + ("" if self.complete else " (use --complete to require resolution)"),
                             path,
                             path=("parent_req",),
                         )
                     )
-                elif _level_of(target) != "hlr":
+                elif target_level != "hlr":
                     out.append(
                         Diagnostic(
                             "error",
                             "E-PARENT-TYPE",
-                            f"parent_req {parent!r} must reference an HLR, "
-                            f"but {target.name} is not one",
+                            f"parent_req {parent!r} must reference an HLR statement; "
+                            f"its container {match['stem']!r} is an {target_level.upper()}",
                             path,
                             path=("parent_req",),
                         )

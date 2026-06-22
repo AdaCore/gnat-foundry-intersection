@@ -33,6 +33,7 @@ NEGATIVE_CASES = [
     ("source XOR derived (both)", ["hlr_both_source_derived.yaml"], "E-SCHEMA", "error"),
     ("source XOR derived (neither)", ["hlr_neither_source_derived.yaml"], "E-SCHEMA", "error"),
     ("description key gap", ["hlr_desc_gap.yaml"], "E-DESCKEY", "error"),
+    ("duplicate description key", ["hlr_desc_dup.yaml"], "E-DESCKEY-DUP", "error"),
     ("empty description statement", ["hlr_desc_empty.yaml"], "E-SCHEMA", "error"),
     ("visibility must be non-empty string", ["llr_bad_visibility.yaml"], "E-SCHEMA", "error"),
     ("bad filename prefix", ["badprefix.yaml"], "E-PREFIX", "error"),
@@ -44,6 +45,7 @@ NEGATIVE_CASES = [
         "E-PARENT-TYPE",
         "error",
     ),
+    ("parent_req must be a statement ID", ["llr_parent_barestem.yaml"], "E-PARENT-FORMAT", "error"),
 ]
 
 

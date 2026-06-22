@@ -16,14 +16,16 @@ YAML-structured, [EARS](ears.md)-constrained requirements.
 
 Each YAML file is a requirement *container*; the `description` map holds the
 individual numbered "shall" statements (RS.3 — exactly one shall per
-statement). Fields observed across the examples:
+statement). Each statement is uniquely identified as `<stem>.<number>` — the
+file's name without extension, then the statement's `description` key (RS.2);
+e.g. `hlr_Exponentiation_Int_1.2`. Fields observed across the examples:
 
 | Field | Level | Meaning |
 | --- | --- | --- |
 | `source` | HLR | Upstream references (e.g. clauses of a governing specification or standard). Mutually exclusive with `derived`. |
 | `derived` | HLR | `True` when the requirement has no upstream source (an implementation/design choice). |
 | `terminal` | HLR | `True` when the requirement is not further decomposed into lower-level requirements. |
-| `parent_req` | LLR | IDs of the higher-level requirement(s) this one refines. |
+| `parent_req` | LLR | Full statement IDs (`<stem>.<number>`) of the higher-level requirement statement(s) this one refines. |
 | `visibility` | LLR | Audience/exposure of the implemented entity. The allowed values are **project-defined**; the framework fixes only the meaning of the slot, not its vocabulary. (The runtime examples here use `compiler`/`api`/`internal`.) |
 | `context` | both | Givens scoping the requirement statements. |
 | `description` | both | Numbered map of atomic shall-statements (the requirement body). |
@@ -51,6 +53,6 @@ complete feature set:
 > Examples are verbatim excerpts (markup-converted). Trace fields
 > (`parent_req`, `implemented_by`) may reference requirements or code entities
 > that live outside this curated subset — e.g. `bit_operations` LLRs cite
-> `hlr_BitOperations_1`, which is not included here. Likewise, the
+> `hlr_BitOperations_1.1`, whose container is not included here. Likewise, the
 > `visibility: compiler` values are the source domain's (Ada-runtime)
 > vocabulary, not a framework-mandated value set — see the field table above.
