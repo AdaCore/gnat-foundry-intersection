@@ -80,7 +80,7 @@ class EarsChecker:
     def check(self, paths) -> list[Diagnostic]:
         diags: list[Diagnostic] = []
         for path in iter_yaml_files(paths):
-            data, lines, error = load_yaml(path)
+            data, lines, _dups, error = load_yaml(path)
             if error is not None:
                 diags.append(error)
                 continue

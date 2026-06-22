@@ -27,6 +27,9 @@ The application of the EARS notation produces requirements in a small number
 of patterns, depending on the clauses that are used. The patterns are
 illustrated below.
 
+A statement that is deliberately written outside EARS may opt out of the EARS
+lint by including the token `ears:skip` anywhere in it.
+
 ## Ubiquitous requirements
 
 Ubiquitous requirements are always active (so there is no EARS keyword).

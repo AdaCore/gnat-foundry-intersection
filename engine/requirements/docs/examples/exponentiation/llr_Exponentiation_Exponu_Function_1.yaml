@@ -1,5 +1,7 @@
 parent_req:
-  - hlr_Exponentiation_Int_1
+  - hlr_Exponentiation_Int_1.1
+  - hlr_Exponentiation_Int_1.2
+  - hlr_Exponentiation_Int_1.3
 
 visibility: compiler
 

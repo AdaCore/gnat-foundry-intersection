@@ -15,6 +15,15 @@ Each requirement shall be written with:
 
 Each requirement shall be uniquely identified.
 
+> **Note**
+> A requirement's identifier is `<stem>.<number>`, where `<stem>` is the
+> requirement file's name without its extension and `<number>` is the key of
+> the statement within that file's `description` map (see [RS.3](#rule-rs3)).
+> For example, statement `2` of `hlr_Exponentiation_Int_1.yaml` has the
+> identifier `hlr_Exponentiation_Int_1.2`. The bare `<stem>` denotes the file's
+> container of statements, not an individual requirement; cross-references such
+> as `parent_req` name a specific statement by its full `<stem>.<number>` ID.
+
 ## Rule RS.3
 
 Each requirement shall contain exactly one "shall" statement.
@@ -23,6 +32,10 @@ Each requirement shall contain exactly one "shall" statement.
 > A physical file may contain more than one requirement statement; this rule
 > refers to the individual requirement statements within the physical file
 > container.
+
+A statement that deliberately carries no "shall" (e.g. an explanatory note)
+may opt out of this rule by including the token `rs3:skip` anywhere in it; the
+`W-RS3` lint then suppresses the warning for that statement.
 
 ## Rule RS.4
 

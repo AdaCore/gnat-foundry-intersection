@@ -1,6 +1,8 @@
 parent_req:
-  - hlr_Floating_Point_Floor_01
-  - hlr_Floating_Point_Floor_02
+  - hlr_Floating_Point_Floor_01.1
+  - hlr_Floating_Point_Floor_01.2
+  - hlr_Floating_Point_Floor_01.3
+  - hlr_Floating_Point_Floor_02.1
 
 visibility: compiler
 

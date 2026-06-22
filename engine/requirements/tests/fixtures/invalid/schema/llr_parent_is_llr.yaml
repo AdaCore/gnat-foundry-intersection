@@ -1,7 +1,7 @@
-# E-PARENT-TYPE: parent_req must reference an HLR; here it resolves to an LLR
-# (llr_target_1) when validated alongside it.
+# E-PARENT-TYPE: parent_req must reference an HLR statement; here it resolves to
+# a statement in an LLR (llr_target_1.1) when validated alongside it.
 parent_req:
-  - llr_target_1
+  - llr_target_1.1
 visibility: compiler
 description:
   1: The widget shall do the dependent thing.

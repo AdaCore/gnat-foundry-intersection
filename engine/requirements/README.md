@@ -46,40 +46,35 @@ them uniformly via `core.report`.
 
 ## What's checked
 
-File level is chosen by filename prefix: `hlr_` → high-level, `llr_` → low-level.
-The filename stem is the requirement ID (a stable opaque-ID scheme is deferred).
+The CLI emits coded diagnostics; each runtime message is self-describing. The
+**Violates** column cites where the rule is *defined* — don't restate it here.
 
 ### `validate schema`
 
-| Code | Level | Rule |
+| Code | Level | Violates |
 | --- | --- | --- |
-| `E-PREFIX` | error | filename must start with `hlr_` or `llr_` |
-| `E-YAML` | error | file parses as a YAML mapping |
-| `E-SCHEMA` | error | JSON Schema: types, required fields, **unknown keys rejected** (so `test_cases` is an error), `source` XOR `derived` on HLRs, lowercase `visibility` enum, non-empty statements |
-| `E-DESCKEY` | error | `description` keys are integers, contiguous from 1 |
-| `E-DUPID` | error | RS.2 — filename stems (IDs) unique across the set |
-| `E-PARENT-TYPE` | error | an LLR `parent_req` that resolves to a non-HLR |
-| `W/E-PARENT-MISSING` | warning, or error under `--complete` | `parent_req` resolving to no file in the set |
-| `W-RS3` | warning | each statement should contain exactly one "shall" (code blocks excluded; opt out with `rs3:skip`) |
+| `E-PREFIX` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
+| `E-YAML` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
+| `E-SCHEMA` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
+| `E-DESCKEY` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
+| `E-DESCKEY-DUP` | error | [`checks/schema.py`](src/reqs/checks/schema.py) |
+| `E-DUPID` | error | [`rules.md` RS.2](docs/rules.md#rule-rs2) |
+| `E-PARENT-FORMAT` | error | [`rules.md` RS.2](docs/rules.md#rule-rs2) |
+| `E-PARENT-TYPE` | error | [`checks/schema.py`](src/reqs/checks/schema.py) |
+| `W`/`E-PARENT-MISSING` | warning, error under `--complete` | [`checks/schema.py`](src/reqs/checks/schema.py) |
+| `W-RS3` | warning | [`rules.md` RS.3](docs/rules.md#rule-rs3) |
 
 ### `validate ears`
 
-EARS is a closed grammar, enforced with regexes. The linter classifies each
-statement and reports the ones that match no pattern:
+| Code | Level | Violates |
+| --- | --- | --- |
+| `E-EARS-NOSHALL` | error | [`ears.md`](docs/ears.md#generic-ears-syntax) |
+| `E-EARS-COMMA` | error | [`ears.md`](docs/ears.md#generic-ears-syntax) |
+| `E-EARS-IFTHEN` | error | [`ears.md`](docs/ears.md#unwanted-behavior-requirements) |
+| `E-EARS-CASE` | error | [`ears.md`](docs/ears.md#generic-ears-syntax) |
+| `E-EARS-PATTERN` | error | [`ears.md`](docs/ears.md) |
 
-| Code | Rule |
-| --- | --- |
-| `E-EARS-NOSHALL` | statement contains no "shall" |
-| `E-EARS-COMMA` | a `While`/`When` clause isn't terminated by a comma |
-| `E-EARS-IFTHEN` | an `If` statement is missing its `then` |
-| `E-EARS-CASE` | a leading EARS keyword isn't capitalized |
-| `E-EARS-PATTERN` | matches no EARS pattern (bad clause order / no "the &lt;system&gt; shall &lt;response&gt;" core) |
-
-Code blocks, `$$` math, and Markdown tables are stripped before matching.
-`shall`-count is RS.3 (`W-RS3`) in `validate schema`, not here. A statement
-deliberately outside EARS can opt out with `ears:skip`.
-
-Both commands exit non-zero if any error is reported; warnings alone exit 0.
+Both commands exit non-zero on any error; warnings alone exit 0.
 
 ## Out of scope (planned / deferred)
 
