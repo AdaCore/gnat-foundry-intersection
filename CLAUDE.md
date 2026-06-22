@@ -6,7 +6,7 @@ The *engine*: a set of reusable modules for driving AI agents to
 produce high-quality software artifacts. The engine is located under `engine/`.
 
 The *app*: four-way traffic-light controller targeting the Xilinx Zynq-7000 (dual-core
-Cortex-A9), exercised under QEMU. Implemented in Ada with the **engine proven in SPARK**.
+Cortex-A9), exercised under QEMU. Implemented in Ada with the **controller proven to SPARK Silver**.
 
 The aim of this repository is to demonstrate how the engine can work on the *app*.
 
