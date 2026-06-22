@@ -6,6 +6,7 @@ SHELL := bash
 .PHONY: printenv build-native build-target run-native run-target prove \
         format format-ada check check-ada \
         generate-tests-pro test-pro generate-tests-community test-community \
+        validate-reqs test-reqs-engine \
         setup-community setup-uv setup-alire setup-toolchains \
         setup-tools setup-codex-plugin reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
@@ -138,6 +139,23 @@ generate-tests-community:
 test-community: generate-tests-community
 	$(ALR) -C tests exec -- gprbuild -P ../$(HARNESS)/test_driver.gpr
 	$(HARNESS)/test_runner
+
+# ----------------------------------------------------------------------------
+# Requirements validation
+# ----------------------------------------------------------------------------
+
+REQS_ENGINE := $(CURDIR)/engine/requirements
+REQS_DIR    := $(CURDIR)/requirements
+
+# Check the requirements files for structural validity and conformance to the
+# EARS syntax.
+validate-reqs:
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)"
+
+# Run the validation engine's own test suite.
+test-reqs-engine:
+	$(UV) --directory "$(REQS_ENGINE)" run pytest
 
 # ----------------------------------------------------------------------------
 # Community setup: provision all developer tooling locally under install/
