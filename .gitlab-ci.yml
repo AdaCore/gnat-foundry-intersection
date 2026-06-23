@@ -17,13 +17,23 @@ default:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-.x86_64-linux:
+.x86_64-linux-pro:
   variables:
     OS: Linux
     PLATFORM: x86_64-linux
   services:
     - image:e3
     - cpu:4
+
+.x86_64-linux-community:
+  variables:
+    OS: Linux
+    PLATFORM: x86_64-linux
+  services:
+    - image:e3
+    - cpu:4
+    # Allow connecting to the internet
+    - security_group:GitLabRunnerTasksExecPrivilegedSG
 
 # Test the `reqs` requirements validation tool, then validate the requirements
 # with it.
@@ -45,7 +55,7 @@ validate-requirements:
 pro:x86_64-linux:
   stage: build
   extends:
-     - .x86_64-linux
+     - .x86_64-linux-pro
      - .default_rules
   script:
     # Deploy a sandbox
@@ -83,7 +93,6 @@ pro:x86_64-linux:
     - make build-native
 
     # Test with coverage
-    - make coverage-rts
     - make coverage-instrumentation
     - make coverage-build
     - make coverage-test-pro
@@ -115,6 +124,32 @@ pro:x86_64-linux:
       coverage_report:
         coverage_format: cobertura
         path: reports/coverage/cobertura/cobertura.xml
+    paths:
+      # Upload the entire reports/ directory as an artifact
+      - reports/
+
+community:x86_64-linux:
+  stage: build
+  extends:
+     - .x86_64-linux-community
+     - .default_rules
+  script:
+    # Setup
+    - make setup-community
+
+    # Build
+    - make build-native
+
+    # Test with coverage
+    - make coverage-rts
+    - make coverage-instrumentation
+    - make coverage-build
+    - make coverage-test-community
+    - make coverage-report-cobertura
+    - make coverage-report-text
+
+  artifacts:
+    when: always #  Upload on errors too
     paths:
       # Upload the entire reports/ directory as an artifact
       - reports/
