@@ -50,27 +50,15 @@ validate-requirements:
     - make test-reqs-engine
     - make validate-reqs
 
-# Install the latest wavefront GNAT toolchain and alire via anod, and set the
-# internal index. Used by every job that needs to build or test Ada code.
-pro:x86_64-linux:
+.pro:
   stage: build
   extends:
      - .x86_64-linux-pro
      - .default_rules
-  script:
+  before_script:
     # Deploy a sandbox
     - anod init wave
     - export ANOD_DEFAULT_SANDBOX_DIR=$(pwd)/wave
-
-    # Install stable specs
-    - for spec in gnat gnatformat spark2014 gnatcov gnattest ; do
-        anod install $spec --qualifier=stable ;
-        eval $(anod printenv $spec --qualifier=stable) ;
-      done
-
-    # The target compiler, commented out for now
-    # - anod install gnat -Qstable --target=arm-elf
-    # - eval $(anod printenv gnat -Qstable --target=arm-elf)
 
     # Install alire
     - anod install alire
@@ -85,9 +73,21 @@ pro:x86_64-linux:
         "/tmp/internal-alire-scripts/adacore_registries_download.py"
 
     # Sanity check
+    - alr --version
+
+# Native build and test with coverage.
+pro:x86_64-linux:
+  extends: .pro
+  script:
+    # Install stable specs
+    - for spec in gnat gnatformat spark2014 gnatcov gnattest ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+
+    # Sanity check
     - gnat --version
     - gnatprove --version
-    - alr --version
 
     # Build
     - make build-native
@@ -127,6 +127,27 @@ pro:x86_64-linux:
     paths:
       # Upload the entire reports/ directory as an artifact
       - reports/
+
+# Target build.
+pro:arm-elf:
+  extends: .pro
+  script:
+    # Install the cross compiler
+    - anod install gnat --qualifier=stable --target=arm-elf
+    - eval $(anod printenv gnat --qualifier=stable --target=arm-elf)
+
+    # Sanity check
+    - arm-eabi-gnat --version
+
+    # Build (with accelerated tick).
+    - make build-target TICK_PERIOD_US=10
+
+    # Smoke test
+    - timeout 1 qemu-system-arm -M xilinx-zynq-a9 -m 1G -display none -monitor none
+        -serial stdio -serial null -kernel bin/qemu_zynq7000/traffic_light | tee smoke.log
+    - grep -qx 'startup'         smoke.log
+    - grep -q  '^HB T='          smoke.log
+    - grep -q  '^PH=NS_LT_GREEN' smoke.log
 
 community:x86_64-linux:
   stage: build

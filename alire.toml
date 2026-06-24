@@ -1,10 +1,10 @@
 name = "traffic_light"
-description = "Four-way traffic-light controller (STM32H563ZI, Ada/SPARK)"
+description = "Four-way traffic-light controller (Xilinx Zynq-7000, Ada/SPARK)"
 version = "0.1.0-dev"
 authors = ["AdaCore"]
 maintainers = ["AdaCore <support@adacore.com>"]
 licenses = "Apache-2.0 WITH LLVM-exception"
 website = "https://gitlab.com/mark/traffic-light-controller"
-tags = ["embedded", "ada", "spark", "stm32", "traffic"]
+tags = ["embedded", "ada", "spark", "arm", "zynq", "traffic"]
 
 project-files = ["traffic_light.gpr"]

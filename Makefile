@@ -70,7 +70,7 @@ printenv:
 
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
-	$(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
+	$(ALR) build
 
 # QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
 build-target:

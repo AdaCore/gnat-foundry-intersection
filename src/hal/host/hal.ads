@@ -1,4 +1,4 @@
---  HAL package — host stub. Mirrors src/hal/stm32h5/hal.ads so the
+--  HAL package — host stub. Mirrors src/hal/qemu_zynq7000/hal.ads so the
 --  core code is unchanged across profiles.
 
 package HAL is

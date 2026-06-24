@@ -17,7 +17,7 @@ Target application (bare-metal arm-eabi cross build):
 ```
 traffic_light_qemu/traffic_light_qemu.gpr: The application. Sources: src/app/
   ├── src/core.gpr: The core logic (SPARK target)           Sources: src/core/
-  └── src/hal_target.gpr: The QEMU HAL                      Sources: src/hal/qemu_mps2/
+  └── src/hal_target.gpr: The QEMU HAL                      Sources: src/hal/qemu_zynq7000/
 ```
 
 ## Design rules
@@ -29,8 +29,9 @@ The `.gpr` files enforce the following rules:
    output) as types and procedures with no implementation, deferred to the
    HAL. This keeps the core fully testable on a native host and provable in SPARK.
 2. **HAL implements core's abstractions.** Both `hal_host.gpr` and `hal_target.gpr`
-   HAL variants provide the same interface. `hal_target.gpr` drives the QEMU mps2-an385
-   peripherals (UART, SysTick) directly.
+   HAL variants provide the same interface. `hal_target.gpr` drives the QEMU
+   xilinx-zynq-a9 peripherals (Cadence UART) directly and takes its 1 ms
+   tick from Ada.Real_Time on the light-tasking-zynq7000 runtime.
 3. **App orchestrates.** `main.adb` initializes the HAL, then drives the
    core state machine on a periodic tick.
 
