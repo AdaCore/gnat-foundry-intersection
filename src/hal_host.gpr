@@ -3,9 +3,9 @@ with "../config/traffic_light_config.gpr";
 project Hal_Host is
 
    --  Structured src/: the host build selects ONLY src/hal/host (the stub
-   --  HAL). src/hal/qemu_mps2 belongs to the arm-eabi cross build and must
+   --  HAL). src/hal/qemu_zynq7000 belongs to the arm-eabi cross build and must
    --  NOT be compiled here -- hence an explicit dir list rather than
-   --  "src/**". config/ holds the Alire-generated config package.
+   --  "src/**".
    for Source_Dirs use ("hal/host");
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.

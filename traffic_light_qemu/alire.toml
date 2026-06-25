@@ -22,3 +22,10 @@ project-files = ["traffic_light_qemu.gpr"]
 
 [[depends-on]]
 gnat_arm_elf = "*"
+
+# Light-tasking runtimes do not support stack overflow checking
+[gpr-set-externals]
+STACK_CHECK = "disabled"
+
+[gpr-externals]
+TICK_PERIOD_US = ["1000", "300", "10"]

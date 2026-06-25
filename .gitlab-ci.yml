@@ -50,27 +50,15 @@ validate-requirements:
     - make test-reqs-engine
     - make validate-reqs
 
-# Install the latest wavefront GNAT toolchain and alire via anod, and set the
-# internal index. Used by every job that needs to build or test Ada code.
-pro:x86_64-linux:
+.pro:
   stage: build
   extends:
      - .x86_64-linux-pro
      - .default_rules
-  script:
+  before_script:
     # Deploy a sandbox
     - anod init wave
     - export ANOD_DEFAULT_SANDBOX_DIR=$(pwd)/wave
-
-    # Install stable specs
-    - for spec in gnat gnatformat spark2014 gnatcov gnattest ; do
-        anod install $spec --qualifier=stable ;
-        eval $(anod printenv $spec --qualifier=stable) ;
-      done
-
-    # The target compiler, commented out for now
-    # - anod install gnat -Qstable --target=arm-elf
-    # - eval $(anod printenv gnat -Qstable --target=arm-elf)
 
     # Install alire
     - anod install alire
@@ -81,13 +69,25 @@ pro:x86_64-linux:
 
     # Setup alire to use our downloader helper
     - git clone --depth=1 $INTERNAL_ALIRE_SCRIPTS /tmp/internal-alire-scripts
-    - alr -n settings --global --set origins.archive.download_cmd \
+    - alr -n settings --global --set --builtin origins.archive.download_cmd \
         "/tmp/internal-alire-scripts/adacore_registries_download.py"
+
+    # Sanity check
+    - alr --version
+
+# Native build and test with coverage.
+pro:x86_64-linux:
+  extends: .pro
+  script:
+    # Install stable specs
+    - for spec in gnat gnatformat spark2014 gnatcov gnattest ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
 
     # Sanity check
     - gnat --version
     - gnatprove --version
-    - alr --version
 
     # Build
     - make build-native
@@ -127,6 +127,24 @@ pro:x86_64-linux:
     paths:
       # Upload the entire reports/ directory as an artifact
       - reports/
+
+# Target build.
+pro:arm-elf:
+  extends: .pro
+  script:
+    # Install the cross compiler
+    - anod install gnat --qualifier=stable --target=arm-elf
+    - eval $(anod printenv gnat --qualifier=stable --target=arm-elf)
+
+    # Sanity check
+    - arm-eabi-gnat --version
+
+    # Remove the explicit dependency on `gnat_arm_elf` so we don't try to fetch
+    # the community version.
+    - alr -n -C traffic_light_qemu/ with --del gnat_arm_elf
+
+    # Build
+    - make build-target
 
 community:x86_64-linux:
   stage: build

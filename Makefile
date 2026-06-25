@@ -16,9 +16,9 @@ SHELL := bash
 QEMU_UART1 ?= 5556
 
 # Wall-clock microseconds per logical 1 ms tick in the QEMU firmware (see
-# traffic_light_qemu.gpr / hal.adb). Selects a pre-defined profile spec; valid
-# values are 1000, 300, 10. 1000 = faithful real time; 300 runs the
-# requirements suite faster by compensating upstream QEMU's ~3.33x-slow timer.
+# hal_target.gpr / hal.adb). Selects a pre-defined profile spec; valid values
+# are 1000, 300, 10. 1000 = faithful real time; 300 runs the requirements suite
+# faster by compensating upstream QEMU's ~3.33x-slow timer.
 #   make build-target TICK_PERIOD_US=300
 TICK_PERIOD_US ?= 1000
 
@@ -70,10 +70,15 @@ printenv:
 
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
-	$(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
+	$(ALR) build
 
 # QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
+#
+# We have to generate the root `config/` directory explicitly because the
+# `traffic_light` crate is not in the Alire closure (but its config is in the
+# GPR closure).
 build-target:
+	$(ALR) build --stop-after=generation
 	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
@@ -322,8 +327,7 @@ coverage-instrumentation: $(GNATCOV_RTS)
 coverage-build:
 	$(ALR) build -- -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
-	    --implicit-with=$(GNATCOV_RTS) \
-		-XTICK_PERIOD_US=$(TICK_PERIOD_US)
+	    --implicit-with=$(GNATCOV_RTS)
 
 # Instrument, build and run the tests for coverage
 coverage-test-pro: generate-tests-pro

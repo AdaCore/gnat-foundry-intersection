@@ -1,21 +1,8 @@
 
-with "bare_runtime.gpr";
 with "../src/core.gpr";
 with "../src/hal_target.gpr";
 
 project Traffic_Light_Qemu is
-
-   --  Wall-clock microseconds budgeted for one logical 1 ms controller tick
-   --  (see hal.adb). 1000 keeps faithful real time on clock-correct hardware
-   --  or QEMU; lower values shorten each tick so the requirements suite runs
-   --  faster (300 compensates upstream QEMU 8.2.2, whose Cortex-A9 private
-   --  timer runs ~3.33x slow). Each value selects a pre-defined profile spec
-   --  (hal-tick_config__<value>.ads) via the Naming package below — no source
-   --  preprocessing, so the sources stay valid Ada for ALS / GNAT Studio.
-   --  Override per build:
-   --    alr build -- -XTICK_PERIOD_US=300
-   type Tick_Period_Us_Type is ("1000", "300", "10");
-   Tick_Period_Us : Tick_Period_Us_Type := external ("TICK_PERIOD_US", "1000");
 
    for Languages   use ("Ada");
    for Source_Dirs use ("../src/app");
@@ -40,13 +27,6 @@ project Traffic_Light_Qemu is
          "-ffunction-sections",
          "-fdata-sections");
    end Compiler;
-
-   package Naming is
-      --  Map the TICK_PERIOD_US profile onto the HAL.Tick_Config spec. The
-      --  unselected hal-tick_config__*.ads files stay out of the build.
-      for Specification ("HAL.Tick_Config")
-      use "hal-tick_config__" & Tick_Period_Us & ".ads";
-   end Naming;
 
    package Linker is
       --  The runtime links in its own ram.ld (-T ram.ld via runtime.xml);

@@ -3,10 +3,7 @@ with "../config/traffic_light_config.gpr";
 
 project Core is
 
-   --  Structured src/: the host build selects ONLY src/hal/host (the stub
-   --  HAL). src/hal/qemu_mps2 belongs to the arm-eabi cross build and must
-   --  NOT be compiled here -- hence an explicit dir list rather than
-   --  "src/**". config/ holds the Alire-generated config package.
+   --  Core target-independent controller logic resides in `src/core`.
    for Source_Dirs use ("core");
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
@@ -15,14 +12,26 @@ project Core is
    for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
 
+   --  Light-tasking runtimes do not support stack overflow checking, so we
+   --  pass `-fstack-check` based on an external which the target build will
+   --  set to "disabled".
+   type Stack_Check_Kind is ("enabled", "disabled");
+   Stack_Check : Stack_Check_Kind := external ("STACK_CHECK", "enabled");
+
+   Stack_Check_Switches := ();
+   case Stack_Check is
+      when "disabled" => null;
+      when "enabled"  => Stack_Check_Switches := ("-fstack-check");
+   end case;
+
    package Compiler is
       --  Common switches come from the Alire config (driven by alire.toml's
       --  [build-switches]). Append the safety switches the default profile
       --  omits: -gnata (assertions/contracts), -gnato (overflow checks),
-      --  -fstack-check.
+      --  -fstack-check (if enabled).
       for Default_Switches ("Ada") use
         Traffic_Light_Config.Ada_Compiler_Switches &
-      ("-gnata", "-gnato", "-fstack-check");
+      ("-gnata", "-gnato") & Stack_Check_Switches;
    end Compiler;
 
    package Binder is
