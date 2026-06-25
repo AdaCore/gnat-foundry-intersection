@@ -16,9 +16,9 @@ SHELL := bash
 QEMU_UART1 ?= 5556
 
 # Wall-clock microseconds per logical 1 ms tick in the QEMU firmware (see
-# traffic_light_qemu.gpr / hal.adb). Selects a pre-defined profile spec; valid
-# values are 1000, 300, 10. 1000 = faithful real time; 300 runs the
-# requirements suite faster by compensating upstream QEMU's ~3.33x-slow timer.
+# hal_target.gpr / hal.adb). Selects a pre-defined profile spec; valid values
+# are 1000, 300, 10. 1000 = faithful real time; 300 runs the requirements suite
+# faster by compensating upstream QEMU's ~3.33x-slow timer.
 #   make build-target TICK_PERIOD_US=300
 TICK_PERIOD_US ?= 1000
 
@@ -327,8 +327,7 @@ coverage-instrumentation: $(GNATCOV_RTS)
 coverage-build:
 	$(ALR) build -- -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
-	    --implicit-with=$(GNATCOV_RTS) \
-		-XTICK_PERIOD_US=$(TICK_PERIOD_US)
+	    --implicit-with=$(GNATCOV_RTS)
 
 # Instrument, build and run the tests for coverage
 coverage-test-pro: generate-tests-pro

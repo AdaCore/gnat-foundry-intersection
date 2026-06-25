@@ -20,7 +20,7 @@ project Core is
 
    Stack_Check_Switches := ();
    case Stack_Check is
-      when "disabled" => Stack_Check_Switches := ();
+      when "disabled" => null;
       when "enabled"  => Stack_Check_Switches := ("-fstack-check");
    end case;
 
