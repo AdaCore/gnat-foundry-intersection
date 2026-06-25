@@ -3,6 +3,8 @@
 This presents a proposal for the NEW architecture. It does not describe the
 current implementation, which is obsolete.
 
+All the text in `docs/architecture/` should be considered obsolete.
+
 ## Overview
 
 The project is structured around the following key concepts.
@@ -16,8 +18,6 @@ through its stages:
 - Compute the next state of the traffic light
 - Update the traffic light outputs
 - Wait the delay required by the current state
-
-More information on the state machine can be found in `state-machine.md`.
 
 ## Buses
 
@@ -68,7 +68,7 @@ To sum up, the main loop procedure takes as parameters:
 - a subprogram which is used to write the traffic light outputs
 
 The subprograms being passed are all access-to-subprogram types,  carry their own
-SPARK contracts.
+SPARK contracts
 
 ## Project structure
 
