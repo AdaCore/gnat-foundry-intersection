@@ -12,9 +12,9 @@ project Core is
    for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
 
-   -- Light-tasking runtimes do not support stack overflow checking, so we pass
-   -- `-fstack-check` based on an external which the target build will set to
-   -- "disabled".
+   --  Light-tasking runtimes do not support stack overflow checking, so we
+   --  pass `-fstack-check` based on an external which the target build will
+   --  set to "disabled".
    type Stack_Check_Kind is ("enabled", "disabled");
    Stack_Check : Stack_Check_Kind := external ("STACK_CHECK", "enabled");
 
