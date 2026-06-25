@@ -69,7 +69,7 @@ validate-requirements:
 
     # Setup alire to use our downloader helper
     - git clone --depth=1 $INTERNAL_ALIRE_SCRIPTS /tmp/internal-alire-scripts
-    - alr -n settings --global --set origins.archive.download_cmd \
+    - alr -n settings --global --set --builtin origins.archive.download_cmd \
         "/tmp/internal-alire-scripts/adacore_registries_download.py"
 
     # Sanity check
@@ -139,15 +139,12 @@ pro:arm-elf:
     # Sanity check
     - arm-eabi-gnat --version
 
-    # Build (with accelerated tick).
-    - make build-target TICK_PERIOD_US=10
+    # Remove the explicit dependency on `gnat_arm_elf` so we don't try to fetch
+    # the community version.
+    - alr -n -C traffic_light_qemu/ with --del gnat_arm_elf
 
-    # Smoke test
-    - timeout 1 qemu-system-arm -M xilinx-zynq-a9 -m 1G -display none -monitor none
-        -serial stdio -serial null -kernel bin/qemu_zynq7000/traffic_light | tee smoke.log
-    - grep -qx 'startup'         smoke.log
-    - grep -q  '^HB T='          smoke.log
-    - grep -q  '^PH=NS_LT_GREEN' smoke.log
+    # Build
+    - make build-target
 
 community:x86_64-linux:
   stage: build

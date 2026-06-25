@@ -73,7 +73,12 @@ build-native:
 	$(ALR) build
 
 # QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
+#
+# We have to generate the root `config/` directory explicitly because the
+# `traffic_light` crate is not in the Alire closure (but its config is in the
+# GPR closure).
 build-target:
+	$(ALR) build --stop-after=generation
 	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
