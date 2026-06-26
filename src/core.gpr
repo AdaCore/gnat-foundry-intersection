@@ -1,5 +1,5 @@
 with "../config/traffic_light_config.gpr";
---  NOTE: this project should not import hal*.gpr. See docs/architecture/overview.md.
+--  NOTE: this project should not import hal*.gpr. See design/architecture.md.
 
 project Core is
 

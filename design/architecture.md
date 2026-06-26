@@ -17,6 +17,8 @@ through its stages:
 - Update the traffic light outputs
 - Wait the delay required by the current state
 
+More information on the state machine can be found in `state-machine.md`.
+
 ## Buses
 
 Transport of data between the main loop and the external sources (sensors) and outputs (traffic lights) is done via _data buses_. There are two types of buses:
@@ -36,8 +38,8 @@ fault detection on the buses, which would throw the system into the fault state 
 bus is not working properly.
 
 In this implementation, buses are "reset on read" (for source buses) or "fired on
-write" (for display buses) - there is no asyncronicity, and all the code is executed
-as part of the main loop. In a future implementation, we might add asyncronicity, with
+write" (for display buses) - there is no asynchrony, and all the code is executed
+as part of the main loop. In a future implementation, we might add asynchrony, with
 the main loop running in a task, and the buses being implemented with protected
 objects. This is not the case for now.
 
@@ -60,10 +62,13 @@ provided by the HAL.
 To sum up, the main loop procedure takes as parameters:
 
 - an access to a "Delay_For" procedure, which is used to wait for the required time
-- a set of access to procedures, one for each source, which are used to read the
+- a set of procedures, one for each source, which are used to read the
   value of the external sources (the sensors) as an "out" parameter and clear the
   latch when the value is read.
-- an access to a subprogram which is used to write the traffic light outputs
+- a subprogram which is used to write the traffic light outputs
+
+The subprograms being passed are all access-to-subprogram types,  carry their own
+SPARK contracts.
 
 ## Project structure
 
@@ -83,9 +88,10 @@ The code is organised into .gpr projects, as follows:
   - Other sources as needed for the core logic, including a replacement for the
    `conflict_check` module, which is the main proof target.
 
-- `src/hal.gpr`: the hardware abstraction layer (HAL) for the target platform.
-  This project has two variants, one for running on the host (native) and one
-  for running on the target platform. This project contains:
+- `src/hal_[host|target].gpr`: the hardware abstraction layer (HAL) for the
+  target platform. This project has two variants, one for running on the host (native) and one
+  for running on the target platform. Different Makefile targets are used for each variant.
+  This project contains:
   - `src/hal/timings.[ads|adb]`: provides a "delay_for" procedure that can be used to
     wait for a specified number of milliseconds.
   - `src/hal/sources.[ads|adb]`: producers for the source data buses, simulating
@@ -96,7 +102,7 @@ The code is organised into .gpr projects, as follows:
 
 - `src/app.gpr`: the application layer, which contains
   - `src/app/main.adb`: the main entry point, which initializes the HAL, the display,
-    then "wires" the buses (i.e, instantiate the bus types, connecting them to displays
+    then "wires" the buses (i.e, instantiates the bus types, connecting them to displays
     and sources provided by the HAL project), and finally calls the main loop that's
     defined in the `core` project.
 
@@ -127,9 +133,6 @@ main loop at Silver level.
 
 This implementation requires no explicit tasks, relying on the following:
 
-- The input sources can buffer input until their buses are polled.
-  For instance, if the input source is simulated by a keyboard and the bus polls
-  and flushes the keyboard buffer.
 - The runtime provides either `delay` statements or a monotonic timer that can be
   used to implement the required delays.
 - The display bus updates its consumer as soon as it is written to.
@@ -137,3 +140,7 @@ This implementation requires no explicit tasks, relying on the following:
 ## Timing simulation
 
 The "delay_for" procedure in the HAL can be tuned at compile time to act faster than real-time, to ease testing and debugging.
+
+## Command-input and diagnostic streams
+
+TODO: This will be refined at a future revision of this document.
