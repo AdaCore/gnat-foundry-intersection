@@ -67,8 +67,8 @@ To sum up, the main loop procedure takes as parameters:
   latch when the value is read.
 - a subprogram which is used to write the traffic light outputs
 
-The subprograms being passed are all access-to-subprogram types,  carry their own
-SPARK contracts
+The subprograms being passed are all access-to-subprogram types, which carry their own
+SPARK contracts.
 
 ## Project structure
 
@@ -102,7 +102,7 @@ The code is organised into .gpr projects, as follows:
 
 - `src/app.gpr`: the application layer, which contains
   - `src/app/main.adb`: the main entry point, which initializes the HAL, the display,
-    then "wires" the buses (i.e, instantiates the bus types, connecting them to displays
+    then "wires" the buses (i.e., instantiates the bus types, connecting them to displays
     and sources provided by the HAL project), and finally calls the main loop that's
     defined in the `core` project.
 
@@ -114,19 +114,22 @@ contain annotations necessary to support the proof of the `core.gpr` and
 
 The dependencies are as follows:
 
-- app.gpr depends on core.gpr, hal.gpr, types.gpr
+- app.gpr depends on core.gpr, hal_[host|target].gpr, types.gpr
 - core.gpr depends on types.gpr
-- hal.gpr depends on types.gpr
+- hal_[host|target].gpr depend on types.gpr
 - types.gpr has no dependencies
 
 The `core.gpr` project does not depend on the `hal.gpr` project. This allows the
 core logic to be tested and proven independently of the hardware abstraction layer.
 The core logic does not know anything about the implementation of sources or display.
 
+### Rationale for the separation between `core.gpr` and `hal.gpr|app.gpr`
+
 It might make more sense to have the main loop hosted as part of the `app` project, but
 setting it in its own project is intentional, and structuring: it's meant as a
 safeguard to ensure that the main loop never depends on the HAL, and can be proven
-independently of the HAL. We will revisit this if we find that we cannot prove the
+independently of the HAL. This comes at the price of contracted indirect
+calls in the proof target. We will revisit this if we find that we cannot prove the
 main loop at Silver level.
 
 ## Tasking

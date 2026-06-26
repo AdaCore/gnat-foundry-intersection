@@ -43,10 +43,12 @@ make build-target
 | `src/app/` | Top-level application |
 | `tests/` | Nested Alire test crate (AUnit harness via gnattest, host-runnable) |
 | `tools/` | Traceability check, doc rendering, helpers |
-| `hardware/` | Pinout, schematics, bill of materials |
 
-## Documentation
+## Contributing
 
-- **Specification**: [`docs/requirements/srs.md`](docs/requirements/srs.md)
+All changes go through merge requests; CI must be green; requirement IDs are
+stable forever (never reused, even if deleted).
+
+## License
 
 See [`LICENSE`](LICENSE).
