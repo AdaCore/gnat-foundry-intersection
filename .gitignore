@@ -15,6 +15,7 @@ gnatprove/
 # Alire
 alire/
 config/
+.als-alire
 
 # Locally-provisioned developer tooling (make setup-community / reset-hard)
 install/
