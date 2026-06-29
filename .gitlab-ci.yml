@@ -8,6 +8,10 @@ variables:
 stages:
   - validate
   - build
+  - check
+
+include:
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/check-issue@~latest
 
 default:
   interruptible: true
