@@ -1,8 +1,7 @@
 with "../config/traffic_light_config.gpr";
+with "shared.gpr";
 
-project Hal_Target is
-
-   for Languages   use ("Ada", "ASM_CPP");
+project Hal is
 
    --  Wall-clock microseconds budgeted for one logical 1 ms controller tick
    --  (see hal.adb). 1000 keeps faithful real time on clock-correct hardware
@@ -16,10 +15,24 @@ project Hal_Target is
    type Tick_Period_Us_Type is ("1000", "300", "10");
    Tick_Period_Us : Tick_Period_Us_Type := external ("TICK_PERIOD_US", "1000");
 
-   --  Structured src/: the cross build selects ONLY src/hal/qemu_zynq7000.
-   --  src/hal/host belongs to the host build and must NOT be compiled
-   --  here -- hence an explicit dir list rather than "src/**".
-   for Source_Dirs use ("hal/qemu_zynq7000");
+   case Shared.Build is
+      when "native" =>
+         for Source_Dirs use ("hal/host");
+      when "target" =>
+         for Languages use ("Ada", "ASM_CPP");
+         for Source_Dirs use ("hal/qemu_zynq7000");
+   end case;
+
+   package Naming is
+      case Shared.Build is
+         when "native" => null;
+         when "target" =>
+            --  Map the TICK_PERIOD_US profile onto the HAL.Tick_Config spec. The
+            --  unselected hal-tick_config__*.ads files stay out of the build.
+            for Specification ("HAL.Tick_Config")
+            use "hal-tick_config__" & Tick_Period_Us & ".ads";
+      end case;
+   end Naming;
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
    --  Both are two levels / one level below the root respectively, which the
@@ -27,24 +40,7 @@ project Hal_Target is
    for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
 
-   package Compiler is
-      --  Common switches come from the Alire config (driven by alire.toml's
-      --  [build-switches]). Append the safety switches the default profile
-      --  omits: -gnata (assertions/contracts), -gnato (overflow checks).
-      for Default_Switches ("Ada") use
-        Traffic_Light_Config.Ada_Compiler_Switches &
-      ("-gnata", "-gnato");
-   end Compiler;
+   package Compiler renames Shared.Compiler;
+   package Binder renames Shared.Binder;
 
-   package Naming is
-      --  Map the TICK_PERIOD_US profile onto the HAL.Tick_Config spec. The
-      --  unselected hal-tick_config__*.ads files stay out of the build.
-      for Specification ("HAL.Tick_Config")
-      use "hal-tick_config__" & Tick_Period_Us & ".ads";
-   end Naming;
-
-   package Binder is
-      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
-   end Binder;
-
-end Hal_Target;
+end Hal;

@@ -6,7 +6,8 @@
 
 with "config/traffic_light_config.gpr";
 with "src/core.gpr";
-with "src/hal_host.gpr";
+with "src/hal.gpr";
+with "src/shared.gpr";
 
 project Traffic_Light is
 
@@ -24,30 +25,12 @@ project Traffic_Light is
    for Create_Missing_Dirs use "True";
    for Main use ("traffic_light.adb");
 
-   package Compiler is
-      --  Common switches come from the Alire config (driven by alire.toml's
-      --  [build-switches]). Append the safety switches the default profile
-      --  omits: -gnata (assertions/contracts), -gnato (overflow checks),
-      --  -fstack-check.
-      for Default_Switches ("Ada") use
-        Traffic_Light_Config.Ada_Compiler_Switches &
-      ("-gnata", "-gnato", "-fstack-check");
-   end Compiler;
+   for Runtime ("Ada") use Shared'Runtime ("Ada");
+   for Target use Shared'Target;
 
-   package Binder is
-      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
-   end Binder;
-
-   --  GNATtest configuration. Skeleton bodies land under <root>/tests/
-   --  (Object_Dir = obj/<profile> -> two levels up); unimplemented skeletons
-   --  pass by default so the alire-testing harness stays green until the
-   --  cmd_input / diagnostic / hal stubs are fleshed out. Re-run with
-   --  `PATH="$HOME/.alire/bin:$PATH" alr exec -- gnattest -P traffic_light.gpr`
-   --  to regenerate skeletons after a src/ surface change.
-   package Gnattest is
-      for Tests_Root        use "../../tests";
-      for Skeletons_Default use "pass";
-   end Gnattest;
+   package Compiler renames Shared.Compiler;
+   package Binder renames Shared.Binder;
+   package Linker renames Shared.Linker;
 
    package Format is
       for Ignore use ".gnatformat_ignore.txt";
