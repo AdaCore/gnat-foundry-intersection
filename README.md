@@ -11,8 +11,7 @@ functional-safety standard.
 
 ## Status
 
-Early scaffold — see [`docs/requirements/srs.md`](docs/requirements/srs.md)
-for the specification and [`CHANGELOG.md`](CHANGELOG.md) for progress.
+Early scaffold — see [`CHANGELOG.md`](CHANGELOG.md) for progress.
 
 ## Quick start
 
@@ -38,35 +37,17 @@ make build-target
 
 | Path | Contents |
 |------|----------|
-| `docs/requirements/` | Software Requirements Specification (Markdown source) |
-| `docs/architecture/` | Architecture overview, state machine, diagrams |
-| `docs/safety/` | Hazard analysis and safety case |
-| `docs/adr/` | Architecture Decision Records |
 | `src/core/` | Pure logic — host-buildable, SPARK-targetable |
 | `src/hal/qemu_zynq7000/` | Bare-metal arm-eabi HAL (Cortex-A9, QEMU xilinx-zynq-a9, light-tasking runtime) |
 | `src/hal/host/` | Stub HAL for desktop simulation and unit tests |
-| `src/app/` | Top-level application, diagnostics |
+| `src/app/` | Top-level application |
 | `tests/` | Nested Alire test crate (AUnit harness via gnattest, host-runnable) |
-| `tests/integration/` | Reserved for in-process Ada scenario harnesses (now empty — scenarios migrated to `tests/requirements/`) |
-| `tests/requirements/` | Requirements-based QEMU end-to-end tests (Python harness, drives `bin/qemu_zynq7000/traffic_light`) |
 | `tools/` | Traceability check, doc rendering, helpers |
-| `hardware/` | Pinout, schematics, bill of materials |
-
-## Documentation
-
-- **Specification**: [`docs/requirements/srs.md`](docs/requirements/srs.md)
-- **Conflict matrix**: [`docs/requirements/conflict-matrix.md`](docs/requirements/conflict-matrix.md)
-- **Architecture**: [`docs/architecture/overview.md`](docs/architecture/overview.md)
-- **Decisions**: [`docs/adr/`](docs/adr/)
-
-The SRS is rendered to `.docx` and PDF by CI on every push to `main` and
-attached as artifacts to tagged releases.
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). All changes go through merge
-requests; CI must be green; requirement IDs are stable forever (never
-reused, even if deleted).
+All changes go through merge requests; CI must be green; requirement IDs are
+stable forever (never reused, even if deleted).
 
 ## License
 
