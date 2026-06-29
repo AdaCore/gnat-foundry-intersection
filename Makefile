@@ -4,7 +4,7 @@ SHELL := bash
 
 .DEFAULT_GOAL := build-native
 .PHONY: printenv build-native build-target run-native run-target prove \
-        format format-ada check check-ada \
+        format format-ada check check-ada check-shell check-python \
         generate-tests-pro test-pro generate-tests-community test-community \
         validate-reqs test-reqs-engine \
         setup-community reset-hard \
@@ -104,7 +104,7 @@ prove:
 # Format / check aggregators. For now they just delegate to the Ada targets;
 # add format-<lang> / check-<lang> prerequisites here as more land.
 format: format-ada
-check: check-ada
+check: check-ada check-shell check-python
 
 # Remove build products and outputs
 clean:
@@ -121,6 +121,16 @@ check-ada:
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
+
+# Lint shell scripts with shellcheck.
+check-shell:
+	$(UV) tool run --from shellcheck-py shellcheck scripts/setup/*
+
+# Lint, type-check and verify formatting of Python.
+check-python:
+	$(UV) --directory "$(REQS_ENGINE)" run ruff check
+	$(UV) --directory "$(REQS_ENGINE)" run mypy
+	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
 
 # Generate/refresh GNATtest skeletons
 generate-tests-pro:

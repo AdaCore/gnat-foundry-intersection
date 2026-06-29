@@ -6,7 +6,7 @@ variables:
   UV_PYTHON_DOWNLOADS: never
 
 stages:
-  - validate
+  - check
   - build
   - check
 
@@ -39,20 +39,39 @@ default:
     # Allow connecting to the internet
     - security_group:GitLabRunnerTasksExecPrivilegedSG
 
-# Test the `reqs` requirements validation tool, then validate the requirements
-# with it.
-validate-requirements:
-  stage: validate
+.uv:
   extends:
     - .default_rules
   services:
     - image:e3-py313
-    - cpu:2
-  script:
+    - cpu:1
+  before_script:
     - pip install uv
     - unset VIRTUAL_ENV
+
+# Test the `reqs` requirements validation tool, then validate the requirements
+# with it.
+validate-requirements:
+  stage: check
+  extends:
+    - .uv
+  script:
     - make test-reqs-engine
     - make validate-reqs
+
+# Lint, type-check and check formatting.
+check:
+  stage: check
+  extends:
+    - .uv
+  script:
+    # Install `alr` and `gnatformat` with `anod`
+    - !reference [.pro, before_script]
+    - anod install gnatformat --qualifier=stable
+    - eval $(anod printenv gnatformat --qualifier=stable)
+
+    # Run the checks
+    - make check
 
 .pro:
   stage: build
