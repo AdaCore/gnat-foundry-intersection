@@ -6,7 +6,8 @@
 
 with "config/traffic_light_config.gpr";
 with "src/core.gpr";
-with "src/hal_host.gpr";
+with "src/hal.gpr";
+with "src/shared.gpr";
 
 project Traffic_Light is
 
@@ -19,24 +20,21 @@ project Traffic_Light is
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
    --  Both are two levels / one level below the root respectively, which the
    --  Gnattest Tests_Root below relies on. CI and docs reference these paths.
-   for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
-   for Exec_Dir   use "bin";
+   for Object_Dir use Shared'Object_Dir;
+   for Exec_Dir use Shared'Exec_Dir;
    for Create_Missing_Dirs use "True";
    for Main use ("traffic_light.adb");
 
-   package Compiler is
-      --  Common switches come from the Alire config (driven by alire.toml's
-      --  [build-switches]). Append the safety switches the default profile
-      --  omits: -gnata (assertions/contracts), -gnato (overflow checks),
-      --  -fstack-check.
-      for Default_Switches ("Ada") use
-        Traffic_Light_Config.Ada_Compiler_Switches &
-      ("-gnata", "-gnato", "-fstack-check");
-   end Compiler;
+   for Runtime ("Ada") use Shared'Runtime ("Ada");
+   for Target use Shared'Target;
 
-   package Binder is
-      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
-   end Binder;
+   package Compiler renames Shared.Compiler;
+   package Binder renames Shared.Binder;
+   package Linker renames Shared.Linker;
+
+   package Format is
+      for Ignore use ".gnatformat_ignore.txt";
+   end Format;
 
    --  GNATtest configuration. Skeleton bodies land under <root>/tests/
    --  (Object_Dir = obj/<profile> -> two levels up); unimplemented skeletons
@@ -48,9 +46,5 @@ project Traffic_Light is
       for Tests_Root        use "../../tests";
       for Skeletons_Default use "pass";
    end Gnattest;
-
-   package Format is
-      for Ignore use ".gnatformat_ignore.txt";
-   end Format;
 
 end Traffic_Light;

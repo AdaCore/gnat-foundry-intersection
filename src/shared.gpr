@@ -1,0 +1,51 @@
+with "../config/traffic_light_config.gpr";
+
+--  A shared project, containing definitions that are reused across projects.
+
+project Shared is
+
+   for Source_Dirs use ();
+
+   --  The build kind
+   type Build_Kind is ("native", "target");
+   Build : Build_Kind := external ("BUILD_KIND", "native");
+
+   --  The compiler switches to use for Ada.
+   Ada_Compiler_Switches := Traffic_Light_Config.Ada_Compiler_Switches &
+      ("-g", "-O0",      --  Debug, no optimization
+       "-gnata",         --  Enable assertions
+       "-gnato"          --  overflow checking
+      );
+
+   case Build is
+      when "native" =>
+         Ada_Compiler_Switches := Ada_Compiler_Switches & ("-fstack-check");
+         for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
+         for Exec_Dir use "bin/";
+
+      when "target" =>
+         for Target          use "arm-eabi";
+         for Runtime ("Ada") use "light-tasking-zynq7000";
+         for Object_Dir use "obj/target/" & Traffic_Light_Config.Build_Profile;
+         for Exec_Dir use "bin/target";
+   end case;
+
+   package Compiler is
+      for Default_Switches ("Ada") use Ada_Compiler_Switches;
+   end Compiler;
+
+   package Linker is
+      case Build is
+         when "native" => null; --  default host build (stub HAL)
+         when "target" =>
+            --  The runtime links in its own ram.ld (-T ram.ld via runtime.xml);
+            --  pair gc-sections with the -ffunction/-fdata-sections defined in the config project.
+            for Switches ("Ada") use ("-Wl,--gc-sections");
+      end case;
+   end Linker;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+end Shared;
