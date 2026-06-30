@@ -19,7 +19,6 @@ project Hal is
       when "native" =>
          for Source_Dirs use ("hal/host");
       when "target" =>
-         for Languages use ("Ada", "ASM_CPP");
          for Source_Dirs use ("hal/qemu_zynq7000");
    end case;
 
@@ -37,7 +36,7 @@ project Hal is
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
    --  Both are two levels / one level below the root respectively, which the
    --  Gnattest Tests_Root below relies on. CI and docs reference these paths.
-   for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
+   for Object_Dir use Shared'Object_Dir;
    for Create_Missing_Dirs use "True";
 
    package Compiler renames Shared.Compiler;

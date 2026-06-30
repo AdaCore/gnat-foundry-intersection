@@ -85,9 +85,9 @@ The code is organised into .gpr projects, as follows:
   - Other sources as needed for the core logic, including a replacement for the
    `conflict_check` module, which is the main proof target.
 
-- `src/hal_[host|target].gpr`: the hardware abstraction layer (HAL) for the
-  target platform. This project has two variants, one for running on the host (native) and one
-  for running on the target platform. Different Makefile targets are used for each variant.
+- `src/hal.gpr`: the hardware abstraction layer (HAL) for the
+  target platform. The scenario variable BUILD_KIND controls whether to build the native or target
+  version of the sources. Different Makefile targets are used for each variant.
   This project contains:
   - `src/hal/timings.[ads|adb]`: provides a "delay_for" procedure that can be used to
     wait for a specified number of milliseconds.
@@ -111,9 +111,9 @@ contain annotations necessary to support the proof of the `core.gpr` and
 
 The dependencies are as follows:
 
-- app.gpr depends on core.gpr, hal_[host|target].gpr, types.gpr
+- app.gpr depends on core.gpr, hal.gpr, types.gpr
 - core.gpr depends on types.gpr
-- hal_[host|target].gpr depend on types.gpr
+- hal.gpr depends on types.gpr
 - types.gpr has no dependencies
 
 The `core.gpr` project does not depend on the `hal.gpr` project. This allows the

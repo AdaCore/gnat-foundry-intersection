@@ -72,7 +72,7 @@ printenv:
 build-native:
 	$(ALR) build
 
-# QEMU build (sibling crate) -> bin/qemu_zynq7000/traffic_light.
+# QEMU build (sibling crate) -> bin/target/traffic_light.
 #
 # We have to generate the root `config/` directory explicitly because the
 # `traffic_light` crate is not in the Alire closure (but its config is in the
@@ -94,7 +94,7 @@ run-target: build-target
 	qemu-system-arm -M xilinx-zynq-a9 -m 1G -nographic \
 	  -serial mon:stdio \
 	  -serial tcp:127.0.0.1:$(QEMU_UART1),server,nowait \
-	  -kernel bin/qemu_zynq7000/traffic_light
+	  -kernel bin/target/traffic_light
 
 # SPARK proofs (silver level: absence of run-time errors) across the default
 # project. Only SPARK_Mode units are analyzed; the rest are skipped.
@@ -126,7 +126,7 @@ check-ada:
 # Generate/refresh GNATtest skeletons
 generate-tests-pro:
 	$(ALR) build --stop-after=generation     # Generate `config/`
-	$(ALR) exec -P -- gnattest
+	$(ALR) exec -P -- gnattest --exit-status=on
 
 # Build and run the AUnit harness
 HARNESS := obj/development/gnattest/harness
@@ -139,7 +139,7 @@ test-pro: generate-tests-pro
 generate-tests-community:
 	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
 	$(ALR) build --stop-after=generation     # Generate `config/`
-	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr
+	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr --exit-status=on
 
 test-community: generate-tests-community
 	$(ALR) -C tests exec -- gprbuild -P ../$(HARNESS)/test_driver.gpr
