@@ -6,7 +6,7 @@ variables:
   UV_PYTHON_DOWNLOADS: never
 
 stages:
-  - check
+  - validate
   - build
   - check
 
@@ -52,7 +52,7 @@ default:
 # Test the `reqs` requirements validation tool, then validate the requirements
 # with it.
 validate-requirements:
-  stage: check
+  stage: validate
   extends:
     - .uv
   script:
@@ -61,7 +61,7 @@ validate-requirements:
 
 # Lint, type-check and check formatting.
 check:
-  stage: check
+  stage: validate
   extends:
     - .uv
   script:
