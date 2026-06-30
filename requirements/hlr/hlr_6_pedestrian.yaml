@@ -1,0 +1,158 @@
+source:
+  - CONOPS §3.2
+  - CONOPS §3.3
+  - CONOPS §3.5
+  - CONOPS §3.8
+  - CONOPS §4.1
+  - CONOPS §4.2
+  - CONOPS §4.3
+
+context: |-
+  This is the per-crosswalk pedestrian control machine, a region of the
+  controller's NORMAL_OPERATION mode (`1_modes`). A transition into FAULT pre-empts
+  it and drives the dark-head outputs of `2_fault`; that edge and the fault outputs
+  live elsewhere, not here. States and signal values are named; events are not — a
+  transition fires when a named signal does something or when time elapses in a
+  state.
+
+  Signals:
+    - the crosswalk's pedestrian demand button input signal — an external input
+      read as RELEASED or PRESSED; value set fixed in `4_signals`.
+    - the signal for the through movement parallel and adjacent to the crosswalk
+      — observed from the vehicle control logic (the one signal here sourced
+      from elsewhere in the controller rather than from outside it); value of
+      interest GREEN.
+    - the pedestrian head output signal — driven by this logic; value set fixed in
+      `4_signals` (WALK / FLASH_DONT_WALK / DONT_WALK here; NONE only in FAULT, per
+      `2_fault`).
+    - the request indicator output signal (the lamp) — driven by this logic; value
+      set fixed in `4_signals`.
+
+  The interval durations T_WALK, T_FDW, and T_BUFFER are named and fixed in
+  `3_timing`.
+
+  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
+  below, since the format's `source:` is container-level only.
+
+description:
+  1: |-                                  # CONOPS §4.1
+    The controller shall provide, for each crosswalk, a pedestrian control machine
+    with the states NO_PEDESTRIAN_REQUEST, PENDING_PEDESTRIAN_REQUEST, and
+    SERVING_PEDESTRIAN_REQUEST.
+
+  2: |-                                  # Derived
+    When the controller starts up, the controller shall place each crosswalk's
+    pedestrian control machine in NO_PEDESTRIAN_REQUEST.
+
+  3: |-                                  # CONOPS §3.2, §3.3
+    While a crosswalk's pedestrian control machine is in NO_PEDESTRIAN_REQUEST, the
+    controller shall drive that crosswalk's pedestrian head output signal to DONT_WALK.
+  4: |-                                  # CONOPS §4.2
+    While a crosswalk's pedestrian control machine is in NO_PEDESTRIAN_REQUEST, the
+    controller shall drive that crosswalk's request indicator output signal to NO_REQUEST.
+  5: |-                                  # CONOPS §4.1
+    While a crosswalk's pedestrian control machine is in NO_PEDESTRIAN_REQUEST, when
+    that crosswalk's pedestrian demand button input signal becomes PRESSED, the
+    controller shall enter PENDING_PEDESTRIAN_REQUEST for that crosswalk.
+
+  # ---- PENDING_PEDESTRIAN_REQUEST ----
+  6: |-                                  # CONOPS §3.2, §3.3
+    While a crosswalk's pedestrian control machine is in PENDING_PEDESTRIAN_REQUEST,
+    the controller shall drive that crosswalk's pedestrian head output signal to
+    DONT_WALK.
+  7: |-                                  # CONOPS §4.2
+    While a crosswalk's pedestrian control machine is in PENDING_PEDESTRIAN_REQUEST,
+    the controller shall drive that crosswalk's request indicator output signal to
+    REQUEST_PENDING.
+  8: |-                                  # CONOPS §4.3, §3.8
+    While a crosswalk's pedestrian control machine is in PENDING_PEDESTRIAN_REQUEST,
+    when the signal for the through movement parallel and adjacent to that crosswalk
+    becomes GREEN, the controller shall enter SERVING_PEDESTRIAN_REQUEST in sub-state
+    WALK_INTERVAL for that crosswalk.
+
+  # ---- SERVING_PEDESTRIAN_REQUEST (superstate; WALK_INTERVAL → CHANGE_INTERVAL → BUFFER_INTERVAL) ----
+  9: |-                                  # CONOPS §4.2
+    While a crosswalk's pedestrian control machine is in SERVING_PEDESTRIAN_REQUEST
+    other than its BUFFER_INTERVAL_LATCHED sub-state, the controller shall drive
+    that crosswalk's request indicator output signal to NO_REQUEST.
+  10: |-                                 # CONOPS §3.2, §3.3, §3.5
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.WALK_INTERVAL, the controller shall drive that
+    crosswalk's pedestrian head output signal to WALK.
+  11: |-                                 # CONOPS §3.2, §3.3, §3.5
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.CHANGE_INTERVAL, the controller shall drive that
+    crosswalk's pedestrian head output signal to FLASH_DONT_WALK.
+  12: |-                                 # CONOPS §3.5
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.WALK_INTERVAL, when that machine has been in
+    WALK_INTERVAL for T_WALK, the controller shall enter
+    SERVING_PEDESTRIAN_REQUEST.CHANGE_INTERVAL for that crosswalk.
+  13: |-                                 # CONOPS §3.5
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.CHANGE_INTERVAL, when that machine has been in
+    CHANGE_INTERVAL for T_FDW, the controller shall enter
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL for that crosswalk.
+
+  # ---- SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL (steady DON'T WALK clearance buffer) ----
+  14: |-                                 # CONOPS §3.2, §3.3, §3.5
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL or
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL_LATCHED, the controller shall drive
+    that crosswalk's pedestrian head output signal to DONT_WALK.
+  15: |-                                 # CONOPS §4.1, §4.2
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL, when that crosswalk's pedestrian
+    demand button input signal becomes PRESSED, the controller shall enter
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL_LATCHED for that crosswalk.
+  16: |-                                 # CONOPS §4.2
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL_LATCHED, the controller shall drive
+    that crosswalk's request indicator output signal to REQUEST_PENDING.
+  17: |-                                 # CONOPS §3.5
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL, when that machine has been in
+    SERVING_PEDESTRIAN_REQUEST for T_WALK + T_FDW + T_BUFFER, the controller shall
+    enter NO_PEDESTRIAN_REQUEST for that crosswalk.
+  18: |-                                 # CONOPS §3.5, §4.1
+    While a crosswalk's pedestrian control machine is in
+    SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL_LATCHED, when that machine has been
+    in SERVING_PEDESTRIAN_REQUEST for T_WALK + T_FDW + T_BUFFER, the controller
+    shall enter PENDING_PEDESTRIAN_REQUEST for that crosswalk.
+
+rationale: |-
+  The NO/PENDING/SERVING decomposition realizes on-demand pedestrian service
+  (§4.1): the request lamp makes PENDING observable (§4.2), and the WALK ->
+  FLASH_DONT_WALK -> steady-DON'T-WALK buffer service sequence (§3.5) is a timed
+  sub-sequence, so SERVING_PEDESTRIAN_REQUEST is a superstate split into
+  WALK_INTERVAL, CHANGE_INTERVAL, and the clearance buffer
+  (BUFFER_INTERVAL / BUFFER_INTERVAL_LATCHED) with the indicator output (9) hoisted
+  to the superstate. Entry to service is demand-led (§4.3) and concurrent with the
+  parallel through movement (§3.8): a crosswalk's pedestrian control machine leaves
+  PENDING only when that crosswalk's adjacent through signal becomes GREEN.
+
+  The clearance buffer (14-18) is §3.5's tail: after flashing DON'T WALK ends the
+  head returns to steady DONT_WALK (14) for T_BUFFER before any conflicting
+  movement may be released. It is modelled *inside* SERVING_PEDESTRIAN_REQUEST
+  deliberately — the cross-machine RED-hold obligation `0_safety.1` is conditioned
+  on that superstate, so keeping the buffer within it makes the obligation cover the
+  §3.5 "≥ 2 s before release" window without a second invariant, and the SERVING
+  dwell (T_WALK + T_FDW + T_BUFFER) coincides exactly with the static margin
+  `3_timing.10` that discharges it.
+
+  To a pedestrian the buffer's steady DONT_WALK is indistinguishable from
+  NO_PEDESTRIAN_REQUEST, so a press during the buffer must register a fresh request
+  (§4.1) — it cannot simply be dropped because the controller is still clearing the
+  previous service. BUFFER_INTERVAL_LATCHED records that press: it lights the lamp
+  (16, §4.2 — illuminated until the next WALK) and routes the machine to PENDING at
+  buffer end (18) rather than NO (17), so the call is served the next cycle. Both
+  buffer exits fire on time-in-SERVING reaching T_WALK + T_FDW + T_BUFFER, not on
+  time-in-sub-state, so the latch transition (15) never resets the clearance clock —
+  the buffer always runs its full T_BUFFER regardless of when the press lands. The
+  latch *mechanism* (debounce, electrical hold) remains the LLR concern already
+  listed in `TODO.md`; these statements fix only the required behaviour.
+
+  The only Derived item is the power-on initial state (2): the CONOPS does not
+  specify the per-crosswalk startup state. The two-mode frame (NORMAL_OPERATION /
+  FAULT), the entry into FAULT, and the dark-head fault outputs that formerly lived
+  in this file now sit in `1_modes` and `2_fault`, which contain this region.

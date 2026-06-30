@@ -1,0 +1,49 @@
+source:
+  - CONOPS §6.1
+  - CONOPS §6.2
+
+context: |-
+  The FAULT-mode behavior: the safe-state Moore outputs the controller drives while
+  it is in the FAULT mode (entered per `1_modes` statement 3). This is the one
+  output table that spans every signal in the system — all eight vehicle faces and
+  every per-crosswalk pedestrian head and request indicator — because the fault
+  state overrides them all. Entry into FAULT pre-empts the NORMAL_OPERATION
+  sub-machines (`5_vehicle`, `6_pedestrian`); their outputs no longer apply.
+
+  Signal values used here (alphabets fixed in `4_signals`):
+    - the eight vehicle face output signals — value FLASHING_RED (the
+      flashing-operation value, used only in FAULT).
+    - the pedestrian head output signals — value NONE (dark).
+    - the request indicator output signals (the lamps) — value NO_REQUEST
+      (extinguished).
+
+  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
+  below, since the format's `source:` is container-level only.
+
+description:
+  1: |-                                  # CONOPS §6.1, §6.2
+    While the controller is in FAULT, the controller shall drive every vehicle face
+    to FLASHING_RED.
+
+  2: |-                                  # CONOPS §6.2
+    While the controller is in FAULT, the controller shall drive every crosswalk's
+    pedestrian head output signal to NONE.
+
+  3: |-                                  # Derived
+    While the controller is in FAULT, the controller shall drive every crosswalk's
+    request indicator output signal to NO_REQUEST.
+
+rationale: |-
+  The fault state's outputs realize the MUTCD flashing-operation safe state: the
+  vehicular heads flash RED (§6.2) and the pedestrian heads go dark (§6.2, NONE).
+  These are Moore outputs of the FAULT mode — constant while the mode holds — so
+  they belong here rather than on the entry edge, which lives in `1_modes`.
+
+  FLASHING_RED is a face value used only in this mode; the normal sequencer's faces
+  range over RED / YELLOW / GREEN. The pedestrian NONE value is the same dark value
+  the `6_pedestrian` machine names for its outputs.
+
+  Statement 3 (request indicators extinguished in FAULT) is Derived: §6.2 darkens
+  the pedestrian heads but is silent on the request lamps. Leaving a request lamp
+  lit while the heads are dark would be misleading, so the safe-state default
+  extinguishes them; this is a candidate to push up as a CONOPS decision leaf.

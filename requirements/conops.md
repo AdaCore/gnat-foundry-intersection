@@ -81,7 +81,7 @@ Pedestrian service is demand-led.
 
 - **6.1 ◆** On detection of a major fault the controller enters flashing operation. — *decision; MUTCD Ch. 4G*
 - **6.2 ◆** In the flashing state the vehicular heads show flashing RED and the pedestrian heads are dark. — *MUTCD §4I.06 ¶01*
-- **6.3 ◆** Recovery from the fault state requires a manual reset; the controller does not auto-recover. — *decision*
+- **6.3 ◆** Recovery from the fault state requires a power cycle; the controller does not auto-recover. — *decision*
 
 # References
 

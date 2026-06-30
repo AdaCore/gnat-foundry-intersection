@@ -1,0 +1,81 @@
+source:
+  - CONOPS §2.2
+  - CONOPS §2.6
+  - CONOPS §2.7
+  - CONOPS §3.2
+  - CONOPS §4.1
+  - CONOPS §4.2
+  - CONOPS §6.1
+  - CONOPS §6.2
+
+context: |-
+  The controller's input and output signal alphabets: every signal the controller
+  reads from the world or drives to the world, named once with its fixed value
+  set. The state machines (`5_vehicle`, `5_vehicle_1_left_demand`, `6_pedestrian`,
+  `2_fault`) refer to these signals by name and drive or read only the values
+  fixed here — just as `3_timing` names and fixes every duration once. This is the
+  signal analogue of the timing file.
+
+  Output signals are driven by the controller (the two verbs are drive / hold);
+  input signals are read by it. Internal machine states (e.g. LEFT_DEMAND_PENDING,
+  PENDING_PEDESTRIAN_REQUEST) are not signals — they are defined in their own
+  machine files; only the controller's I/O boundary is fixed here.
+
+  Value vs symbology: a signal's *value* is its controller-meaningful aspect (a
+  face is RED / YELLOW / GREEN; a head is WALK / FLASH_DONT_WALK / ...). How that
+  value is *rendered* — circular vs arrow lens (§2.7), the WALK / raised-hand
+  pictographs (§3.2), the pilot-light device (§4.2) — is a hardware concern and is
+  not fixed here. In particular the left-turn faces carry the same value set as
+  the through faces; the arrow shape that distinguishes them is HW symbology.
+
+  FLASHING_RED is a vehicle-face value used only in the FAULT mode; when it is
+  driven is fixed by `2_fault`, not here. NONE (dark) is a pedestrian-head value
+  driven only in FAULT, likewise per `2_fault`.
+
+  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
+  below, since the format's `source:` is container-level only.
+
+description:
+  # ---- output signals (driven by the controller) ----
+  1: |-                                  # CONOPS §2.2, §2.7, §6.2
+    The controller shall drive each of the eight vehicle face output signals
+    (N_thru, S_thru, E_thru, W_thru, N_left, S_left, E_left, W_left) only to RED,
+    YELLOW, GREEN, or FLASHING_RED.
+  2: |-                                  # CONOPS §3.2, §6.2
+    The controller shall drive each crosswalk's pedestrian head output signal only
+    to NONE, WALK, FLASH_DONT_WALK, or DONT_WALK, where NONE is dark.
+  3: |-                                  # CONOPS §4.2
+    The controller shall drive each crosswalk's request indicator output signal
+    only to NO_REQUEST or REQUEST_PENDING.
+
+  # ---- input signals (read by the controller) ----
+  4: |-                                  # CONOPS §6.1
+    The controller shall read the fault-detection input signal as one of
+    NOT_ASSERTED or ASSERTED.
+  5: |-                                  # CONOPS §4.1
+    The controller shall read each crosswalk's pedestrian demand button input
+    signal as one of RELEASED or PRESSED.
+  6: |-                                  # CONOPS §2.6
+    The controller shall read each approach's left-turn detector input signal as
+    one of NO_VEHICLE or VEHICLE_PRESENT.
+
+rationale: |-
+  Naming every signal and its value set once gives the state machines a single
+  vocabulary to cite, the way `3_timing` does for durations: a machine drives or
+  reads a named signal and may use only the values fixed here, so no alphabet is
+  duplicated or left to context prose. The output statements in `5_vehicle`,
+  `6_pedestrian`, and `2_fault` and the input guards in `5_vehicle_1_left_demand`,
+  `6_pedestrian`, and `1_modes` all range over exactly these sets.
+
+  The vehicle-face alphabet (1) folds the steady RED / YELLOW / GREEN aspects with
+  the FAULT-only FLASHING_RED; the left-turn faces share it, because the arrow vs
+  circular distinction (§2.7) is rendering, not value. The pedestrian-head
+  alphabet (2) includes NONE for the dark FAULT state (§6.2). Request indicators
+  (3) are two-valued. The three input signals (4-6) are the controller's external
+  stimuli; their debounce, placement, and electrical sensing are LLR concerns, not
+  alphabet.
+
+  No Derived statements: each alphabet traces to the CONOPS leaf that introduces
+  the signal — §2.2/§2.7 (vehicle faces), §6.2 (the FAULT values), §3.2 (heads),
+  §4.2 (request indicators), §6.1 (fault detection), §4.1 (pedestrian button),
+  §2.6 (left-turn detection).

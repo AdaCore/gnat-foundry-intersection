@@ -1,0 +1,89 @@
+source:
+  - CONOPS §2.6
+  - CONOPS §5.1
+
+context: |-
+  This is the per-approach left-turn demand machine, a region of the controller's
+  NORMAL_OPERATION mode (`1_modes`), that the phase sequencer (`5_vehicle`) observes
+  to decide whether to run or skip that approach's protected left phase. It is the
+  vehicle-side analogue of the pedestrian request machine; like that machine its
+  state is named even though it has no dedicated annunciator: LEFT_DEMAND_PENDING
+  manifests in whether the protected left arrow is served rather than skipped.
+
+  States and signal values are named; events are not.
+
+  Signals:
+    - the approach's left-turn detector input signal — an external input read as
+      NO_VEHICLE or VEHICLE_PRESENT; value set fixed in `4_signals`.
+    - the output signal of that approach's "next conflicting movement" — the
+      through movement the sequencer releases immediately after this approach's
+      protected left — observed from the sequencer and read as GREEN or not-GREEN.
+      It becomes GREEN only after the all-red clearance following the left has fully
+      elapsed (the sequencer releases no conflicting movement before clearance
+      completes, `5_vehicle` §2.8), so its rising edge marks the end of that
+      clearance. Per approach: N_left's next conflicting movement is S_thru (GREEN
+      on entering NS_BOTH_THROUGH), S_left's is E_thru (GREEN on entering E_LEAD /
+      EW_BOTH_THROUGH), E_left's is W_thru (GREEN on entering EW_BOTH_THROUGH), and
+      W_left's is N_thru (GREEN on entering N_LEAD / NS_BOTH_THROUGH). The lead's
+      conflicting movement is the opposing through on the same axis; the lag's is
+      the next axis's lead through, released across the barrier.
+
+  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
+  below, since the format's `source:` is container-level only.
+
+description:
+  1: |-                                  # CONOPS §2.6, §5.1
+    The controller shall provide, for each approach, a left-turn demand machine
+    with the states NO_LEFT_DEMAND and LEFT_DEMAND_PENDING.
+
+  2: |-                                  # Derived
+    When the controller starts up, the controller shall place each approach's
+    left-turn demand machine in NO_LEFT_DEMAND.
+
+  3: |-                                  # CONOPS §2.6
+    While an approach's left-turn demand machine is in NO_LEFT_DEMAND, when that
+    approach's left-turn detector input signal becomes VEHICLE_PRESENT, the
+    controller shall enter LEFT_DEMAND_PENDING for that approach.
+
+  4: |-                                  # CONOPS §2.6
+    While an approach's left-turn demand machine is in LEFT_DEMAND_PENDING, when that
+    approach's next conflicting movement becomes GREEN, the controller shall enter
+    NO_LEFT_DEMAND for that approach.
+
+rationale: |-
+  A small per-approach Moore state machine in the controller, raised when its detector input becomes
+  VEHICLE_PRESENT and cleared when its next conflicting movement becomes GREEN, observed
+  by the sequencer to skip
+  (NO_LEFT_DEMAND) or run (LEFT_DEMAND_PENDING) the protected left (CONOPS §2.6). It
+  carries no output of its own; the observable manifestation of LEFT_DEMAND_PENDING
+  is the protected left arrow being served rather than skipped.
+
+  Clearing when the next conflicting movement is released (statement 4), rather than
+  on entry to the protected phase, is what keeps a served vehicle from re-arming its
+  own demand: the machine holds LEFT_DEMAND_PENDING through the green, the yellow,
+  and the all-red clearance that follows, so statement 3's NO_LEFT_DEMAND guard
+  cannot re-fire anywhere in the phase. The clear lands only once the sequencer
+  releases a conflicting movement (its through face becomes GREEN) — which `5_vehicle`
+  §2.8 gates behind the full clearance, so it is the observable instant at which the
+  clearance barrier has elapsed. By then the served vehicle has had the green, the
+  yellow, and the clearance to leave the lane loop. Were demand instead cleared as
+  the green begins, the triggering vehicle would still be on the loop (the green is
+  what releases it) and would re-arm at once, staging a phantom left phase the next
+  cycle.
+
+  Keying on the conflicting movement's release, rather than on the left arrow's own
+  edge, is what lets one rule cover both the lead and the lag without a dedicated
+  "serving" state: the left arrow goes RED at the *start* of clearance and offers no
+  edge at its *end*, whereas a conflicting movement is released at the end of
+  clearance in every case — after a lead's *_LEAD_CLEAR and after a lag's
+  *_BARRIER_ALLRED alike. (The pedestrian machine clears PENDING on the same kind of
+  event — a parallel through becoming GREEN — so this is an established idiom in the
+  model, not a new mechanism.)
+
+  A detection while already PENDING is idempotent; a vehicle still on the loop when
+  the conflicting movement is released — a follower that missed the green, or a fresh
+  arrival — re-arms the machine for the next cycle, so continuous demand is served
+  every cycle. Detector debounce and placement remain LLR concerns, including a
+  vehicle that physically lingers on the loop past clearance.
+
+  Derived item (2) is the power-on initial state, which the CONOPS does not specify.
