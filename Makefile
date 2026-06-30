@@ -313,6 +313,12 @@ GNATCOV_TRACES := $$(pwd)/obj/gnatcov-traces
 # The RTS project
 GNATCOV_RTS := $$(pwd)/obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
 
+# The coverage reports directory
+COVERAGE_REPORTS := $$(pwd)/reports/coverage
+
+$(COVERAGE_REPORTS):
+	mkdir -p $(COVERAGE_REPORTS)
+
 # Local gnatcov RTS
 $(GNATCOV_RTS):
 	$(ALR) exec -- gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
@@ -358,31 +364,30 @@ coverage-test-community: generate-tests-community
 	    $(HARNESS)/test_runner
 
 # Generate a cobertura coverage report (XML) from the traces.
-coverage-report-cobertura:
-	mkdir -p reports/coverage
+coverage-report-cobertura: $(COVERAGE_REPORTS)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
 		--annotate=cobertura \
-		--output-dir reports/coverage/cobertura \
+		--output-dir $(COVERAGE_REPORTS)/cobertura \
 		$(GNATCOV_TRACES)/
 
 # Generate the coverage HTML report (not available with community gnatcov)
-coverage-report-html:
+coverage-report-html: $(COVERAGE_REPORTS)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
 		--annotate=html \
-		--output-dir reports/coverage/html \
+		--output-dir $(COVERAGE_REPORTS)/html \
 		$(GNATCOV_TRACES)/
 
 # Generate the coverage text report
-coverage-report-text:
+coverage-report-text: $(COVERAGE_REPORTS)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
 		--annotate=report \
-		-o reports/coverage/report.txt \
+		-o $(COVERAGE_REPORTS)/report.txt \
 		$(GNATCOV_TRACES)/
 
 # "quiet" all-in-one coverage, for use by agents: create a
@@ -391,4 +396,4 @@ COVERAGE_LOG := coverage.log
 all-coverage-pro:
 	@make coverage-instrumentation coverage-build coverage-test-pro > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
 	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
-	@grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' reports/coverage/report.txt || true
+	@grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' $(COVERAGE_REPORTS)/report.txt || true
