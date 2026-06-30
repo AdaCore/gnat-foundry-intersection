@@ -1,6 +1,6 @@
 with "../config/traffic_light_config.gpr";
 
---  A shared project, containing definitions that are reused accross projects.
+--  A shared project, containing definitions that are reused across projects.
 
 project Shared is
 
@@ -24,7 +24,6 @@ project Shared is
          for Exec_Dir use "bin/";
 
       when "target" =>
-         Ada_Compiler_Switches := Ada_Compiler_Switches;
          for Target          use "arm-eabi";
          for Runtime ("Ada") use "light-tasking-zynq7000";
          for Object_Dir use "obj/target/" & Traffic_Light_Config.Build_Profile;
