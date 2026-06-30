@@ -100,7 +100,7 @@ run-target: build-target
 # project. Only SPARK_Mode units are analyzed; the rest are skipped.
 # gnatprove resolves via the local prefix (on PATH) under `alr exec`.
 prove:
-	$(ALR) exec -P -- gnatprove --level=2 --report=statistics --checks-as-errors=on
+	$(ALR) exec -P -- gnatprove -U --level=2 --report=statistics --checks-as-errors=on
 
 # Format / check aggregators. For now they just delegate to the Ada targets;
 # add format-<lang> / check-<lang> prerequisites here as more land.
