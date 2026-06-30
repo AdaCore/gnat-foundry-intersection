@@ -1,0 +1,114 @@
+source:
+  - CONOPS §2.8
+  - CONOPS §3.4
+  - CONOPS §3.5
+
+context: |-
+  Cross-machine safety invariants — the safety properties that constrain the
+  controller as a whole and that no single machine owns. Each per-machine file
+  (`5_vehicle`, `6_pedestrian`, …) fixes one machine's behavior; an invariant here
+  relates the *state of one machine* to the *outputs of another*, so it belongs to
+  neither and is stated once, here. This file is organized by that cohesion, not by
+  verification method.
+
+  Each statement is the safety *obligation* (the what). Where the obligation is met
+  by a static timing margin rather than a runtime handshake — the methodology's
+  stated preference (HLR.drafting.md) — the *discharge* (the how) lives in the cited
+  timing / machine statements, and the rationale records, per invariant, four
+  things: its discharge, the premises that discharge rests on, the binding it
+  quantifies over, and the fallback to use if the discharge cannot be shown. An
+  invariant is not satisfied until its discharge, that discharge's binding, and its
+  premises are all in place — treat them as one coupled work item.
+
+  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
+  below, since the format's `source:` is container-level only.
+
+description:
+  1: |-                                  # CONOPS §3.4, §3.5
+    While a crosswalk's pedestrian control machine is in SERVING_PEDESTRIAN_REQUEST,
+    the controller shall hold every vehicle face output signal that conflicts with
+    that crosswalk at RED.
+  2: |-                                  # CONOPS §2.8
+    The controller shall never drive two conflicting vehicle face output signals
+    to GREEN or YELLOW at the same time.
+
+rationale: |-
+  **The pedestrian-conflict invariant (1)** is CONOPS §3.4 and §3.5 — both MUTCD
+  Standards, the core pedestrian-safety obligation — stated directly over our
+  states. SERVING_PEDESTRIAN_REQUEST is WALK_INTERVAL ∪ CHANGE_INTERVAL ∪ the
+  clearance buffer (`6_pedestrian.10,11,14`): the first two are the sub-states whose
+  pedestrian-head output is WALK or FLASH_DONT_WALK (§3.4), and the buffer
+  (BUFFER_INTERVAL / BUFFER_INTERVAL_LATCHED) is the steady-DON'T-WALK tail that §3.5
+  requires before any conflicting movement is released. Conditioning the RED-hold on
+  the whole superstate therefore discharges both clauses at once — §3.4's
+  "while showing WALK or flashing DON'T WALK" and §3.5's "≥ T_BUFFER before release"
+  — so "while a crossing is being served, every conflicting perpendicular movement
+  is held RED" is the obligation with no symbology, and no separate buffer invariant
+  is needed. The invariant names the *safety* relationship (conflicting movements);
+  its discharge names the *implementable* one (the adjacent through signal). Keeping
+  the two apart is the point — the obligation does not presume how it is met.
+
+  - **Discharge (how):** the static timing margin `3_timing.10` — hold each
+    conflicting movement RED for at least `T_WALK + T_FDW + T_BUFFER` after that
+    crosswalk's adjacent through signal most recently goes GREEN — instead of the
+    vehicle sequencer observing live pedestrian state. That margin window is now
+    exactly the SERVING_PEDESTRIAN_REQUEST dwell (the buffer was folded into the
+    superstate, `6_pedestrian.13-18`), so the obligation's "while in SERVING" window
+    and its discharge's `T_WALK + T_FDW + T_BUFFER` window coincide by construction.
+  - **Premise:** the margin is sound only while every through movement runs its full
+    fixed slot (no gap-out): `3_timing.7` (the slot is independent of left-turn
+    demand) and `3_timing.11` (the slot runs its full scheduled duration, never
+    terminating early on absence of vehicular demand). If a through phase could end
+    early, the design-time onset/release schedule the margin reasons over would not
+    hold.
+  - **Binding:** the invariant quantifies over each crosswalk's set of conflicting
+    vehicle faces (and, for the discharge, its single adjacent-through face). That
+    crosswalk → movement binding is deferred to the LLR (`TODO.md`); until it is
+    enumerated the invariant cannot be evaluated.
+  - **Discharge obligation:** showing the inequality holds for the chosen durations
+    across every binding case — late-greening through vs the perpendicular release;
+    lagging left vs the opposite crosswalk — is an LLR / verification obligation, not
+    yet done.
+  - **Fallback:** there is currently **no** fallback requirement if the inequality is
+    unsatisfiable for a chosen duration set. If the static margin cannot be shown,
+    this invariant must instead be discharged by a runtime coupling — the sequencer
+    holding conflicting movements RED while it observes the crosswalk in
+    SERVING_PEDESTRIAN_REQUEST — to be added as a requirement at that point.
+
+  No Derived statement: the invariant traces to CONOPS §3.4 and §3.5.
+
+  **The vehicle-conflict invariant (2)** is CONOPS §2.8 — a MUTCD Standard, the
+  headline vehicular-safety obligation (no two conflicting movements ever released
+  together) — stated as an intersection-wide property rather than left to emerge
+  from the per-state output rows. As with invariant 1 the obligation names the
+  *safety* relationship (any two conflicting faces non-RED at once); its discharge
+  names the *implementable* one (the structure of the sequencer's output rows).
+  Keeping the two apart is again the point: a per-state output requirement asserts
+  what one state drives and reads locally correct even if it drove a conflicting
+  pair green, whereas this invariant is the global "no reachable state releases a
+  conflicting pair" property — the thing actually worth verifying, and the thing a
+  single mis-edited output row would silently violate.
+
+  - **Discharge (how):** by construction in `5_vehicle`. Each output row (2-11,
+    25-34) lists only mutually non-conflicting faces as non-RED, and the machine is
+    a single serialized Moore machine, so exactly one row is active at a time; the
+    §2.8 all-red-clearance clause is met by the yellow-then-red termination (§2.5)
+    and the barrier/clear states (`5_vehicle.11,34` and the *_CLEAR states), which
+    hold every incoming conflicting movement RED until the outgoing pair has cleared.
+  - **Premise:** the discharge holds only while the design stays serialized Moore
+    (one active output row). If the sequencer were ever refactored into concurrent
+    NEMA rings / a dual-ring statechart — the pivot `5_vehicle` flags as the one that
+    would break Moore form — the by-construction argument evaporates and this
+    invariant becomes load-bearing rather than emergent.
+  - **Binding:** the invariant quantifies over the set of conflicting vehicle face
+    pairs (the conflict matrix). That matrix is deferred to the LLR (`TODO.md`),
+    exactly as crosswalk -> movement is for invariant 1; until it is enumerated the
+    invariant cannot be evaluated.
+  - **Cohesion note:** unlike invariant 1, in the *current* serialized design all
+    eight faces are outputs of the single `5_vehicle` machine, so this invariant is
+    intra-machine, not the cross-machine relation this file's cohesion rule
+    describes. It is stated here anyway because it is the controller's headline
+    safety property, reads as a peer to invariant 1, and becomes genuinely
+    cross-cutting under any future concurrent design.
+
+  No Derived statement: the invariant traces to CONOPS §2.8.

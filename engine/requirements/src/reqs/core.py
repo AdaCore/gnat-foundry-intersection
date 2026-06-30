@@ -73,12 +73,18 @@ class Diagnostic:
 
 
 def iter_yaml_files(paths) -> list[Path]:
-    """Expand files and directories (walked recursively) into a sorted file list."""
+    """
+    Expand each path into requirement files, preserving the given order.
+
+    A directory is walked recursively and its files sorted; any other path
+    (an explicit file, or a typo that exists as neither file nor directory) is
+    kept as given, so callers see it and :func:`load_yaml` reports it.
+    """
     files: list[Path] = []
     for raw in paths:
         p = Path(raw)
-        files.extend([p] if p.is_file() else p.rglob("*.yaml"))
-    return sorted(files)
+        files.extend(sorted(p.rglob("*.yaml")) if p.is_dir() else [p])
+    return files
 
 
 def compose_lines(text: str) -> tuple[dict[tuple[str, ...], int], list[str]]:
@@ -120,9 +126,13 @@ def load_yaml(path: Path):
     Returns ``(data, lines, dups, error)``: ``data`` is the parsed mapping (or
     None), ``lines`` and ``dups`` are the source-line map and duplicate
     `description` sub-keys from :func:`compose_lines`, and ``error`` is a
-    Diagnostic to report when the file fails to parse or isn't a mapping.
+    Diagnostic to report when the file can't be read, fails to parse, or isn't
+    a mapping.
     """
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return None, {}, [], Diagnostic("error", "E-IO", f"cannot read file: {exc}", path)
     lines, dups = compose_lines(text)
     try:
         data = yaml.safe_load(text)

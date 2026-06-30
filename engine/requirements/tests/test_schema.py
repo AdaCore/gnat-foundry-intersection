@@ -59,6 +59,15 @@ def test_negative_fixture_fires(files, code, level):
     assert (code, level) in {(d.code, d.level) for d in diags}
 
 
+def test_missing_file_reports_clean_diagnostic(tmp_path):
+    """A nonexistent explicit path yields a located E-IO error, not a traceback."""
+    missing = tmp_path / "hlr_does_not_exist.yaml"
+    diags = validate_paths([missing])
+    io_errors = [d for d in diags if d.code == "E-IO"]
+    assert io_errors, "missing file should produce an E-IO diagnostic"
+    assert io_errors[0].file == missing
+
+
 # RS.3 counts "shall" over requirement prose only -- the same reduction the EARS
 # lint uses (reqs.core.prose). A "shall" hiding in markup must not be counted,
 # else the two checks disagree about what is prose.

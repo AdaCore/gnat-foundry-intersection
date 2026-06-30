@@ -1,0 +1,60 @@
+source:
+  - CONOPS §5.1
+  - CONOPS §6.1
+  - CONOPS §6.3
+
+context: |-
+  The controller's top-level supervisory machine: a two-state Moore machine whose
+  states are the operating *modes* NORMAL_OPERATION and FAULT. These modes contain
+  the per-subsystem regions defined elsewhere — the vehicle phase sequencer
+  (`5_vehicle`), the left-turn demand machines (`5_vehicle_1_left_demand`), and the
+  per-crosswalk pedestrian machines (`6_pedestrian`) are all sub-states of
+  NORMAL_OPERATION. The FAULT-mode outputs are defined in `2_fault`.
+
+  This file fixes the *frame*: which modes exist, the power-on default, the single
+  edge into FAULT, and that the edge is terminal. The transition into FAULT
+  (statement 3) pre-empts the whole NORMAL_OPERATION region — when it fires, every
+  sub-machine is abandoned and the controller drives the `2_fault` outputs.
+
+  Signals:
+    - the fault-detection signal — an external input from a (hypothetical)
+      fault-detection subsystem; asserted on a major fault.
+
+  FAULT is terminal: the controller reads no recovery input. Recovery is an
+  external power cycle, which restarts the controller into NORMAL_OPERATION via
+  the power-on default (statement 2); the power-cycle mechanism is an LLR concern.
+
+  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
+  below, since the format's `source:` is container-level only.
+
+description:
+  1: |-                                  # CONOPS §5.1, §6.1
+    The controller shall provide two top-level operating modes: NORMAL_OPERATION
+    and FAULT.
+
+  2: |-                                  # Derived
+    When the controller starts up, the controller shall enter NORMAL_OPERATION.
+
+  3: |-                                  # CONOPS §6.1
+    While the controller is in NORMAL_OPERATION, when the fault-detection signal is
+    asserted, the controller shall transition to FAULT.
+
+  4: |-                                  # CONOPS §6.3
+    While the controller is in FAULT, the controller shall remain in FAULT.
+
+rationale: |-
+  A single supervisory machine sits above every other region: NORMAL_OPERATION runs
+  the normal traffic-control behavior, FAULT runs the safe-state behavior of
+  `2_fault`. Modeling the modes as one tiny machine — rather than repeating a
+  "While ... NORMAL_OPERATION" guard on every sub-statement — is what lets the
+  sub-machines drop the mode guard: a nested state implies its mode (per the
+  drafting convention), and statement 3 is the one edge that pre-empts the entire
+  nested region at once.
+
+  Statement 2 (the power-on default) is Derived: CONOPS describes the FAULT state's
+  indications and recovery but not the startup mode. Statement 4 traces to §6.3 —
+  the controller does not auto-recover; FAULT is terminal, and recovery is an
+  external power cycle (a restart, which re-enters NORMAL_OPERATION via statement 2)
+  rather than a transition out of FAULT — so the fault latch is no longer a Derived
+  assumption but a stated CONOPS obligation. The power-cycle *mechanism* is an LLR
+  concern.
