@@ -3,8 +3,9 @@ SHELL := bash
 .ONESHELL:
 
 .DEFAULT_GOAL := build-native
-.PHONY: printenv build-native build-target run-native run-target prove \
-        format format-ada check check-ada check-shell check-python \
+.PHONY: printenv generate-config build-native build-target run-native run-target \
+        prove \
+        format format-ada format-python check check-ada check-shell check-python \
         generate-tests-pro test-pro generate-tests-community test-community \
         validate-reqs test-reqs-engine \
         setup-community reset-hard \
@@ -67,6 +68,10 @@ printenv:
 # Build / run / prove / format
 # ----------------------------------------------------------------------------
 
+# Explicitly generate the `config/` directory for the `traffic_light` crate.
+generate-config:
+	$(ALR) build --stop-after=generation
+
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
 	$(ALR) build
@@ -76,8 +81,7 @@ build-native:
 # We have to generate the root `config/` directory explicitly because the
 # `traffic_light` crate is not in the Alire closure (but its config is in the
 # GPR closure).
-build-target:
-	$(ALR) build --stop-after=generation
+build-target: generate-config
 	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
@@ -101,9 +105,8 @@ run-target: build-target
 prove:
 	$(ALR) exec -P -- gnatprove -U --level=2 --report=statistics --checks-as-errors=on
 
-# Format / check aggregators. For now they just delegate to the Ada targets;
-# add format-<lang> / check-<lang> prerequisites here as more land.
-format: format-ada
+# Format / check aggregators.
+format: format-ada format-python
 check: check-ada check-shell check-python
 
 # Remove build products and outputs
@@ -111,20 +114,24 @@ clean:
 	rm -rf obj reports
 
 # Reformat all Ada sources of the default project in place (gnatformat).
-format-ada:
+format-ada: generate-config
 	$(ALR) exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C tests exec -P -- gnatformat -U --charset utf-8
 
 # Verify formatting without editing; exits non-zero if any file would change.
-check-ada:
+check-ada: generate-config
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
 
 # Lint shell scripts with shellcheck.
 check-shell:
-	$(UV) tool run --from shellcheck-py shellcheck scripts/setup/*
+	$(UV) tool run --from shellcheck-py shellcheck scripts/**/*
+
+# Format Python sources.
+format-python:
+	$(UV) --directory "$(REQS_ENGINE)" run ruff format
 
 # Lint, type-check and verify formatting of Python.
 check-python:
@@ -133,8 +140,7 @@ check-python:
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
 
 # Generate/refresh GNATtest skeletons
-generate-tests-pro:
-	$(ALR) build --stop-after=generation     # Generate `config/`
+generate-tests-pro: generate-config
 	$(ALR) exec -P -- gnattest --exit-status=on
 
 # Build and run the AUnit harness
@@ -145,9 +151,8 @@ test-pro: generate-tests-pro
 
 # To use community tools, we run from inside `tests/` to pick up `alr`-managed
 # `gnattest_bin` and `aunit`.
-generate-tests-community:
+generate-tests-community: generate-config
 	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
-	$(ALR) build --stop-after=generation     # Generate `config/`
 	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr --exit-status=on
 
 test-community: generate-tests-community

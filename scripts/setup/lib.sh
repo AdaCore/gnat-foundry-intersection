@@ -59,16 +59,16 @@ These are normally supplied by running this script via the Makefile."
 # Echo the host platform as "<arch> <os>".
 detect_platform() {
   local uname_s uname_m os arch
-  uname_s=$(uname -s)
   uname_m=$(uname -m)
-  case "$uname_s" in
-    Linux) os=linux ;;
-    *) fatal "unsupported OS: $uname_s" ;;
-  esac
   case "$uname_m" in
     arm64 | aarch64) arch=aarch64 ;;
     x86_64 | amd64) arch=x86_64 ;;
     *) fatal "unsupported architecture: $uname_m" ;;
+  esac
+  uname_s=$(uname -s)
+  case "$uname_s" in
+    Linux) os=linux ;;
+    *) fatal "unsupported OS: $uname_s" ;;
   esac
   printf '%s %s\n' "$arch" "$os"
 }
