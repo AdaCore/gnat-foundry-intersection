@@ -11,7 +11,7 @@ functional-safety standard.
 
 ## Status
 
-Early scaffold — see [`CHANGELOG.md`](CHANGELOG.md) for progress.
+Early scaffold.
 
 ## Quick start
 

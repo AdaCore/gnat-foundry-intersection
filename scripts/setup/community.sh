@@ -119,10 +119,10 @@ report_tool() {
 
 print_summary() {
   header "setup-community complete"
-  detail "uv / uvx               $(report_tool uv)"
-  detail "alr                    $(report_tool alr)"
-  detail "GNAT toolchains        deployed under $ALIRE_SETTINGS_DIR"
-  detail "Alire-installed tools  installed in $ALIRE_PREFIX/bin"
+  detail "uv                           $(report_tool uv)"
+  detail "alr                          $(report_tool alr)"
+  detail "GNAT toolchains              deployed under $ALIRE_SETTINGS_DIR"
+  detail "gnat{test,cov,format,prove}  installed in $ALIRE_PREFIX/bin/"
   printf '\n'
   detail "The Makefile uses these automatically. To run the tools from your"
   detail "shell, add to your profile:"

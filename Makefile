@@ -127,7 +127,7 @@ check-ada: generate-config
 
 # Lint shell scripts with shellcheck.
 check-shell:
-	$(UV) tool run --from shellcheck-py shellcheck scripts/**/*
+	find scripts -type f -exec $(UV) tool run --from shellcheck-py shellcheck {} +
 
 # Format Python sources.
 format-python:
@@ -184,10 +184,10 @@ test-reqs-engine:
 # the GNAT toolchains, and gnattest/gnatcov/gnatformat/gnatprove. Everything a
 # contributor needs to build, test, and prove.
 setup-community:
-	@export LOCAL_BIN='$(LOCAL_BIN)' \
-            ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS)' \
-            ALIRE_PREFIX='$(ALIRE_PREFIX)'
-	scripts/setup/community.sh
+	@LOCAL_BIN='$(LOCAL_BIN)' \
+	    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS)' \
+	    ALIRE_PREFIX='$(ALIRE_PREFIX)' \
+	    scripts/setup/community.sh
 
 # ----------------------------------------------------------------------------
 # Reset: remove everything the setup-* targets installed.
