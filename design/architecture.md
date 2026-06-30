@@ -11,7 +11,7 @@ The project is structured around the following key concepts.
 
 The main controller is a state machine that implements the traffic light logic.
 
-The central point of the program is a main loop which takes the state machine
+The central point of the program is a core loop which takes the state machine
 through its stages:
 
 - Poll the external sources (sensors that indicate cars wanting a left turn, or pedestrians wanting to cross)
@@ -31,7 +31,7 @@ Transport of data between the main loop and the external sources (sensors) and o
 
 Each bus goes in a single direction, from a producer to a consumer.
 
-Buses serve as a boundary between the engine and the hardware, and also as a boundary
+Buses serve as a boundary between the core loop and the hardware, and also as a boundary
 for the SPARK proof. They are written that way to mimic a likely real-world
 hardware implementation. In future implementation, we might add
 fault detection on the buses, which would throw the system into the fault state if a
@@ -43,32 +43,29 @@ as part of the main loop. In a future implementation, we might add asynchrony, w
 the main loop running in a task, and the buses being implemented with protected
 objects. This is not the case for now.
 
-## The main loop
+## The core loop
 
-The main loop reads the data from the external sources via _source data buses_, one
+The core loop reads the data from the external sources via _source data buses_, one
 for each source, that hold one boolean - when the value is read, it is cleared.
 This mimics a latch in the real world, where the input is captured and held until
 it is processed, and values are coalesced (multiple presses on the pedestrian button,
 or multiple cars wanting a left turn, are treated as a single request).
 
-The main loop is only given the "consumer" part of the bus (as an access to a subprogram, see below), and does not know anything about the implementation of the producer, which is provided by the HAL.
+The core loop is only given the "consumer" part of the bus, and does not know anything
+about the implementation of the producer, which is provided by the HAL.
 
-Similarly, the main loop writes the outputs to the traffic light via a
-_display data bus_, which holds the state of the traffic lights. The main loop
-is only given the "producer" part of the bus (as an access to a subprogram, see below),
-and does not know anything about the implementation of the consumer, which is again
-provided by the HAL.
+Similarly, the core loop writes the outputs to the traffic light via a
+_display data bus_, which holds the state of the traffic lights. The core loop
+is only given the "producer" part of the bus, and does not know anything about
+the implementation of the consumer, which is again provided by the HAL.
 
-To sum up, the main loop procedure takes as parameters:
+The core loop is implemented as a generic subprogram, which is parameterized by:
 
-- an access to a "Delay_For" procedure, which is used to wait for the required time
+- a "Delay_For" procedure, which is used to wait for the required time
 - a set of procedures, one for each source, which are used to read the
   value of the external sources (the sensors) as an "out" parameter and clear the
   latch when the value is read.
-- a subprogram which is used to write the traffic light outputs
-
-The subprograms being passed are all access-to-subprogram types, which carry their own
-SPARK contracts.
+- a procedure which is used to write the traffic light outputs
 
 ## Project structure
 
@@ -125,12 +122,12 @@ The core logic does not know anything about the implementation of sources or dis
 
 ### Rationale for the separation between `core.gpr` and `hal.gpr|app.gpr`
 
-It might make more sense to have the main loop hosted as part of the `app` project, but
+It might make more sense to have the core loop hosted as part of the `app` project, but
 setting it in its own project is intentional, and structuring: it's meant as a
-safeguard to ensure that the main loop never depends on the HAL, and can be proven
+safeguard to ensure that the core loop never depends on the HAL, and can be proven
 independently of the HAL. This comes at the price of contracted indirect
 calls in the proof target. We will revisit this if we find that we cannot prove the
-main loop at Silver level.
+core loop at Silver level.
 
 ## Tasking
 
@@ -147,3 +144,7 @@ The "delay_for" procedure in the HAL can be tuned at compile time to act faster 
 ## Command-input and diagnostic streams
 
 TODO: This will be refined at a future revision of this document.
+
+## Code conventions
+
+There should be no global variables.
