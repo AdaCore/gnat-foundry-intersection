@@ -88,6 +88,8 @@ def iter_yaml_files(paths) -> tuple[list[Path], list[Diagnostic]]:
             files.extend(sorted(p.rglob("*.yaml")))
         elif p.is_file():
             files.append(p)
+        elif p.exists():
+            diags.append(Diagnostic("error", "E-IO", "path is neither a file nor a directory", p))
         else:
             diags.append(Diagnostic("error", "E-IO", "no such file or directory", p))
     return files, diags
