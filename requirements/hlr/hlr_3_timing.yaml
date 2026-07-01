@@ -1,12 +1,3 @@
-source:
-  - CONOPS §2.5
-  - CONOPS §2.8
-  - CONOPS §3.4
-  - CONOPS §3.5
-  - CONOPS §3.6
-  - CONOPS §3.7
-  - CONOPS §5.1
-
 context: |-
   Intersection-wide timing parameters. The pedestrian and vehicle state machines
   (`6_pedestrian`, `5_vehicle`) fix the *order* of phases and intervals; this fixes
@@ -29,61 +20,94 @@ context: |-
   through movements run their full slot (no gap-out), which requirement 11 makes a
   checkable obligation.
 
-  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
-  below, since the format's `source:` is container-level only.
-
 description:
-  # ---- standard-fixed durations ----
-  1: |-                                  # CONOPS §3.6
-    The controller shall use a WALK interval (T_WALK) of 7 seconds.
-  2: |-                                  # CONOPS §3.7
-    The controller shall use a pedestrian change interval (T_FDW) of 7 seconds.
-  3: |-                                  # CONOPS §3.5
-    The controller shall use a pedestrian buffer interval (T_BUFFER) of 2 seconds.
-  4: |-                                  # CONOPS §2.5
-    The controller shall derive each movement's yellow change interval (T_YELLOW)
-    from the MUTCD kinematic basis.
-  5: |-                                  # CONOPS §2.5
-    The controller shall derive each movement's red clearance interval (T_REDCLEAR)
-    from the MUTCD kinematic basis.
-  6: |-                                  # CONOPS §2.8
-    The controller shall derive the barrier clearance interval (T_BARRIER) from the
-    MUTCD kinematic basis.
+  1:
+    text: |-
+      The controller shall use a WALK interval (T_WALK) of 7 seconds.
+    source:
+      - CONOPS §3.6
 
-  # ---- per-intersection policy, bounded not valued ----
-  7: |-                                  # CONOPS §5.1
-    The controller shall make each axis's service slot (T_AXIS), from the start of
-    that axis's service to the start of the perpendicular axis's service,
-    independent of left-turn demand.
-  8: |-                                  # Derived
-    The controller shall set each axis's both-through interval (T_BOTH) to the
-    portion of that axis's service slot (T_AXIS) left after the leading (T_LEAD) and
-    lagging (T_LAG) protected-left intervals, the yellow-change (T_YELLOW) and
-    red-clearance (T_REDCLEAR) intervals, and the barrier-clearance (T_BARRIER)
-    interval that actually run in that slot, so that T_AXIS is held independent of
-    left-turn demand (statement 7).
-  9: |-                                  # Derived
-    The controller shall limit each protected left-turn interval, leading (T_LEAD)
-    or lagging (T_LAG), to no more than half of its axis's service slot (T_AXIS / 2).
+  2:
+    text: |-
+      The controller shall use a pedestrian change interval (T_FDW) of 7 seconds.
+    source:
+      - CONOPS §3.7
 
-  # ---- pedestrian conflict buffer (static margin) ----
-  10: |-                                 # CONOPS §3.4, §3.5
-    The controller shall hold the output signal of every vehicular movement that
-    conflicts with a crosswalk at RED until at least T_WALK + T_FDW + T_BUFFER has
-    elapsed since that crosswalk's adjacent through output signal most recently
-    transitioned to GREEN.
+  3:
+    text: |-
+      The controller shall use a pedestrian buffer interval (T_BUFFER) of 2 seconds.
+    source:
+      - CONOPS §3.5
 
-  # ---- fixed-slot premise (margin soundness) ----
-  11: |-                                 # CONOPS §5.1
-    The controller shall run each axis's service slot for its full scheduled
-    duration (T_AXIS), ending the slot only when T_AXIS has elapsed and never on
-    absence of vehicular demand.
+  4:
+    text: |-
+      The controller shall derive each movement's yellow change interval (T_YELLOW)
+      from the MUTCD kinematic basis.
+    source:
+      - CONOPS §2.5
 
-  # ---- both-through floor (T_AXIS sizing) ----
-  12: |-                                 # Derived
-    The controller shall size each axis's service slot (T_AXIS) so that the
-    both-through residual (T_BOTH, statement 8) is never less than a minimum
-    both-through interval (T_BOTH_MIN).
+  5:
+    text: |-
+      The controller shall derive each movement's red clearance interval (T_REDCLEAR)
+      from the MUTCD kinematic basis.
+    source:
+      - CONOPS §2.5
+
+  6:
+    text: |-
+      The controller shall derive the barrier clearance interval (T_BARRIER) from the
+      MUTCD kinematic basis.
+    source:
+      - CONOPS §2.8
+
+  7:
+    text: |-
+      The controller shall make each axis's service slot (T_AXIS), from the start of
+      that axis's service to the start of the perpendicular axis's service,
+      independent of left-turn demand.
+    source:
+      - CONOPS §5.1
+
+  8:
+    text: |-
+      The controller shall set each axis's both-through interval (T_BOTH) to the
+      portion of that axis's service slot (T_AXIS) left after the leading (T_LEAD) and
+      lagging (T_LAG) protected-left intervals, the yellow-change (T_YELLOW) and
+      red-clearance (T_REDCLEAR) intervals, and the barrier-clearance (T_BARRIER)
+      interval that actually run in that slot, so that T_AXIS is held independent of
+      left-turn demand (statement 7).
+    derived: true
+
+  9:
+    text: |-
+      The controller shall limit each protected left-turn interval, leading (T_LEAD)
+      or lagging (T_LAG), to no more than half of its axis's service slot (T_AXIS / 2).
+    derived: true
+
+  10:
+    text: |-
+      The controller shall hold the output signal of every vehicular movement that
+      conflicts with a crosswalk at RED until at least T_WALK + T_FDW + T_BUFFER has
+      elapsed since that crosswalk's adjacent through output signal most recently
+      transitioned to GREEN.
+    source:
+      - CONOPS §3.4
+      - CONOPS §3.5
+
+  11:
+    text: |-
+      The controller shall run each axis's service slot for its full scheduled
+      duration (T_AXIS), ending the slot only when T_AXIS has elapsed and never on
+      absence of vehicular demand.
+    source:
+      - CONOPS §5.1
+
+  12:
+    text: |-
+      The controller shall size each axis's service slot (T_AXIS) so that the
+      both-through residual (T_BOTH, statement 8) is never less than a minimum
+      both-through interval (T_BOTH_MIN).
+    derived: true
 
 rationale: |-
   Naming each duration once gives the two state machines a single value to cite
