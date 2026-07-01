@@ -72,19 +72,25 @@ class Diagnostic:
         return f"{loc}: [{self.level.upper()} {self.code}] {self.message}{where}"
 
 
-def iter_yaml_files(paths) -> list[Path]:
+def iter_yaml_files(paths) -> tuple[list[Path], list[Diagnostic]]:
     """
     Expand each path into requirement files, preserving the given order.
 
-    A directory is walked recursively and its files sorted; any other path
-    (an explicit file, or a typo that exists as neither file nor directory) is
-    kept as given, so callers see it and :func:`load_yaml` reports it.
+    Returns ``(files, diags)``: a directory is walked recursively and its files
+    sorted; a file is returned unmodified; a non-existent path yields an `E-IO`
+    `Diagnostic`.
     """
     files: list[Path] = []
+    diags: list[Diagnostic] = []
     for raw in paths:
         p = Path(raw)
-        files.extend(sorted(p.rglob("*.yaml")) if p.is_dir() else [p])
-    return files
+        if p.is_dir():
+            files.extend(sorted(p.rglob("*.yaml")))
+        elif p.is_file():
+            files.append(p)
+        else:
+            diags.append(Diagnostic("error", "E-IO", "no such file or directory", p))
+    return files, diags
 
 
 def compose_lines(text: str) -> tuple[dict[tuple[str, ...], int], list[str]]:
@@ -155,7 +161,8 @@ def report(diags: list[Diagnostic], paths, *, quiet: bool = False) -> int:
         if d.level == "warning" and quiet:
             continue
         print(d.format(), file=sys.stderr if d.level == "error" else sys.stdout)
-    n = len(iter_yaml_files(paths))
+    files, _ = iter_yaml_files(paths)
+    n = len(files)
     summary = f"{n} file(s): {len(errors)} error(s), {len(warnings)} warning(s)"
     print(summary, file=sys.stderr if errors else sys.stdout)
     return 1 if errors else 0

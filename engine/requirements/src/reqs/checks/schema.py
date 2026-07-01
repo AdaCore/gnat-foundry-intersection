@@ -112,14 +112,14 @@ class RequirementChecker:
         }
 
     def check(self, paths) -> list[Diagnostic]:
-        diags: list[Diagnostic] = []
+        files, diags = iter_yaml_files(paths)
 
         # First pass: parse, schema-validate, structural per-file checks.
         # Records (path, level, data) feed the cross-file pass.
         records: list[tuple[Path, str, dict]] = []
         seen_stems: dict[str, Path] = {}
 
-        for path in iter_yaml_files(paths):
+        for path in files:
             level = _level_of(path)
             if level is None:
                 diags.append(
