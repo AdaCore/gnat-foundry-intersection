@@ -1,7 +1,3 @@
-source:
-  - CONOPS §6.1
-  - CONOPS §6.2
-
 context: |-
   The FAULT-mode behavior: the safe-state Moore outputs the controller drives while
   it is in the FAULT mode (entered per `1_modes` statement 3). This is the one
@@ -17,21 +13,27 @@ context: |-
     - the request indicator output signals (the lamps) — value NO_REQUEST
       (extinguished).
 
-  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
-  below, since the format's `source:` is container-level only.
-
 description:
-  1: |-                                  # CONOPS §6.1, §6.2
-    While the controller is in FAULT, the controller shall drive every vehicle face
-    to FLASHING_RED.
+  1:
+    text: |-
+      While the controller is in FAULT, the controller shall drive every vehicle face
+      to FLASHING_RED.
+    source:
+      - CONOPS §6.1
+      - CONOPS §6.2
 
-  2: |-                                  # CONOPS §6.2
-    While the controller is in FAULT, the controller shall drive every crosswalk's
-    pedestrian head output signal to NONE.
+  2:
+    text: |-
+      While the controller is in FAULT, the controller shall drive every crosswalk's
+      pedestrian head output signal to NONE.
+    source:
+      - CONOPS §6.2
 
-  3: |-                                  # Derived
-    While the controller is in FAULT, the controller shall drive every crosswalk's
-    request indicator output signal to NO_REQUEST.
+  3:
+    text: |-
+      While the controller is in FAULT, the controller shall drive every crosswalk's
+      request indicator output signal to NO_REQUEST.
+    derived: true
 
 rationale: |-
   The fault state's outputs realize the MUTCD flashing-operation safe state: the

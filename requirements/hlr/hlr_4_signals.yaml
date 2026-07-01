@@ -1,13 +1,3 @@
-source:
-  - CONOPS §2.2
-  - CONOPS §2.6
-  - CONOPS §2.7
-  - CONOPS §3.2
-  - CONOPS §4.1
-  - CONOPS §4.2
-  - CONOPS §6.1
-  - CONOPS §6.2
-
 context: |-
   The controller's input and output signal alphabets: every signal the controller
   reads from the world or drives to the world, named once with its fixed value
@@ -32,32 +22,52 @@ context: |-
   driven is fixed by `2_fault`, not here. NONE (dark) is a pedestrian-head value
   driven only in FAULT, likewise per `2_fault`.
 
-  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
-  below, since the format's `source:` is container-level only.
-
 description:
-  # ---- output signals (driven by the controller) ----
-  1: |-                                  # CONOPS §2.2, §2.7, §6.2
-    The controller shall drive each of the eight vehicle face output signals
-    (N_thru, S_thru, E_thru, W_thru, N_left, S_left, E_left, W_left) only to RED,
-    YELLOW, GREEN, or FLASHING_RED.
-  2: |-                                  # CONOPS §3.2, §6.2
-    The controller shall drive each crosswalk's pedestrian head output signal only
-    to NONE, WALK, FLASH_DONT_WALK, or DONT_WALK, where NONE is dark.
-  3: |-                                  # CONOPS §4.2
-    The controller shall drive each crosswalk's request indicator output signal
-    only to NO_REQUEST or REQUEST_PENDING.
+  1:
+    text: |-
+      The controller shall drive each of the eight vehicle face output signals
+      (N_thru, S_thru, E_thru, W_thru, N_left, S_left, E_left, W_left) only to RED,
+      YELLOW, GREEN, or FLASHING_RED.
+    source:
+      - CONOPS §2.2
+      - CONOPS §2.7
+      - CONOPS §6.2
 
-  # ---- input signals (read by the controller) ----
-  4: |-                                  # CONOPS §6.1
-    The controller shall read the fault-detection input signal as one of
-    NOT_ASSERTED or ASSERTED.
-  5: |-                                  # CONOPS §4.1
-    The controller shall read each crosswalk's pedestrian demand button input
-    signal as one of RELEASED or PRESSED.
-  6: |-                                  # CONOPS §2.6
-    The controller shall read each approach's left-turn detector input signal as
-    one of NO_VEHICLE or VEHICLE_PRESENT.
+  2:
+    text: |-
+      The controller shall drive each crosswalk's pedestrian head output signal only
+      to NONE, WALK, FLASH_DONT_WALK, or DONT_WALK, where NONE is dark.
+    source:
+      - CONOPS §3.2
+      - CONOPS §6.2
+
+  3:
+    text: |-
+      The controller shall drive each crosswalk's request indicator output signal
+      only to NO_REQUEST or REQUEST_PENDING.
+    source:
+      - CONOPS §4.2
+
+  4:
+    text: |-
+      The controller shall read the fault-detection input signal as one of
+      NOT_ASSERTED or ASSERTED.
+    source:
+      - CONOPS §6.1
+
+  5:
+    text: |-
+      The controller shall read each crosswalk's pedestrian demand button input
+      signal as one of RELEASED or PRESSED.
+    source:
+      - CONOPS §4.1
+
+  6:
+    text: |-
+      The controller shall read each approach's left-turn detector input signal as
+      one of NO_VEHICLE or VEHICLE_PRESENT.
+    source:
+      - CONOPS §2.6
 
 rationale: |-
   Naming every signal and its value set once gives the state machines a single
