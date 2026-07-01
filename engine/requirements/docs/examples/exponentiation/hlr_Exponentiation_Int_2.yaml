@@ -1,13 +1,15 @@
-derived: True
-
 description:
-  1: |-
-    If the result of the exponentiation overflows and checks are enabled, then the
-    exponentiation function shall raise a `Constraint_Error`.
+  1:
+    text: |-
+      If the result of the exponentiation overflows and checks are enabled, then the
+      exponentiation function shall raise a `Constraint_Error`.
+    derived: true
 
-  2: |-
-    If the result of the exponentiation overflows and checks are disabled, then the
-    exponentiation function shall silently wrap around.
+  2:
+    text: |-
+      If the result of the exponentiation overflows and checks are disabled, then the
+      exponentiation function shall silently wrap around.
+    derived: true
 
 rationale: |-
   If there is a `pragma Suppress (Overflow_Check)` surrounding the use of

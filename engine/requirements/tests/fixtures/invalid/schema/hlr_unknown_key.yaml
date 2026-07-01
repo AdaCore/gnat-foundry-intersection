@@ -1,10 +1,10 @@
 # E-SCHEMA: unknown top-level key (additionalProperties:false). `test_cases`
 # is deliberately rejected rather than allowed.
-source:
-  - SPEC 1(1)
-
 test_cases:
   - tc_1
 
 description:
-  1: The widget shall do the thing.
+  1:
+    text: The widget shall do the thing.
+    source:
+      - SPEC 1(1)

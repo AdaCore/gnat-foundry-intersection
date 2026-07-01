@@ -1,0 +1,18 @@
+# Traceability chain, top (most abstract) to bottom. `reqs trace` runs the same
+# bidirectional checks over each adjacent pair: every lower node must trace up to
+# a real upper node (or be `derived`), and every upper node must be covered by a
+# lower node (or waived). Paths are relative to this file.
+#
+# When LLRs exist, append a layer below HLR, e.g.:
+#   - {name: LLR, kind: requirement-yaml, path: llr, up_ref: parent_req,
+#      id_pattern: '(.+\.\d+)', waivers: llr_trace_waivers.yaml}
+layers:
+  - name: CONOPS
+    kind: markdown-leaves
+    path: conops.md
+    waivers: trace_waivers.yaml
+  - name: HLR
+    kind: requirement-yaml
+    path: hlr
+    up_ref: source
+    id_pattern: 'CONOPS §(\d+\.\d+)'
