@@ -1,8 +1,9 @@
 --  Top-level project for the traffic-light controller (host build).
 --
---  Builds the host executable using src/hal/host as the stub HAL. The
---  bare-metal arm-eabi cross-target build (QEMU xilinx-zynq-a9) lives in
---  its own Alire crate, traffic_light_qemu/ (see that crate's GPR).
+--  Builds the host executable using the HAL bodies in src/hal/host (with the
+--  shared specs in src/hal/common). The bare-metal arm-eabi cross-target build
+--  (QEMU xilinx-zynq-a9) lives in its own Alire crate, traffic_light_qemu/
+--  (see that crate's GPR).
 
 with "config/traffic_light_config.gpr";
 with "src/core.gpr";
@@ -12,10 +13,11 @@ with "src/types.gpr";
 
 project Traffic_Light is
 
-   --  Structured src/: the host build selects ONLY src/hal/host (the stub
-   --  HAL). src/hal/qemu_zynq7000 belongs to the arm-eabi cross build and
-   --  must NOT be compiled here -- hence an explicit dir list rather than
-   --  "src/**". config/ holds the Alire-generated config package.
+   --  Structured src/: the HAL closure (hal.gpr) selects the shared specs in
+   --  src/hal/common plus ONLY the host bodies in src/hal/host;
+   --  src/hal/qemu_zynq7000 belongs to the arm-eabi cross build and must NOT
+   --  be compiled here -- hence an explicit dir list rather than "src/**".
+   --  config/ holds the Alire-generated config package.
    for Source_Dirs use ("src/app", "config/");
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
