@@ -14,8 +14,6 @@
       "Bash(gprbuild -P:*)",
       "Bash(gnatprove -P:*)",
       "Bash(gnatcheck -P:*)",
-      "Bash(python3 tools/trace-check.py:*)",
-      "Bash(python3 tools/render-srs.py:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(grep:*)",

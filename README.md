@@ -42,7 +42,6 @@ make build-target
 | `src/hal/host/` | Stub HAL for desktop simulation and unit tests |
 | `src/app/` | Top-level application |
 | `tests/` | Nested Alire test crate (AUnit harness via gnattest, host-runnable) |
-| `tools/` | Traceability check, doc rendering, helpers |
 
 ## Contributing
 
