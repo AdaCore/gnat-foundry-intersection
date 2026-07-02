@@ -1,35 +1,41 @@
-parent_req:
-  - hlr_Floating_Point_Floor_01.1
-  - hlr_Floating_Point_Floor_01.2
-  - hlr_Floating_Point_Floor_01.3
-  - hlr_Floating_Point_Floor_02.1
-
 visibility: compiler
 
 context: |-
   Given `T`, the type Float, or Long_Float
 
 description:
-  1: |-
-    The RTL shall implement the Floor function following the specification:
+  1:
+    text: |-
+      The RTL shall implement the Floor function following the specification:
 
-    ```ada
-    function Floor (X : T) return T;
+      ```ada
+      function Floor (X : T) return T;
 
-    --  X : A parameter of type T
-    --  Floor'Result : Result of the Floor operation
-    ```
+      --  X : A parameter of type T
+      --  Floor'Result : Result of the Floor operation
+      ```
+    parent_req:
+      - hlr_Floating_Point_Floor_01.1
 
-  2: |-
-    The function Floor shall return the largest integral value less than, or
-    equal to `X`.
+  2:
+    text: |-
+      The function Floor shall return the largest integral value less than, or
+      equal to `X`.
+    parent_req:
+      - hlr_Floating_Point_Floor_01.2
 
-  3: |-
-    When `X` is zero, the function shall return zero with the sign of `X`.
+  3:
+    text: |-
+      When `X` is zero, the function shall return zero with the sign of `X`.
+    parent_req:
+      - hlr_Floating_Point_Floor_01.3
 
-  4: |-
-    When `X` is `NaN`, `+Infinity`, or `-Infinity`, the function Floor shall
-    return `X`.
+  4:
+    text: |-
+      When `X` is `NaN`, `+Infinity`, or `-Infinity`, the function Floor shall
+      return `X`.
+    parent_req:
+      - hlr_Floating_Point_Floor_02.1
 
 algorithm_aspects: |-
   Calling `Truncation(X)` will remove the decimal part of `X`.

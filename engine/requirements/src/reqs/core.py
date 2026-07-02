@@ -42,6 +42,21 @@ def prose(statement: str) -> str:
     return re.sub(r"\s+", " ", " ".join(lines)).strip()
 
 
+def statement_text(statement) -> str | None:
+    """
+    Return a statement's prose text, or None if its shape is malformed.
+
+    Statements at both levels are objects carrying their own trace (``{text,
+    source|parent_req|derived, ...}``). The EARS and RS.3 lints read prose
+    through here; a malformed statement returns None and is left for the schema
+    check to report.
+    """
+    if isinstance(statement, dict):
+        text = statement.get("text")
+        return text if isinstance(text, str) else None
+    return None
+
+
 @cache
 def project_root() -> Path:
     """Return the `engine/requirements` directory (nearest ancestor with pyproject.toml)."""
@@ -99,10 +114,11 @@ def compose_lines(text: str) -> tuple[dict[tuple[str, ...], int], list[str]]:
     """
     Walk the compose node tree once, returning ``(lines, dups)``.
 
-    ``lines`` maps top-level keys and `description` sub-keys to 1-based source
-    lines. ``dups`` lists `description` sub-keys that appear more than once:
-    ``safe_load`` silently merges duplicate mapping keys (last value wins), so a
-    repeated statement number is invisible after parsing -- the node tree
+    ``lines`` maps top-level keys, `description` sub-keys, and each statement's
+    own fields to 1-based source lines -- e.g. ``("description", "4", "text")``.
+    ``dups`` lists `description` sub-keys that appear more than once:
+    ``safe_load`` silently merges duplicate mapping keys (last value wins), so
+    a repeated statement number is invisible after parsing -- the node tree
     preserves every occurrence, so we surface them from the same pass.
     """
     lines: dict[tuple[str, ...], int] = {}
