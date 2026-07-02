@@ -1,0 +1,21 @@
+with "../config/traffic_light_config.gpr";
+--  NOTE: this project is the leaf of the dependency graph -- it must not
+--  import core.gpr, hal.gpr, or app.gpr. See design/architecture.md.
+
+with "shared.gpr";
+
+project Types is
+
+   --  Foundational, dependency-free type definitions reside in `src/types`.
+   for Source_Dirs use ("types");
+
+   --  Share the common object dir with the rest of the closure. No Exec_Dir
+   --  or Linker package: this project has no mains and no link step (the
+   --  bus packages are generic and emit no code until instantiated).
+   for Object_Dir use Shared'Object_Dir;
+   for Create_Missing_Dirs use "True";
+
+   package Compiler renames Shared.Compiler;
+   package Binder renames Shared.Binder;
+
+end Types;

@@ -8,6 +8,7 @@ with "config/traffic_light_config.gpr";
 with "src/core.gpr";
 with "src/hal.gpr";
 with "src/shared.gpr";
+with "src/types.gpr";
 
 project Traffic_Light is
 
