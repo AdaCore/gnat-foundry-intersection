@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from reqs.checks.ears import lint_paths
-from reqs.core import project_root
+from reqs.core import Diagnostic, project_root
 
 EXAMPLES = project_root() / "docs" / "examples"
 FIX = Path(__file__).parent / "fixtures" / "invalid" / "ears"
@@ -41,3 +41,10 @@ def test_negative_fixture_fires(fname, code):
 def test_optout_suppresses():
     """The ears:skip token suppresses all findings for a statement."""
     assert not lint_paths([FIX / "hlr_ears_skip.yaml"])
+
+
+def test_missing_path_reports_io(tmp_path):
+    """A nonexistent path yields a located E-IO error, not a traceback."""
+    missing = tmp_path / "does_not_exist"
+    diags = lint_paths([missing])
+    assert diags == [Diagnostic("error", "E-IO", "no such file or directory", missing)]

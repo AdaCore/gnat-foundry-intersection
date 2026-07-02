@@ -78,8 +78,8 @@ class EarsChecker:
     """Classify every `description` statement against the EARS grammar."""
 
     def check(self, paths) -> list[Diagnostic]:
-        diags: list[Diagnostic] = []
-        for path in iter_yaml_files(paths):
+        files, diags = iter_yaml_files(paths)
+        for path in files:
             data, lines, _dups, error = load_yaml(path)
             if error is not None:
                 diags.append(error)

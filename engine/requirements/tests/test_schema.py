@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from reqs.checks.schema import _count_shall, validate_paths
-from reqs.core import project_root
+from reqs.core import Diagnostic, project_root
 
 EXAMPLES = project_root() / "docs" / "examples"
 FIX = Path(__file__).parent / "fixtures" / "invalid" / "schema"
@@ -59,13 +59,11 @@ def test_negative_fixture_fires(files, code, level):
     assert (code, level) in {(d.code, d.level) for d in diags}
 
 
-def test_missing_file_reports_clean_diagnostic(tmp_path):
-    """A nonexistent explicit path yields a located E-IO error, not a traceback."""
-    missing = tmp_path / "hlr_does_not_exist.yaml"
+def test_missing_path_reports_clean_diagnostic(tmp_path):
+    """A nonexistent path yields a located E-IO error, not a traceback."""
+    missing = tmp_path / "does_not_exist"
     diags = validate_paths([missing])
-    io_errors = [d for d in diags if d.code == "E-IO"]
-    assert io_errors, "missing file should produce an E-IO diagnostic"
-    assert io_errors[0].file == missing
+    assert diags == [Diagnostic("error", "E-IO", "no such file or directory", missing)]
 
 
 # RS.3 counts "shall" over requirement prose only -- the same reduction the EARS
