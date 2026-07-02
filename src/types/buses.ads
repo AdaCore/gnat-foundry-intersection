@@ -15,22 +15,22 @@ package Buses
   with SPARK_Mode => On
 is
 
-   --  Source data bus -- "reset on read". Holds one Boolean latch: the
-   --  producer (a HAL source) sets it with Activate; the consumer (the core
-   --  loop) reads-and-clears it with Read_And_Reset, so multiple activations
-   --  between reads coalesce into a single request. Generic so each source
-   --  gets its own independent latch instance without a shared global.
+   --  Source data bus -- "reset on read". A single bus carries every input
+   --  source at once: the producer (the HAL) samples them all into a
+   --  States.Sensors_State, and the consumer (the core loop) reads a
+   --  coalescing Boolean latch that is cleared on read, so multiple
+   --  activations between reads collapse into a single request. The latch is
+   --  guarded by an Abstract_State so it can become a protected object in a
+   --  future asynchronous revision without introducing a source-level global.
    generic
+      --  Producer side (HAL): sample all input sources in one shot.
+      with procedure Activate (Value : out States.Sensors_State);
    package Source_Bus with Abstract_State => Latch, Initializes => Latch is
-      --  Producer side (HAL): raise the latch. The core loop never sees this.
-      procedure Activate
-      with Global => (Output => Latch), Depends => (Latch => null);
-
-      --  Consumer side (core): return the current latch and clear it.
-      procedure Read_And_Reset (Value : out Boolean)
-      with
-        Global  => (In_Out => Latch),
-        Depends => (Value => Latch, Latch => null);
+      --  Consumer side (core): sense whether a button has been pressed.
+      --  Transitional -- this calls Activate for now; a later revision will
+      --  have the producer drive the latch and leave Read a pure read-reset.
+      procedure Read (Value : out Boolean)
+      with Global => (In_Out => Latch);
    end Source_Bus;
 
    --  Display data bus -- "fired on write". Holds the traffic-light state and

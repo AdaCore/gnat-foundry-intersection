@@ -129,6 +129,24 @@ is
    end record;
 
    -----------------------------------------------------------------------
+   --  Sensors state -- the aggregate of every input signal
+   -----------------------------------------------------------------------
+
+   --  All the input-signal values sampled from the source bus in one read:
+   --  a pedestrian demand button per crosswalk, a left-turn detector per
+   --  approach, and the intersection-wide fault-detection line
+   --  (hlr_4_signals.4-.6). A single record so the whole input surface
+   --  crosses the source bus in one shot (design/architecture.md §Buses).
+   type Pedestrian_Buttons is array (Crosswalk) of Pedestrian_Button;
+   type Left_Turn_Detectors is array (Approach) of Left_Turn_Detector;
+
+   type Sensors_State is record
+      Buttons    : Pedestrian_Buttons;
+      Left_Turns : Left_Turn_Detectors;
+      Fault      : Fault_Detection;
+   end record;
+
+   -----------------------------------------------------------------------
    --  Timing constants (hlr_3_timing)
    -----------------------------------------------------------------------
 

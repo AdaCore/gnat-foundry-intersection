@@ -5,20 +5,30 @@ is
    package body Source_Bus
      with Refined_State => (Latch => Latched)
    is
-      --  The latch. Instance state, not a shared global: each instantiation
-      --  gets its own, mirroring a per-source hardware latch.
+      --  The coalescing latch. Instance state, not a shared global: each
+      --  instantiation gets its own, mirroring a per-bus hardware latch.
       Latched : Boolean := False;
 
-      procedure Activate is
+      procedure Read (Value : out Boolean) is
+         use type States.Pedestrian_Button;
+         Sensors : States.Sensors_State;
       begin
-         Latched := True;
-      end Activate;
+         --  Sample every input source through the producer. Transitional:
+         --  "this calls Activate for now" -- a future asynchronous revision
+         --  will have the producer drive the latch (design/architecture.md
+         --  §Buses), leaving Read a pure read-and-reset.
+         Activate (Sensors);
 
-      procedure Read_And_Reset (Value : out Boolean) is
-      begin
+         --  Coalesce a fresh button press into whatever was already latched,
+         --  so repeated presses between reads collapse into one request ...
+         Latched :=
+           Latched
+           or else (for some B of Sensors.Buttons => B = States.Pressed);
+
+         --  ... then reset on read: hand the request to the core and clear it.
          Value := Latched;
          Latched := False;
-      end Read_And_Reset;
+      end Read;
    end Source_Bus;
 
    package body Display_Bus is
