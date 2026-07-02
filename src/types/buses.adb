@@ -3,31 +3,46 @@ package body Buses
 is
 
    package body Source_Bus
-     with Refined_State => (Latch => Latched)
+     with Refined_State => (Latch => (Latched_Buttons, Latched_Left_Turns))
    is
-      --  The coalescing latch. Instance state, not a shared global: each
-      --  instantiation gets its own, mirroring a per-bus hardware latch.
-      Latched : Boolean := False;
+      --  The coalescing latches. Instance state, not shared globals: each
+      --  instantiation gets its own, mirroring per-bus hardware latches.
+      Latched_Buttons    : States.Pedestrian_Buttons :=
+        (others => States.Released);
+      Latched_Left_Turns : States.Left_Turn_Detectors :=
+        (others => States.No_Vehicle);
 
-      procedure Read (Value : out Boolean) is
+      procedure Read (Value : out States.Sensors_State) is
          use type States.Pedestrian_Button;
-         Sensors : States.Sensors_State;
+         use type States.Left_Turn_Detector;
       begin
          --  Sample every input source through the producer. Transitional:
          --  "this calls Activate for now" -- a future asynchronous revision
          --  will have the producer drive the latch (design/architecture.md
          --  §Buses), leaving Read a pure read-and-reset.
-         Activate (Sensors);
+         Activate (Value);
 
-         --  Coalesce a fresh button press into whatever was already latched,
-         --  so repeated presses between reads collapse into one request ...
-         Latched :=
-           Latched
-           or else (for some B of Sensors.Buttons => B = States.Pressed);
+         --  Coalesce fresh momentary events into whatever was already
+         --  latched, so repeated presses / detections between reads collapse
+         --  into a single held request ...
+         for C in States.Crosswalk loop
+            if Value.Buttons (C) = States.Pressed then
+               Latched_Buttons (C) := States.Pressed;
+            end if;
+         end loop;
+         for A in States.Approach loop
+            if Value.Left_Turns (A) = States.Vehicle_Present then
+               Latched_Left_Turns (A) := States.Vehicle_Present;
+            end if;
+         end loop;
 
-         --  ... then reset on read: hand the request to the core and clear it.
-         Value := Latched;
-         Latched := False;
+         --  ... then reset on read: hand the coalesced events back to the core
+         --  in the returned snapshot and clear the latches. The fault line is
+         --  a level signal, so it passes through as freshly sampled.
+         Value.Buttons := Latched_Buttons;
+         Value.Left_Turns := Latched_Left_Turns;
+         Latched_Buttons := (others => States.Released);
+         Latched_Left_Turns := (others => States.No_Vehicle);
       end Read;
    end Source_Bus;
 

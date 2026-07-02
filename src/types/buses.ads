@@ -17,19 +17,22 @@ is
 
    --  Source data bus -- "reset on read". A single bus carries every input
    --  source at once: the producer (the HAL) samples them all into a
-   --  States.Sensors_State, and the consumer (the core loop) reads a
-   --  coalescing Boolean latch that is cleared on read, so multiple
-   --  activations between reads collapse into a single request. The latch is
-   --  guarded by an Abstract_State so it can become a protected object in a
-   --  future asynchronous revision without introducing a source-level global.
+   --  States.Sensors_State, and the consumer (the core loop) reads that whole
+   --  snapshot back through a coalescing latch that is cleared on read, so
+   --  momentary events (button presses, left-turn detections) between reads
+   --  collapse into a single held request. The latch is guarded by an
+   --  Abstract_State so it can become a protected object in a future
+   --  asynchronous revision without introducing a source-level global.
    generic
       --  Producer side (HAL): sample all input sources in one shot.
       with procedure Activate (Value : out States.Sensors_State);
    package Source_Bus with Abstract_State => Latch, Initializes => Latch is
-      --  Consumer side (core): sense whether a button has been pressed.
-      --  Transitional -- this calls Activate for now; a later revision will
-      --  have the producer drive the latch and leave Read a pure read-reset.
-      procedure Read (Value : out Boolean)
+      --  Consumer side (core): read the whole sensor snapshot, with momentary
+      --  events (button presses, left-turn detections) coalesced since the
+      --  last read. Transitional -- this calls Activate for now; a later
+      --  revision will have the producer drive the latch and leave Read a
+      --  pure read-reset.
+      procedure Read (Value : out States.Sensors_State)
       with Global => (In_Out => Latch);
    end Source_Bus;
 
