@@ -11,9 +11,9 @@ Layered checks:
   Schema (JSON Schema 2020-12, ``schema/requirement.schema.json``)
     - field types, required fields, unknown-key rejection (additionalProperties:false,
       so ``test_cases`` and other unknown keys are errors)
-    - per-statement source XOR derived on HLR statements (oneOf)
-    - visibility is a non-empty string (project-defined vocabulary, not a fixed enum)
-    - non-empty description statements (HLR statement ``text`` / LLR statement string)
+    - up-ref (`source` on HLR statements, `parent_req` on LLR statements) XOR
+      `derived` (oneOf) on each statement
+    - non-empty string values
 
   Structural (this module)
     - E-DESCKEY     : description keys are integers, contiguous from 1
@@ -116,8 +116,8 @@ class RequirementChecker:
         files, diags = iter_yaml_files(paths)
 
         # First pass: parse, schema-validate, structural per-file checks.
-        # Records (path, level, data) feed the cross-file pass.
-        records: list[tuple[Path, str, dict]] = []
+        # Records (path, level, data, lines) feed the cross-file pass.
+        records: list[tuple[Path, str, dict, dict]] = []
         seen_stems: dict[str, Path] = {}
 
         for path in files:
@@ -155,7 +155,7 @@ class RequirementChecker:
             diags.extend(self._description_keys(path, data, lines))
             diags.extend(self._duplicate_keys(path, lines, dups))
             diags.extend(self._rs3_lint(path, data, lines))
-            records.append((path, level, data))
+            records.append((path, level, data, lines))
 
         # Second pass: referential integrity needs the whole set.
         diags.extend(self._referential_integrity(records))
@@ -254,7 +254,7 @@ class RequirementChecker:
         # container's level, plus which container stems exist at all.
         statements: dict[str, str] = {}  # "<stem>.<number>" -> container level
         stem_levels: dict[str, str] = {}  # "<stem>" -> level
-        for path, level, data in records:
+        for path, level, data, _lines in records:
             stem = _stem(path)
             stem_levels[stem] = level
             desc = data.get("description")
@@ -263,56 +263,75 @@ class RequirementChecker:
                     statements[_req_id(stem, key)] = level
 
         out: list[Diagnostic] = []
-        for path, level, data in records:
+        for path, level, data, lines in records:
             if level != "llr":
                 continue
-            parents = data.get("parent_req")
-            if not isinstance(parents, list):
-                continue  # schema already flagged a malformed/missing parent_req
-            for parent in parents:
-                match = _REF_RE.match(parent) if isinstance(parent, str) else None
-                if match is None:
-                    out.append(
-                        Diagnostic(
-                            "error",
-                            "E-PARENT-FORMAT",
-                            f"parent_req {parent!r} must be a '<stem>.<number>' statement ID, "
-                            "not a bare container stem",
-                            path,
-                            path=("parent_req",),
-                        )
-                    )
-                    continue
-                target_level = statements.get(parent)
-                if target_level is None:
-                    pstem = match["stem"]
-                    detail = (
-                        f"no statement {parent!r} in {pstem!r}"
-                        if pstem in stem_levels
-                        else f"no requirement container {pstem!r} in the set"
-                    )
-                    out.append(
-                        Diagnostic(
-                            "error" if self.complete else "warning",
-                            "E-PARENT-MISSING" if self.complete else "W-PARENT-MISSING",
-                            f"parent_req {parent!r} resolves to nothing ({detail})"
-                            + ("" if self.complete else " (use --complete to require resolution)"),
-                            path,
-                            path=("parent_req",),
-                        )
-                    )
-                elif target_level != "hlr":
-                    out.append(
-                        Diagnostic(
-                            "error",
-                            "E-PARENT-TYPE",
-                            f"parent_req {parent!r} must reference an HLR statement; "
-                            f"its container {match['stem']!r} is an {target_level.upper()}",
-                            path,
-                            path=("parent_req",),
-                        )
-                    )
+            desc = data.get("description")
+            if not isinstance(desc, dict):
+                continue
+            for key, statement in desc.items():
+                if not isinstance(statement, dict):
+                    continue  # schema already flagged a malformed statement
+                parents = statement.get("parent_req")
+                if not isinstance(parents, list):
+                    continue  # absent (derived) or malformed (the schema's job)
+                loc = ("description", _number(key), "parent_req")
+                line = lines.get(loc) or lines.get(loc[:2])
+                for parent in parents:
+                    diag = self._parent_diagnostic(parent, statements, stem_levels, path, line, loc)
+                    if diag is not None:
+                        out.append(diag)
         return out
+
+    def _parent_diagnostic(  # noqa: PLR0913
+        self,
+        parent,
+        statements: dict[str, str],
+        stem_levels: dict[str, str],
+        file: Path,
+        line: int | None,
+        loc: tuple[str, ...],
+    ) -> Diagnostic | None:
+        """Check one parent_req entry; return its Diagnostic, or None if it resolves to an HLR."""
+        match = _REF_RE.match(parent) if isinstance(parent, str) else None
+        if match is None:
+            return Diagnostic(
+                "error",
+                "E-PARENT-FORMAT",
+                f"parent_req {parent!r} must be a '<stem>.<number>' statement ID, "
+                "not a bare container stem",
+                file,
+                line=line,
+                path=loc,
+            )
+        target_level = statements.get(parent)
+        if target_level is None:
+            pstem = match["stem"]
+            detail = (
+                f"no statement {parent!r} in {pstem!r}"
+                if pstem in stem_levels
+                else f"no requirement container {pstem!r} in the set"
+            )
+            return Diagnostic(
+                "error" if self.complete else "warning",
+                "E-PARENT-MISSING" if self.complete else "W-PARENT-MISSING",
+                f"parent_req {parent!r} resolves to nothing ({detail})"
+                + ("" if self.complete else " (use --complete to require resolution)"),
+                file,
+                line=line,
+                path=loc,
+            )
+        if target_level != "hlr":
+            return Diagnostic(
+                "error",
+                "E-PARENT-TYPE",
+                f"parent_req {parent!r} must reference an HLR statement; "
+                f"its container {match['stem']!r} is an {target_level.upper()}",
+                file,
+                line=line,
+                path=loc,
+            )
+        return None
 
 
 def validate_paths(paths, *, complete: bool = False) -> list[Diagnostic]:
