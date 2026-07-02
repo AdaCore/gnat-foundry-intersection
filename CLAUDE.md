@@ -28,6 +28,21 @@ make all-coverage-pro  # Generate a coverage report
 - Format with `make format`
 - Validate your change with `make check && make build-native`
 
+## Keeping `core` proven
+
+`types.gpr` and `core.gpr` are SPARK Silver proof targets: `make prove` must
+stay clean at `--level=2 --checks-as-errors=on`. Keep `core` proven as much as
+possible. **Never** discharge a proof obligation with a manual justification
+(`pragma Annotate ... Assume`, `pragma Assume`, suppressed checks, or the
+like). If a change means the core can no longer be proven without such an
+escape hatch, stop and raise a flag rather than papering over it — that broken
+invariant is a signal worth surfacing.
+
+Because `gnatprove` analyses generic *instances* and not uninstantiated
+generics, the `core` project carries a small in-SPARK instantiation harness
+(`state_machine_loop_proof`) so the generic core loop is actually exercised by
+`make prove`. Keep such harnesses in step when the generic surface changes.
+
 ## When editing tests
 
 - Format with `make format`
