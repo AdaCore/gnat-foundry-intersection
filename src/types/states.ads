@@ -160,25 +160,40 @@ is
    T_FDW    : constant Duration_Ms := 7_000;     --  pedestrian change, 7 s
    T_Buffer : constant Duration_Ms := 2_000;  --  pedestrian buffer, 2 s
 
-   --  Deferred durations (hlr_3_timing.4-.9, .12): named here but valued at
-   --  deployment, from the MUTCD kinematic basis (yellow/red-clear/barrier)
-   --  or per-intersection policy (axis/lead/lag/both-min). Left as DEFERRED
-   --  placeholders; the intended declarations are shown commented-out.
+   --  Formerly-deferred durations (hlr_3_timing.4-.9, .12): named here but
+   --  valued at deployment, from the MUTCD kinematic basis
+   --  (yellow/red-clear/barrier) or per-intersection policy
+   --  (axis/lead/lag/both-min).
    --
+   --  These are now given the satisfying provisional values `TODO.md` proposes
+   --  (T_YELLOW=4, T_REDCLEAR=2, T_BARRIER=2, T_LEAD=T_LAG=6, T_BOTH_MIN=10,
+   --  T_AXIS=40 s) so the vehicle sequencer's per-state waits and the T_BOTH
+   --  residual are concrete and provable. The *final* valuation (kinematic
+   --  basis / per-intersection policy) remains the deferred LLR item in
+   --  `requirements/TODO.md`; only the placeholder values land here.
+   --
+   --  The set is chosen to satisfy the timing constraints the state machine
+   --  relies on: hlr_3_timing.9 (T_LEAD, T_LAG <= T_AXIS / 2 = 20 s) and
+   --  hlr_3_timing.12 (the both-through residual T_BOTH never drops below
+   --  T_BOTH_MIN -- with these values its minimum, both lefts served, is
+   --  exactly 40 - 2 - (6+4+2) - (4+2+6+4) = 10 s = T_BOTH_MIN).
+
    --  Kinematic basis (hlr_3_timing.4-.6):
-   --  T_Yellow   : constant Duration_Ms := 0;  -- DEFERRED
-   --  T_Redclear : constant Duration_Ms := 0;  -- DEFERRED
-   --  T_Barrier  : constant Duration_Ms := 0;  -- DEFERRED
-   --
+   T_Yellow   : constant Duration_Ms := 4_000;  --  yellow change, 4 s
+   T_Redclear : constant Duration_Ms := 2_000;  --  red clearance, 2 s
+   T_Barrier  : constant Duration_Ms := 2_000;  --  barrier clearance, 2 s
+
    --  Per-intersection policy (hlr_3_timing.7, .9, .12):
-   --  T_Axis     : constant Duration_Ms := 0;  -- DEFERRED
-   --  T_Lead     : constant Duration_Ms := 0;  -- DEFERRED
-   --  T_Lag      : constant Duration_Ms := 0;  -- DEFERRED
-   --  T_Both_Min : constant Duration_Ms := 0;  -- DEFERRED
-   --
+   T_Axis     : constant Duration_Ms := 40_000;  --  axis service slot, 40 s
+   T_Lead     : constant Duration_Ms :=
+     6_000;   --  leading protected left, 6 s
+   T_Lag      : constant Duration_Ms :=
+     6_000;   --  lagging protected left, 6 s
+   T_Both_Min : constant Duration_Ms := 10_000;  --  both-through floor, 10 s
+
    --  T_Both (hlr_3_timing.8), the both-through residual, is intentionally
    --  NOT declared: it is computed each cycle as the slot remainder after the
    --  lead/lag/yellow/red-clear/barrier intervals that actually run, so that
-   --  T_Axis is held independent of left-turn demand.
+   --  T_Axis is held independent of left-turn demand (see Controller).
 
 end States;
