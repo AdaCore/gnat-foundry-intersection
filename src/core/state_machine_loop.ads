@@ -20,7 +20,7 @@ generic
    with procedure Delay_For (Ms : States.Duration_Ms);
 
    --  Consumer side of the source bus: sample every input source into one
-   --  snapshot and clear the latch (Buses.Source_Bus.Read's signature).
+   --  snapshot (Buses.Source_Bus.Read's signature).
    with procedure Read_Sources (Sensors : out States.Sensors_State);
 
    --  Producer side of the display bus: push the outputs to the display

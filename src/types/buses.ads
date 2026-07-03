@@ -5,9 +5,9 @@
 --
 --  There is no asynchrony in this implementation: source buses are "reset on
 --  read", display buses are "fired on write". A future revision may make
---  these protected objects; the source-bus instance state is the sanctioned
---  stand-in for that latch, hence the Abstract_State rather than an ordinary
---  global.
+--  these protected objects, at which point the source bus will carry a
+--  coalescing latch as instance state; for now Read samples afresh and holds
+--  no state.
 
 with States;
 
@@ -18,22 +18,19 @@ is
    --  Source data bus -- "reset on read". A single bus carries every input
    --  source at once: the producer (the HAL) samples them all into a
    --  States.Sensors_State, and the consumer (the core loop) reads that whole
-   --  snapshot back through a coalescing latch that is cleared on read, so
-   --  momentary events (button presses, left-turn detections) between reads
-   --  collapse into a single held request. The latch is guarded by an
-   --  Abstract_State so it can become a protected object in a future
-   --  asynchronous revision without introducing a source-level global.
+   --  snapshot back. A future asynchronous revision will add a coalescing
+   --  latch here -- cleared on read so momentary events (button presses,
+   --  left-turn detections) between reads collapse into a single held request
+   --  -- carried as instance state. In this synchronous revision Read samples
+   --  afresh through the producer on every call, so the bus holds no state.
    generic
       --  Producer side (HAL): sample all input sources in one shot.
       with procedure Activate (Value : out States.Sensors_State);
-   package Source_Bus with Abstract_State => Latch, Initializes => Latch is
-      --  Consumer side (core): read the whole sensor snapshot, with momentary
-      --  events (button presses, left-turn detections) coalesced since the
-      --  last read. Transitional -- this calls Activate for now; a later
-      --  revision will have the producer drive the latch and leave Read a
-      --  pure read-reset.
-      procedure Read (Value : out States.Sensors_State)
-      with Global => (In_Out => Latch);
+   package Source_Bus is
+      --  Consumer side (core): read the whole sensor snapshot. Transitional --
+      --  this samples afresh through Activate for now; a later revision will
+      --  have the producer drive a latch and leave Read a pure read-reset.
+      procedure Read (Value : out States.Sensors_State);
    end Source_Bus;
 
    --  Display data bus -- "fired on write". Holds the traffic-light state and
