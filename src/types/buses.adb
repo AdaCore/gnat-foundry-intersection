@@ -2,6 +2,17 @@ package body Buses
   with SPARK_Mode => On
 is
 
+   --  Source_Bus's coalescing latch (Abstract_State => Latch) is staged for
+   --  the future asynchronous revision: in this synchronous "calls Activate on
+   --  read" implementation the latch is cleared on every read (see Read
+   --  below), so its persistence between reads is not yet exercised
+   --  (design/architecture.md §Buses). Some compiler versions therefore report
+   --  the latch as an "unused hidden state". Silence that one diagnostic -- it
+   --  reflects the deliberately-staged design, not a defect, and has no bearing
+   --  on proof (Source_Bus has no in-SPARK instance, so gnatprove never
+   --  analyses this body). Remove once the async revision drives the latch.
+   pragma Warnings (Off, "*unused hidden states*");
+
    package body Source_Bus
      with Refined_State => (Latch => (Latched_Buttons, Latched_Left_Turns))
    is
@@ -45,6 +56,7 @@ is
          Latched_Left_Turns := (others => States.No_Vehicle);
       end Read;
    end Source_Bus;
+   pragma Warnings (On, "*unused hidden states*");
 
    package body Display_Bus is
       procedure Write (S : States.Display_State) is
