@@ -26,33 +26,11 @@ package Conflicts
   with SPARK_Mode => On
 is
 
-   --  The eight vehicle movements -- the eight vehicle face output signals of
-   --  `hlr_4_signals.1`: the four through movements and the four protected-left
-   --  movements. This is the index the vehicle-conflict invariant
-   --  `hlr_0_safety.2` quantifies over.
-   type Movement is
-     (N_Thru, S_Thru, E_Thru, W_Thru, N_Left, S_Left, E_Left, W_Left);
+   use type States.Movement;
 
-   --  The face a Display_State drives for a given movement: the through
-   --  movements read the Through faces, the left movements the Left faces.
-   function Face_Of
-     (D : States.Display_State; M : Movement) return States.Vehicle_Face
-   is (case M is
-         when N_Thru => D.Through (States.North),
-         when S_Thru => D.Through (States.South),
-         when E_Thru => D.Through (States.East),
-         when W_Thru => D.Through (States.West),
-         when N_Left => D.Left (States.North),
-         when S_Left => D.Left (States.South),
-         when E_Left => D.Left (States.East),
-         when W_Left => D.Left (States.West));
-
-   --  A face is "go" -- releasing traffic -- exactly when it is GREEN or
-   --  YELLOW. `hlr_0_safety.2` forbids two conflicting movements being driven
-   --  to GREEN or YELLOW at once; RED and the FAULT-only FLASHING_RED are both
-   --  restrictive (stop), hence safe together.
-   function Is_Go (F : States.Vehicle_Face) return Boolean
-   is (F in States.Green | States.Yellow);
+   --  The vehicle movements (`States.Movement`), the faces they read
+   --  (`States.Face_Of`), and the "go" predicate (`States.Is_Go`) live in
+   --  `types/states.ads` alongside the approach vocabulary they build on.
 
    --  Two movements are *compatible* -- releasable together -- exactly when the
    --  serialized Moore sequencer ever drives them non-RED in the same output
@@ -62,16 +40,28 @@ is
    --  sound (conservative) realization of the deferred geometric conflict
    --  matrix: any pair not known compatible is held to conflict, so the
    --  hlr_0_safety.2 postcondition it feeds can only be stronger, never weaker.
-   function Compatible (A, B : Movement) return Boolean
+   function Compatible (A, B : States.Movement) return Boolean
    is (A = B
-       or else (A in N_Thru | N_Left and then B in N_Thru | N_Left)
-       or else (A in S_Thru | S_Left and then B in S_Thru | S_Left)
-       or else (A in E_Thru | E_Left and then B in E_Thru | E_Left)
-       or else (A in W_Thru | W_Left and then B in W_Thru | W_Left)
-       or else (A in N_Thru | S_Thru and then B in N_Thru | S_Thru)
-       or else (A in E_Thru | W_Thru and then B in E_Thru | W_Thru));
+       or else
+         (A in States.N_Thru | States.N_Left
+          and then B in States.N_Thru | States.N_Left)
+       or else
+         (A in States.S_Thru | States.S_Left
+          and then B in States.S_Thru | States.S_Left)
+       or else
+         (A in States.E_Thru | States.E_Left
+          and then B in States.E_Thru | States.E_Left)
+       or else
+         (A in States.W_Thru | States.W_Left
+          and then B in States.W_Thru | States.W_Left)
+       or else
+         (A in States.N_Thru | States.S_Thru
+          and then B in States.N_Thru | States.S_Thru)
+       or else
+         (A in States.E_Thru | States.W_Thru
+          and then B in States.E_Thru | States.W_Thru));
 
-   function Conflicts (A, B : Movement) return Boolean
+   function Conflicts (A, B : States.Movement) return Boolean
    is (not Compatible (A, B));
 
    --  hlr_0_safety.2 as a property of one Display_State: no two conflicting
@@ -79,12 +69,12 @@ is
    --  FLASHING_RED, none "go") and, in NORMAL_OPERATION, by construction of the
    --  Moore output rows (each row's non-RED faces are a compatible set).
    function Safe_Faces (D : States.Display_State) return Boolean
-   is (for all M1 in Movement =>
-         (for all M2 in Movement =>
+   is (for all M1 in States.Movement =>
+         (for all M2 in States.Movement =>
             (if Conflicts (M1, M2)
              then
-               not (Is_Go (Face_Of (D, M1))
-                    and then Is_Go (Face_Of (D, M2))))));
+               not (States.Is_Go (States.Face_Of (D, M1))
+                    and then States.Is_Go (States.Face_Of (D, M2))))));
 
    --  Binding for the left-demand clear (`hlr_5_vehicle_1_left_demand.4`): the
    --  through movement whose GREEN release ends each approach's protected-left

@@ -108,6 +108,12 @@ is
    subtype Serving_Pedestrian_State is
      Pedestrian_State range Walk_Interval .. Buffer_Interval_Latched;
 
+   --  Per-approach latched left-turn demand (`hlr_5_vehicle_1_left_demand`).
+   type Left_Demand_Array is array (Approach) of Left_Demand_State;
+
+   --  Per-crosswalk pedestrian control state (`hlr_6_pedestrian`).
+   type Pedestrian_Array is array (Crosswalk) of Pedestrian_State;
+
    -----------------------------------------------------------------------
    --  Display state -- the aggregate of every output signal
    -----------------------------------------------------------------------
@@ -127,6 +133,37 @@ is
       Heads    : Pedestrian_Heads;
       Requests : Request_Indicators;
    end record;
+
+   -----------------------------------------------------------------------
+   --  Vehicle movements -- the index the safety invariant quantifies over
+   -----------------------------------------------------------------------
+
+   --  The eight vehicle movements -- the eight vehicle face output signals of
+   --  `hlr_4_signals.1`: the four through movements and the four protected-left
+   --  movements. This is the index the vehicle-conflict invariant
+   --  `hlr_0_safety.2` quantifies over.
+   type Movement is
+     (N_Thru, S_Thru, E_Thru, W_Thru, N_Left, S_Left, E_Left, W_Left);
+
+   --  The face a Display_State drives for a given movement: the through
+   --  movements read the Through faces, the left movements the Left faces.
+   function Face_Of (D : Display_State; M : Movement) return Vehicle_Face
+   is (case M is
+         when N_Thru => D.Through (North),
+         when S_Thru => D.Through (South),
+         when E_Thru => D.Through (East),
+         when W_Thru => D.Through (West),
+         when N_Left => D.Left (North),
+         when S_Left => D.Left (South),
+         when E_Left => D.Left (East),
+         when W_Left => D.Left (West));
+
+   --  A face is "go" -- releasing traffic -- exactly when it is GREEN or
+   --  YELLOW. `hlr_0_safety.2` forbids two conflicting movements being driven
+   --  to GREEN or YELLOW at once; RED and the FAULT-only FLASHING_RED are both
+   --  restrictive (stop), hence safe together.
+   function Is_Go (F : Vehicle_Face) return Boolean
+   is (F in Green | Yellow);
 
    -----------------------------------------------------------------------
    --  Sensors state -- the aggregate of every input signal

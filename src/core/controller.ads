@@ -54,14 +54,6 @@ package Controller
   with SPARK_Mode => On
 is
 
-   --  Per-approach latched left-turn demand (`hlr_5_vehicle_1_left_demand`).
-   type Left_Demand_Array is
-     array (States.Approach) of States.Left_Demand_State;
-
-   --  Per-crosswalk pedestrian control state (`hlr_6_pedestrian`).
-   type Pedestrian_Array is
-     array (States.Crosswalk) of States.Pedestrian_State;
-
    --  Per-crosswalk remaining time in the current pedestrian sub-state; 0 and
    --  unused while the crosswalk is in NO_PEDESTRIAN_REQUEST or
    --  PENDING_PEDESTRIAN_REQUEST (those sub-states carry no timer).
@@ -76,8 +68,8 @@ is
       Veh_Timer : States.Duration_Ms;              --  time left in Vehicle
       Veh_Lag   : Boolean;                          --  lag-served decision,
       --    latched on both-entry
-      Left      : Left_Demand_Array;               --  hlr_5_vehicle_1
-      Ped       : Pedestrian_Array;                --  hlr_6_pedestrian
+      Left      : States.Left_Demand_Array;        --  hlr_5_vehicle_1
+      Ped       : States.Pedestrian_Array;          --  hlr_6_pedestrian
       Ped_Timer : Pedestrian_Timers;               --  time left in Ped (c)
    end record;
 
