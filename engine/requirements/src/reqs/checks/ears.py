@@ -26,6 +26,7 @@ with the token ``ears:skip``.
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 
 from reqs.core import (
     SHALL_RE,
@@ -35,6 +36,10 @@ from reqs.core import (
     prose,
     statement_text,
 )
+
+if TYPE_CHECKING:
+    import os
+    from collections.abc import Iterable
 
 EARS_OPTOUT = "ears:skip"
 
@@ -78,12 +83,12 @@ def diagnose(prose: str) -> tuple[str, str]:
 class EarsChecker:
     """Classify every `description` statement against the EARS grammar."""
 
-    def check(self, paths) -> list[Diagnostic]:
+    def check(self, paths: Iterable[str | os.PathLike[str]]) -> list[Diagnostic]:
         files, diags = iter_yaml_files(paths)
         for path in files:
-            data, lines, _dups, error = load_yaml(path)
-            if error is not None:
-                diags.append(error)
+            data, lines, _dups = load_yaml(path)
+            if isinstance(data, Diagnostic):
+                diags.append(data)
                 continue
             desc = data.get("description")
             if not isinstance(desc, dict):
@@ -110,6 +115,6 @@ class EarsChecker:
         return diags
 
 
-def lint_paths(paths) -> list[Diagnostic]:
+def lint_paths(paths: Iterable[str | os.PathLike[str]]) -> list[Diagnostic]:
     """Programmatic entry point (used by the tests)."""
     return EarsChecker().check(paths)

@@ -38,8 +38,7 @@ Layered checks:
 from __future__ import annotations
 
 import re
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import yaml
 from jsonschema import Draft202012Validator
@@ -53,6 +52,13 @@ from reqs.core import (
     schema_path,
     statement_text,
 )
+
+if TYPE_CHECKING:
+    import os
+    from collections.abc import Iterable, Sequence
+    from pathlib import Path
+
+    from reqs.core import YAMLLineMap
 
 HLR_PREFIX = "hlr_"
 LLR_PREFIX = "llr_"
@@ -72,22 +78,12 @@ def _level_of(path: Path) -> str | None:
     return None
 
 
-def _stem(path: Path) -> str:
-    """Return the requirement container's ID (the filename stem)."""
-    return path.stem
-
-
-def _number(key: Any) -> str:
-    """Return a statement's number (a description key) as its ID component."""
-    return str(key)
-
-
-def _req_id(stem: str, number: Any) -> str:
+def _req_id(stem: str, number: object) -> str:
     """Assemble a full statement ID '<stem>.<number>' (see docs/README.md)."""
-    return f"{stem}.{_number(number)}"
+    return f"{stem}.{number}"
 
 
-def _jsonify_keys(obj: Any) -> Any:
+def _jsonify_keys(obj: object) -> object:
     """Stringify mapping keys so JSON Schema (string-keyed) can validate YAML int keys."""
     if isinstance(obj, dict):
         return {str(k): _jsonify_keys(v) for k, v in obj.items()}
@@ -112,12 +108,12 @@ class RequirementChecker:
             for level in ("hlr", "llr")
         }
 
-    def check(self, paths) -> list[Diagnostic]:
+    def check(self, paths: Iterable[str | os.PathLike[str]]) -> list[Diagnostic]:
         files, diags = iter_yaml_files(paths)
 
         # First pass: parse, schema-validate, structural per-file checks.
         # Records (path, level, data, lines) feed the cross-file pass.
-        records: list[tuple[Path, str, dict, dict]] = []
+        records: list[tuple[Path, str, dict[str, object], YAMLLineMap]] = []
         seen_stems: dict[str, Path] = {}
 
         for path in files:
@@ -133,7 +129,7 @@ class RequirementChecker:
                 )
                 continue
 
-            stem = _stem(path)
+            stem = path.stem
             if stem in seen_stems:
                 diags.append(
                     Diagnostic(
@@ -146,9 +142,9 @@ class RequirementChecker:
             else:
                 seen_stems[stem] = path
 
-            data, lines, dups, error = load_yaml(path)
-            if error is not None:
-                diags.append(error)
+            data, lines, dups = load_yaml(path)
+            if isinstance(data, Diagnostic):
+                diags.append(data)
                 continue
 
             diags.extend(self._schema_check(path, level, data, lines))
@@ -161,7 +157,9 @@ class RequirementChecker:
         diags.extend(self._referential_integrity(records))
         return diags
 
-    def _schema_check(self, path, level, data, lines) -> list[Diagnostic]:
+    def _schema_check(
+        self, path: Path, level: str, data: dict[str, object], lines: YAMLLineMap
+    ) -> list[Diagnostic]:
         out: list[Diagnostic] = []
         jsonable = _jsonify_keys(data)
         for err in sorted(self._validators[level].iter_errors(jsonable), key=str):
@@ -178,7 +176,9 @@ class RequirementChecker:
             )
         return out
 
-    def _description_keys(self, path, data, lines) -> list[Diagnostic]:
+    def _description_keys(
+        self, path: Path, data: dict[str, object], lines: YAMLLineMap
+    ) -> list[Diagnostic]:
         desc = data.get("description")
         if not isinstance(desc, dict) or not desc:
             return []  # absence/shape is the schema's job
@@ -211,7 +211,7 @@ class RequirementChecker:
             )
         return out
 
-    def _duplicate_keys(self, path, lines, dups) -> list[Diagnostic]:
+    def _duplicate_keys(self, path: Path, lines: YAMLLineMap, dups: list[str]) -> list[Diagnostic]:
         return [
             Diagnostic(
                 "error",
@@ -224,7 +224,9 @@ class RequirementChecker:
             for k in dups
         ]
 
-    def _rs3_lint(self, path, data, lines) -> list[Diagnostic]:
+    def _rs3_lint(
+        self, path: Path, data: dict[str, object], lines: YAMLLineMap
+    ) -> list[Diagnostic]:
         desc = data.get("description")
         if not isinstance(desc, dict):
             return []
@@ -249,13 +251,15 @@ class RequirementChecker:
                 )
         return out
 
-    def _referential_integrity(self, records) -> list[Diagnostic]:
+    def _referential_integrity(
+        self, records: Sequence[tuple[Path, str, dict[str, object], YAMLLineMap]]
+    ) -> list[Diagnostic]:
         # Build the registry from the whole set: every statement ID and its
         # container's level, plus which container stems exist at all.
         statements: dict[str, str] = {}  # "<stem>.<number>" -> container level
         stem_levels: dict[str, str] = {}  # "<stem>" -> level
         for path, level, data, _lines in records:
-            stem = _stem(path)
+            stem = path.stem
             stem_levels[stem] = level
             desc = data.get("description")
             if isinstance(desc, dict):
@@ -275,7 +279,7 @@ class RequirementChecker:
                 parents = statement.get("parent_req")
                 if not isinstance(parents, list):
                     continue  # absent (derived) or malformed (the schema's job)
-                loc = ("description", _number(key), "parent_req")
+                loc = ("description", str(key), "parent_req")
                 line = lines.get(loc) or lines.get(loc[:2])
                 for parent in parents:
                     diag = self._parent_diagnostic(parent, statements, stem_levels, path, line, loc)
@@ -285,7 +289,7 @@ class RequirementChecker:
 
     def _parent_diagnostic(  # noqa: PLR0913
         self,
-        parent,
+        parent: object,
         statements: dict[str, str],
         stem_levels: dict[str, str],
         file: Path,
@@ -293,8 +297,7 @@ class RequirementChecker:
         loc: tuple[str, ...],
     ) -> Diagnostic | None:
         """Check one parent_req entry; return its Diagnostic, or None if it resolves to an HLR."""
-        match = _REF_RE.match(parent) if isinstance(parent, str) else None
-        if match is None:
+        if not isinstance(parent, str) or (match := _REF_RE.match(parent)) is None:
             return Diagnostic(
                 "error",
                 "E-PARENT-FORMAT",
@@ -334,6 +337,8 @@ class RequirementChecker:
         return None
 
 
-def validate_paths(paths, *, complete: bool = False) -> list[Diagnostic]:
+def validate_paths(
+    paths: Iterable[str | os.PathLike[str]], *, complete: bool = False
+) -> list[Diagnostic]:
     """Programmatic entry point (used by the tests)."""
     return RequirementChecker(complete=complete).check(paths)

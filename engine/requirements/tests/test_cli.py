@@ -28,7 +28,7 @@ EARS_ERROR = FIX / "ears" / "hlr_ears_noshall.yaml"
 
 
 @pytest.mark.parametrize("subcommand", ["schema", "ears"])
-def test_clean_examples_exit_zero(subcommand):
+def test_clean_examples_exit_zero(subcommand: str) -> None:
     """Validating the curated examples exits 0 (no errors)."""
     result = runner.invoke(app, ["validate", subcommand, str(EXAMPLES)])
     assert result.exit_code == 0, result.output
@@ -38,13 +38,13 @@ def test_clean_examples_exit_zero(subcommand):
     ("subcommand", "fixture"),
     [("schema", SCHEMA_ERROR), ("ears", EARS_ERROR)],
 )
-def test_error_fixture_exits_nonzero(subcommand, fixture):
+def test_error_fixture_exits_nonzero(subcommand: str, fixture: Path) -> None:
     """An error-level finding drives a non-zero exit code."""
     result = runner.invoke(app, ["validate", subcommand, str(fixture)])
     assert result.exit_code != 0, result.output
 
 
-def test_no_args_is_help():
+def test_no_args_is_help() -> None:
     """Bare `validate` prints help and does not exit zero (no_args_is_help)."""
     result = runner.invoke(app, ["validate"])
     assert result.exit_code != 0

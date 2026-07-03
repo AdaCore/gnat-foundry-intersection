@@ -21,13 +21,19 @@ parent id from each (`id_pattern`).
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from typer.testing import CliRunner
 
 from reqs.checks.trace import Layer, _severity_style, check_trace, load_chain, render_tables
 from reqs.cli import app
 from reqs.conops import parse_leaves
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from reqs.core import Diagnostic
 
 runner = CliRunner()
 
@@ -56,7 +62,7 @@ def write_conops(tmp_path: Path) -> Path:
 
 
 def write_req(
-    tmp_path: Path, name: str, ref_field: str, statements: list[list[str] | None]
+    tmp_path: Path, name: str, ref_field: str, statements: Sequence[Sequence[str] | None]
 ) -> Path:
     """Write a requirement file; statements[i] is a list of up-refs, or None => derived."""
     lines = ["description:"]
@@ -73,7 +79,7 @@ def write_req(
     return p
 
 
-def write_waivers(tmp_path: Path, name: str, entries: list[tuple[str, str]]) -> Path:
+def write_waivers(tmp_path: Path, name: str, entries: Sequence[tuple[str, str]]) -> Path:
     lines = ["waivers:"]
     for node, reason in entries:
         lines.append(f'  - leaf: "{node}"')
@@ -102,14 +108,19 @@ def llr_layer(llr_dir: Path) -> Layer:
     return Layer("LLR", "requirement-yaml", llr_dir, up_ref="parent_req", id_pattern=r"(.+\.\d+)")
 
 
-def codes(diags) -> set[tuple[str, str]]:
+def codes(diags: Sequence[Diagnostic]) -> set[tuple[str, str]]:
     return {(d.code, d.level) for d in diags}
 
 
 COVERING = [["CONOPS §2.1"], ["CONOPS §2.2"], ["CONOPS §3.1"]]  # covers all but leaf 1.1
 
 
-def conops_hlr_chain(tmp_path: Path, statements, *, waive=None) -> list[Layer]:
+def conops_hlr_chain(
+    tmp_path: Path,
+    statements: Sequence[Sequence[str] | None],
+    *,
+    waive: Sequence[tuple[str, str]] | None = None,
+) -> list[Layer]:
     conops = write_conops(tmp_path)
     hlr_dir = tmp_path / "hlr"
     hlr_dir.mkdir(exist_ok=True)
@@ -121,13 +132,13 @@ def conops_hlr_chain(tmp_path: Path, statements, *, waive=None) -> list[Layer]:
 # --- adapters / config ------------------------------------------------------
 
 
-def test_parse_leaves_extracts_bullets_only(tmp_path):
+def test_parse_leaves_extracts_bullets_only(tmp_path: Path) -> None:
     leaves = parse_leaves(write_conops(tmp_path))
     assert set(leaves) == {"1.1", "2.1", "2.2", "3.1"}
     assert all(isinstance(line, int) and line > 0 for line in leaves.values())
 
 
-def test_load_chain_resolves_relative_paths(tmp_path):
+def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
     write_conops(tmp_path)
     (tmp_path / "hlr").mkdir()
     write_waivers(tmp_path, "trace_waivers.yaml", [("1.1", "ok")])
@@ -148,35 +159,35 @@ def test_load_chain_resolves_relative_paths(tmp_path):
 # --- CONOPS -> HLR, forward (coverage) --------------------------------------
 
 
-def test_clean_when_every_leaf_covered_or_waived(tmp_path):
+def test_clean_when_every_leaf_covered_or_waived(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "Physical site assumption.")])
     assert check_trace(chain, complete=True) == []
 
 
-def test_uncovered_leaf_warns_by_default(tmp_path):
+def test_uncovered_leaf_warns_by_default(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, COVERING)  # 1.1 uncovered/unwaived
     diags = check_trace(chain)
     assert ("W-TRACE-UNCOVERED", "warning") in codes(diags)
     assert not [d for d in diags if d.level == "error"]
 
 
-def test_uncovered_leaf_errors_under_complete(tmp_path):
+def test_uncovered_leaf_errors_under_complete(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, COVERING)
     assert ("E-TRACE-UNCOVERED", "error") in codes(check_trace(chain, complete=True))
 
 
-def test_waiver_suppresses_uncovered(tmp_path):
+def test_waiver_suppresses_uncovered(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "Physical assumption.")])
     diags = check_trace(chain, complete=True)
     assert not [d for d in diags if d.code.endswith("UNCOVERED")]
 
 
-def test_waiver_for_unknown_node_is_error(tmp_path):
+def test_waiver_for_unknown_node_is_error(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok"), ("9.9", "stale")])
     assert ("E-TRACE-WAIVER-UNKNOWN", "error") in codes(check_trace(chain))
 
 
-def test_redundant_waiver_warns(tmp_path):
+def test_redundant_waiver_warns(tmp_path: Path) -> None:
     # 2.1 is both covered and waived -> the waiver is unnecessary.
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok"), ("2.1", "unnecessary")])
     assert ("W-TRACE-WAIVER-REDUNDANT", "warning") in codes(check_trace(chain))
@@ -185,12 +196,12 @@ def test_redundant_waiver_warns(tmp_path):
 # --- CONOPS -> HLR, backward (the point-3 fix) ------------------------------
 
 
-def test_dangling_ref_is_error(tmp_path):
+def test_dangling_ref_is_error(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, [["CONOPS §9.9"]])
     assert ("E-TRACE-DANGLING", "error") in codes(check_trace(chain))
 
 
-def test_hlr_without_source_is_untraced(tmp_path):
+def test_hlr_without_source_is_untraced(tmp_path: Path) -> None:
     # Statement 1 has neither source nor derived: a backward gap `trace` must catch
     # on its own (previously only the schema oneOf did).
     chain = conops_hlr_chain(tmp_path, [[], *COVERING], waive=[("1.1", "ok")])
@@ -199,12 +210,12 @@ def test_hlr_without_source_is_untraced(tmp_path):
     assert ("E-TRACE-UNTRACED", "error") in codes(check_trace(chain))
 
 
-def test_derived_statement_is_traced_not_untraced(tmp_path):
+def test_derived_statement_is_traced_not_untraced(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, [None, *COVERING], waive=[("1.1", "ok")])  # stmt 1 derived
     assert check_trace(chain, complete=True) == []
 
 
-def test_source_that_is_not_a_conops_ref_is_untraced(tmp_path):
+def test_source_that_is_not_a_conops_ref_is_untraced(tmp_path: Path) -> None:
     # Cites a standard directly instead of a CONOPS leaf -> no valid upward trace.
     chain = conops_hlr_chain(tmp_path, [["MUTCD §4E.01"], *COVERING], waive=[("1.1", "ok")])
     diags = check_trace(chain)
@@ -215,7 +226,7 @@ def test_source_that_is_not_a_conops_ref_is_untraced(tmp_path):
 # --- generalization: the same engine does HLR -> LLR ------------------------
 
 
-def test_engine_generalizes_to_hlr_llr(tmp_path):
+def test_engine_generalizes_to_hlr_llr(tmp_path: Path) -> None:
     conops = write_conops(tmp_path)
     hlr_dir, llr_dir = tmp_path / "hlr", tmp_path / "llr"
     hlr_dir.mkdir()
@@ -244,7 +255,7 @@ def test_engine_generalizes_to_hlr_llr(tmp_path):
 # --- rendering (point 2) ----------------------------------------------------
 
 
-def test_render_tables_show_bidirectional_status(tmp_path):
+def test_render_tables_show_bidirectional_status(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, COVERING)  # 1.1 uncovered
     out = render_tables(chain)
     assert "CONOPS" in out
@@ -254,7 +265,7 @@ def test_render_tables_show_bidirectional_status(tmp_path):
     assert "hlr_x.1" in out  # backward: the HLR statement appears with its trace
 
 
-def test_render_tables_wrap_wide_column_to_width(tmp_path):
+def test_render_tables_wrap_wide_column_to_width(tmp_path: Path) -> None:
     # A leaf covered by many statements makes the "Covered by" cell very wide.
     conops = write_conops(tmp_path)
     hlr_dir = tmp_path / "hlr"
@@ -270,7 +281,7 @@ def test_render_tables_wrap_wide_column_to_width(tmp_path):
         assert f"hlr_x.{n}" in out
 
 
-def test_severity_style_flags_problems():
+def test_severity_style_flags_problems() -> None:
     for status in ("UNCOVERED", "UNTRACED", "DANGLING"):
         assert _severity_style(status) == "red bold"
     for status in ("WAIVED", "DERIVED"):
@@ -278,7 +289,7 @@ def test_severity_style_flags_problems():
     assert _severity_style("OK") == "green"
 
 
-def test_render_tables_are_boxed(tmp_path):
+def test_render_tables_are_boxed(tmp_path: Path) -> None:
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok")])
     out = render_tables(chain, width=80)
     assert "─" in out  # a boxed rich table with row separators, not an ASCII pipe table
@@ -287,7 +298,7 @@ def test_render_tables_are_boxed(tmp_path):
 # --- CLI --------------------------------------------------------------------
 
 
-def write_chain_file(tmp_path: Path, waive) -> Path:
+def write_chain_file(tmp_path: Path, waive: Sequence[tuple[str, str]]) -> Path:
     write_conops(tmp_path)
     hlr_dir = tmp_path / "hlr"
     hlr_dir.mkdir(exist_ok=True)
@@ -304,19 +315,19 @@ def write_chain_file(tmp_path: Path, waive) -> Path:
     return chain
 
 
-def test_cli_chain_exit_zero_when_clean(tmp_path):
+def test_cli_chain_exit_zero_when_clean(tmp_path: Path) -> None:
     chain = write_chain_file(tmp_path, [("1.1", "ok")])
     result = runner.invoke(app, ["trace", "--chain", str(chain), "--complete"])
     assert result.exit_code == 0, result.output
 
 
-def test_cli_chain_exit_nonzero_when_uncovered_under_complete(tmp_path):
+def test_cli_chain_exit_nonzero_when_uncovered_under_complete(tmp_path: Path) -> None:
     chain = write_chain_file(tmp_path, [])  # 1.1 not waived
     result = runner.invoke(app, ["trace", "--chain", str(chain), "--complete"])
     assert result.exit_code != 0, result.output
 
 
-def test_cli_format_table_renders(tmp_path):
+def test_cli_format_table_renders(tmp_path: Path) -> None:
     chain = write_chain_file(tmp_path, [("1.1", "ok")])
     result = runner.invoke(app, ["trace", "--chain", str(chain), "--format", "table"])
     assert result.exit_code == 0, result.output

@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 from io import StringIO
 from itertools import pairwise
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 from rich import box
@@ -46,6 +47,9 @@ from rich.table import Table
 
 from reqs.conops import parse_leaves
 from reqs.core import Diagnostic, iter_yaml_files, load_yaml
+
+if TYPE_CHECKING:
+    import os
 
 MARKDOWN_LEAVES = "markdown-leaves"
 REQUIREMENT_YAML = "requirement-yaml"
@@ -63,7 +67,7 @@ class Layer:
     waivers: Path | None = None  # nodes here intentionally left uncovered by the layer below
 
 
-def load_chain(path) -> list[Layer]:
+def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
     """Load a trace-chain config; layer paths are resolved relative to the file."""
     path = Path(path)
     base = path.parent
@@ -157,9 +161,9 @@ class TraceChecker:
         paths, path_diags = iter_yaml_files([layer.path])
         diags.extend(path_diags)
         for path in paths:
-            data, lines, _dups, error = load_yaml(path)
-            if error is not None:
-                diags.append(error)
+            data, lines, _dups = load_yaml(path)
+            if isinstance(data, Diagnostic):
+                diags.append(data)
                 continue
             desc = data.get("description")
             if not isinstance(desc, dict):

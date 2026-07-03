@@ -85,6 +85,7 @@ select = [
     "SLOT",  # flake8-slots
     "SIM",   # flake8-simplify
     "TID",   # flake8-tidy-imports
+    "TC",    # flake8-type-checking
     "INT",   # flake8-gettext
     "ARG",   # flake8-unused-arguments
     "PTH",   # flake8-use-pathlib
@@ -128,6 +129,9 @@ ignore = [
     "FBT003", # typer.Option(False, ...) passes the default positionally by design
 ]
 
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-decorators = ["typer.Typer.command"]
+
 [tool.ruff.lint.isort]
 combine-as-imports = true
 
@@ -137,5 +141,6 @@ files = ["src", "tests"]
 mypy_path = ["src"]
 namespace_packages = true
 explicit_package_bases = true
-warn_unused_ignores = true
-warn_redundant_casts = true
+strict = true
+warn_unreachable = true
+strict_equality = true

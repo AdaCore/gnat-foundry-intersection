@@ -13,7 +13,7 @@ EXAMPLES = project_root() / "docs" / "examples"
 FIX = Path(__file__).parent / "fixtures" / "invalid" / "schema"
 
 
-def test_examples_validate_clean():
+def test_examples_validate_clean() -> None:
     """The curated examples have no errors in default mode."""
     errors = [d for d in validate_paths([EXAMPLES]) if d.level == "error"]
     assert not errors, "examples should have no errors:\n  " + "\n  ".join(
@@ -21,7 +21,7 @@ def test_examples_validate_clean():
     )
 
 
-def test_complete_escalates_partial_trace():
+def test_complete_escalates_partial_trace() -> None:
     """Under --complete the deliberately-partial example trace becomes an error."""
     codes = {d.code for d in validate_paths([EXAMPLES], complete=True)}
     assert "E-PARENT-MISSING" in codes
@@ -55,12 +55,12 @@ NEGATIVE_CASES = [
     [(files, code, level) for _, files, code, level in NEGATIVE_CASES],
     ids=[desc for desc, *_ in NEGATIVE_CASES],
 )
-def test_negative_fixture_fires(files, code, level):
+def test_negative_fixture_fires(files: list[str], code: str, level: str) -> None:
     diags = validate_paths([FIX / f for f in files])
     assert (code, level) in {(d.code, d.level) for d in diags}
 
 
-def test_missing_path_reports_clean_diagnostic(tmp_path):
+def test_missing_path_reports_clean_diagnostic(tmp_path: Path) -> None:
     """A nonexistent path yields a located E-IO error, not a traceback."""
     missing = tmp_path / "does_not_exist"
     diags = validate_paths([missing])
@@ -80,5 +80,5 @@ def test_missing_path_reports_clean_diagnostic(tmp_path):
         ("The system does the thing.", 0),
     ],
 )
-def test_count_shall_ignores_markup(statement, expected):
+def test_count_shall_ignores_markup(statement: str, expected: int) -> None:
     assert _count_shall(statement) == expected
