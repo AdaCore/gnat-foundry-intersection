@@ -1,24 +1,23 @@
---  Top-level project for the traffic-light controller (host build).
+--  Crate-root project for the traffic-light controller (host build).
 --
---  Builds the host executable using the HAL bodies in src/hal/host (with the
---  shared specs in src/hal/common). The bare-metal arm-eabi cross-target build
---  (QEMU xilinx-zynq-a9) lives in its own Alire crate, traffic_light_qemu/
---  (see that crate's GPR).
+--  The substantive application project is now src/app.gpr (per
+--  design/architecture.md §"Project structure"). This project *extends* it so
+--  the application sources -- notably the entry point main.adb -- belong to
+--  the crate root: that keeps this the Alire crate root (alire.toml
+--  project-files) and the GNATtest driver root, and lets the executable land
+--  at the repo-root bin/ with the pinned `traffic_light` name. The bare-metal
+--  arm-eabi cross-target build (QEMU xilinx-zynq-a9) lives in its own Alire
+--  crate, traffic_light_qemu/ (see that crate's GPR).
 
 with "config/traffic_light_config.gpr";
-with "src/core.gpr";
-with "src/hal.gpr";
 with "src/shared.gpr";
-with "src/types.gpr";
 
-project Traffic_Light is
+project Traffic_Light extends "src/app.gpr" is
 
-   --  Structured src/: the HAL closure (hal.gpr) selects the shared specs in
-   --  src/hal/common plus ONLY the host bodies in src/hal/host;
-   --  src/hal/qemu_zynq7000 belongs to the arm-eabi cross build and must NOT
-   --  be compiled here -- hence an explicit dir list rather than "src/**".
-   --  config/ holds the Alire-generated config package.
-   for Source_Dirs use ("src/app", "config/");
+   --  Source dirs are inherited from the extended src/app.gpr (i.e. src/app),
+   --  so the application sources -- notably main.adb -- belong to this crate
+   --  root. (Do NOT override with an empty list: a source-less extending
+   --  project trips gnattest's source discovery.)
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
    --  Both are two levels / one level below the root respectively, which the
@@ -26,10 +25,18 @@ project Traffic_Light is
    for Object_Dir use Shared'Object_Dir;
    for Exec_Dir use Shared'Exec_Dir;
    for Create_Missing_Dirs use "True";
-   for Main use ("traffic_light.adb");
+
+   --  main.adb is inherited from the extended src/app.gpr.
+   for Main use ("main.adb");
 
    for Runtime ("Ada") use Shared'Runtime ("Ada");
    for Target use Shared'Target;
+
+   --  Keep the produced binary named `traffic_light` regardless of the unit
+   --  name, so the Makefile run targets and coverage need no edits.
+   package Builder is
+      for Executable ("main.adb") use "traffic_light";
+   end Builder;
 
    package Compiler renames Shared.Compiler;
    package Binder renames Shared.Binder;
