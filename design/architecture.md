@@ -125,6 +125,26 @@ The `core.gpr` project does not depend on the `hal.gpr` project. This allows the
 core logic to be tested and proven independently of the hardware abstraction layer.
 The core logic does not know anything about the implementation of sources or display.
 
+### Build scaffolding: `shared.gpr` and `traffic_light.gpr`
+
+Two source-less support projects sit alongside the four architecture projects
+above:
+
+- `src/shared.gpr`: a source-less helper that centralises the build
+  configuration reused across `types`, `core`, `hal`, and `app`. It carries the
+  `BUILD_KIND` scenario variable (`native` vs `target`) and, keyed off it, the
+  object/exec directories, target, runtime, and the common compiler / binder /
+  linker switches. The four architecture projects `with` it so the host and
+  bare-metal builds stay in step from a single definition.
+
+- `traffic_light.gpr` (repo root): the Alire crate root for the host build. It
+  *extends* `src/app.gpr` so the application sources — notably `main.adb` —
+  belong to the crate root, which keeps it both the Alire crate root and the
+  GNATtest driver root and pins the produced binary to the `traffic_light`
+  name. The bare-metal arm-eabi cross-target build lives in its own sibling
+  Alire crate, `traffic_light_qemu/`, which `with`s `../traffic_light.gpr` and
+  `../src/shared.gpr` with `BUILD_KIND=target`.
+
 ### Rationale for the separation between `core.gpr` and `hal.gpr|app.gpr`
 
 It might make more sense to have the core loop hosted as part of the `app` project, but
