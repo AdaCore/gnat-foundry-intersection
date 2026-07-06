@@ -39,20 +39,39 @@ default:
     # Allow connecting to the internet
     - security_group:GitLabRunnerTasksExecPrivilegedSG
 
+.uv:
+  extends:
+    - .default_rules
+  services:
+    - image:e3-py313
+    - cpu:1
+  before_script:
+    - pip install uv
+    - unset VIRTUAL_ENV
+
 # Test the `reqs` requirements validation tool, then validate the requirements
 # with it.
 validate-requirements:
   stage: validate
   extends:
-    - .default_rules
-  services:
-    - image:e3-py313
-    - cpu:2
+    - .uv
   script:
-    - pip install uv
-    - unset VIRTUAL_ENV
     - make test-reqs-engine
     - make validate-reqs
+
+# Lint, type-check and check formatting.
+check:
+  stage: validate
+  extends:
+    - .uv
+  script:
+    # Install `alr` and `gnatformat` with `anod`
+    - !reference [.pro, before_script]
+    - anod install gnatformat --qualifier=stable
+    - eval $(anod printenv gnatformat --qualifier=stable)
+
+    # Run the checks
+    - make check
 
 .pro:
   stage: build

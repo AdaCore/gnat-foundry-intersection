@@ -3,12 +3,12 @@ SHELL := bash
 .ONESHELL:
 
 .DEFAULT_GOAL := build-native
-.PHONY: printenv build-native build-target run-native run-target prove \
-        format format-ada check check-ada \
+.PHONY: printenv generate-config build-native build-target run-native run-target \
+        prove \
+        format format-ada format-python check check-ada check-shell check-python \
         generate-tests-pro test-pro generate-tests-community test-community \
         validate-reqs test-reqs-engine \
-        setup-community setup-uv setup-alire setup-toolchains \
-        setup-tools setup-codex-plugin reset-hard \
+        setup-community reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
         coverage-test-pro coverage-report
 
@@ -27,11 +27,11 @@ TICK_PERIOD_US ?= 1000
 # otherwise we fall back to whatever is on PATH. Setup *output* (toolchains +
 # installed binaries) always lands under install/ regardless of which binary
 # is used, so reset-hard is a complete wipe.
-TOOLS_DIR      := $(CURDIR)/install
-LOCAL_BIN      := $(TOOLS_DIR)/bin
-ALIRE_SETTINGS := $(TOOLS_DIR)/alire/settings
-ALIRE_PREFIX   := $(TOOLS_DIR)/alire/prefix
-UV_DATA_DIR    := $(TOOLS_DIR)/uv
+INSTALL_DIR    := $(CURDIR)/install
+LOCAL_BIN      := $(INSTALL_DIR)/bin
+ALIRE_SETTINGS := $(INSTALL_DIR)/alire/settings
+ALIRE_PREFIX   := $(INSTALL_DIR)/alire/prefix
+UV_DATA_DIR    := $(INSTALL_DIR)/uv
 
 # Prefer the locally-installed binaries; fall back to PATH if absent.
 ALR := $(if $(wildcard $(LOCAL_BIN)/alr),$(LOCAL_BIN)/alr -n,alr -n)
@@ -68,6 +68,10 @@ printenv:
 # Build / run / prove / format
 # ----------------------------------------------------------------------------
 
+# Explicitly generate the `config/` directory for the `traffic_light` crate.
+generate-config:
+	$(ALR) build --stop-after=generation
+
 # Host build (native crate, stub HAL) -> bin/traffic_light.
 build-native:
 	$(ALR) build
@@ -77,8 +81,7 @@ build-native:
 # We have to generate the root `config/` directory explicitly because the
 # `traffic_light` crate is not in the Alire closure (but its config is in the
 # GPR closure).
-build-target:
-	$(ALR) build --stop-after=generation
+build-target: generate-config
 	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
@@ -102,30 +105,42 @@ run-target: build-target
 prove:
 	$(ALR) exec -P -- gnatprove -U --level=2 --report=statistics --checks-as-errors=on
 
-# Format / check aggregators. For now they just delegate to the Ada targets;
-# add format-<lang> / check-<lang> prerequisites here as more land.
-format: format-ada
-check: check-ada
+# Format / check aggregators.
+format: format-ada format-python
+check: check-ada check-shell check-python
 
 # Remove build products and outputs
 clean:
 	rm -rf obj reports
 
 # Reformat all Ada sources of the default project in place (gnatformat).
-format-ada:
+format-ada: generate-config
 	$(ALR) exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C tests exec -P -- gnatformat -U --charset utf-8
 
 # Verify formatting without editing; exits non-zero if any file would change.
-check-ada:
+check-ada: generate-config
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
 
+# Lint shell scripts with shellcheck.
+check-shell:
+	find scripts -type f -exec $(UV) tool run --from shellcheck-py shellcheck {} +
+
+# Format Python sources.
+format-python:
+	$(UV) --directory "$(REQS_ENGINE)" run ruff format
+
+# Lint, type-check and verify formatting of Python.
+check-python:
+	$(UV) --directory "$(REQS_ENGINE)" run ruff check
+	$(UV) --directory "$(REQS_ENGINE)" run mypy
+	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
+
 # Generate/refresh GNATtest skeletons
-generate-tests-pro:
-	$(ALR) build --stop-after=generation     # Generate `config/`
+generate-tests-pro: generate-config
 	$(ALR) exec -P -- gnattest --exit-status=on
 
 # Build and run the AUnit harness
@@ -136,9 +151,8 @@ test-pro: generate-tests-pro
 
 # To use community tools, we run from inside `tests/` to pick up `alr`-managed
 # `gnattest_bin` and `aunit`.
-generate-tests-community:
+generate-tests-community: generate-config
 	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
-	$(ALR) build --stop-after=generation     # Generate `config/`
 	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr --exit-status=on
 
 test-community: generate-tests-community
@@ -167,140 +181,24 @@ test-reqs-engine:
 # ----------------------------------------------------------------------------
 
 # One-shot: provision the full toolchain locally under install/ — uv, Alire,
-# the GNAT toolchains, and gnattest/gnatcov/gnatprove. Everything a contributor
-# needs to build, test, and prove.
-setup-community: setup-uv setup-alire setup-toolchains setup-tools setup-codex-plugin
-	@echo ""
-	echo "=== setup-community complete ==="
-	echo "Local tooling installed under $(TOOLS_DIR):"
-	echo "  uv / uvx                    -> $(LOCAL_BIN) (or PATH uv if pre-existing)"
-	echo "  alr                         -> $(LOCAL_BIN) (or PATH alr if pre-existing)"
-	echo "  GNAT toolchains             -> $(ALIRE_SETTINGS)"
-	echo "  gnattest/gnatcov/gnatprove  -> $(ALIRE_PREFIX)/bin"
-	echo ""
-	echo "The Makefile uses these automatically. To run the tools from your"
-	echo "shell, add to your profile:"
-	echo "  export PATH=\"$(LOCAL_BIN):$(ALIRE_PREFIX)/bin:\$$PATH\""
-	echo "  export ALIRE_SETTINGS_DIR=\"$(ALIRE_SETTINGS)\""
-
-# uv: install the latest official release from GitHub, locally into install/bin.
-setup-uv:
-	@if [ -x "$(LOCAL_BIN)/uv" ]; then
-	  echo "uv already installed locally ($(LOCAL_BIN)/uv) — skipping."
-	  exit 0
-	fi
-	if command -v uv >/dev/null 2>&1; then
-	  echo "uv found on PATH ($$(command -v uv)) — skipping local install."
-	  exit 0
-	fi
-	echo "Installing uv locally into $(LOCAL_BIN) ..."
-	mkdir -p "$(LOCAL_BIN)"
-	os=$$(uname -s); arch=$$(uname -m)
-	case "$$arch" in
-	  arm64|aarch64) uarch=aarch64 ;;
-	  x86_64|amd64)  uarch=x86_64 ;;
-	  *) echo "Unsupported architecture: $$arch" >&2; exit 1 ;;
-	esac
-	case "$$os" in
-	  Linux)  triple="$$uarch-unknown-linux-gnu" ;;
-	  *) echo "Unsupported OS: $$os" >&2; exit 1 ;;
-	esac
-	url="https://github.com/astral-sh/uv/releases/latest/download/uv-$$triple.tar.gz"
-	echo "Downloading $$url"
-	tmp=$$(mktemp -d)
-	curl -fsSL "$$url" -o "$$tmp/uv.tar.gz"
-	tar -xzf "$$tmp/uv.tar.gz" -C "$$tmp"
-	mv "$$tmp/uv-$$triple/uv" "$$tmp/uv-$$triple/uvx" "$(LOCAL_BIN)/"
-	rm -rf "$$tmp"
-	echo "uv installed: $$($(LOCAL_BIN)/uv --version)"
-
-# Alire: install the latest official release from GitHub, locally into install/bin.
-setup-alire:
-	@if [ -x "$(LOCAL_BIN)/alr" ]; then
-	  echo "alr already installed locally ($(LOCAL_BIN)/alr) — skipping."
-	  exit 0
-	fi
-	if command -v alr >/dev/null 2>&1; then
-	  echo "alr found on PATH ($$(command -v alr)) — skipping local install."
-	  exit 0
-	fi
-	echo "Installing Alire locally into $(LOCAL_BIN) ..."
-	mkdir -p "$(LOCAL_BIN)"
-	os=$$(uname -s); arch=$$(uname -m)
-	case "$$arch" in
-	  arm64|aarch64) aarch=aarch64 ;;
-	  x86_64|amd64)  aarch=x86_64 ;;
-	  *) echo "Unsupported architecture: $$arch" >&2; exit 1 ;;
-	esac
-	case "$$os" in
-	  Linux)  aos=linux ;;
-	  *) echo "Unsupported OS: $$os" >&2; exit 1 ;;
-	esac
-	url=$$( (curl -fsSL https://api.github.com/repos/alire-project/alire/releases/latest \
-	  | grep -o "\"browser_download_url\": \"[^\"]*bin-$$aarch-$$aos[^\"]*\"" \
-	  | grep -o 'https://[^"]*' | head -1) || true )
-	if [ -z "$$url" ]; then
-	  echo "Could not find an Alire release asset for $$aarch-$$aos" >&2
-	  exit 1
-	fi
-	echo "Downloading $$url"
-	tmp=$$(mktemp -d)
-	curl -fsSL "$$url" -o "$$tmp/alr.zip"
-	unzip -q "$$tmp/alr.zip" -d "$$tmp/alr"
-	mv "$$tmp/alr/bin/alr" "$(LOCAL_BIN)/alr"
-	chmod +x "$(LOCAL_BIN)/alr"
-	rm -rf "$$tmp"
-	echo "alr installed: $$($(LOCAL_BIN)/alr --version)"
-
-# Select the GNAT toolchains needed by the demo, into the local settings dir.
-setup-toolchains: setup-alire
-	@ALR="$(LOCAL_BIN)/alr"; [ -x "$$ALR" ] || ALR=alr
-	export ALIRE_SETTINGS_DIR="$(ALIRE_SETTINGS)"
-	mkdir -p "$(ALIRE_SETTINGS)"
-	if "$$ALR" -n toolchain 2>/dev/null | grep -q gnat_arm_elf \
-	   && "$$ALR" -n toolchain 2>/dev/null | grep -q gnat_native \
-	   && "$$ALR" -n toolchain 2>/dev/null | grep -q gprbuild; then
-	  echo "Toolchains (gnat_arm_elf, gnat_native, gprbuild) already selected — skipping."
-	  exit 0
-	fi
-	echo "Selecting toolchains: gnat_arm_elf gnat_native gprbuild ..."
-	"$$ALR" -n toolchain --select gnat_arm_elf gnat_native gprbuild
-
-# Install the gnattest, gnatcov, and gnatprove binaries into the local prefix.
-setup-tools: setup-alire
-	@ALR="$(LOCAL_BIN)/alr"; [ -x "$$ALR" ] || ALR=alr
-	export ALIRE_SETTINGS_DIR="$(ALIRE_SETTINGS)"
-	mkdir -p "$(ALIRE_PREFIX)"
-	need=""
-	[ -x "$(ALIRE_PREFIX)/bin/gnattest" ]  || need="$$need gnattest_bin"
-	[ -x "$(ALIRE_PREFIX)/bin/gnatcov" ]   || need="$$need gnatcov_bin"
-	[ -x "$(ALIRE_PREFIX)/bin/gnatprove" ] || need="$$need gnatprove"
-	if [ -z "$$need" ]; then
-	  echo "gnattest + gnatcov + gnatprove already installed — skipping."
-	  exit 0
-	fi
-	echo "Installing:$$need ..."
-	"$$ALR" -n install --prefix="$(ALIRE_PREFIX)" $$need
-
-# Install the AdaCore's Codex plugin (if the codex CLI is available)
-setup-codex-plugin:
-	@if ! command -v codex >/dev/null 2>&1; then
-	  echo "codex not found on PATH. Skipping AdaCore plugin install."
-	  exit 0
-	fi
-	echo "Installing AdaCore Codex plugin ..."
-	codex plugin marketplace add adacore/skills
-	codex plugin add adacore@adacore-skills
+# the GNAT toolchains, and gnattest/gnatcov/gnatformat/gnatprove. Everything a
+# contributor needs to build, test, and prove.
+setup-community:
+	@LOCAL_BIN='$(LOCAL_BIN)' \
+	    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS)' \
+	    ALIRE_PREFIX='$(ALIRE_PREFIX)' \
+	    scripts/setup/community.sh
 
 # ----------------------------------------------------------------------------
 # Reset: remove everything the setup-* targets installed.
 # ----------------------------------------------------------------------------
 
 # Remove all locally-installed setup tooling (uv, alr, toolchains, gnattest /
-# gnatcov / gnatprove). Source and build artifacts (bin/, obj/) are untouched.
+# gnatcov / gnatformat / gnatprove). Source and build artifacts (bin/, obj/)
+# are untouched.
 reset-hard:
-	@echo "Removing locally-installed setup tooling at $(TOOLS_DIR) ..."
-	rm -rf "$(TOOLS_DIR)"
+	@echo "Removing locally-installed setup tooling at $(INSTALL_DIR) ..."
+	rm -rf "$(INSTALL_DIR)"
 	echo "Done. Source and build artifacts left untouched."
 
 ####################
