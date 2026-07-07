@@ -99,8 +99,6 @@ parallelizable cleanup or downstream (CONOPS / LLR) work. Terse by design.
 
 ## Tooling / format
 
-- **Per-statement `source`**: traces are interim trailing comments; promote to a
-  machine-checkable per-statement key when the schema supports it.
 - **Forward-coverage `reqs` subcommand**: invert traces, list mappable CONOPS
   leaves with no covering HLR (operationalizes `coverage.md`).
 - **DRY the EW mirror**: a parameterized axis sub-machine instantiated twice
