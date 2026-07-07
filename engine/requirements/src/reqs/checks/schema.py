@@ -51,6 +51,7 @@ from reqs.core import (
     load_yaml,
     prose,
     schema_path,
+    statement_text,
 )
 
 HLR_PREFIX = "hlr_"
@@ -229,9 +230,10 @@ class RequirementChecker:
             return []
         out: list[Diagnostic] = []
         for key, statement in desc.items():
-            if not isinstance(statement, str) or RS3_OPTOUT in statement:
+            text = statement_text(statement)
+            if text is None or RS3_OPTOUT in text:
                 continue
-            n = _count_shall(statement)
+            n = _count_shall(text)
             if n != 1:
                 out.append(
                     Diagnostic(
@@ -240,7 +242,8 @@ class RequirementChecker:
                         f'statement {key} should contain exactly one "shall" (found {n}); '
                         f"add {RS3_OPTOUT!r} to opt out",
                         path,
-                        line=lines.get(("description", str(key))),
+                        line=lines.get(("description", str(key), "text"))
+                        or lines.get(("description", str(key))),
                         path=("description", str(key)),
                     )
                 )

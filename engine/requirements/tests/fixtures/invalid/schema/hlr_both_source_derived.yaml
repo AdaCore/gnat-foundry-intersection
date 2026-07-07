@@ -1,7 +1,7 @@
-# E-SCHEMA: source and derived are mutually exclusive (oneOf).
-source:
-  - SPEC 1(1)
-derived: True
-
+# E-SCHEMA: a statement's source and derived are mutually exclusive (oneOf).
 description:
-  1: The widget shall do the thing.
+  1:
+    text: The widget shall do the thing.
+    source:
+      - SPEC 1(1)
+    derived: true

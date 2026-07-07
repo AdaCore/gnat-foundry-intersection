@@ -1,8 +1,3 @@
-source:
-  - ADA2022-ARM A.5.3(30)
-  - ADA2022-ARM A.5.3(31)
-  - ADA2022-ARM A.5.3(32/5)
-
 context: |-
   Given `Signed_Zeros` parameter is always True.
 
@@ -11,18 +6,33 @@ context: |-
   And `S`, any subtype of a floating point type `T`.
 
 description:
-  1: |-
-    The RTL shall provide an implementation of the S'Floor attribute with the
-    following specification:
+  1:
+    text: |-
+      The RTL shall provide an implementation of the S'Floor attribute with the
+      following specification:
 
-    ```ada
-    function S'Floor (X : T)
-     return T
-    ```
+      ```ada
+      function S'Floor (X : T)
+       return T
+      ```
+    source:
+      - ADA2022-ARM A.5.3(30)
+      - ADA2022-ARM A.5.3(31)
+      - ADA2022-ARM A.5.3(32/5)
 
-  2: |-
-    The attribute Floor shall return the largest integral value less than, or
-    equal to `X`.
+  2:
+    text: |-
+      The attribute Floor shall return the largest integral value less than, or
+      equal to `X`.
+    source:
+      - ADA2022-ARM A.5.3(30)
+      - ADA2022-ARM A.5.3(31)
+      - ADA2022-ARM A.5.3(32/5)
 
-  3: |-
-    When `X` is zero, the zero result shall have the sign of `X`.
+  3:
+    text: |-
+      When `X` is zero, the zero result shall have the sign of `X`.
+    source:
+      - ADA2022-ARM A.5.3(30)
+      - ADA2022-ARM A.5.3(31)
+      - ADA2022-ARM A.5.3(32/5)
