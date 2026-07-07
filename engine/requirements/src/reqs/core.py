@@ -127,9 +127,14 @@ def compose_lines(text: str) -> tuple[dict[tuple[str, ...], int], list[str]]:
         lines[(key,)] = key_node.start_mark.line + 1
         if key == "description" and isinstance(value_node, yaml.MappingNode):
             seen: set[str] = set()
-            for sub_key, _ in value_node.value:
+            for sub_key, sub_value in value_node.value:
                 k = str(sub_key.value)
                 lines[("description", k)] = sub_key.start_mark.line + 1
+                if isinstance(sub_value, yaml.MappingNode):
+                    for field_key, _ in sub_value.value:
+                        lines[("description", k, str(field_key.value))] = (
+                            field_key.start_mark.line + 1
+                        )
                 if k in seen and k not in dups:
                     dups.append(k)
                 seen.add(k)
