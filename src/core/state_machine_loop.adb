@@ -19,9 +19,13 @@ procedure State_Machine_Loop is
 begin
    Controller.Initialize (State);
    loop
-      Read_Sources (Sensors);                 --  1. poll the external sources
-      Controller.Step (State, Sensors, Outputs, Wait);  --  2. compute next
-      Write_Display (Outputs);                --  3. update the outputs
-      Delay_For (Wait);                       --  4. wait the state's delay
+      --  1. poll the external sources
+      Read_Sources (Sensors);
+      --  2. compute next
+      Controller.Step (State, Sensors, Outputs, Wait);
+      --  3. update the outputs
+      Write_Display (Outputs);
+      --  4. wait the state's delay
+      Delay_For (Wait);
    end loop;
 end State_Machine_Loop;

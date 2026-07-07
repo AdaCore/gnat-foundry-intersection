@@ -24,13 +24,14 @@ is
    --  -- carried as instance state. In this synchronous revision Read samples
    --  afresh through the producer on every call, so the bus holds no state.
    generic
-      --  Producer side (HAL): sample all input sources in one shot.
-      with procedure Activate (Value : out States.Sensors_State);
+      with procedure Bus_Write (Value : out States.Sensors_State);
+      --  Producer side (HAL): reads the state of all sensors writes this to
+      --  the bus.
    package Source_Bus is
+      procedure Bus_Read (Value : out States.Sensors_State);
       --  Consumer side (core): read the whole sensor snapshot. Transitional --
-      --  this samples afresh through Activate for now; a later revision will
-      --  have the producer drive a latch and leave Read a pure read-reset.
-      procedure Read (Value : out States.Sensors_State);
+      --  this samples afresh through Bus_Write for now; a later revision will
+      --  have the producer drive a latch and leave Bus_Read a pure read-reset.
    end Source_Bus;
 
    --  Display data bus -- "fired on write". Holds the traffic-light state and
@@ -38,10 +39,12 @@ is
    --  the consumer procedure so the core loop (producer) stays ignorant of the
    --  display implementation (design/architecture.md §The core loop).
    generic
-      with procedure Consume (S : States.Display_State);
+      with procedure Bus_Read (S : States.Display_State);
+      --  Consumer side (display): reads the state of the traffic lights from
+      --  the bus and renders it to the display.
    package Display_Bus is
+      procedure Bus_Write (S : States.Display_State);
       --  Producer side (core): push the state to the consumer synchronously.
-      procedure Write (S : States.Display_State);
    end Display_Bus;
 
 end Buses;

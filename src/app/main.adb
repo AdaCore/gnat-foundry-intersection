@@ -12,16 +12,16 @@ with State_Machine_Loop;
 
 procedure Main is
    --  Wire the buses: each instantiation binds one bus end to its HAL side.
-   package Source_Wire is new Buses.Source_Bus (Activate => Sources.Sample);
-   package Display_Wire is new Buses.Display_Bus (Consume => Display.Show);
+   package Source_Wire is new Buses.Source_Bus (Bus_Write => Sources.Sample);
+   package Display_Wire is new Buses.Display_Bus (Bus_Read => Display.Show);
 
    --  Instantiate the generic core loop against the consumer side of the
    --  source bus, the producer side of the display bus, and the HAL delay.
    procedure Run is new
      State_Machine_Loop
        (Delay_For     => Timings.Delay_For,
-        Read_Sources  => Source_Wire.Read,
-        Write_Display => Display_Wire.Write);
+        Read_Sources  => Source_Wire.Bus_Read,
+        Write_Display => Display_Wire.Bus_Write);
 begin
    Display.Initialize;
    Display.Diag_Write_Line ("startup");
