@@ -21,6 +21,8 @@ context: |-
   checkable obligation.
 
 description:
+  # ---- standard-fixed durations ----
+
   1:
     text: |-
       The controller shall use a WALK interval (T_WALK) of 7 seconds.
@@ -60,6 +62,8 @@ description:
     source:
       - CONOPS §2.8
 
+  # ---- per-intersection policy, bounded not valued ----
+
   7:
     text: |-
       The controller shall make each axis's service slot (T_AXIS), from the start of
@@ -84,6 +88,8 @@ description:
       or lagging (T_LAG), to no more than half of its axis's service slot (T_AXIS / 2).
     derived: true
 
+  # ---- pedestrian conflict buffer (static margin) ----
+
   10:
     text: |-
       The controller shall hold the output signal of every vehicular movement that
@@ -94,6 +100,8 @@ description:
       - CONOPS §3.4
       - CONOPS §3.5
 
+  # ---- fixed-slot premise (margin soundness) ----
+
   11:
     text: |-
       The controller shall run each axis's service slot for its full scheduled
@@ -101,6 +109,8 @@ description:
       absence of vehicular demand.
     source:
       - CONOPS §5.1
+
+  # ---- both-through floor (T_AXIS sizing) ----
 
   12:
     text: |-

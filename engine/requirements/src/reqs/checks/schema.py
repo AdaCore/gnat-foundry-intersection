@@ -11,7 +11,7 @@ Layered checks:
   Schema (JSON Schema 2020-12, ``schema/requirement.schema.json``)
     - field types, required fields, unknown-key rejection (additionalProperties:false,
       so ``test_cases`` and other unknown keys are errors)
-    - `source` XOR `derived` (oneOf) on HLR statements
+    - `source` XOR `derived` on HLR statements (oneOf)
     - non-empty string values
 
   Structural (this module)
@@ -273,7 +273,7 @@ class RequirementChecker:
                     continue  # schema already flagged a malformed statement
                 parents = statement.get("parent_req")
                 if not isinstance(parents, list):
-                    continue  # absent (derived) or malformed (the schema's job)
+                    continue  # schema already flagged a malformed/missing parent_req
                 loc = ("description", _number(key), "parent_req")
                 line = lines.get(loc) or lines.get(loc[:2])
                 for parent in parents:

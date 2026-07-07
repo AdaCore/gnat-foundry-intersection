@@ -1,4 +1,4 @@
-# E-SCHEMA: an LLR statement must carry parent_req.
+# E-SCHEMA: an LLR must declare parent_req (required).
 visibility: compiler
 description:
   1:

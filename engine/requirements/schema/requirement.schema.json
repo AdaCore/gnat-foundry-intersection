@@ -13,9 +13,7 @@
       "$comment": "One atomic shall-statement. Its trace is carried per-statement: exactly one of `source` / `derived` (oneOf: both-present yields two matches and fails; neither yields zero and fails -- an HLR statement that traces nowhere must be explicitly marked derived).",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "text"
-      ],
+      "required": ["text"],
       "oneOf": [
         { "required": ["source"] },
         { "required": ["derived"] }
@@ -27,9 +25,7 @@
         },
         "source": { "$ref": "#/$defs/refList" },
         "derived": { "const": true },
-        "terminal": {
-          "const": true
-        }
+        "terminal": { "const": true }
       }
     },
     "hlrDescriptionMap": {
@@ -78,9 +74,7 @@
       ],
       "properties": {
         "context": { "type": "string", "minLength": 1 },
-        "description": {
-          "$ref": "#/$defs/hlrDescriptionMap"
-        },
+        "description": { "$ref": "#/$defs/hlrDescriptionMap" },
         "rationale": { "type": "string", "minLength": 1 }
       }
     },
@@ -95,9 +89,7 @@
           "minLength": 1
         },
         "context": { "type": "string", "minLength": 1 },
-        "description": {
-          "$ref": "#/$defs/llrDescriptionMap"
-        },
+        "description": { "$ref": "#/$defs/llrDescriptionMap" },
         "preconditions": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }

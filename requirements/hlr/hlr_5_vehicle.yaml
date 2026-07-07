@@ -40,6 +40,8 @@ context: |-
   block, rotated 90 degrees.
 
 description:
+  # ============================ NS axis ============================
+
   1:
     text: |-
       While the controller is in NORMAL_OPERATION, the controller shall visit the
@@ -51,6 +53,8 @@ description:
     source:
       - CONOPS §5.1
       - CONOPS §2.6
+
+  # ---- NS Moore outputs (all unlisted faces held RED) ----
 
   2:
     text: |-
@@ -143,6 +147,8 @@ description:
       - CONOPS §2.1
       - CONOPS §2.8
 
+  # ---- NS transitions (entry from the EW barrier; Northbound left leads) ----
+
   12:
     text: |-
       While the controller is in EW_BARRIER_ALLRED and the Northbound left-turn
@@ -233,6 +239,8 @@ description:
     source:
       - CONOPS §2.5
 
+  # ============================ EW axis ============================
+
   24:
     text: |-
       While the controller is in NORMAL_OPERATION, the controller shall visit the
@@ -244,6 +252,8 @@ description:
     source:
       - CONOPS §5.1
       - CONOPS §2.6
+
+  # ---- EW Moore outputs (all unlisted faces held RED) ----
 
   25:
     text: |-
@@ -336,6 +346,8 @@ description:
       - CONOPS §2.1
       - CONOPS §2.8
 
+  # ---- EW transitions (entry from the NS barrier; Eastbound left leads) ----
+
   35:
     text: |-
       While the controller is in NS_BARRIER_ALLRED and the Eastbound left-turn demand
@@ -425,6 +437,8 @@ description:
       controller shall enter EW_BARRIER_ALLRED.
     source:
       - CONOPS §2.5
+
+  # ============================ power-on entry ============================
 
   47:
     text: |-

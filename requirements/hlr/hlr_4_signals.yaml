@@ -23,6 +23,8 @@ context: |-
   driven only in FAULT, likewise per `2_fault`.
 
 description:
+  # ---- output signals (driven by the controller) ----
+
   1:
     text: |-
       The controller shall drive each of the eight vehicle face output signals
@@ -47,6 +49,8 @@ description:
       only to NO_REQUEST or REQUEST_PENDING.
     source:
       - CONOPS §4.2
+
+  # ---- input signals (read by the controller) ----
 
   4:
     text: |-

@@ -60,6 +60,8 @@ description:
     source:
       - CONOPS §4.1
 
+  # ---- PENDING_PEDESTRIAN_REQUEST ----
+
   6:
     text: |-
       While a crosswalk's pedestrian control machine is in PENDING_PEDESTRIAN_REQUEST,
@@ -86,6 +88,8 @@ description:
     source:
       - CONOPS §4.3
       - CONOPS §3.8
+
+  # ---- SERVING_PEDESTRIAN_REQUEST (superstate; WALK_INTERVAL → CHANGE_INTERVAL → BUFFER_INTERVAL) ----
 
   9:
     text: |-
@@ -132,6 +136,8 @@ description:
       SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL for that crosswalk.
     source:
       - CONOPS §3.5
+
+  # ---- SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL (steady DON'T WALK clearance buffer) ----
 
   14:
     text: |-
