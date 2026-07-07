@@ -170,8 +170,8 @@ Keep these apart:
   ID = `<stem>.<number>`. Keys are **integers contiguous from 1**; a dotted
   `2.3.1` is sketch-only and fails schema — flatten before it is real.
 - HLR keys: **`source`** (list of CONOPS refs) **XOR** `derived: true`; optional
-  `context`, `description`, `rationale`. Schema:
-  `engine/requirements/schema/requirement.schema.json`.
+  `context`, `description`, `rationale`. Schema: the pydantic models in
+  `engine/requirements/src/reqs/document.py`.
 - **Organize by cohesion, not by verification method or micro-concern.** One state
   machine = one file (states, outputs, transitions together), even though its
   statements verify differently. The old "one requirement per file" default does

@@ -57,9 +57,9 @@ def statement_text(statement: object) -> str | None:
     Return a statement's prose text, or None if its shape is malformed.
 
     Statements at both levels are objects carrying their own trace (``{text,
-    source|parent_req|derived, ...}``). The EARS and RS.3 lints read prose
-    through here; a malformed statement returns None and is left for the schema
-    check to report.
+    source|parent_req|derived, ...}``). The EARS lint reads prose through here;
+    a malformed statement returns None and is left for the schema check to
+    report.
     """
     if isinstance(statement, dict):
         text = statement.get("text")
@@ -74,10 +74,6 @@ def project_root() -> Path:
         if (parent / "pyproject.toml").is_file():
             return parent
     raise RuntimeError("could not locate project root (no pyproject.toml found)")  # noqa: TRY003
-
-
-def schema_path() -> Path:
-    return project_root() / "schema" / "requirement.schema.json"
 
 
 @dataclass

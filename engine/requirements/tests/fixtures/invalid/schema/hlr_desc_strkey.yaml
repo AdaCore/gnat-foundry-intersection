@@ -1,0 +1,5 @@
+# E-SCHEMA: description keys must be integers.
+description:
+  "1":
+    text: The widget shall do the thing.
+    derived: true

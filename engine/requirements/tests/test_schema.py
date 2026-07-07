@@ -33,8 +33,10 @@ NEGATIVE_CASES = [
     ("source XOR derived (both)", ["hlr_both_source_derived.yaml"], "E-SCHEMA", "error"),
     ("source XOR derived (neither)", ["hlr_neither_source_derived.yaml"], "E-SCHEMA", "error"),
     ("description key gap", ["hlr_desc_gap.yaml"], "E-DESCKEY", "error"),
+    ("non-integer description key", ["hlr_desc_strkey.yaml"], "E-SCHEMA", "error"),
     ("duplicate description key", ["hlr_desc_dup.yaml"], "E-DESCKEY-DUP", "error"),
     ("empty description statement", ["hlr_desc_empty.yaml"], "E-SCHEMA", "error"),
+    ("explicit null rejected", ["hlr_terminal_null.yaml"], "E-SCHEMA", "error"),
     ("visibility must be non-empty string", ["llr_bad_visibility.yaml"], "E-SCHEMA", "error"),
     ("bad filename prefix", ["badprefix.yaml"], "E-PREFIX", "error"),
     ("two shall in a statement", ["hlr_two_shall.yaml"], "W-RS3", "warning"),
@@ -58,6 +60,27 @@ NEGATIVE_CASES = [
 def test_negative_fixture_fires(files: list[str], code: str, level: str) -> None:
     diags = validate_paths([FIX / f for f in files])
     assert (code, level) in {(d.code, d.level) for d in diags}
+
+
+def test_duplicate_stem_resolves_into_first_file_only() -> None:
+    """
+    A duplicated container stem resolves into the first file only.
+
+    The stem is an E-DUPID: `hlr_dup_stem.2` exists only in the second file
+    (reported as duplicate), so referencing it is a miss; `hlr_dup_stem.1` is
+    found in a file that reported no duplicates, so referencing it is valid.
+    """
+    diags = validate_paths(
+        [
+            FIX / "dup_stem" / "first" / "hlr_dup_stem.yaml",
+            FIX / "dup_stem" / "second" / "hlr_dup_stem.yaml",
+            FIX / "dup_stem" / "llr_dup_stem_ref.yaml",
+        ]
+    )
+    assert "E-DUPID" in {d.code for d in diags}
+    missing = [d for d in diags if d.code == "W-PARENT-MISSING"]
+    assert [d for d in missing if "hlr_dup_stem.2" in d.message], missing
+    assert not [d for d in missing if "hlr_dup_stem.1" in d.message], missing
 
 
 def test_missing_path_reports_clean_diagnostic(tmp_path: Path) -> None:

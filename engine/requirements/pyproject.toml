@@ -9,9 +9,9 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6",
-    "jsonschema>=4.18",
     "typer>=0.12",
     "rich>=13",
+    "pydantic>=2.13.4",
 ]
 
 [project.scripts]
@@ -24,7 +24,6 @@ dev = [
     "mypy>=1.10",
     "ruff>=0.6",
     "types-PyYAML>=6",
-    "types-jsonschema>=4.18",
 ]
 
 [build-system]
@@ -131,6 +130,7 @@ ignore = [
 
 [tool.ruff.lint.flake8-type-checking]
 runtime-evaluated-decorators = ["typer.Typer.command"]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
@@ -139,6 +139,7 @@ combine-as-imports = true
 python_version = "3.11"
 files = ["src", "tests"]
 mypy_path = ["src"]
+plugins = "pydantic.mypy"
 namespace_packages = true
 explicit_package_bases = true
 strict = true

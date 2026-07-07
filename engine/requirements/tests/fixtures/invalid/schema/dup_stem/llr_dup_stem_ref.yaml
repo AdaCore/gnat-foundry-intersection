@@ -1,0 +1,10 @@
+# Companion for the E-DUPID resolution case: refers into the duplicated stem.
+# hlr_dup_stem.1 resolves (the first file has it); hlr_dup_stem.2 exists only
+# in the second (which is reported as a duplicate).
+visibility: compiler
+description:
+  1:
+    text: The widget shall do the dependent thing.
+    parent_req:
+      - hlr_dup_stem.1
+      - hlr_dup_stem.2

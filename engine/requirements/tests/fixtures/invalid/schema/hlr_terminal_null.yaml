@@ -1,0 +1,6 @@
+# E-SCHEMA: an explicit null is not a valid way to omit optional keys.
+description:
+  1:
+    text: The widget shall do the thing.
+    derived: true
+    terminal: null

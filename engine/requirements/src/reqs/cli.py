@@ -53,7 +53,7 @@ def validate_schema(
     ),
     quiet: bool = _QUIET,
 ) -> None:
-    """Validate against the JSON Schema plus the structural/RS.3 rules."""
+    """Validate against the schema plus the structural/RS.3 rules."""
     diags = RequirementChecker(complete=complete).check(paths)
     raise typer.Exit(report(diags, paths, quiet=quiet))
 
