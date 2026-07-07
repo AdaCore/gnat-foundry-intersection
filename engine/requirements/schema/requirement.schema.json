@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://serotonic/engine/requirements/requirement.schema.json",
   "title": "Requirement file (YAML)",
-  "description": "Structural contract for requirement YAML files under engine/requirements/. A file is a requirement *container*; its `description` map holds the numbered shall-statements, each an object carrying its own upward trace (`source` for HLR, `parent_req` for LLR -- XOR `derived`). The file's level is determined by its filename prefix: `hlr_` -> high-level (validate against $defs/hlr), `llr_` -> low-level (validate against $defs/llr). Cross-field and cross-file rules that JSON Schema cannot express (description-key contiguity, RS.2 ID uniqueness, parent_req referential integrity, the RS.3 one-shall lint) are enforced by src/reqs/checks/schema.py.",
+  "description": "Structural contract for requirement YAML files under engine/requirements/. A file is a requirement *container*; its `description` map holds the numbered shall-statements, each an object carrying its own upward trace (`source` XOR `derived` for HLR, `parent_req` for LLR). The file's level is determined by its filename prefix: `hlr_` -> high-level (validate against $defs/hlr), `llr_` -> low-level (validate against $defs/llr). Cross-field and cross-file rules that JSON Schema cannot express (description-key contiguity, RS.2 ID uniqueness, parent_req referential integrity, the RS.3 one-shall lint) are enforced by src/reqs/checks/schema.py.",
   "$defs": {
     "refList": {
       "type": "array",
@@ -44,23 +44,19 @@
       }
     },
     "llrStatement": {
-      "$comment": "One atomic shall-statement. Its trace is carried per-statement: exactly one of `parent_req` / `derived` (oneOf: both-present yields two matches and fails; neither yields zero and fails -- an LLR statement that refines no HLR statement must be explicitly marked derived).",
+      "$comment": "One atomic shall-statement. Its trace is carried per-statement in `parent_req`.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "text"
-      ],
-      "oneOf": [
-        { "required": ["parent_req"] },
-        { "required": ["derived"] }
+        "text",
+        "parent_req"
       ],
       "properties": {
         "text": {
           "type": "string",
           "minLength": 1
         },
-        "parent_req": { "$ref": "#/$defs/refList" },
-        "derived": { "const": true }
+        "parent_req": { "$ref": "#/$defs/refList" }
       }
     },
     "llrDescriptionMap": {

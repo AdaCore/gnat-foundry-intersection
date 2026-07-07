@@ -11,8 +11,7 @@ Layered checks:
   Schema (JSON Schema 2020-12, ``schema/requirement.schema.json``)
     - field types, required fields, unknown-key rejection (additionalProperties:false,
       so ``test_cases`` and other unknown keys are errors)
-    - up-ref (`source` on HLR statements, `parent_req` on LLR statements) XOR
-      `derived` (oneOf) on each statement
+    - `source` XOR `derived` (oneOf) on HLR statements
     - non-empty string values
 
   Structural (this module)

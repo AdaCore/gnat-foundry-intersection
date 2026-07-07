@@ -38,8 +38,8 @@ NEGATIVE_CASES = [
     ("visibility must be non-empty string", ["llr_bad_visibility.yaml"], "E-SCHEMA", "error"),
     ("bad filename prefix", ["badprefix.yaml"], "E-PREFIX", "error"),
     ("two shall in a statement", ["hlr_two_shall.yaml"], "W-RS3", "warning"),
-    ("parent_req XOR derived (neither)", ["llr_no_parent.yaml"], "E-SCHEMA", "error"),
-    ("parent_req XOR derived (both)", ["llr_both_parent_derived.yaml"], "E-SCHEMA", "error"),
+    ("LLR statement missing parent_req", ["llr_no_parent.yaml"], "E-SCHEMA", "error"),
+    ("derived on LLR", ["llr_derived.yaml"], "E-SCHEMA", "error"),
     (
         "parent_req points to an LLR",
         ["llr_parent_is_llr.yaml", "llr_target_1.yaml"],

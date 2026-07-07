@@ -41,7 +41,8 @@ description:
     text: |-
       When Llen or Rlen are not multiples of 8, the Bit_And procedure shall perform
       the bitwise operation on all bits up to the next full byte.
-    derived: true
+    parent_req:
+      - hlr_BitOperations_1.1
 
   5:
     text: |-

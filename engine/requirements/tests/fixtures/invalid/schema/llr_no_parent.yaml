@@ -1,5 +1,4 @@
-# E-SCHEMA: an LLR statement must carry exactly one of parent_req / derived;
-# here it has neither.
+# E-SCHEMA: an LLR statement must carry parent_req.
 visibility: compiler
 description:
   1:
