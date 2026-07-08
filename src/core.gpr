@@ -1,7 +1,10 @@
 with "../config/traffic_light_config.gpr";
 --  NOTE: this project should not import hal*.gpr. See design/architecture.md.
+--  It depends on types.gpr only (core -> types): the core loop needs the
+--  States vocabulary but must stay ignorant of the hardware.
 
 with "shared.gpr";
+with "types.gpr";
 
 project Core is
 
