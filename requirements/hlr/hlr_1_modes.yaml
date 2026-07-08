@@ -31,7 +31,8 @@ description:
   2:
     text: |-
       When the controller starts up, the controller shall enter NORMAL_OPERATION.
-    derived: true
+    source:
+      - CONOPS §5.3
 
   3:
     text: |-

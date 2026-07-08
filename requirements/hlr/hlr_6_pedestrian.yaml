@@ -35,7 +35,8 @@ description:
     text: |-
       When the controller starts up, the controller shall place each crosswalk's
       pedestrian control machine in NO_PEDESTRIAN_REQUEST.
-    derived: true
+    source:
+      - CONOPS §5.3
 
   3:
     text: |-

@@ -443,7 +443,8 @@ description:
   47:
     text: |-
       When the controller starts up, the controller shall enter EW_BARRIER_ALLRED.
-    derived: true  # init; see TODO — MUTCD 4G.04.01.B
+    source:
+      - CONOPS §5.3
 
 rationale: |-
   A single serialized Moore machine over both axes: every face value is a function
