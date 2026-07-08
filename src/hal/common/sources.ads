@@ -11,7 +11,7 @@ package Sources is
    --  is exactly the signature of Buses.Source_Bus's generic formal Activate,
    --  so `app` can instantiate the source bus directly against it:
    --
-   --     package Source is new Buses.Source_Bus (Activate => Sources.Sample);
+   --     package Source is new Buses.Source_Bus (Bus_Write => Sources.Sample);
    --
    --  It replaces the old ad-hoc Read_Button / Read_Cmd_Byte surface.
    procedure Sample (Value : out States.Sensors_State);

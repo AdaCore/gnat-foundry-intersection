@@ -14,7 +14,7 @@ package Display is
    --  Buses.Display_Bus's generic formal Consume, so `app` can instantiate the
    --  display bus directly against it:
    --
-   --     package Sink is new Buses.Display_Bus (Consume => Display.Show);
+   --     package Sink is new Buses.Display_Bus (Bus_Read => Display.Show);
    --
    --  It absorbs the old Set_Through_Lamp / Set_Left_Lamp / Set_Walk /
    --  Set_Dont_Walk surface.
