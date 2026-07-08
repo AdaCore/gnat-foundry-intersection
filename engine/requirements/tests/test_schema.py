@@ -40,6 +40,7 @@ NEGATIVE_CASES = [
     ("two shall in a statement", ["hlr_two_shall.yaml"], "W-RS3", "warning"),
     ("LLR missing parent_req", ["llr_no_parent.yaml"], "E-SCHEMA", "error"),
     ("derived on LLR", ["llr_derived.yaml"], "E-SCHEMA", "error"),
+    ("terminal rejected", ["hlr_terminal.yaml"], "E-SCHEMA", "error"),
     (
         "parent_req points to an LLR",
         ["llr_parent_is_llr.yaml", "llr_target_1.yaml"],

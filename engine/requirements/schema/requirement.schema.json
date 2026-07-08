@@ -24,8 +24,7 @@
           "minLength": 1
         },
         "source": { "$ref": "#/$defs/refList" },
-        "derived": { "const": true },
-        "terminal": { "const": true }
+        "derived": { "const": true }
       }
     },
     "hlrDescriptionMap": {

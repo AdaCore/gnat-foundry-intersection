@@ -170,8 +170,7 @@ Keep these apart:
   ID = `<stem>.<number>`. Keys are **integers contiguous from 1**; a dotted
   `2.3.1` is sketch-only and fails schema — flatten before it is real.
 - Each statement is a map: **`text`** (the shall-statement) plus its trace —
-  **`source`** (list of CONOPS refs) **XOR** `derived: true`; optional
-  `terminal: true` (not further decomposed).
+  **`source`** (list of CONOPS refs) **XOR** `derived: true`.
 - HLR keys: `description` plus optional `context`, `rationale`. Schema:
   `engine/requirements/schema/requirement.schema.json`.
 - **Organize by cohesion, not by verification method or micro-concern.** One state
