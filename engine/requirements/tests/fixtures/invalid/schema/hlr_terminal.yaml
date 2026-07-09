@@ -1,0 +1,7 @@
+# E-SCHEMA: `terminal` was removed from the format and must be rejected.
+description:
+  1:
+    text: The widget shall do the thing.
+    source:
+      - SPEC 1(1)
+    terminal: true

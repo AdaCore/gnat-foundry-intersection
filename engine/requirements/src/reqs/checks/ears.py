@@ -33,6 +33,7 @@ from reqs.core import (
     iter_yaml_files,
     load_yaml,
     prose,
+    statement_text,
 )
 
 EARS_OPTOUT = "ears:skip"
@@ -89,9 +90,10 @@ class EarsChecker:
                 continue  # structural problems are the schema check's job
 
             for key, statement in desc.items():
-                if not isinstance(statement, str) or EARS_OPTOUT in statement:
+                raw = statement_text(statement)
+                if raw is None or EARS_OPTOUT in raw:
                     continue
-                text = prose(statement)
+                text = prose(raw)
                 if text and classify(text) is None:
                     code, msg = diagnose(text)
                     diags.append(
@@ -100,7 +102,8 @@ class EarsChecker:
                             code,
                             msg,
                             path,
-                            line=lines.get(("description", str(key))),
+                            line=lines.get(("description", str(key), "text"))
+                            or lines.get(("description", str(key))),
                             path=("description", str(key)),
                         )
                     )

@@ -1,0 +1,8 @@
+# E-SCHEMA: derived is HLR-only.
+visibility: compiler
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_Widget_1.1
+    derived: true

@@ -1,4 +1,5 @@
 # E-EARS-CASE: the EARS keyword must be capitalized.
-derived: True
 description:
-  1: when the button is pressed, the system shall beep.
+  1:
+    text: when the button is pressed, the system shall beep.
+    derived: true

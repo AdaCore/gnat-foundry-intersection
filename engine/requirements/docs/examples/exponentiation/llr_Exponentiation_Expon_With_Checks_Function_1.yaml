@@ -1,42 +1,51 @@
-parent_req:
-  - hlr_Exponentiation_Int_1.1
-  - hlr_Exponentiation_Int_1.2
-  - hlr_Exponentiation_Int_1.3
-  - hlr_Exponentiation_Int_2.1
-
 visibility: compiler
 
 context:
   Given `Int` the `Integer` or `Long_Long_Integer` type.
 
 description:
-  1: |-
-    The RTL shall implement the `Expon` function in the `System.Expont` package
-    with the following specification:
+  1:
+    text: |-
+      The RTL shall implement the `Expon` function in the `System.Expont` package
+      with the following specification:
 
-    ```ada
-    function Expon (Left : Int; Right : Natural) return Int;
-    -- Left: The base of the exponentiation of type Int
-    -- Right: The exponent of type Natural
-    -- Expon'Result: the exponentiation of Left by Right
-    ```
+      ```ada
+      function Expon (Left : Int; Right : Natural) return Int;
+      -- Left: The base of the exponentiation of type Int
+      -- Right: The exponent of type Natural
+      -- Expon'Result: the exponentiation of Left by Right
+      ```
+    parent_req:
+      - hlr_Exponentiation_Int_1.1
 
-  2: |-
-    When `Right` is strictly positive, the `Expon` function of the `System.Expont`
-    package shall return the result of the multiplication of `Left` by itself
-    `Right - 1` times.
+  2:
+    text: |-
+      When `Right` is strictly positive, the `Expon` function of the `System.Expont`
+      package shall return the result of the multiplication of `Left` by itself
+      `Right - 1` times.
+    parent_req:
+      - hlr_Exponentiation_Int_1.2
 
-  3: |-
-    When `Right` is equal to 0, the `Expon` function of the `System.Expont`
-    package shall return 1.
+  3:
+    text: |-
+      When `Right` is equal to 0, the `Expon` function of the `System.Expont`
+      package shall return 1.
+    parent_req:
+      - hlr_Exponentiation_Int_1.3
 
-  4: |-
-    When `Right` is different from 0 and `Left` is equal to 0, the `Expon`
-    function of the `System.Expont` package shall return 0.
+  4:
+    text: |-
+      When `Right` is different from 0 and `Left` is equal to 0, the `Expon`
+      function of the `System.Expont` package shall return 0.
+    parent_req:
+      - hlr_Exponentiation_Int_1.2
 
-  5: |-
-    When the multiplications result in an overflow, the `Expon` function of the
-    `System.Expont` package shall raise `Constraint_Error`.
+  5:
+    text: |-
+      When the multiplications result in an overflow, the `Expon` function of the
+      `System.Expont` package shall raise `Constraint_Error`.
+    parent_req:
+      - hlr_Exponentiation_Int_2.1
 
 implemented_by:
   - System.Exp_Int

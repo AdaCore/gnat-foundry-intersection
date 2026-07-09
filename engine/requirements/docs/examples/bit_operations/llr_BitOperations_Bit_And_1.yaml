@@ -1,45 +1,55 @@
-parent_req:
-  - hlr_BitOperations_1.1
-  - hlr_BitOperations_LogicalOperators_1.1
-  - hlr_BitOperations_LogicalOperators_1.2
-  - hlr_BitOperations_LogicalOperators_1.4
-
 visibility: compiler
 
 description:
-  1: |-
-    The RTL shall implement the Bit_And procedure following the specification:
+  1:
+    text: |-
+      The RTL shall implement the Bit_And procedure following the specification:
 
-    ```ada
-    procedure Bit_And  (Left   : System.Address;
-                        Llen   : Natural;
-                        Right  : System.Address;
-                        Rlen   : Natural;
-                        Result : System.Address)
+      ```ada
+      procedure Bit_And  (Left   : System.Address;
+                          Llen   : Natural;
+                          Right  : System.Address;
+                          Rlen   : Natural;
+                          Result : System.Address)
 
-    -- Left: address of left bit-packed array
-    -- Llen: number of bits to process, starting from the `Left` address
-    -- Right: address of right bit-packed array
-    -- Rlen: number of bits to process, starting from the `Right` address
-    -- Result: address of the result of the bitwise "and" operation
-    ```
+      -- Left: address of left bit-packed array
+      -- Llen: number of bits to process, starting from the `Left` address
+      -- Right: address of right bit-packed array
+      -- Rlen: number of bits to process, starting from the `Right` address
+      -- Result: address of the result of the bitwise "and" operation
+      ```
+    parent_req:
+      - hlr_BitOperations_1.1
+      - hlr_BitOperations_LogicalOperators_1.1
 
-  2: |-
-    The procedure Bit_And shall perform a bitwise "and" operation on the first
-    Llen bits of the bit-packed array located at address Left and the first Rlen
-    bits of the bit-packed array located at address Right.
+  2:
+    text: |-
+      The procedure Bit_And shall perform a bitwise "and" operation on the first
+      Llen bits of the bit-packed array located at address Left and the first Rlen
+      bits of the bit-packed array located at address Right.
+    parent_req:
+      - hlr_BitOperations_LogicalOperators_1.2
 
-  3: |-
-    The result of the Bit_And procedure shall be stored in the memory area
-    referenced by Result.
+  3:
+    text: |-
+      The result of the Bit_And procedure shall be stored in the memory area
+      referenced by Result.
+    parent_req:
+      - hlr_BitOperations_1.1
 
-  4: |-
-    When Llen or Rlen are not multiples of 8, the Bit_And procedure shall perform
-    the bitwise operation on all bits up to the next full byte.
+  4:
+    text: |-
+      When Llen or Rlen are not multiples of 8, the Bit_And procedure shall perform
+      the bitwise operation on all bits up to the next full byte.
+    parent_req:
+      - hlr_BitOperations_1.1
 
-  5: |-
-    If Llen and Rlen are different, then the procedure Bit_And shall raise a
-    Constraint_Error.
+  5:
+    text: |-
+      If Llen and Rlen are different, then the procedure Bit_And shall raise a
+      Constraint_Error.
+    parent_req:
+      - hlr_BitOperations_LogicalOperators_1.4
 
 preconditions:
   - Llen > 0

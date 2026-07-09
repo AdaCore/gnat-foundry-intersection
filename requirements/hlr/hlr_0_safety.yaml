@@ -1,8 +1,3 @@
-source:
-  - CONOPS §2.8
-  - CONOPS §3.4
-  - CONOPS §3.5
-
 context: |-
   Cross-machine safety invariants — the safety properties that constrain the
   controller as a whole and that no single machine owns. Each per-machine file
@@ -20,17 +15,22 @@ context: |-
   invariant is not satisfied until its discharge, that discharge's binding, and its
   premises are all in place — treat them as one coupled work item.
 
-  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
-  below, since the format's `source:` is container-level only.
-
 description:
-  1: |-                                  # CONOPS §3.4, §3.5
-    While a crosswalk's pedestrian control machine is in SERVING_PEDESTRIAN_REQUEST,
-    the controller shall hold every vehicle face output signal that conflicts with
-    that crosswalk at RED.
-  2: |-                                  # CONOPS §2.8
-    The controller shall never drive two conflicting vehicle face output signals
-    to GREEN or YELLOW at the same time.
+  1:
+    text: |-
+      While a crosswalk's pedestrian control machine is in SERVING_PEDESTRIAN_REQUEST,
+      the controller shall hold every vehicle face output signal that conflicts with
+      that crosswalk at RED.
+    source:
+      - CONOPS §3.4
+      - CONOPS §3.5
+
+  2:
+    text: |-
+      The controller shall never drive two conflicting vehicle face output signals
+      to GREEN or YELLOW at the same time.
+    source:
+      - CONOPS §2.8
 
 rationale: |-
   **The pedestrian-conflict invariant (1)** is CONOPS §3.4 and §3.5 — both MUTCD

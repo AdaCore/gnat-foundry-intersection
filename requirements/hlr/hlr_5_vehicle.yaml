@@ -1,12 +1,3 @@
-source:
-  - CONOPS §2.1
-  - CONOPS §2.2
-  - CONOPS §2.5
-  - CONOPS §2.6
-  - CONOPS §2.7
-  - CONOPS §2.8
-  - CONOPS §5.1
-
 context: |-
   This is the vehicle phase sequencer, a region of the NORMAL_OPERATION mode
   (`1_modes`). It serves the NS and EW axes alternately, each through a lead-lag
@@ -48,193 +39,412 @@ context: |-
   demand machine is in NO_LEFT_DEMAND. The EW block is the exact mirror of the NS
   block, rotated 90 degrees.
 
-  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
-  below, since the format's `source:` is container-level only.
-
 description:
   # ============================ NS axis ============================
-  1: |-                                  # CONOPS §5.1, §2.6
-    While the controller is in NORMAL_OPERATION, the controller shall visit the
-    NS-axis states N_LEAD, N_LEAD_YELLOW, N_LEAD_CLEAR, NS_BOTH_THROUGH,
-    N_DROP_YELLOW, N_DROP_CLEAR, S_LAG, S_LAG_YELLOW, NS_BOTH_DROP_YELLOW, and
-    NS_BARRIER_ALLRED only in that relative order; on any given cycle a state
-    is omitted when it is not reached because a left-turn demand machine is in
-    NO_LEFT_DEMAND (per transitions 12-23).
+
+  1:
+    text: |-
+      While the controller is in NORMAL_OPERATION, the controller shall visit the
+      NS-axis states N_LEAD, N_LEAD_YELLOW, N_LEAD_CLEAR, NS_BOTH_THROUGH,
+      N_DROP_YELLOW, N_DROP_CLEAR, S_LAG, S_LAG_YELLOW, NS_BOTH_DROP_YELLOW, and
+      NS_BARRIER_ALLRED only in that relative order; on any given cycle a state
+      is omitted when it is not reached because a left-turn demand machine is in
+      NO_LEFT_DEMAND (per transitions 12-23).
+    source:
+      - CONOPS §5.1
+      - CONOPS §2.6
 
   # ---- NS Moore outputs (all unlisted faces held RED) ----
-  2: |-                                  # CONOPS §2.1, §2.2, §2.6, §2.7
-    While the controller is in N_LEAD, the controller shall drive the N_thru output
-    signal to GREEN and the N_left output signal to GREEN, and hold all other
-    vehicle output signals at RED.
-  3: |-                                  # CONOPS §2.1, §2.5
-    While the controller is in N_LEAD_YELLOW, the controller shall drive the N_thru
-    output signal to GREEN and the N_left output signal to YELLOW, and hold all
-    other vehicle output signals at RED.
-  4: |-                                  # CONOPS §2.1, §2.5
-    While the controller is in N_LEAD_CLEAR, the controller shall drive the N_thru
-    output signal to GREEN, and hold all other vehicle output signals at RED.
-  5: |-                                  # CONOPS §2.1, §2.2
-    While the controller is in NS_BOTH_THROUGH, the controller shall drive the
-    N_thru output signal and the S_thru output signal to GREEN, and hold all other
-    vehicle output signals at RED.
-  6: |-                                  # CONOPS §2.1, §2.5
-    While the controller is in N_DROP_YELLOW, the controller shall drive the N_thru
-    output signal to YELLOW and the S_thru output signal to GREEN, and hold all
-    other vehicle output signals at RED.
-  7: |-                                  # CONOPS §2.1, §2.5
-    While the controller is in N_DROP_CLEAR, the controller shall drive the S_thru
-    output signal to GREEN, and hold all other vehicle output signals at RED.
-  8: |-                                  # CONOPS §2.1, §2.2, §2.6, §2.7
-    While the controller is in S_LAG, the controller shall drive the S_thru output
-    signal to GREEN and the S_left output signal to GREEN, and hold all other
-    vehicle output signals at RED.
-  9: |-                                  # CONOPS §2.1, §2.5
-    While the controller is in S_LAG_YELLOW, the controller shall drive the S_thru
-    output signal to YELLOW and the S_left output signal to YELLOW, and hold all
-    other vehicle output signals at RED.
-  10: |-                                 # CONOPS §2.1, §2.5
-    While the controller is in NS_BOTH_DROP_YELLOW, the controller shall drive the
-    N_thru output signal and the S_thru output signal to YELLOW, and hold all other
-    vehicle output signals at RED.
-  11: |-                                 # CONOPS §2.1, §2.8
-    While the controller is in NS_BARRIER_ALLRED, the controller shall hold every
-    vehicle output signal at RED.
+
+  2:
+    text: |-
+      While the controller is in N_LEAD, the controller shall drive the N_thru output
+      signal to GREEN and the N_left output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+      - CONOPS §2.6
+      - CONOPS §2.7
+
+  3:
+    text: |-
+      While the controller is in N_LEAD_YELLOW, the controller shall drive the N_thru
+      output signal to GREEN and the N_left output signal to YELLOW, and hold all
+      other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  4:
+    text: |-
+      While the controller is in N_LEAD_CLEAR, the controller shall drive the N_thru
+      output signal to GREEN, and hold all other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  5:
+    text: |-
+      While the controller is in NS_BOTH_THROUGH, the controller shall drive the
+      N_thru output signal and the S_thru output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+
+  6:
+    text: |-
+      While the controller is in N_DROP_YELLOW, the controller shall drive the N_thru
+      output signal to YELLOW and the S_thru output signal to GREEN, and hold all
+      other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  7:
+    text: |-
+      While the controller is in N_DROP_CLEAR, the controller shall drive the S_thru
+      output signal to GREEN, and hold all other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  8:
+    text: |-
+      While the controller is in S_LAG, the controller shall drive the S_thru output
+      signal to GREEN and the S_left output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+      - CONOPS §2.6
+      - CONOPS §2.7
+
+  9:
+    text: |-
+      While the controller is in S_LAG_YELLOW, the controller shall drive the S_thru
+      output signal to YELLOW and the S_left output signal to YELLOW, and hold all
+      other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  10:
+    text: |-
+      While the controller is in NS_BOTH_DROP_YELLOW, the controller shall drive the
+      N_thru output signal and the S_thru output signal to YELLOW, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  11:
+    text: |-
+      While the controller is in NS_BARRIER_ALLRED, the controller shall hold every
+      vehicle output signal at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.8
 
   # ---- NS transitions (entry from the EW barrier; Northbound left leads) ----
-  12: |-                                 # CONOPS §2.6
-    While the controller is in EW_BARRIER_ALLRED and the Northbound left-turn
-    demand machine is in LEFT_DEMAND_PENDING, when T_BARRIER has elapsed, the
-    controller shall enter N_LEAD.
-  13: |-                                 # CONOPS §2.6
-    While the controller is in EW_BARRIER_ALLRED and the Northbound left-turn
-    demand machine is in NO_LEFT_DEMAND, when T_BARRIER has elapsed, the
-    controller shall enter NS_BOTH_THROUGH.
-  14: |-                                 # CONOPS §2.5
-    While the controller is in N_LEAD, when T_LEAD has elapsed, the controller
-    shall enter N_LEAD_YELLOW.
-  15: |-                                 # CONOPS §2.5
-    While the controller is in N_LEAD_YELLOW, when T_YELLOW has elapsed, the
-    controller shall enter N_LEAD_CLEAR.
-  16: |-                                 # CONOPS §2.5, §2.8
-    While the controller is in N_LEAD_CLEAR, when T_REDCLEAR has elapsed, the
-    controller shall enter NS_BOTH_THROUGH.
-  17: |-                                 # CONOPS §2.6
-    While the controller is in NS_BOTH_THROUGH and the Southbound left-turn demand
-    machine is in LEFT_DEMAND_PENDING, when T_BOTH has elapsed, the controller
-    shall enter N_DROP_YELLOW.
-  18: |-                                 # CONOPS §2.6
-    While the controller is in NS_BOTH_THROUGH and the Southbound left-turn demand
-    machine is in NO_LEFT_DEMAND, when T_BOTH has elapsed, the controller shall
-    enter NS_BOTH_DROP_YELLOW.
-  19: |-                                 # CONOPS §2.5
-    While the controller is in N_DROP_YELLOW, when T_YELLOW has elapsed, the
-    controller shall enter N_DROP_CLEAR.
-  20: |-                                 # CONOPS §2.5, §2.8
-    While the controller is in N_DROP_CLEAR, when T_REDCLEAR has elapsed, the
-    controller shall enter S_LAG.
-  21: |-                                 # CONOPS §2.5
-    While the controller is in S_LAG, when T_LAG has elapsed, the controller
-    shall enter S_LAG_YELLOW.
-  22: |-                                 # CONOPS §2.5
-    While the controller is in S_LAG_YELLOW, when T_YELLOW has elapsed, the
-    controller shall enter NS_BARRIER_ALLRED.
-  23: |-                                 # CONOPS §2.5
-    While the controller is in NS_BOTH_DROP_YELLOW, when T_YELLOW has elapsed,
-    the controller shall enter NS_BARRIER_ALLRED.
+
+  12:
+    text: |-
+      While the controller is in EW_BARRIER_ALLRED and the Northbound left-turn
+      demand machine is in LEFT_DEMAND_PENDING, when T_BARRIER has elapsed, the
+      controller shall enter N_LEAD.
+    source:
+      - CONOPS §2.6
+
+  13:
+    text: |-
+      While the controller is in EW_BARRIER_ALLRED and the Northbound left-turn
+      demand machine is in NO_LEFT_DEMAND, when T_BARRIER has elapsed, the
+      controller shall enter NS_BOTH_THROUGH.
+    source:
+      - CONOPS §2.6
+
+  14:
+    text: |-
+      While the controller is in N_LEAD, when T_LEAD has elapsed, the controller
+      shall enter N_LEAD_YELLOW.
+    source:
+      - CONOPS §2.5
+
+  15:
+    text: |-
+      While the controller is in N_LEAD_YELLOW, when T_YELLOW has elapsed, the
+      controller shall enter N_LEAD_CLEAR.
+    source:
+      - CONOPS §2.5
+
+  16:
+    text: |-
+      While the controller is in N_LEAD_CLEAR, when T_REDCLEAR has elapsed, the
+      controller shall enter NS_BOTH_THROUGH.
+    source:
+      - CONOPS §2.5
+      - CONOPS §2.8
+
+  17:
+    text: |-
+      While the controller is in NS_BOTH_THROUGH and the Southbound left-turn demand
+      machine is in LEFT_DEMAND_PENDING, when T_BOTH has elapsed, the controller
+      shall enter N_DROP_YELLOW.
+    source:
+      - CONOPS §2.6
+
+  18:
+    text: |-
+      While the controller is in NS_BOTH_THROUGH and the Southbound left-turn demand
+      machine is in NO_LEFT_DEMAND, when T_BOTH has elapsed, the controller shall
+      enter NS_BOTH_DROP_YELLOW.
+    source:
+      - CONOPS §2.6
+
+  19:
+    text: |-
+      While the controller is in N_DROP_YELLOW, when T_YELLOW has elapsed, the
+      controller shall enter N_DROP_CLEAR.
+    source:
+      - CONOPS §2.5
+
+  20:
+    text: |-
+      While the controller is in N_DROP_CLEAR, when T_REDCLEAR has elapsed, the
+      controller shall enter S_LAG.
+    source:
+      - CONOPS §2.5
+      - CONOPS §2.8
+
+  21:
+    text: |-
+      While the controller is in S_LAG, when T_LAG has elapsed, the controller
+      shall enter S_LAG_YELLOW.
+    source:
+      - CONOPS §2.5
+
+  22:
+    text: |-
+      While the controller is in S_LAG_YELLOW, when T_YELLOW has elapsed, the
+      controller shall enter NS_BARRIER_ALLRED.
+    source:
+      - CONOPS §2.5
+
+  23:
+    text: |-
+      While the controller is in NS_BOTH_DROP_YELLOW, when T_YELLOW has elapsed,
+      the controller shall enter NS_BARRIER_ALLRED.
+    source:
+      - CONOPS §2.5
 
   # ============================ EW axis ============================
-  24: |-                                 # CONOPS §5.1, §2.6
-    While the controller is in NORMAL_OPERATION, the controller shall visit the
-    EW-axis states E_LEAD, E_LEAD_YELLOW, E_LEAD_CLEAR, EW_BOTH_THROUGH,
-    E_DROP_YELLOW, E_DROP_CLEAR, W_LAG, W_LAG_YELLOW, EW_BOTH_DROP_YELLOW, and
-    EW_BARRIER_ALLRED only in that relative order; on any given cycle a state
-    is omitted when it is not reached because a left-turn demand machine is in
-    NO_LEFT_DEMAND (per transitions 35-46).
+
+  24:
+    text: |-
+      While the controller is in NORMAL_OPERATION, the controller shall visit the
+      EW-axis states E_LEAD, E_LEAD_YELLOW, E_LEAD_CLEAR, EW_BOTH_THROUGH,
+      E_DROP_YELLOW, E_DROP_CLEAR, W_LAG, W_LAG_YELLOW, EW_BOTH_DROP_YELLOW, and
+      EW_BARRIER_ALLRED only in that relative order; on any given cycle a state
+      is omitted when it is not reached because a left-turn demand machine is in
+      NO_LEFT_DEMAND (per transitions 35-46).
+    source:
+      - CONOPS §5.1
+      - CONOPS §2.6
 
   # ---- EW Moore outputs (all unlisted faces held RED) ----
-  25: |-                                 # CONOPS §2.1, §2.2, §2.6, §2.7
-    While the controller is in E_LEAD, the controller shall drive the E_thru output
-    signal to GREEN and the E_left output signal to GREEN, and hold all other
-    vehicle output signals at RED.
-  26: |-                                 # CONOPS §2.1, §2.5
-    While the controller is in E_LEAD_YELLOW, the controller shall drive the E_thru
-    output signal to GREEN and the E_left output signal to YELLOW, and hold all
-    other vehicle output signals at RED.
-  27: |-                                 # CONOPS §2.1, §2.5
-    While the controller is in E_LEAD_CLEAR, the controller shall drive the E_thru
-    output signal to GREEN, and hold all other vehicle output signals at RED.
-  28: |-                                 # CONOPS §2.1, §2.2
-    While the controller is in EW_BOTH_THROUGH, the controller shall drive the
-    E_thru output signal and the W_thru output signal to GREEN, and hold all other
-    vehicle output signals at RED.
-  29: |-                                 # CONOPS §2.1, §2.5
-    While the controller is in E_DROP_YELLOW, the controller shall drive the E_thru
-    output signal to YELLOW and the W_thru output signal to GREEN, and hold all
-    other vehicle output signals at RED.
-  30: |-                                 # CONOPS §2.1, §2.5
-    While the controller is in E_DROP_CLEAR, the controller shall drive the W_thru
-    output signal to GREEN, and hold all other vehicle output signals at RED.
-  31: |-                                 # CONOPS §2.1, §2.2, §2.6, §2.7
-    While the controller is in W_LAG, the controller shall drive the W_thru output
-    signal to GREEN and the W_left output signal to GREEN, and hold all other
-    vehicle output signals at RED.
-  32: |-                                 # CONOPS §2.1, §2.5
-    While the controller is in W_LAG_YELLOW, the controller shall drive the W_thru
-    output signal to YELLOW and the W_left output signal to YELLOW, and hold all
-    other vehicle output signals at RED.
-  33: |-                                 # CONOPS §2.1, §2.5
-    While the controller is in EW_BOTH_DROP_YELLOW, the controller shall drive the
-    E_thru output signal and the W_thru output signal to YELLOW, and hold all other
-    vehicle output signals at RED.
-  34: |-                                 # CONOPS §2.1, §2.8
-    While the controller is in EW_BARRIER_ALLRED, the controller shall hold every
-    vehicle output signal at RED.
+
+  25:
+    text: |-
+      While the controller is in E_LEAD, the controller shall drive the E_thru output
+      signal to GREEN and the E_left output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+      - CONOPS §2.6
+      - CONOPS §2.7
+
+  26:
+    text: |-
+      While the controller is in E_LEAD_YELLOW, the controller shall drive the E_thru
+      output signal to GREEN and the E_left output signal to YELLOW, and hold all
+      other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  27:
+    text: |-
+      While the controller is in E_LEAD_CLEAR, the controller shall drive the E_thru
+      output signal to GREEN, and hold all other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  28:
+    text: |-
+      While the controller is in EW_BOTH_THROUGH, the controller shall drive the
+      E_thru output signal and the W_thru output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+
+  29:
+    text: |-
+      While the controller is in E_DROP_YELLOW, the controller shall drive the E_thru
+      output signal to YELLOW and the W_thru output signal to GREEN, and hold all
+      other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  30:
+    text: |-
+      While the controller is in E_DROP_CLEAR, the controller shall drive the W_thru
+      output signal to GREEN, and hold all other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  31:
+    text: |-
+      While the controller is in W_LAG, the controller shall drive the W_thru output
+      signal to GREEN and the W_left output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+      - CONOPS §2.6
+      - CONOPS §2.7
+
+  32:
+    text: |-
+      While the controller is in W_LAG_YELLOW, the controller shall drive the W_thru
+      output signal to YELLOW and the W_left output signal to YELLOW, and hold all
+      other vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  33:
+    text: |-
+      While the controller is in EW_BOTH_DROP_YELLOW, the controller shall drive the
+      E_thru output signal and the W_thru output signal to YELLOW, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.5
+
+  34:
+    text: |-
+      While the controller is in EW_BARRIER_ALLRED, the controller shall hold every
+      vehicle output signal at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.8
 
   # ---- EW transitions (entry from the NS barrier; Eastbound left leads) ----
-  35: |-                                 # CONOPS §2.6
-    While the controller is in NS_BARRIER_ALLRED and the Eastbound left-turn demand
-    machine is in LEFT_DEMAND_PENDING, when T_BARRIER has elapsed, the controller
-    shall enter E_LEAD.
-  36: |-                                 # CONOPS §2.6
-    While the controller is in NS_BARRIER_ALLRED and the Eastbound left-turn demand
-    machine is in NO_LEFT_DEMAND, when T_BARRIER has elapsed, the controller shall
-    enter EW_BOTH_THROUGH.
-  37: |-                                 # CONOPS §2.5
-    While the controller is in E_LEAD, when T_LEAD has elapsed, the controller
-    shall enter E_LEAD_YELLOW.
-  38: |-                                 # CONOPS §2.5
-    While the controller is in E_LEAD_YELLOW, when T_YELLOW has elapsed, the
-    controller shall enter E_LEAD_CLEAR.
-  39: |-                                 # CONOPS §2.5, §2.8
-    While the controller is in E_LEAD_CLEAR, when T_REDCLEAR has elapsed, the
-    controller shall enter EW_BOTH_THROUGH.
-  40: |-                                 # CONOPS §2.6
-    While the controller is in EW_BOTH_THROUGH and the Westbound left-turn demand
-    machine is in LEFT_DEMAND_PENDING, when T_BOTH has elapsed, the controller
-    shall enter E_DROP_YELLOW.
-  41: |-                                 # CONOPS §2.6
-    While the controller is in EW_BOTH_THROUGH and the Westbound left-turn demand
-    machine is in NO_LEFT_DEMAND, when T_BOTH has elapsed, the controller shall
-    enter EW_BOTH_DROP_YELLOW.
-  42: |-                                 # CONOPS §2.5
-    While the controller is in E_DROP_YELLOW, when T_YELLOW has elapsed, the
-    controller shall enter E_DROP_CLEAR.
-  43: |-                                 # CONOPS §2.5, §2.8
-    While the controller is in E_DROP_CLEAR, when T_REDCLEAR has elapsed, the
-    controller shall enter W_LAG.
-  44: |-                                 # CONOPS §2.5
-    While the controller is in W_LAG, when T_LAG has elapsed, the controller
-    shall enter W_LAG_YELLOW.
-  45: |-                                 # CONOPS §2.5
-    While the controller is in W_LAG_YELLOW, when T_YELLOW has elapsed, the
-    controller shall enter EW_BARRIER_ALLRED.
-  46: |-                                 # CONOPS §2.5
-    While the controller is in EW_BOTH_DROP_YELLOW, when T_YELLOW has elapsed, the
-    controller shall enter EW_BARRIER_ALLRED.
+
+  35:
+    text: |-
+      While the controller is in NS_BARRIER_ALLRED and the Eastbound left-turn demand
+      machine is in LEFT_DEMAND_PENDING, when T_BARRIER has elapsed, the controller
+      shall enter E_LEAD.
+    source:
+      - CONOPS §2.6
+
+  36:
+    text: |-
+      While the controller is in NS_BARRIER_ALLRED and the Eastbound left-turn demand
+      machine is in NO_LEFT_DEMAND, when T_BARRIER has elapsed, the controller shall
+      enter EW_BOTH_THROUGH.
+    source:
+      - CONOPS §2.6
+
+  37:
+    text: |-
+      While the controller is in E_LEAD, when T_LEAD has elapsed, the controller
+      shall enter E_LEAD_YELLOW.
+    source:
+      - CONOPS §2.5
+
+  38:
+    text: |-
+      While the controller is in E_LEAD_YELLOW, when T_YELLOW has elapsed, the
+      controller shall enter E_LEAD_CLEAR.
+    source:
+      - CONOPS §2.5
+
+  39:
+    text: |-
+      While the controller is in E_LEAD_CLEAR, when T_REDCLEAR has elapsed, the
+      controller shall enter EW_BOTH_THROUGH.
+    source:
+      - CONOPS §2.5
+      - CONOPS §2.8
+
+  40:
+    text: |-
+      While the controller is in EW_BOTH_THROUGH and the Westbound left-turn demand
+      machine is in LEFT_DEMAND_PENDING, when T_BOTH has elapsed, the controller
+      shall enter E_DROP_YELLOW.
+    source:
+      - CONOPS §2.6
+
+  41:
+    text: |-
+      While the controller is in EW_BOTH_THROUGH and the Westbound left-turn demand
+      machine is in NO_LEFT_DEMAND, when T_BOTH has elapsed, the controller shall
+      enter EW_BOTH_DROP_YELLOW.
+    source:
+      - CONOPS §2.6
+
+  42:
+    text: |-
+      While the controller is in E_DROP_YELLOW, when T_YELLOW has elapsed, the
+      controller shall enter E_DROP_CLEAR.
+    source:
+      - CONOPS §2.5
+
+  43:
+    text: |-
+      While the controller is in E_DROP_CLEAR, when T_REDCLEAR has elapsed, the
+      controller shall enter W_LAG.
+    source:
+      - CONOPS §2.5
+      - CONOPS §2.8
+
+  44:
+    text: |-
+      While the controller is in W_LAG, when T_LAG has elapsed, the controller
+      shall enter W_LAG_YELLOW.
+    source:
+      - CONOPS §2.5
+
+  45:
+    text: |-
+      While the controller is in W_LAG_YELLOW, when T_YELLOW has elapsed, the
+      controller shall enter EW_BARRIER_ALLRED.
+    source:
+      - CONOPS §2.5
+
+  46:
+    text: |-
+      While the controller is in EW_BOTH_DROP_YELLOW, when T_YELLOW has elapsed, the
+      controller shall enter EW_BARRIER_ALLRED.
+    source:
+      - CONOPS §2.5
 
   # ============================ power-on entry ============================
-  47: |-                                 # Derived (init; see TODO — MUTCD 4G.04.01.B)
-    When the controller starts up, the controller shall enter EW_BARRIER_ALLRED.
+
+  47:
+    text: |-
+      When the controller starts up, the controller shall enter EW_BARRIER_ALLRED.
+    source:
+      - CONOPS §5.3
 
 rationale: |-
   A single serialized Moore machine over both axes: every face value is a function

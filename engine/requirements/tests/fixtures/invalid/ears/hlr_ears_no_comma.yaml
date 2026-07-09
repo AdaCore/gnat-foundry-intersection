@@ -1,4 +1,5 @@
 # E-EARS-COMMA: the When clause is not terminated by a comma.
-derived: True
 description:
-  1: When the button is pressed the system shall beep.
+  1:
+    text: When the button is pressed the system shall beep.
+    derived: true

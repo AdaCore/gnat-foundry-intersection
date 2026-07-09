@@ -1,6 +1,10 @@
 # E-DESCKEY: description keys must be contiguous from 1 (here 1, 3 -- gap at 2).
-source:
-  - SPEC 1(1)
 description:
-  1: The widget shall do the first thing.
-  3: The widget shall do the third thing.
+  1:
+    text: The widget shall do the first thing.
+    source:
+      - SPEC 1(1)
+  3:
+    text: The widget shall do the third thing.
+    source:
+      - SPEC 1(1)

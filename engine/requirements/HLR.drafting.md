@@ -169,26 +169,24 @@ Keep these apart:
 - One YAML container per file; `description:` is a map of numbered shall-statements.
   ID = `<stem>.<number>`. Keys are **integers contiguous from 1**; a dotted
   `2.3.1` is sketch-only and fails schema — flatten before it is real.
-- HLR keys: **`source`** (list of CONOPS refs) **XOR** `derived: true`; optional
-  `context`, `description`, `rationale`. Schema:
+- Each statement is a map: **`text`** (the shall-statement) plus its trace —
+  **`source`** (list of CONOPS refs) **XOR** `derived: true`.
+- HLR keys: `description` plus optional `context`, `rationale`. Schema:
   `engine/requirements/schema/requirement.schema.json`.
 - **Organize by cohesion, not by verification method or micro-concern.** One state
   machine = one file (states, outputs, transitions together), even though its
   statements verify differently. The old "one requirement per file" default does
   *not* apply to a machine.
-- **`source` is container-level only.** Until per-statement source exists, carry a
-  per-statement CONOPS trace as a **trailing comment** (`1: |-  # CONOPS §3.6`),
-  `# Derived` where there is none. Cite CONOPS by section anchor (`§3.5`).
 - LLRs trace per-statement via `parent_req`; one LLR file may refine across several
   HLRs.
 
 ## Tracing & completeness
 
-- **Backward** (every HLR → a CONOPS leaf): the per-statement trace comment. No
+- **Backward** (every HLR → a CONOPS leaf): the per-statement `source` key. No
   statement is left untraced.
-- **Derived** (no CONOPS ancestor): mark it, then **push it up** — add a CONOPS
-  decision leaf and re-trace. The recurring Derived buckets are startup defaults,
-  fault-latching, and flow-control policy.
+- **Derived** (no CONOPS ancestor): mark it `derived: true`, then **push it up** —
+  add a CONOPS decision leaf and re-trace. The recurring Derived buckets are
+  startup defaults, fault-latching, and flow-control policy.
 - **Forward** (the coverage matrix — "are we missing anything?"): invert the
   traces and list **mappable** CONOPS leaves with no HLR. Premises are expected to
   have none. This is the operational form of Rule 2.
@@ -211,7 +209,8 @@ it has no machine):
 3. Write it in EARS: one `While`-output per state, one `While…when…` per edge;
    modes contain the regions.
 4. Put durations in the timing file; cite them by name.
-5. Trace each statement (comment) to a CONOPS leaf, or mark `# Derived` and push up.
+5. Trace each statement to a CONOPS leaf via `source`, or mark `derived: true`
+   and push up.
 6. Validate:
    ```
    cd engine/requirements
@@ -224,6 +223,6 @@ it has no machine):
 - [ ] Every named state passes the manifestation test; mechanism is in the LLR.
 - [ ] Outputs are Moore (`While <state> … drive …`); transitions are separate.
 - [ ] Durations live in the timing file and are cited by name (no inline numbers).
-- [ ] Every statement has a CONOPS trace comment or `# Derived` (then pushed up).
+- [ ] Every statement has a CONOPS `source` or `derived: true` (then pushed up).
 - [ ] Files organized by cohesion (one machine per file); integer keys.
 - [ ] schema + ears validation pass 0/0 (sketches: ears 0; schema clean once flat).
