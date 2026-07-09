@@ -1,9 +1,7 @@
 # Code architecture
 
-This presents a proposal for the NEW architecture. It does not describe the
-current implementation, which is obsolete.
-
-All the text in `docs/architecture/` should be considered obsolete.
+This describes the current state of the architecture; edit this as
+needed to maintain it in sync with the code.
 
 ## Overview
 
