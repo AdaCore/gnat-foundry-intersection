@@ -7,10 +7,18 @@ project Traffic_Light_Qemu is
    --  This project has no sources - it's merely here as a wrapper.
    for Source_Dirs use ();
 
-   for Main use ("traffic_light.adb");
+   --  main.adb is resolved through the withed ../traffic_light.gpr, which
+   --  extends src/app.gpr (the owner of the application sources).
+   for Main use ("main.adb");
    for Object_Dir use Shared'Object_Dir;
    for Exec_Dir use Shared'Exec_Dir;
    for Runtime ("Ada") use Shared'Runtime ("Ada");
    for Target use Shared'Target;
+
+   --  Keep the produced binary named `traffic_light` (bin/target/traffic_light)
+   --  so `make run-target` / `-kernel bin/target/traffic_light` need no edit.
+   package Builder is
+      for Executable ("main.adb") use "traffic_light";
+   end Builder;
 
 end Traffic_Light_Qemu;

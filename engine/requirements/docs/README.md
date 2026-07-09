@@ -44,6 +44,15 @@ and an upward trace. The trace is exactly one of:
 An HLR statement may additionally carry `terminal: true`: the requirement is
 not further decomposed into lower-level requirements.
 
+A *statement* is an object carrying its `text` (the shall-statement itself)
+and an upward trace:
+
+- an HLR statement carries exactly one of `source` (upstream references, e.g.
+  clauses of a governing specification or standard) or `derived: true` (no
+  upstream source; an implementation/design choice);
+- an LLR statement carries `parent_req` — full statement IDs
+  (`<stem>.<number>`) of the HLR statement(s) this one refines.
+
 ## Curated examples
 
 The examples are a representative subset drawn from Ada-runtime certification,
@@ -51,11 +60,10 @@ chosen to exercise the full field set and every embedded-markup kind — not a
 complete feature set:
 
 - **`exponentiation/`** — the canonical walkthrough: ubiquitous, event-driven
-  (`When`), and unwanted-behavior (`If`/`Then`) statements; `source`,
-  `derived`, and `terminal` HLRs; LLRs with `algorithm_aspects` and
-  `implemented_by`.
-- **`bit_operations/`** — adds `preconditions`, Markdown tables (from
-  `list-table`), and a `derived` LLR statement.
+  (`When`), and unwanted-behavior (`If`/`Then`) statements; `source` and
+  `derived` HLRs; LLRs with `algorithm_aspects` and `implemented_by`.
+- **`bit_operations/`** — adds `preconditions` and Markdown tables (from
+  `list-table`).
 - **`floating_point_floor/`** — adds `$$` math (from `.. math::`) and a fully
   self-contained HLR↔LLR trace.
 

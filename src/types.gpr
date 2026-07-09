@@ -1,0 +1,17 @@
+with "../config/traffic_light_config.gpr";
+--  NOTE: this must not import core.gpr, hal.gpr, or app.gpr.
+--  See design/architecture.md.
+
+with "shared.gpr";
+
+project Types is
+
+   for Source_Dirs use ("types");
+
+   for Object_Dir use Shared'Object_Dir;
+   for Create_Missing_Dirs use "True";
+
+   package Compiler renames Shared.Compiler;
+   package Binder renames Shared.Binder;
+
+end Types;

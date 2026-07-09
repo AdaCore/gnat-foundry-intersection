@@ -16,9 +16,10 @@ SHELL := bash
 QEMU_UART1 ?= 5556
 
 # Wall-clock microseconds per logical 1 ms tick in the QEMU firmware (see
-# hal_target.gpr / hal.adb). Selects a pre-defined profile spec; valid values
-# are 1000, 300, 10. 1000 = faithful real time; 300 runs the requirements suite
-# faster by compensating upstream QEMU's ~3.33x-slow timer.
+# src/hal.gpr and the src/hal/common/timings-tick_config__*.ads profile specs
+# it selects via its Naming package). Valid values are 1000, 300, 10. 1000 =
+# faithful real time; 300 runs the requirements suite faster by compensating
+# upstream QEMU's ~3.33x-slow timer.
 #   make build-target TICK_PERIOD_US=300
 TICK_PERIOD_US ?= 1000
 

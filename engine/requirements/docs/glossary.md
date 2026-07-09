@@ -40,8 +40,8 @@ A set of requirements has a "hierarchical structure" if it is organized into
 several successive levels (e.g., "high level" and "low level").
 
 Note: Traceability between requirement levels, as well as exceptions like
-*derived* or *terminal* requirements, should be described in the project's
-development guidance.
+*derived* requirements, should be described in the project's development
+guidance.
 
 ### completeness
 

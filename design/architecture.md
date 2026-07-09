@@ -23,9 +23,13 @@ through its stages:
 
 Transport of data between the main loop and the external sources (sensors) and outputs (traffic lights) is done via _data buses_. There are two types of buses:
 
-- _source data buses_: one for each source, which hold a boolean value that indicates
-  whether the source has been activated. When the main loop reads the value, it is
-  cleared.
+- _source data bus_: a single bus carrying every input source. The producer (the HAL)
+  samples all sources into a `States.Sensors_State` record; the consumer (the main loop)
+  reads a coalescing latch that is cleared on read. Grouping every input in one record
+  lets the core acknowledge input events (e.g. lighting a crosswalk's request indicator
+  when its button has been pressed). Transitionally the consumer's `Read` still pulls a
+  fresh sample through the producer; a future asynchronous revision will have the
+  producer drive the latch directly.
 - _display data bus_: which holds the state of the traffic lights.
   When the main loop writes the value, it is sent to the display (GUI or console).
 
@@ -45,11 +49,12 @@ objects. This is not the case for now.
 
 ## The core loop
 
-The core loop reads the data from the external sources via _source data buses_, one
-for each source, that hold one boolean - when the value is read, it is cleared.
-This mimics a latch in the real world, where the input is captured and held until
-it is processed, and values are coalesced (multiple presses on the pedestrian button,
-or multiple cars wanting a left turn, are treated as a single request).
+The core loop reads the data from the external sources via a single _source data bus_,
+whose producer samples all sources into a `States.Sensors_State` record and whose latch
+is cleared when the value is read. This mimics a latch in the real world, where the
+input is captured and held until it is processed, and values are coalesced (multiple
+presses on the pedestrian button, or multiple cars wanting a left turn, are treated as a
+single request).
 
 The core loop is only given the "consumer" part of the bus, and does not know anything
 about the implementation of the producer, which is provided by the HAL.
@@ -62,9 +67,9 @@ the implementation of the consumer, which is again provided by the HAL.
 The core loop is implemented as a generic subprogram, which is parameterized by:
 
 - a "Delay_For" procedure, which is used to wait for the required time
-- a set of procedures, one for each source, which are used to read the
-  value of the external sources (the sensors) as an "out" parameter and clear the
-  latch when the value is read.
+- a procedure which reads the source data bus, sampling every external source
+  (the sensors) into a `States.Sensors_State` "out" parameter and clearing the
+  latch when the value is read
 - a procedure which is used to write the traffic light outputs
 
 ## Project structure
@@ -119,6 +124,26 @@ The dependencies are as follows:
 The `core.gpr` project does not depend on the `hal.gpr` project. This allows the
 core logic to be tested and proven independently of the hardware abstraction layer.
 The core logic does not know anything about the implementation of sources or display.
+
+### Build scaffolding: `shared.gpr` and `traffic_light.gpr`
+
+Two source-less support projects sit alongside the four architecture projects
+above:
+
+- `src/shared.gpr`: a source-less helper that centralises the build
+  configuration reused across `types`, `core`, `hal`, and `app`. It carries the
+  `BUILD_KIND` scenario variable (`native` vs `target`) and, keyed off it, the
+  object/exec directories, target, runtime, and the common compiler / binder /
+  linker switches. The four architecture projects `with` it so the host and
+  bare-metal builds stay in step from a single definition.
+
+- `traffic_light.gpr` (repo root): the Alire crate root for the host build. It
+  *extends* `src/app.gpr` so the application sources — notably `main.adb` —
+  belong to the crate root, which keeps it both the Alire crate root and the
+  GNATtest driver root and pins the produced binary to the `traffic_light`
+  name. The bare-metal arm-eabi cross-target build lives in its own sibling
+  Alire crate, `traffic_light_qemu/`, which `with`s `../traffic_light.gpr` and
+  `../src/shared.gpr` with `BUILD_KIND=target`.
 
 ### Rationale for the separation between `core.gpr` and `hal.gpr|app.gpr`
 

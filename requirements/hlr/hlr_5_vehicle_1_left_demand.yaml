@@ -37,7 +37,8 @@ description:
     text: |-
       When the controller starts up, the controller shall place each approach's
       left-turn demand machine in NO_LEFT_DEMAND.
-    derived: true
+    source:
+      - CONOPS §5.3
 
   3:
     text: |-
