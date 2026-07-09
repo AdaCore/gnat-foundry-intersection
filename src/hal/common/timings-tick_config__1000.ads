@@ -3,4 +3,6 @@
 
 package Timings.Tick_Config is
    Tick_Period_Us : constant := 1000;
+   --  Wall-clock microseconds per logical millisecond; 1000 is faithful real
+   --  time.
 end Timings.Tick_Config;
