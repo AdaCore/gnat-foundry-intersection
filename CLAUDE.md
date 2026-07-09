@@ -25,6 +25,7 @@ make all-coverage-pro  # Generate a coverage report
 ## When editing code
 
 - Read the code architecture: `design/architecture.md`
+- Read the code conventions: `design/code_conventions.md`
 - Format with `make format`
 - Validate your change with `make check && make build-native`
 

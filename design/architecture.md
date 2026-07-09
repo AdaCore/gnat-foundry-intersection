@@ -1,9 +1,7 @@
 # Code architecture
 
-This presents a proposal for the NEW architecture. It does not describe the
-current implementation, which is obsolete.
-
-All the text in `docs/architecture/` should be considered obsolete.
+This describes the current state of the architecture; edit this as
+needed to maintain it in sync with the code.
 
 ## Overview
 
@@ -169,7 +167,3 @@ The "delay_for" procedure in the HAL can be tuned at compile time to act faster 
 ## Command-input and diagnostic streams
 
 TODO: This will be refined at a future revision of this document.
-
-## Code conventions
-
-There should be no global variables.
