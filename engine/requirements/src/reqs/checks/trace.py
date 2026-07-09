@@ -7,7 +7,9 @@ checks over every adjacent pair (upper -> lower), in both directions:
 
   E-TRACE-DANGLING         : a lower node's up-ref resolves to no upper node.
   E-TRACE-UNTRACED         : a lower node has no upward trace and is not derived
-                             (backward completeness -- always an error).
+                             (in practice this is usually E-SCHEMA, but
+                             E-TRACE-UNTRACED can occur if there is an upward
+                             trace which doesn't match `id_pattern`).
   {W,E}-TRACE-UNCOVERED    : an upper node that no lower node covers and no
                              waiver excuses (warning; error under --complete).
   E-TRACE-WAIVER-UNKNOWN   : a waiver naming a node that is not in its layer.

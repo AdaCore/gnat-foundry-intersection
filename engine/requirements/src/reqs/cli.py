@@ -1,8 +1,8 @@
 """
 `reqs` command-line interface.
 
-    reqs validate schema [PATHS...]     # schema + structural rules
-    reqs validate ears   [PATHS...]     # EARS grammar
+    reqs validate schema [PATHS...]            # schema + structural rules
+    reqs validate ears   [PATHS...]            # EARS grammar
     reqs trace --chain FILE [--format table]   # traceability across the chain
 
 With no PATHS, a validate command targets the default requirement set (the
