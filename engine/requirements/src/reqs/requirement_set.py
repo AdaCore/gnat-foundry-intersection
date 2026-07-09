@@ -151,16 +151,26 @@ def _file_class(path: Path) -> type[RequirementFile] | None:
 
 
 class RequirementSet:
-    """A validated requirement set, queryable by container stem or statement ID."""
+    """
+    A validated requirement set, queryable by container stem or statement ID.
 
-    files: tuple[RequirementFile, ...]
-    _by_stem: dict[str, RequirementFile]
+    `by_stem` is the canonical view: one file per stem; first file wins.
+    Duplicate stems are kept in `duplicates` so per-file checks still lint
+    their content.
+    """
+
+    by_stem: dict[str, RequirementFile]
+    duplicates: tuple[RequirementFile, ...]
 
     def __init__(self, files: Iterable[RequirementFile]) -> None:
-        self.files = tuple(files)
-        # Reversed, so a stem's *first* file wins: E-DUPID reports every file
-        # after it, and IDs resolve into the one file not reported.
-        self._by_stem = {file.stem: file for file in reversed(self.files)}
+        self.by_stem = {}
+        duplicates: list[RequirementFile] = []
+        for file in files:
+            if file.stem in self.by_stem:
+                duplicates.append(file)
+            else:
+                self.by_stem[file.stem] = file
+        self.duplicates = tuple(duplicates)
 
     @classmethod
     def load(
@@ -210,17 +220,14 @@ class RequirementSet:
         return cls(files), diags
 
     def __iter__(self) -> Iterator[RequirementFile]:
-        return iter(self.files)
-
-    def file(self, stem: str) -> RequirementFile | None:
-        return self._by_stem.get(stem)
+        return iter(self.by_stem.values())
 
     def statement(self, req_id: str) -> tuple[RequirementFile, Statement] | None:
         """Resolve a '<stem>.<number>' statement ID to its (file, statement)."""
         if (parsed := parse_req_id(req_id)) is None:
             return None
         stem, number = parsed
-        if (file := self._by_stem.get(stem)) is None:
+        if (file := self.by_stem.get(stem)) is None:
             return None
         if (statement := file.description.get(number)) is None:
             return None
@@ -228,11 +235,7 @@ class RequirementSet:
 
     def all_statements(self) -> Iterator[tuple[str, Statement]]:
         """Yield every resolvable statement of the set as (full ID, statement), in file order."""
-        for file in self.files:
-            # Skip a duplicated stem's (E-DUPID) later files entirely: `statement()`
-            # never resolves into them, so none of their statements are in the set's view.
-            if self._by_stem[file.stem] is not file:
-                continue
+        for file in self:
             for number, statement in file.description.items():
                 yield f"{file.stem}.{number}", statement
 
@@ -247,7 +250,7 @@ class RequirementSet:
         if (parsed := parse_req_id(req_id)) is None:
             raise KeyError(req_id)
         stem, number = parsed
-        if (file := self._by_stem.get(stem)) is None or number not in file.description:
+        if (file := self.by_stem.get(stem)) is None or number not in file.description:
             raise KeyError(req_id)
         return file.loc_of(number, sub_key=sub_key)
 

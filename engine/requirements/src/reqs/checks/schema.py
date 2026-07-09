@@ -56,7 +56,8 @@ class RequirementChecker:
 
     def check(self, paths: Iterable[str | os.PathLike[str]]) -> list[Diagnostic]:
         reqset, diags = RequirementSet.load(paths)
-        for file in reqset:
+        # Files with duplicate stems still deserve diagnostics.
+        for file in (*reqset, *reqset.duplicates):
             diags.extend(self._rs3_lint(file))
         diags.extend(self._referential_integrity(reqset))
         return diags
@@ -84,7 +85,7 @@ class RequirementChecker:
 
     def _referential_integrity(self, reqset: RequirementSet) -> list[Diagnostic]:
         out: list[Diagnostic] = []
-        for file in reqset:
+        for file in (*reqset, *reqset.duplicates):
             if not isinstance(file, LlrFile):
                 continue
             for key, statement in file.description.items():
@@ -121,7 +122,7 @@ class RequirementChecker:
         if resolved is None:
             detail = (
                 f"no statement {parent_id!r} in {parent_stem!r}"
-                if reqset.file(parent_stem) is not None
+                if parent_stem in reqset.by_stem
                 else f"no requirement container {parent_stem!r} in the set"
             )
             return Diagnostic(
