@@ -56,10 +56,8 @@ rationale: |-
   drafting convention), and statement 3 is the one edge that pre-empts the entire
   nested region at once.
 
-  Statement 2 (the power-on default) is Derived: CONOPS describes the FAULT state's
-  indications and recovery but not the startup mode. Statement 4 traces to §6.3 —
-  the controller does not auto-recover; FAULT is terminal, and recovery is an
-  external power cycle (a restart, which re-enters NORMAL_OPERATION via statement 2)
-  rather than a transition out of FAULT — so the fault latch is no longer a Derived
-  assumption but a stated CONOPS obligation. The power-cycle *mechanism* is an LLR
-  concern.
+  Statement 4 traces to §6.3 — the controller does not auto-recover; FAULT is
+  terminal, and recovery is an external power cycle (a restart, which re-enters
+  NORMAL_OPERATION via statement 2) rather than a transition out of FAULT — so
+  the fault latch is no longer a Derived assumption but a stated CONOPS
+  obligation. The power-cycle *mechanism* is an LLR concern.

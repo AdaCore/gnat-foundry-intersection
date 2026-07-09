@@ -219,8 +219,3 @@ rationale: |-
   the buffer always runs its full T_BUFFER regardless of when the press lands. The
   latch *mechanism* (debounce, electrical hold) remains the LLR concern already
   listed in `TODO.md`; these statements fix only the required behaviour.
-
-  The only Derived item is the power-on initial state (2): the CONOPS does not
-  specify the per-crosswalk startup state. The two-mode frame (NORMAL_OPERATION /
-  FAULT), the entry into FAULT, and the dark-head fault outputs that formerly lived
-  in this file now sit in `1_modes` and `2_fault`, which contain this region.
