@@ -15,8 +15,8 @@ checks over every adjacent pair (upper -> lower), in both directions:
 
 Nothing here is CONOPS- or HLR-specific. A :class:`Layer` says how to enumerate
 its nodes (``kind``: ``markdown-leaves`` or ``requirement-yaml``) and, for any
-layer that traces upward, which field holds its up-refs (``up_ref``) and how to
-extract a parent-node id from each ref (``id_pattern``, one capture group).
+layer that traces upward, how to extract a parent-node id from each ref
+(``id_pattern``, one capture group).
 
 A node is "accounted for" (not reported UNCOVERED) when the layer below covers
 it OR a waiver excuses it with a reason. A waiver is a reviewed decision that
@@ -46,7 +46,8 @@ from rich.console import Console
 from rich.table import Table
 
 from reqs.conops import parse_leaves
-from reqs.core import Diagnostic, iter_yaml_files, load_yaml
+from reqs.core import Diagnostic
+from reqs.requirement_set import RequirementSet
 
 if TYPE_CHECKING:
     import os
@@ -62,8 +63,7 @@ class Layer:
     name: str
     kind: str
     path: Path
-    up_ref: str | None = None  # field on a node holding its refs to the layer above
-    id_pattern: str | None = None  # regex; group(1) extracts a parent-node id from a ref
+    id_pattern: str | None = None  # regex; group(1) extracts a parent-node id from an up-ref
     waivers: Path | None = None  # nodes here intentionally left uncovered by the layer below
 
 
@@ -77,7 +77,6 @@ def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
             name=item["name"],
             kind=item["kind"],
             path=base / item["path"],
-            up_ref=item.get("up_ref"),
             id_pattern=item.get("id_pattern"),
             waivers=(base / item["waivers"]) if item.get("waivers") else None,
         )
@@ -86,22 +85,10 @@ def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
 
 
 @dataclass
-class _Statement:
-    """A lower-layer node with its upward refs (for resolution / backward checks)."""
-
-    id: str
-    file: Path
-    line: int | None
-    loc: tuple[str, ...]
-    refs: list[str]
-    derived: bool
-
-
-@dataclass
 class _Loaded:
     layer: Layer
-    nodes: dict[str, tuple[Path, int | None]]  # node id -> (file, line); the coverage targets
-    statements: list[_Statement]  # populated only for layers that trace upward
+    nodes: dict[str, tuple[Path, int]]  # node id -> (file, line); the coverage targets
+    reqset: RequirementSet  # the layer's requirement files (empty for markdown-leaves)
     waived: dict[str, str]  # node id -> reason
     waiver_file: Path | None
 
@@ -112,8 +99,8 @@ class _Pair:
     lower: _Loaded
     coverage: dict[str, list[str]] = field(default_factory=dict)  # upper id -> covering lower ids
     resolved: dict[str, list[str]] = field(default_factory=dict)  # lower id -> resolved upper ids
-    dangling: list[tuple[_Statement, str]] = field(default_factory=list)
-    untraced: list[_Statement] = field(default_factory=list)
+    dangling: dict[str, list[str]] = field(default_factory=dict)  # lower id -> unresolvable refs
+    untraced: list[str] = field(default_factory=list)
 
 
 class TraceChecker:
@@ -142,52 +129,27 @@ class TraceChecker:
     def _load(self, layer: Layer, diags: list[Diagnostic]) -> _Loaded:
         waived = self._load_waivers(layer, diags)
         if layer.kind == MARKDOWN_LEAVES:
-            nodes: dict[str, tuple[Path, int | None]] = {
+            nodes: dict[str, tuple[Path, int]] = {
                 nid: (layer.path, line) for nid, line in parse_leaves(layer.path).items()
             }
-            return _Loaded(layer, nodes, [], waived, layer.waivers)
+            return _Loaded(layer, nodes, RequirementSet(()), waived, layer.waivers)
         if layer.kind == REQUIREMENT_YAML:
             return self._load_requirements(layer, waived, diags)
         diags.append(
             Diagnostic("error", "E-TRACE-KIND", f"unknown layer kind {layer.kind!r}", layer.path)
         )
-        return _Loaded(layer, {}, [], waived, layer.waivers)
+        return _Loaded(layer, {}, RequirementSet(()), waived, layer.waivers)
 
     def _load_requirements(
         self, layer: Layer, waived: dict[str, str], diags: list[Diagnostic]
     ) -> _Loaded:
-        nodes: dict[str, tuple[Path, int | None]] = {}
-        statements: list[_Statement] = []
-        paths, path_diags = iter_yaml_files([layer.path])
-        diags.extend(path_diags)
-        for path in paths:
-            data, lines, _dups = load_yaml(path)
-            if isinstance(data, Diagnostic):
-                diags.append(data)
-                continue
-            desc = data.get("description")
-            if not isinstance(desc, dict):
-                continue
-            for num, statement in desc.items():
-                if not isinstance(statement, dict):
-                    continue
-                nid = f"{path.stem}.{num}"
-                node_line = lines.get(("description", str(num)))
-                nodes[nid] = (path, node_line)
-                if layer.up_ref:
-                    loc = ("description", str(num), layer.up_ref)
-                    refs = [r for r in (statement.get(layer.up_ref) or []) if isinstance(r, str)]
-                    statements.append(
-                        _Statement(
-                            nid,
-                            path,
-                            lines.get(loc) or node_line,
-                            loc,
-                            refs,
-                            statement.get("derived") is True,
-                        )
-                    )
-        return _Loaded(layer, nodes, statements, waived, layer.waivers)
+        reqset, load_diags = RequirementSet.load([layer.path])
+        diags.extend(load_diags)
+        nodes: dict[str, tuple[Path, int]] = {}
+        for nid, _statement in reqset.all_statements():
+            file, line, _loc = reqset.loc_of(nid)
+            nodes[nid] = (file, line)
+        return _Loaded(layer, nodes, reqset, waived, layer.waivers)
 
     def _load_waivers(self, layer: Layer, diags: list[Diagnostic]) -> dict[str, str]:
         if layer.waivers is None:
@@ -213,28 +175,32 @@ class TraceChecker:
 
     def _diagnostics(self, pair: _Pair) -> list[Diagnostic]:
         up, lo = pair.upper.layer.name, pair.lower.layer.name
-        out: list[Diagnostic] = [
-            Diagnostic(
-                "error",
-                "E-TRACE-DANGLING",
-                f"{lo} {statement.id!r} up-ref {ref!r} resolves to no {up} node",
-                statement.file,
-                line=statement.line,
-                path=statement.loc,
+        out: list[Diagnostic] = []
+        for nid, refs in pair.dangling.items():
+            file, line, loc = pair.lower.reqset.loc_of(nid, sub_key="up_ref")
+            out.extend(
+                Diagnostic(
+                    "error",
+                    "E-TRACE-DANGLING",
+                    f"{lo} {nid!r} up-ref {ref!r} resolves to no {up} node",
+                    file,
+                    line=line,
+                    path=loc,
+                )
+                for ref in refs
             )
-            for statement, ref in pair.dangling
-        ]
-        out.extend(
-            Diagnostic(
-                "error",
-                "E-TRACE-UNTRACED",
-                f"{lo} {statement.id!r} traces to no {up} node and is not derived",
-                statement.file,
-                line=statement.line,
-                path=statement.loc,
+        for nid in pair.untraced:
+            file, line, loc = pair.lower.reqset.loc_of(nid, sub_key="up_ref")
+            out.append(
+                Diagnostic(
+                    "error",
+                    "E-TRACE-UNTRACED",
+                    f"{lo} {nid!r} traces to no {up} node and is not derived",
+                    file,
+                    line=line,
+                    path=loc,
+                )
             )
-            for statement in pair.untraced
-        )
         out.extend(self._coverage_diagnostics(pair))
         return out
 
@@ -283,21 +249,21 @@ def _analyze(upper: _Loaded, lower: _Loaded) -> _Pair:
     """Resolve the lower layer's up-refs against the upper layer's nodes."""
     pair = _Pair(upper, lower)
     pattern = re.compile(lower.layer.id_pattern) if lower.layer.id_pattern else None
-    for statement in lower.statements:
+    for nid, statement in lower.reqset.all_statements():
         matched = False
-        for ref in statement.refs:
+        for ref in statement.up_refs or []:
             m = pattern.match(ref) if pattern else None
             if m is None:
                 continue  # ref does not target this layer -> out of scope
             matched = True
             parent = m.group(1)
             if parent in upper.nodes:
-                pair.coverage.setdefault(parent, []).append(statement.id)
-                pair.resolved.setdefault(statement.id, []).append(parent)
+                pair.coverage.setdefault(parent, []).append(nid)
+                pair.resolved.setdefault(nid, []).append(parent)
             else:
-                pair.dangling.append((statement, ref))
+                pair.dangling.setdefault(nid, []).append(ref)
         if not (statement.derived or matched):
-            pair.untraced.append(statement)
+            pair.untraced.append(nid)
     return pair
 
 
@@ -341,20 +307,17 @@ def _pair_tables(pair: _Pair) -> list[Table]:
             status, detail = "UNCOVERED", "—"
         coverage.add_row(nid, status, detail, style=_severity_style(status))
 
-    dangling_refs: dict[str, list[str]] = {}
-    for statement, ref in pair.dangling:
-        dangling_refs.setdefault(statement.id, []).append(ref)
     upward = _new_table(f"{lo} → {up}  (upward trace)", lo, f"Traces to ({up})")
-    for statement in pair.lower.statements:
-        if statement.id in pair.resolved:
-            status, detail = "OK", ", ".join(pair.resolved[statement.id])
+    for nid, statement in pair.lower.reqset.all_statements():
+        if nid in pair.resolved:
+            status, detail = "OK", ", ".join(pair.resolved[nid])
         elif statement.derived:
             status, detail = "DERIVED", "—"
-        elif statement.id in dangling_refs:
-            status, detail = "DANGLING", ", ".join(dangling_refs[statement.id])
+        elif nid in pair.dangling:
+            status, detail = "DANGLING", ", ".join(pair.dangling[nid])
         else:
             status, detail = "UNTRACED", "—"
-        upward.add_row(statement.id, status, detail, style=_severity_style(status))
+        upward.add_row(nid, status, detail, style=_severity_style(status))
     return [coverage, upward]
 
 

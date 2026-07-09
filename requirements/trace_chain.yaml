@@ -4,7 +4,7 @@
 # lower node (or waived). Paths are relative to this file.
 #
 # When LLRs exist, append a layer below HLR, e.g.:
-#   - {name: LLR, kind: requirement-yaml, path: llr, up_ref: parent_req,
+#   - {name: LLR, kind: requirement-yaml, path: llr,
 #      id_pattern: '(.+\.\d+)', waivers: llr_trace_waivers.yaml}
 layers:
   - name: CONOPS
@@ -14,5 +14,4 @@ layers:
   - name: HLR
     kind: requirement-yaml
     path: hlr
-    up_ref: source
     id_pattern: 'CONOPS §(\d+\.\d+)'

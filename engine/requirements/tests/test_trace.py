@@ -14,9 +14,9 @@ both directions:
   W-TRACE-WAIVER-REDUNDANT : a waiver naming a node that the layer below covers.
 
 The engine is level-agnostic: the same code checks CONOPS->HLR and HLR->LLR (and
-later LLR->code/test). A `Layer` says how to enumerate its nodes (`kind`), and,
-for a lower layer, which field holds its up-refs (`up_ref`) and how to extract a
-parent id from each (`id_pattern`).
+later LLR->code/test). A `Layer` says how to enumerate its nodes (`kind`) and,
+for a lower layer, how to extract a parent id from each of its up-refs
+(`id_pattern`).
 """
 
 from __future__ import annotations
@@ -98,14 +98,13 @@ def hlr_layer(hlr_dir: Path, waivers: Path | None = None) -> Layer:
         "HLR",
         "requirement-yaml",
         hlr_dir,
-        up_ref="source",
         id_pattern=r"CONOPS §(\d+\.\d+)",
         waivers=waivers,
     )
 
 
 def llr_layer(llr_dir: Path) -> Layer:
-    return Layer("LLR", "requirement-yaml", llr_dir, up_ref="parent_req", id_pattern=r"(.+\.\d+)")
+    return Layer("LLR", "requirement-yaml", llr_dir, id_pattern=r"(.+\.\d+)")
 
 
 def codes(diags: Sequence[Diagnostic]) -> set[tuple[str, str]]:
@@ -145,7 +144,7 @@ def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
     (tmp_path / "trace_chain.yaml").write_text(
         "layers:\n"
         "  - {name: CONOPS, kind: markdown-leaves, path: conops.md, waivers: trace_waivers.yaml}\n"
-        "  - {name: HLR, kind: requirement-yaml, path: hlr, up_ref: source,"
+        "  - {name: HLR, kind: requirement-yaml, path: hlr,"
         " id_pattern: 'CONOPS §(\\d+\\.\\d+)'}\n",
         encoding="utf-8",
     )
@@ -153,7 +152,7 @@ def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
     assert [layer.name for layer in layers] == ["CONOPS", "HLR"]
     assert layers[0].path == tmp_path / "conops.md"
     assert layers[0].waivers == tmp_path / "trace_waivers.yaml"
-    assert layers[1].up_ref == "source"
+    assert layers[1].id_pattern == r"CONOPS §(\d+\.\d+)"
 
 
 # --- CONOPS -> HLR, forward (coverage) --------------------------------------
@@ -201,13 +200,11 @@ def test_dangling_ref_is_error(tmp_path: Path) -> None:
     assert ("E-TRACE-DANGLING", "error") in codes(check_trace(chain))
 
 
-def test_hlr_without_source_is_untraced(tmp_path: Path) -> None:
-    # Statement 1 has neither source nor derived: a backward gap `trace` must catch
-    # on its own (previously only the schema oneOf did).
+def test_hlr_without_source_fails_schema(tmp_path: Path) -> None:
+    # Statement 1 has neither source nor derived: a backward gap.
     chain = conops_hlr_chain(tmp_path, [[], *COVERING], waive=[("1.1", "ok")])
-    # `[]` writes `source:` with no items; the statement resolves to nothing and
-    # is not derived -> untraced.
-    assert ("E-TRACE-UNTRACED", "error") in codes(check_trace(chain))
+    # `[]` writes `source:` with no items.
+    assert ("E-SCHEMA", "error") in codes(check_trace(chain))
 
 
 def test_derived_statement_is_traced_not_untraced(tmp_path: Path) -> None:
@@ -308,7 +305,7 @@ def write_chain_file(tmp_path: Path, waive: Sequence[tuple[str, str]]) -> Path:
     chain.write_text(
         "layers:\n"
         "  - {name: CONOPS, kind: markdown-leaves, path: conops.md, waivers: trace_waivers.yaml}\n"
-        "  - {name: HLR, kind: requirement-yaml, path: hlr, up_ref: source,"
+        "  - {name: HLR, kind: requirement-yaml, path: hlr,"
         " id_pattern: 'CONOPS §(\\d+\\.\\d+)'}\n",
         encoding="utf-8",
     )

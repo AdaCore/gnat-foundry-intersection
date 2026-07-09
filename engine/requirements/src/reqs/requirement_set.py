@@ -83,6 +83,16 @@ class HlrFile(_BaseFile, HlrDocument):
         document = HlrDocument.model_validate(data)
         return cls.model_construct(path=path, lines=lines, **dict(document))
 
+    def loc_of(
+        self, number: int, sub_key: Literal["text", "up_ref"] | None = None
+    ) -> tuple[Path, int, tuple[str, ...]]:
+        """
+        Return file path, line number and YAML key path of the specified statement.
+
+        Raises `KeyError` if `number` is not present.
+        """
+        return _loc_of(self, number, sub_key)
+
 
 class LlrFile(_BaseFile, LlrDocument):
     """An LLR document plus where it came from."""
@@ -95,8 +105,40 @@ class LlrFile(_BaseFile, LlrDocument):
         document = LlrDocument.model_validate(data)
         return cls.model_construct(path=path, lines=lines, **dict(document))
 
+    def loc_of(
+        self, number: int, sub_key: Literal["text", "up_ref"] | None = None
+    ) -> tuple[Path, int, tuple[str, ...]]:
+        """
+        Return file path, line number and YAML key path of the specified statement.
+
+        Raises `KeyError` if `number` is not present.
+        """
+        return _loc_of(self, number, sub_key)
+
 
 RequirementFile = HlrFile | LlrFile
+
+
+def _loc_of(
+    file: RequirementFile, number: int, sub_key: Literal["text", "up_ref"] | None = None
+) -> tuple[Path, int, tuple[str, ...]]:
+    """
+    Return file path, line number and YAML key path of the specified statement.
+
+    Shared implementation of ``HlrFile.loc_of`` / ``LlrFile.loc_of``. Raises
+    `KeyError` if `number` is not present.
+    """
+    statement = file.description[number]
+    loc: tuple[str, ...] = ("description", str(number))
+    if sub_key is not None:
+        loc = (*loc, statement.up_ref_key if sub_key == "up_ref" else sub_key)
+    line = file.nearest_line(loc)
+    if line is None:
+        # Should be unreachable; `compose_lines()` should always record at least
+        # `("description",)` for any file successfully loaded.
+        msg = f"could not find source line for {'.'.join(loc)} in {file.path}"
+        raise RuntimeError(msg)
+    return file.path, line, loc
 
 
 def _file_class(path: Path) -> type[RequirementFile] | None:
@@ -183,6 +225,31 @@ class RequirementSet:
         if (statement := file.description.get(number)) is None:
             return None
         return file, statement
+
+    def all_statements(self) -> Iterator[tuple[str, Statement]]:
+        """Yield every resolvable statement of the set as (full ID, statement), in file order."""
+        for file in self.files:
+            # Skip a duplicated stem's (E-DUPID) later files entirely: `statement()`
+            # never resolves into them, so none of their statements are in the set's view.
+            if self._by_stem[file.stem] is not file:
+                continue
+            for number, statement in file.description.items():
+                yield f"{file.stem}.{number}", statement
+
+    def loc_of(
+        self, req_id: str, *, sub_key: Literal["text", "up_ref"] | None = None
+    ) -> tuple[Path, int, tuple[str, ...]]:
+        """
+        Return file path, line number and YAML key path of the specified statement.
+
+        Raises `KeyError` if `req_id` is not present.
+        """
+        if (parsed := parse_req_id(req_id)) is None:
+            raise KeyError(req_id)
+        stem, number = parsed
+        if (file := self._by_stem.get(stem)) is None or number not in file.description:
+            raise KeyError(req_id)
+        return file.loc_of(number, sub_key=sub_key)
 
 
 def _duplicate_key_diagnostics(path: Path, lines: YAMLLineMap, dups: list[str]) -> list[Diagnostic]:

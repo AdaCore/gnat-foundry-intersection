@@ -68,6 +68,7 @@ class RequirementChecker:
                 continue
             n = _count_shall(statement.text)
             if n != 1:
+                _path, line, loc = file.loc_of(key, sub_key="text")
                 out.append(
                     Diagnostic(
                         "warning",
@@ -75,8 +76,8 @@ class RequirementChecker:
                         f'statement {key} should contain exactly one "shall" (found {n}); '
                         f"add {RS3_OPTOUT!r} to opt out",
                         file.path,
-                        line=file.nearest_line(("description", str(key), "text")),
-                        path=("description", str(key)),
+                        line=line,
+                        path=loc,
                     )
                 )
         return out
@@ -89,8 +90,7 @@ class RequirementChecker:
             for key, statement in file.description.items():
                 if statement.parent_req is None:
                     continue  # derived
-                loc = ("description", str(key), "parent_req")
-                line = file.nearest_line(loc)
+                _path, line, loc = file.loc_of(key, sub_key="up_ref")
                 for parent_id in statement.parent_req:
                     diag = self._parent_diagnostic(reqset, parent_id, file.path, line, loc)
                     if diag is not None:
@@ -102,7 +102,7 @@ class RequirementChecker:
         reqset: RequirementSet,
         parent_id: str,
         path: Path,
-        line: int | None,
+        line: int,
         loc: tuple[str, ...],
     ) -> Diagnostic | None:
         """Check one parent_req entry; return its Diagnostic, or None if it resolves to an HLR."""
