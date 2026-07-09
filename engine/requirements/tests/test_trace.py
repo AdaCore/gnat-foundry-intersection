@@ -112,9 +112,19 @@ def llr_layer(llr_dir: Path) -> Layer:
     return Layer("LLR", "requirement-yaml", llr_dir, id_pattern=r"(.+\.\d+)")
 
 
-def codes(diags: Sequence[Diagnostic]) -> set[tuple[str, str]]:
-    """Reduce diagnostics to their (code, level) pairs."""
-    return {(d.code, d.level) for d in diags}
+def summarize(diags: Sequence[Diagnostic]) -> list[tuple[str, str, str]]:
+    """Reduce diagnostics to (code, level, message) triples, preserving order."""
+    return [(d.code, d.level, d.message) for d in diags]
+
+
+def uncovered_warning(nid: str) -> tuple[str, str, str]:
+    """Build the expected default-mode UNCOVERED warning for a CONOPS leaf."""
+    return (
+        "W-TRACE-UNCOVERED",
+        "warning",
+        f"CONOPS node '{nid}' is covered by no HLR and no waiver"
+        " (use --complete to require coverage)",
+    )
 
 
 COVERING = [["CONOPS §2.1"], ["CONOPS §2.2"], ["CONOPS §3.1"]]  # covers all but leaf 1.1
@@ -176,15 +186,15 @@ def test_clean_when_every_leaf_covered_or_waived(tmp_path: Path) -> None:
 def test_uncovered_leaf_warns_by_default(tmp_path: Path) -> None:
     """An uncovered, unwaived leaf is a warning (not an error) by default."""
     chain = conops_hlr_chain(tmp_path, COVERING)  # 1.1 uncovered/unwaived
-    diags = check_trace(chain)
-    assert ("W-TRACE-UNCOVERED", "warning") in codes(diags)
-    assert not [d for d in diags if d.level == "error"]
+    assert summarize(check_trace(chain)) == [uncovered_warning("1.1")]
 
 
 def test_uncovered_leaf_errors_under_complete(tmp_path: Path) -> None:
     """Under --complete an uncovered leaf escalates to an error."""
     chain = conops_hlr_chain(tmp_path, COVERING)
-    assert ("E-TRACE-UNCOVERED", "error") in codes(check_trace(chain, complete=True))
+    assert summarize(check_trace(chain, complete=True)) == [
+        ("E-TRACE-UNCOVERED", "error", "CONOPS node '1.1' is covered by no HLR and no waiver")
+    ]
 
 
 def test_waiver_suppresses_uncovered(tmp_path: Path) -> None:
@@ -197,13 +207,21 @@ def test_waiver_suppresses_uncovered(tmp_path: Path) -> None:
 def test_waiver_for_unknown_node_is_error(tmp_path: Path) -> None:
     """A waiver naming a node that is not in its layer is an error."""
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok"), ("9.9", "stale")])
-    assert ("E-TRACE-WAIVER-UNKNOWN", "error") in codes(check_trace(chain))
+    assert summarize(check_trace(chain)) == [
+        ("E-TRACE-WAIVER-UNKNOWN", "error", "waiver names '9.9', which is not a CONOPS node")
+    ]
 
 
 def test_redundant_waiver_warns(tmp_path: Path) -> None:
     """A waiver naming a node the layer below covers (2.1) draws a warning."""
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok"), ("2.1", "unnecessary")])
-    assert ("W-TRACE-WAIVER-REDUNDANT", "warning") in codes(check_trace(chain))
+    assert summarize(check_trace(chain)) == [
+        (
+            "W-TRACE-WAIVER-REDUNDANT",
+            "warning",
+            "waiver names '2.1', but it is covered by hlr_x.1; remove the waiver",
+        )
+    ]
 
 
 # --- CONOPS -> HLR, backward (the point-3 fix) ------------------------------
@@ -212,14 +230,31 @@ def test_redundant_waiver_warns(tmp_path: Path) -> None:
 def test_dangling_ref_is_error(tmp_path: Path) -> None:
     """An up-ref to a non-existent CONOPS leaf is a dangling-ref error."""
     chain = conops_hlr_chain(tmp_path, [["CONOPS §9.9"]])
-    assert ("E-TRACE-DANGLING", "error") in codes(check_trace(chain))
+    assert summarize(check_trace(chain)) == [
+        (
+            "E-TRACE-DANGLING",
+            "error",
+            "HLR 'hlr_x.1' up-ref 'CONOPS §9.9' resolves to no CONOPS node",
+        ),
+        # ...and, with the only HLR statement pointing nowhere, every leaf is uncovered.
+        uncovered_warning("1.1"),
+        uncovered_warning("2.1"),
+        uncovered_warning("2.2"),
+        uncovered_warning("3.1"),
+    ]
 
 
 def test_hlr_without_source_fails_schema(tmp_path: Path) -> None:
     """A statement with neither source nor derived (a backward gap) fails the schema."""
     chain = conops_hlr_chain(tmp_path, [[], *COVERING], waive=[("1.1", "ok")])
-    # `[]` writes `source:` with no items.
-    assert ("E-SCHEMA", "error") in codes(check_trace(chain))
+    # `[]` writes `source:` with no items. The whole file then fails to load,
+    # so the leaves its other statements would have covered go uncovered too.
+    assert summarize(check_trace(chain)) == [
+        ("E-SCHEMA", "error", "'source' must not be null; omit the key instead"),
+        uncovered_warning("2.1"),
+        uncovered_warning("2.2"),
+        uncovered_warning("3.1"),
+    ]
 
 
 def test_derived_statement_is_traced_not_untraced(tmp_path: Path) -> None:
@@ -231,9 +266,10 @@ def test_derived_statement_is_traced_not_untraced(tmp_path: Path) -> None:
 def test_source_that_is_not_a_conops_ref_is_untraced(tmp_path: Path) -> None:
     """Citing a standard instead of a CONOPS leaf is UNTRACED, not DANGLING."""
     chain = conops_hlr_chain(tmp_path, [["MUTCD §4E.01"], *COVERING], waive=[("1.1", "ok")])
-    diags = check_trace(chain)
-    assert ("E-TRACE-UNTRACED", "error") in codes(diags)
-    assert ("E-TRACE-DANGLING", "error") not in codes(diags)  # not a CONOPS ref -> not dangling
+    # No E-TRACE-DANGLING: a ref that is not a CONOPS ref is out of scope, not dangling.
+    assert summarize(check_trace(chain)) == [
+        ("E-TRACE-UNTRACED", "error", "HLR 'hlr_x.1' traces to no CONOPS node and is not derived")
+    ]
 
 
 # --- generalization: the same engine does HLR -> LLR ------------------------
@@ -259,11 +295,10 @@ def test_engine_generalizes_to_hlr_llr(tmp_path: Path) -> None:
         ),
         llr_layer(llr_dir),
     ]
-    diags = check_trace(chain)
     # HLR -> LLR resolution ran: the bad parent_req is dangling.
-    assert ("E-TRACE-DANGLING", "error") in codes(diags)
-    dangling = [d for d in diags if d.code == "E-TRACE-DANGLING"]
-    assert any("hlr_x.99" in d.message for d in dangling)
+    assert summarize(check_trace(chain)) == [
+        ("E-TRACE-DANGLING", "error", "LLR 'llr_y.2' up-ref 'hlr_x.99' resolves to no HLR node")
+    ]
 
 
 # --- rendering (point 2) ----------------------------------------------------
