@@ -1,0 +1,46 @@
+parent_req:
+  - hlr_5_vehicle_1_left_demand.3
+  - hlr_5_vehicle_1_left_demand.4
+
+context: |-
+  Refinement of the per-approach left-turn demand machines
+  (hlr_5_vehicle_1_left_demand) onto Controller.Step
+  (design/low-level-design.md §5.6-§5.7). The state is Left (A), one
+  Left_Demand_State per approach (type and array in States, llr_1_states.10/.11;
+  power-on in llr_4_controller.4). It has no timer and no output of its own —
+  it manifests only in whether the sequencer runs or skips the protected left
+  (llr_4_controller_1_vehicle.23/.24, .35/.36). Both edges live in Step: the
+  arm in the level-triggered arming stage (before outputs are emitted), the
+  clear in the GREEN-edge stage (after the sequencer advances), keyed on the
+  rising edge of Conflicts.Next_Conflicting_Through (A) (llr_4_controller.19,
+  llr_3_conflicts.4).
+
+implemented_by:
+  - Controller.Step
+
+description:
+  1: |-                                  # -> hlr_5_vehicle_1_left_demand.3   impl: Controller.Step
+    While State.Left (A) is NO_LEFT_DEMAND for an approach A, when Step
+    observes Sensors.Left_Turns (A) VEHICLE_PRESENT, Step shall set
+    State.Left (A) to LEFT_DEMAND_PENDING.
+  2: |-                                  # -> hlr_5_vehicle_1_left_demand.3   impl: Controller.Step
+    While State.Left (A) is LEFT_DEMAND_PENDING for an approach A, Step shall
+    leave State.Left (A) unchanged by any observation of
+    Sensors.Left_Turns (A).
+  3: |-                                  # -> hlr_5_vehicle_1_left_demand.4   impl: Controller.Step
+    While State.Left (A) is LEFT_DEMAND_PENDING for an approach A, when the
+    through face of Conflicts.Next_Conflicting_Through (A) rises to GREEN in
+    this step (llr_4_controller.19), Step shall set State.Left (A) to
+    NO_LEFT_DEMAND.
+
+algorithm_aspects: |-
+  The arming is level-triggered and guarded by the machine's own state
+  (statement 1's While), so re-observing a vehicle held on the loop across
+  several steps is idempotent (statement 2) — this is where the input
+  coalescing the bus does not itself provide (llr_2_buses) is realized.
+  Clearing on the conflicting through's rising edge, not on entry to the
+  protected phase, holds the machine PENDING through the green, yellow, and
+  clearance of its own left, so statement 1's NO_LEFT_DEMAND guard cannot
+  re-fire within the served phase; a vehicle still on the loop after the
+  clear re-arms the machine for the next cycle. Both properties are the HLR
+  rationale's, landing on the code's two guarded loops.

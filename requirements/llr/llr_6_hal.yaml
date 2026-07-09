@@ -1,0 +1,40 @@
+parent_req:
+  - hlr_3_timing.11
+  - hlr_4_signals.1
+  - hlr_4_signals.2
+  - hlr_4_signals.3
+  - hlr_4_signals.4
+  - hlr_4_signals.5
+  - hlr_4_signals.6
+
+context: |-
+  Refinement of the HAL contract surface (Timings, Sources, Display;
+  design/low-level-design.md §7) — what the shared specs promise the core
+  across the bus boundary. How a profile realizes them — rendering, button
+  simulation, lamp symbology, the FLASH_DONT_WALK blink — is out of
+  requirement scope.
+
+  All requirement durations are logical milliseconds (llr_1_states.21); the
+  wall-clock span of one is fixed at build time (Timings.Tick_Config), so
+  running faster than real time preserves conformance by construction. The
+  timing HLRs are stated over logical time.
+
+implemented_by:
+  - Timings.Delay_For
+  - Sources.Sample
+  - Display.Show
+
+description:
+  1: |-                                  # -> hlr_3_timing.11   impl: Timings.Delay_For
+    When Delay_For is called with Ms, the Timings service shall return only
+    after Ms logical milliseconds have elapsed, where one logical millisecond
+    spans Tick_Period_Us microseconds of wall clock.
+  2: |-                                  # -> hlr_4_signals.4, .5, .6   impl: Sources.Sample
+    When Sample is called, the Sources producer shall set Value to the
+    current value of every input signal: each crosswalk's pedestrian demand
+    button, each approach's left-turn detector, and the fault-detection line.
+  3: |-                                  # -> hlr_4_signals.1, .2, .3   impl: Display.Show
+    When Show is called with a Display_State, the Display consumer shall
+    render every output-signal value it carries — each through and left
+    vehicle face, each crosswalk's pedestrian head, and each crosswalk's
+    request indicator — to the display surface.

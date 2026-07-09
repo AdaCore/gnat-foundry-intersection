@@ -1,9 +1,9 @@
 # Code architecture
 
-This presents a proposal for the NEW architecture. It does not describe the
-current implementation, which is obsolete.
-
-All the text in `docs/architecture/` should be considered obsolete.
+This describes the high-level architecture of the implementation: the project
+structure, the bus boundary, and the core-loop concept. The low-level
+design — units, state records, the discrete-event timing model, the
+proof architecture — is in `low-level-design.md`.
 
 ## Overview
 

@@ -1,0 +1,78 @@
+parent_req:
+  - hlr_0_safety.1
+  - hlr_0_safety.2
+  - hlr_3_timing.10
+  - hlr_5_vehicle_1_left_demand.4
+  - hlr_6_pedestrian.8
+
+context: |-
+  Refinement of the intersection relations onto Conflicts
+  (design/low-level-design.md §4) — the single home of the geometry the HLRs
+  leave quantified: "every conflicting movement" (hlr_0_safety.1/.2,
+  hlr_3_timing.10), "that approach's next conflicting movement"
+  (hlr_5_vehicle_1_left_demand.4), and "the through movement parallel and
+  adjacent to that crosswalk" (hlr_6_pedestrian.8). The conflict relation
+  (statement 1) is deliberately conservative rather than geometric — see
+  algorithm_aspects.
+
+implemented_by:
+  - Conflicts.Compatible
+  - Conflicts.Conflicts
+  - Conflicts.Safe_Faces
+  - Conflicts.Next_Conflicting_Through
+  - Conflicts.Adjacent_Through
+
+description:
+  # ---- the conflict matrix ----
+  1: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Compatible
+    The Conflicts package shall define the function Compatible returning TRUE
+    for a pair of movements exactly when they are the same movement, a through
+    movement and the protected left of the same approach, or the two opposing
+    through movements of one axis.
+  2: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Conflicts
+    The Conflicts package shall define the function Conflicts returning TRUE
+    for a pair of movements exactly when Compatible returns FALSE for that
+    pair.
+
+  # ---- the safety predicate ----
+  3: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Safe_Faces
+    The Conflicts package shall define the function Safe_Faces returning TRUE
+    for a Display_State exactly when no two movements for which Conflicts is
+    TRUE both have Is_Go faces (States.Face_Of, States.Is_Go) in that state.
+
+  # ---- geometry bindings ----
+  4: |-                                  # -> hlr_5_vehicle_1_left_demand.4   impl: Conflicts.Next_Conflicting_Through
+    The Conflicts package shall define the function Next_Conflicting_Through
+    mapping each approach to the approach whose through release clears its
+    left-turn demand: NORTH to SOUTH, SOUTH to EAST, EAST to WEST, and WEST
+    to NORTH.
+  5: |-                                  # -> hlr_6_pedestrian.8, hlr_0_safety.1, hlr_3_timing.10   impl: Conflicts.Adjacent_Through
+    The Conflicts package shall define the function Adjacent_Through mapping
+    each crosswalk to the approach of its parallel adjacent through movement:
+    NS_NORTH to NORTH, NS_SOUTH to SOUTH, EW_EAST to EAST, and EW_WEST to
+    WEST.
+
+algorithm_aspects: |-
+  Compatible is stated positively over the pairs the serialized sequencer ever
+  drives non-RED together (the output rows of llr_4_controller_1_vehicle):
+  a through with its own protected left (the lead/lag rows) and one axis's two
+  opposing throughs (the both-through rows). Every other pair — including
+  pairs a fuller geometric analysis might permit — is treated as conflicting.
+  This conservatism is sound by direction: the predicate feeds the safety
+  postcondition hlr_0_safety.2, so widening the conflict set can only
+  strengthen the property proved, never weaken it.
+
+  Next_Conflicting_Through encodes the schedule fact that makes the
+  left-demand clear well-timed (hlr_5_vehicle_1_left_demand rationale): each
+  approach's protected left is followed, after its clearance fully elapses, by
+  a specific through release — the opposing through for a lead (N_LEFT by
+  S_THRU, E_LEFT by W_THRU), the next axis's lead through across the barrier
+  for a lag (S_LEFT by E_THRU, W_LEFT by N_THRU). Its rising edge is therefore
+  the observable end-of-clearance event.
+
+  Adjacent_Through is the identity carried by the crosswalk naming convention:
+  a crosswalk named for an axis and side is adjacent and parallel to that
+  side's through movement. The crosswalk-to-conflicting-movement *set* needed
+  by hlr_0_safety.1 is not enumerated as a function: the invariant is
+  discharged statically by the margin inequalities (llr_1_states.27/.28),
+  which quantify over the schedule via Adjacent_Through alone.

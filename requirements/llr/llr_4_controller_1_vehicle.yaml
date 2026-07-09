@@ -1,0 +1,327 @@
+parent_req:
+  - hlr_5_vehicle.1
+  - hlr_5_vehicle.2
+  - hlr_5_vehicle.3
+  - hlr_5_vehicle.4
+  - hlr_5_vehicle.5
+  - hlr_5_vehicle.6
+  - hlr_5_vehicle.7
+  - hlr_5_vehicle.8
+  - hlr_5_vehicle.9
+  - hlr_5_vehicle.10
+  - hlr_5_vehicle.11
+  - hlr_5_vehicle.12
+  - hlr_5_vehicle.13
+  - hlr_5_vehicle.14
+  - hlr_5_vehicle.15
+  - hlr_5_vehicle.16
+  - hlr_5_vehicle.17
+  - hlr_5_vehicle.18
+  - hlr_5_vehicle.19
+  - hlr_5_vehicle.20
+  - hlr_5_vehicle.21
+  - hlr_5_vehicle.22
+  - hlr_5_vehicle.23
+  - hlr_5_vehicle.24
+  - hlr_5_vehicle.25
+  - hlr_5_vehicle.26
+  - hlr_5_vehicle.27
+  - hlr_5_vehicle.28
+  - hlr_5_vehicle.29
+  - hlr_5_vehicle.30
+  - hlr_5_vehicle.31
+  - hlr_5_vehicle.32
+  - hlr_5_vehicle.33
+  - hlr_5_vehicle.34
+  - hlr_5_vehicle.35
+  - hlr_5_vehicle.36
+  - hlr_5_vehicle.37
+  - hlr_5_vehicle.38
+  - hlr_5_vehicle.39
+  - hlr_5_vehicle.40
+  - hlr_5_vehicle.41
+  - hlr_5_vehicle.42
+  - hlr_5_vehicle.43
+  - hlr_5_vehicle.44
+  - hlr_5_vehicle.45
+  - hlr_5_vehicle.46
+  - hlr_3_timing.7
+  - hlr_3_timing.8
+  - hlr_3_timing.11
+  - hlr_3_timing.12
+
+context: |-
+  Refinement of the vehicle phase sequencer (hlr_5_vehicle) onto Controller
+  (design/low-level-design.md §5.3-§5.4): the Moore output table
+  Vehicle_Face_Outputs, the transition procedure Advance_Vehicle, and the
+  both-through residual Both_Duration. The frame that drives them —
+  the step engine, the power-on entry (hlr_5_vehicle.47), the fault
+  pre-emption — is llr_4_controller.
+
+  The sequencer state is Vehicle with its dwell in Veh_Timer; each transition
+  both sets the new state and reloads the timer with that state's dwell, so
+  the schedule rides on the (state, timer) pair. "When its dwell (T_X)
+  elapses" is Veh_Timer reaching zero (llr_4_controller.14-.15).
+
+  T_BOTH, the both-through dwell, is the one dwell not fixed by its state (the
+  departure from strict Moore that hlr_5_vehicle flags): it is the axis-slot
+  residual after the lead/lag overheads that run, decided at both-through
+  entry. Each entry transition latches the lag decision (Veh_Lag) — TRUE
+  exactly when the axis's lag approach has a pending left — so the both-through
+  exits (30/31, 44/45) read the latched decision, not live demand.
+
+implemented_by:
+  - Controller.Vehicle_Face_Outputs
+  - Controller.Through_Face
+  - Controller.Advance_Vehicle
+  - Controller.Both_Duration
+  - Controller.Fixed_Duration
+
+description:
+  # ---- structural discipline ----
+  1: |-                                  # -> hlr_5_vehicle.1, .24   impl: Controller.Advance_Vehicle
+    The vehicle sequencer shall assign State.Vehicle only in Advance_Vehicle,
+    whose case structure admits exactly the transitions of statements 23-50.
+  2: |-                                  # -> hlr_3_timing.11   impl: Controller.Advance_Vehicle
+    While State.Mode is NORMAL_OPERATION, the vehicle sequencer shall change
+    State.Vehicle only when the current state's dwell has elapsed
+    (State.Veh_Timer reaching zero), never on absence of vehicular demand.
+
+  # ---- Moore output rows, NS axis (all unlisted faces RED) ----
+  3: |-                                  # -> hlr_5_vehicle.2   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is N_LEAD, Vehicle_Face_Outputs shall return GREEN
+    for the NORTH through face and GREEN for the NORTH left face, and RED for
+    every other vehicle face.
+  4: |-                                  # -> hlr_5_vehicle.3   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is N_LEAD_YELLOW, Vehicle_Face_Outputs shall return
+    GREEN for the NORTH through face and YELLOW for the NORTH left face, and
+    RED for every other vehicle face.
+  5: |-                                  # -> hlr_5_vehicle.4   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is N_LEAD_CLEAR, Vehicle_Face_Outputs shall return
+    GREEN for the NORTH through face, and RED for every other vehicle face.
+  6: |-                                  # -> hlr_5_vehicle.5   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is NS_BOTH_THROUGH, Vehicle_Face_Outputs shall return
+    GREEN for the NORTH and SOUTH through faces, and RED for every other
+    vehicle face.
+  7: |-                                  # -> hlr_5_vehicle.6   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is N_DROP_YELLOW, Vehicle_Face_Outputs shall return
+    YELLOW for the NORTH through face and GREEN for the SOUTH through face,
+    and RED for every other vehicle face.
+  8: |-                                  # -> hlr_5_vehicle.7   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is N_DROP_CLEAR, Vehicle_Face_Outputs shall return
+    GREEN for the SOUTH through face, and RED for every other vehicle face.
+  9: |-                                  # -> hlr_5_vehicle.8   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is S_LAG, Vehicle_Face_Outputs shall return GREEN for
+    the SOUTH through face and GREEN for the SOUTH left face, and RED for
+    every other vehicle face.
+  10: |-                                 # -> hlr_5_vehicle.9   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is S_LAG_YELLOW, Vehicle_Face_Outputs shall return
+    YELLOW for the SOUTH through face and YELLOW for the SOUTH left face, and
+    RED for every other vehicle face.
+  11: |-                                 # -> hlr_5_vehicle.10   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is NS_BOTH_DROP_YELLOW, Vehicle_Face_Outputs shall
+    return YELLOW for the NORTH and SOUTH through faces, and RED for every
+    other vehicle face.
+  12: |-                                 # -> hlr_5_vehicle.11   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is NS_BARRIER_ALLRED, Vehicle_Face_Outputs shall
+    return RED for every vehicle face.
+
+  # ---- Moore output rows, EW axis (the exact mirror) ----
+  13: |-                                 # -> hlr_5_vehicle.25   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is E_LEAD, Vehicle_Face_Outputs shall return GREEN
+    for the EAST through face and GREEN for the EAST left face, and RED for
+    every other vehicle face.
+  14: |-                                 # -> hlr_5_vehicle.26   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is E_LEAD_YELLOW, Vehicle_Face_Outputs shall return
+    GREEN for the EAST through face and YELLOW for the EAST left face, and
+    RED for every other vehicle face.
+  15: |-                                 # -> hlr_5_vehicle.27   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is E_LEAD_CLEAR, Vehicle_Face_Outputs shall return
+    GREEN for the EAST through face, and RED for every other vehicle face.
+  16: |-                                 # -> hlr_5_vehicle.28   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is EW_BOTH_THROUGH, Vehicle_Face_Outputs shall return
+    GREEN for the EAST and WEST through faces, and RED for every other
+    vehicle face.
+  17: |-                                 # -> hlr_5_vehicle.29   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is E_DROP_YELLOW, Vehicle_Face_Outputs shall return
+    YELLOW for the EAST through face and GREEN for the WEST through face, and
+    RED for every other vehicle face.
+  18: |-                                 # -> hlr_5_vehicle.30   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is E_DROP_CLEAR, Vehicle_Face_Outputs shall return
+    GREEN for the WEST through face, and RED for every other vehicle face.
+  19: |-                                 # -> hlr_5_vehicle.31   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is W_LAG, Vehicle_Face_Outputs shall return GREEN for
+    the WEST through face and GREEN for the WEST left face, and RED for every
+    other vehicle face.
+  20: |-                                 # -> hlr_5_vehicle.32   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is W_LAG_YELLOW, Vehicle_Face_Outputs shall return
+    YELLOW for the WEST through face and YELLOW for the WEST left face, and
+    RED for every other vehicle face.
+  21: |-                                 # -> hlr_5_vehicle.33   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is EW_BOTH_DROP_YELLOW, Vehicle_Face_Outputs shall
+    return YELLOW for the EAST and WEST through faces, and RED for every
+    other vehicle face.
+  22: |-                                 # -> hlr_5_vehicle.34   impl: Controller.Vehicle_Face_Outputs
+    While State.Vehicle is EW_BARRIER_ALLRED, Vehicle_Face_Outputs shall
+    return RED for every vehicle face.
+
+  # ---- transitions, NS axis ----
+  23: |-                                 # -> hlr_5_vehicle.12   impl: Controller.Advance_Vehicle
+    While State.Vehicle is EW_BARRIER_ALLRED and State.Left (NORTH) is
+    LEFT_DEMAND_PENDING, when its dwell (T_BARRIER) elapses, Advance_Vehicle
+    shall set State.Vehicle to N_LEAD and State.Veh_Timer to T_LEAD.
+  24: |-                                 # -> hlr_5_vehicle.13, .17, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is EW_BARRIER_ALLRED and State.Left (NORTH) is
+    NO_LEFT_DEMAND and State.Left (SOUTH) is LEFT_DEMAND_PENDING, when its
+    dwell (T_BARRIER) elapses, Advance_Vehicle shall set State.Veh_Lag to
+    TRUE, set State.Vehicle to NS_BOTH_THROUGH, and set State.Veh_Timer to the
+    both-through residual T_AXIS minus T_BARRIER, minus
+    T_YELLOW + T_REDCLEAR + T_LAG + T_YELLOW.
+  25: |-                                 # -> hlr_5_vehicle.13, .18, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is EW_BARRIER_ALLRED and State.Left (NORTH) is
+    NO_LEFT_DEMAND and State.Left (SOUTH) is NO_LEFT_DEMAND, when its dwell
+    (T_BARRIER) elapses, Advance_Vehicle shall set State.Veh_Lag to FALSE, set
+    State.Vehicle to NS_BOTH_THROUGH, and set State.Veh_Timer to the
+    both-through residual T_AXIS minus T_BARRIER, minus T_YELLOW.
+  26: |-                                 # -> hlr_5_vehicle.14   impl: Controller.Advance_Vehicle
+    While State.Vehicle is N_LEAD, when its dwell (T_LEAD) elapses,
+    Advance_Vehicle shall set State.Vehicle to N_LEAD_YELLOW and
+    State.Veh_Timer to T_YELLOW.
+  27: |-                                 # -> hlr_5_vehicle.15   impl: Controller.Advance_Vehicle
+    While State.Vehicle is N_LEAD_YELLOW, when its dwell (T_YELLOW) elapses,
+    Advance_Vehicle shall set State.Vehicle to N_LEAD_CLEAR and
+    State.Veh_Timer to T_REDCLEAR.
+  28: |-                                 # -> hlr_5_vehicle.16, .17, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is N_LEAD_CLEAR and State.Left (SOUTH) is
+    LEFT_DEMAND_PENDING, when its dwell (T_REDCLEAR) elapses, Advance_Vehicle
+    shall set State.Veh_Lag to TRUE, set State.Vehicle to NS_BOTH_THROUGH, and
+    set State.Veh_Timer to the both-through residual T_AXIS minus T_BARRIER,
+    minus T_LEAD + T_YELLOW + T_REDCLEAR, minus
+    T_YELLOW + T_REDCLEAR + T_LAG + T_YELLOW.
+  29: |-                                 # -> hlr_5_vehicle.16, .18, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is N_LEAD_CLEAR and State.Left (SOUTH) is
+    NO_LEFT_DEMAND, when its dwell (T_REDCLEAR) elapses, Advance_Vehicle shall
+    set State.Veh_Lag to FALSE, set State.Vehicle to NS_BOTH_THROUGH, and set
+    State.Veh_Timer to the both-through residual T_AXIS minus T_BARRIER, minus
+    T_LEAD + T_YELLOW + T_REDCLEAR, minus T_YELLOW.
+  30: |-                                 # -> hlr_5_vehicle.17   impl: Controller.Advance_Vehicle
+    While State.Vehicle is NS_BOTH_THROUGH and State.Veh_Lag is TRUE, when
+    its dwell (the Both_Duration residual) elapses, Advance_Vehicle shall set
+    State.Vehicle to N_DROP_YELLOW and State.Veh_Timer to T_YELLOW.
+  31: |-                                 # -> hlr_5_vehicle.18   impl: Controller.Advance_Vehicle
+    While State.Vehicle is NS_BOTH_THROUGH and State.Veh_Lag is FALSE, when
+    its dwell (the Both_Duration residual) elapses, Advance_Vehicle shall set
+    State.Vehicle to NS_BOTH_DROP_YELLOW and State.Veh_Timer to T_YELLOW.
+  32: |-                                 # -> hlr_5_vehicle.19   impl: Controller.Advance_Vehicle
+    While State.Vehicle is N_DROP_YELLOW, when its dwell (T_YELLOW) elapses,
+    Advance_Vehicle shall set State.Vehicle to N_DROP_CLEAR and
+    State.Veh_Timer to T_REDCLEAR.
+  33: |-                                 # -> hlr_5_vehicle.20   impl: Controller.Advance_Vehicle
+    While State.Vehicle is N_DROP_CLEAR, when its dwell (T_REDCLEAR) elapses,
+    Advance_Vehicle shall set State.Vehicle to S_LAG and State.Veh_Timer to
+    T_LAG.
+  34: |-                                 # -> hlr_5_vehicle.21   impl: Controller.Advance_Vehicle
+    While State.Vehicle is S_LAG, when its dwell (T_LAG) elapses,
+    Advance_Vehicle shall set State.Vehicle to S_LAG_YELLOW and
+    State.Veh_Timer to T_YELLOW.
+  35: |-                                 # -> hlr_5_vehicle.22   impl: Controller.Advance_Vehicle
+    While State.Vehicle is S_LAG_YELLOW, when its dwell (T_YELLOW) elapses,
+    Advance_Vehicle shall set State.Vehicle to NS_BARRIER_ALLRED and
+    State.Veh_Timer to T_BARRIER.
+  36: |-                                 # -> hlr_5_vehicle.23   impl: Controller.Advance_Vehicle
+    While State.Vehicle is NS_BOTH_DROP_YELLOW, when its dwell (T_YELLOW)
+    elapses, Advance_Vehicle shall set State.Vehicle to NS_BARRIER_ALLRED and
+    State.Veh_Timer to T_BARRIER.
+
+  # ---- transitions, EW axis (the exact mirror) ----
+  37: |-                                 # -> hlr_5_vehicle.35   impl: Controller.Advance_Vehicle
+    While State.Vehicle is NS_BARRIER_ALLRED and State.Left (EAST) is
+    LEFT_DEMAND_PENDING, when its dwell (T_BARRIER) elapses, Advance_Vehicle
+    shall set State.Vehicle to E_LEAD and State.Veh_Timer to T_LEAD.
+  38: |-                                 # -> hlr_5_vehicle.36, .40, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is NS_BARRIER_ALLRED and State.Left (EAST) is
+    NO_LEFT_DEMAND and State.Left (WEST) is LEFT_DEMAND_PENDING, when its
+    dwell (T_BARRIER) elapses, Advance_Vehicle shall set State.Veh_Lag to
+    TRUE, set State.Vehicle to EW_BOTH_THROUGH, and set State.Veh_Timer to the
+    both-through residual T_AXIS minus T_BARRIER, minus
+    T_YELLOW + T_REDCLEAR + T_LAG + T_YELLOW.
+  39: |-                                 # -> hlr_5_vehicle.36, .41, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is NS_BARRIER_ALLRED and State.Left (EAST) is
+    NO_LEFT_DEMAND and State.Left (WEST) is NO_LEFT_DEMAND, when its dwell
+    (T_BARRIER) elapses, Advance_Vehicle shall set State.Veh_Lag to FALSE, set
+    State.Vehicle to EW_BOTH_THROUGH, and set State.Veh_Timer to the
+    both-through residual T_AXIS minus T_BARRIER, minus T_YELLOW.
+  40: |-                                 # -> hlr_5_vehicle.37   impl: Controller.Advance_Vehicle
+    While State.Vehicle is E_LEAD, when its dwell (T_LEAD) elapses,
+    Advance_Vehicle shall set State.Vehicle to E_LEAD_YELLOW and
+    State.Veh_Timer to T_YELLOW.
+  41: |-                                 # -> hlr_5_vehicle.38   impl: Controller.Advance_Vehicle
+    While State.Vehicle is E_LEAD_YELLOW, when its dwell (T_YELLOW) elapses,
+    Advance_Vehicle shall set State.Vehicle to E_LEAD_CLEAR and
+    State.Veh_Timer to T_REDCLEAR.
+  42: |-                                 # -> hlr_5_vehicle.39, .40, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is E_LEAD_CLEAR and State.Left (WEST) is
+    LEFT_DEMAND_PENDING, when its dwell (T_REDCLEAR) elapses, Advance_Vehicle
+    shall set State.Veh_Lag to TRUE, set State.Vehicle to EW_BOTH_THROUGH, and
+    set State.Veh_Timer to the both-through residual T_AXIS minus T_BARRIER,
+    minus T_LEAD + T_YELLOW + T_REDCLEAR, minus
+    T_YELLOW + T_REDCLEAR + T_LAG + T_YELLOW.
+  43: |-                                 # -> hlr_5_vehicle.39, .41, hlr_3_timing.7, .8   impl: Controller.Advance_Vehicle, Controller.Both_Duration
+    While State.Vehicle is E_LEAD_CLEAR and State.Left (WEST) is
+    NO_LEFT_DEMAND, when its dwell (T_REDCLEAR) elapses, Advance_Vehicle shall
+    set State.Veh_Lag to FALSE, set State.Vehicle to EW_BOTH_THROUGH, and set
+    State.Veh_Timer to the both-through residual T_AXIS minus T_BARRIER, minus
+    T_LEAD + T_YELLOW + T_REDCLEAR, minus T_YELLOW.
+  44: |-                                 # -> hlr_5_vehicle.40   impl: Controller.Advance_Vehicle
+    While State.Vehicle is EW_BOTH_THROUGH and State.Veh_Lag is TRUE, when
+    its dwell (the Both_Duration residual) elapses, Advance_Vehicle shall set
+    State.Vehicle to E_DROP_YELLOW and State.Veh_Timer to T_YELLOW.
+  45: |-                                 # -> hlr_5_vehicle.41   impl: Controller.Advance_Vehicle
+    While State.Vehicle is EW_BOTH_THROUGH and State.Veh_Lag is FALSE, when
+    its dwell (the Both_Duration residual) elapses, Advance_Vehicle shall set
+    State.Vehicle to EW_BOTH_DROP_YELLOW and State.Veh_Timer to T_YELLOW.
+  46: |-                                 # -> hlr_5_vehicle.42   impl: Controller.Advance_Vehicle
+    While State.Vehicle is E_DROP_YELLOW, when its dwell (T_YELLOW) elapses,
+    Advance_Vehicle shall set State.Vehicle to E_DROP_CLEAR and
+    State.Veh_Timer to T_REDCLEAR.
+  47: |-                                 # -> hlr_5_vehicle.43   impl: Controller.Advance_Vehicle
+    While State.Vehicle is E_DROP_CLEAR, when its dwell (T_REDCLEAR) elapses,
+    Advance_Vehicle shall set State.Vehicle to W_LAG and State.Veh_Timer to
+    T_LAG.
+  48: |-                                 # -> hlr_5_vehicle.44   impl: Controller.Advance_Vehicle
+    While State.Vehicle is W_LAG, when its dwell (T_LAG) elapses,
+    Advance_Vehicle shall set State.Vehicle to W_LAG_YELLOW and
+    State.Veh_Timer to T_YELLOW.
+  49: |-                                 # -> hlr_5_vehicle.45   impl: Controller.Advance_Vehicle
+    While State.Vehicle is W_LAG_YELLOW, when its dwell (T_YELLOW) elapses,
+    Advance_Vehicle shall set State.Vehicle to EW_BARRIER_ALLRED and
+    State.Veh_Timer to T_BARRIER.
+  50: |-                                 # -> hlr_5_vehicle.46   impl: Controller.Advance_Vehicle
+    While State.Vehicle is EW_BOTH_DROP_YELLOW, when its dwell (T_YELLOW)
+    elapses, Advance_Vehicle shall set State.Vehicle to EW_BARRIER_ALLRED and
+    State.Veh_Timer to T_BARRIER.
+
+algorithm_aspects: |-
+  The output table is written as explicit literal aggregates per state — not
+  a DRY axis-parameterized helper — so the Safe_Faces postcondition
+  (llr_4_controller.10) is a check over literal constants in every state; the
+  duplication between the NS rows and their EW mirror is the price of that
+  structure.
+
+  Latching the lag decision at both-through entry rather than reading demand
+  at exit serves two constraints at once: the residual dwell must be
+  computable at entry (the slot arithmetic of Both_Duration needs to know
+  whether the lag's overhead runs), and the demand snapshot used for the time
+  budget must be the same one that later routes the exit (30/31, 44/45) — a
+  vehicle arriving mid-both-through therefore waits for the next cycle, which
+  the fixed-slot policy (hlr_3_timing.7) requires anyway.
+
+  Fixed_Duration (the per-state dwell table the transitions reload from) maps
+  the both-through states to T_BOTH_MIN purely for totality; that value is
+  never consulted for them — their dwell always comes from Both_Duration.
+
+  The Both_Duration formula keeps T_AXIS demand-independent (hlr_3_timing.7):
+  the axis slot spans barrier + optional lead block + both-through + exit
+  block, and the residual shrinks by exactly the overhead of whichever
+  optional blocks run. The no-lag branch still subtracts one T_YELLOW — the
+  both-drop yellow that ends the slot in that case.
