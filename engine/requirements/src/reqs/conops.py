@@ -12,22 +12,72 @@ Only the leaf id is needed here; the marker and prose are the human's concern.
 
 from __future__ import annotations
 
-from pathlib import Path
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 from reqs.core import LEAF_RE
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
 
-def parse_leaves(path: Path) -> dict[str, int]:
-    """
-    Map each CONOPS leaf id (``"<n>.<m>"``) to its 1-based source line.
 
-    Non-leaf lines (headings, prose, non-leaf bullets) are ignored. A leaf id
-    that somehow appears twice keeps its first line.
-    """
-    leaves: dict[str, int] = {}
-    text = Path(path).read_text(encoding="utf-8")
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        m = LEAF_RE.match(line)
-        if m and m.group(1) not in leaves:
-            leaves[m.group(1)] = lineno
-    return leaves
+@dataclass(frozen=True)
+class Leaf:
+    """One CONOPS leaf: the markdown analogue of a requirement ``Statement``."""
+
+    line: int  # 1-based source line of the leaf bullet
+
+    # The Statement trace surface (see reqs.document). A leaf carries no upward
+    # trace of its own: the CONOPS sits at the top of the chain.
+    up_refs: ClassVar[None] = None
+    is_derived: ClassVar[bool] = False
+
+
+class ConopsSet:
+    """The leaves of one CONOPS document, queryable like a ``RequirementSet``."""
+
+    path: Path
+    leaves: dict[str, Leaf]
+
+    def __init__(self, path: Path, leaves: dict[str, Leaf]) -> None:
+        self.path = path
+        self.leaves = leaves
+
+    @classmethod
+    def load(cls, path: Path) -> ConopsSet:
+        """
+        Parse the leaf bullets of the CONOPS document at `path`.
+
+        Non-leaf lines (headings, prose, non-leaf bullets) are ignored. A leaf
+        id that somehow appears twice keeps its first line.
+        """
+        leaves: dict[str, Leaf] = {}
+        text = path.read_text(encoding="utf-8")
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            m = LEAF_RE.match(line)
+            if m and m.group(1) not in leaves:
+                leaves[m.group(1)] = Leaf(lineno)
+        return cls(path, leaves)
+
+    def all_statements(self) -> Iterator[tuple[str, Leaf]]:
+        """Yield every leaf as (leaf id, leaf), in document order."""
+        yield from self.leaves.items()
+
+    def statement(self, leaf_id: str) -> Leaf | None:
+        """Resolve a ``"<n>.<m>"`` leaf id to its leaf; None if absent."""
+        return self.leaves.get(leaf_id)
+
+    def loc_of(
+        self,
+        leaf_id: str,
+        *,
+        sub_key: Literal["text", "up_ref"] | None = None,  # noqa: ARG002  # For signature parity with RequirementSet
+    ) -> tuple[Path, int, tuple[str, ...]]:
+        """
+        Return file path, line number and key path of the specified leaf.
+
+        Markdown has no key paths, so the third element is always empty. Raises
+        `KeyError` if `leaf_id` is not present.
+        """
+        return self.path, self.leaves[leaf_id].line, ()

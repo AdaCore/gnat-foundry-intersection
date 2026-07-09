@@ -45,7 +45,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-from reqs.conops import parse_leaves
+from reqs.conops import ConopsSet
 from reqs.core import Diagnostic
 from reqs.requirement_set import RequirementSet
 
@@ -87,8 +87,7 @@ def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
 @dataclass
 class _Loaded:
     layer: Layer
-    nodes: dict[str, tuple[Path, int]]  # node id -> (file, line); the coverage targets
-    reqset: RequirementSet  # the layer's requirement files (empty for markdown-leaves)
+    reqset: RequirementSet | ConopsSet  # the layer's nodes: coverage targets, up-refs, locations
     waived: dict[str, str]  # node id -> reason
     waiver_file: Path | None
 
@@ -131,27 +130,15 @@ class TraceChecker:
     def _load(self, layer: Layer, diags: list[Diagnostic]) -> _Loaded:
         waived = self._load_waivers(layer, diags)
         if layer.kind == MARKDOWN_LEAVES:
-            nodes: dict[str, tuple[Path, int]] = {
-                nid: (layer.path, line) for nid, line in parse_leaves(layer.path).items()
-            }
-            return _Loaded(layer, nodes, RequirementSet(()), waived, layer.waivers)
+            return _Loaded(layer, ConopsSet.load(layer.path), waived, layer.waivers)
         if layer.kind == REQUIREMENT_YAML:
-            return self._load_requirements(layer, waived, diags)
+            reqset, load_diags = RequirementSet.load([layer.path])
+            diags.extend(load_diags)
+            return _Loaded(layer, reqset, waived, layer.waivers)
         diags.append(
             Diagnostic("error", "E-TRACE-KIND", f"unknown layer kind {layer.kind!r}", layer.path)
         )
-        return _Loaded(layer, {}, RequirementSet(()), waived, layer.waivers)
-
-    def _load_requirements(
-        self, layer: Layer, waived: dict[str, str], diags: list[Diagnostic]
-    ) -> _Loaded:
-        reqset, load_diags = RequirementSet.load([layer.path])
-        diags.extend(load_diags)
-        nodes: dict[str, tuple[Path, int]] = {}
-        for nid, _statement in reqset.all_statements():
-            file, line, _loc = reqset.loc_of(nid)
-            nodes[nid] = (file, line)
-        return _Loaded(layer, nodes, reqset, waived, layer.waivers)
+        return _Loaded(layer, RequirementSet(()), waived, layer.waivers)
 
     def _load_waivers(self, layer: Layer, diags: list[Diagnostic]) -> dict[str, str]:
         if layer.waivers is None:
@@ -210,9 +197,10 @@ class TraceChecker:
         out: list[Diagnostic] = []
         up, lo = pair.upper.layer.name, pair.lower.layer.name
         hint = "" if self.complete else " (use --complete to require coverage)"
-        for nid, (file, line) in pair.upper.nodes.items():
+        for nid, _statement in pair.upper.reqset.all_statements():
             if nid in pair.coverage or nid in pair.upper.waived:
                 continue
+            file, line, _loc = pair.upper.reqset.loc_of(nid)
             out.append(
                 Diagnostic(
                     "error" if self.complete else "warning",
@@ -225,7 +213,7 @@ class TraceChecker:
         waiver_file = pair.upper.waiver_file
         if waiver_file is not None:
             for nid in pair.upper.waived:
-                if nid not in pair.upper.nodes:
+                if pair.upper.reqset.statement(nid) is None:
                     out.append(
                         Diagnostic(
                             "error",
@@ -259,7 +247,7 @@ def _analyze(upper: _Loaded, lower: _Loaded) -> _Pair:
                 continue  # ref does not target this layer -> out of scope
             matched = True
             parent = m.group(1)
-            if parent in upper.nodes:
+            if upper.reqset.statement(parent) is not None:
                 pair.coverage.setdefault(parent, []).append(nid)
                 pair.resolved.setdefault(nid, []).append(parent)
             else:
@@ -300,7 +288,7 @@ def _pair_tables(pair: _Pair) -> list[Table]:
     up, lo = pair.upper.layer.name, pair.lower.layer.name
 
     coverage = _new_table(f"{up} → {lo}  (coverage)", up, f"Covered by ({lo})")
-    for nid in pair.upper.nodes:
+    for nid, _statement in pair.upper.reqset.all_statements():
         if nid in pair.coverage:
             status, detail = "OK", ", ".join(pair.coverage[nid])
         elif nid in pair.upper.waived:

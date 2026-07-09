@@ -27,7 +27,7 @@ from typer.testing import CliRunner
 
 from reqs.checks.trace import Layer, _severity_style, check_trace, load_chain, render_tables
 from reqs.cli import app
-from reqs.conops import parse_leaves
+from reqs.conops import ConopsSet
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -148,11 +148,11 @@ def conops_hlr_chain(
 # --- adapters / config ------------------------------------------------------
 
 
-def test_parse_leaves_extracts_bullets_only(tmp_path: Path) -> None:
+def test_conops_set_extracts_bullets_only(tmp_path: Path) -> None:
     """Only marked leaf bullets are extracted, each with a positive line number."""
-    leaves = parse_leaves(write_conops(tmp_path))
-    assert set(leaves) == {"1.1", "2.1", "2.2", "3.1"}
-    assert all(isinstance(line, int) and line > 0 for line in leaves.values())
+    conops = ConopsSet.load(write_conops(tmp_path))
+    assert {nid for nid, _leaf in conops.all_statements()} == {"1.1", "2.1", "2.2", "3.1"}
+    assert all(leaf.line > 0 for _nid, leaf in conops.all_statements())
 
 
 def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
