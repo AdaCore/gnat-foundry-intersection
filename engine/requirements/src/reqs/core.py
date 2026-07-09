@@ -52,7 +52,7 @@ def prose(statement: str) -> str:
     return re.sub(r"\s+", " ", " ".join(lines)).strip()
 
 
-def statement_text(statement) -> str | None:
+def statement_text(statement: object) -> str | None:
     """Return a statement's prose text, or None if its shape is malformed."""
     if isinstance(statement, dict):
         text = statement.get("text")

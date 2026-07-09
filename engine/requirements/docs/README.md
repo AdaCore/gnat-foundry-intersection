@@ -32,19 +32,6 @@ examples:
 | `rationale` | both | Why the requirement exists / why it is shaped this way. |
 
 A *statement* is an object carrying its `text` (the shall-statement itself)
-and an upward trace. The trace is exactly one of:
-
-- `source` (HLR only) — upstream references (e.g. clauses of a governing
-  specification or standard);
-- `parent_req` (LLR only) — full statement IDs (`<stem>.<number>`) of the HLR
-  statement(s) this one refines;
-- `derived: true` (either level) — the statement has no upstream
-  source/parent (an implementation/design choice).
-
-An HLR statement may additionally carry `terminal: true`: the requirement is
-not further decomposed into lower-level requirements.
-
-A *statement* is an object carrying its `text` (the shall-statement itself)
 and an upward trace:
 
 - an HLR statement carries exactly one of `source` (upstream references, e.g.

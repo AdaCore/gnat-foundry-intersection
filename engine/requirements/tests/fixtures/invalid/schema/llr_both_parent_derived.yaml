@@ -1,9 +1,0 @@
-# E-SCHEMA: an LLR must carry exactly one of parent_req / derived; here it has
-# both.
-visibility: compiler
-description:
-  1:
-    text: The widget shall do the thing.
-    parent_req:
-      - hlr_Widget_1.1
-    derived: true

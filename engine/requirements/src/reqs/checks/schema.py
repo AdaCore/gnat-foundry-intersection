@@ -89,8 +89,6 @@ class RequirementChecker:
             if not isinstance(file, LlrFile):
                 continue
             for key, statement in file.description.items():
-                if statement.parent_req is None:
-                    continue  # derived
                 _path, line, loc = file.loc_of(key, sub_key="up_ref")
                 for parent_id in statement.parent_req:
                     diag = self._parent_diagnostic(reqset, parent_id, file.path, line, loc)

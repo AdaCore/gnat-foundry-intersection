@@ -262,7 +262,7 @@ def _analyze(upper: _Loaded, lower: _Loaded) -> _Pair:
                 pair.resolved.setdefault(nid, []).append(parent)
             else:
                 pair.dangling.setdefault(nid, []).append(ref)
-        if not (statement.derived or matched):
+        if not (statement.is_derived or matched):
             pair.untraced.append(nid)
     return pair
 
@@ -311,7 +311,7 @@ def _pair_tables(pair: _Pair) -> list[Table]:
     for nid, statement in pair.lower.reqset.all_statements():
         if nid in pair.resolved:
             status, detail = "OK", ", ".join(pair.resolved[nid])
-        elif statement.derived:
+        elif statement.is_derived:
             status, detail = "DERIVED", "—"
         elif nid in pair.dangling:
             status, detail = "DANGLING", ", ".join(pair.dangling[nid])

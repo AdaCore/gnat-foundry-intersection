@@ -42,45 +42,52 @@ class _Model(BaseModel):
 
 
 class _BaseStatement(_Model):
-    """
-    One atomic shall-statement, carrying its own upward trace.
-
-    Exactly one of the level's up-ref field / `derived` must be present: a
-    statement that traces nowhere must be explicitly marked derived.
-    """
+    """One atomic shall-statement, carrying its own upward trace."""
 
     up_ref_key: ClassVar[str]  # name of the subclass's up-ref field
 
     text: NonEmptyStr
-    derived: Literal[True] | None = None
 
     @property
     @abstractmethod
     def up_refs(self) -> list[str] | None:
-        """The statement's upward trace refs; None when derived."""
+        """The statement's upward trace refs; None when derived (HLR only)."""
 
-    @model_validator(mode="after")
-    def _trace_xor(self) -> Self:
-        if (self.up_refs is None) == (self.derived is None):
-            raise PydanticCustomError(
-                "trace_xor",
-                "statement must have exactly one of '{up_ref}' or 'derived'",
-                {"up_ref": self.up_ref_key},
-            )
-        return self
+    @property
+    def is_derived(self) -> bool:
+        """Whether the statement is marked `derived: true` (HLR-only)."""
+        return False
 
 
 class HlrStatement(_BaseStatement):
-    """An HLR statement."""
+    """
+    An HLR statement.
+
+    Exactly one of `source` / `derived` must be present: a statement that
+    traces nowhere must be explicitly marked derived.
+    """
 
     up_ref_key: ClassVar[str] = "source"
 
     source: RefList | None = None
-    terminal: Literal[True] | None = None
+    derived: Literal[True] | None = None
 
     @property
     def up_refs(self) -> list[str] | None:
         return self.source
+
+    @property
+    def is_derived(self) -> bool:
+        return self.derived is True
+
+    @model_validator(mode="after")
+    def _trace_xor(self) -> Self:
+        if (self.source is None) == (self.derived is None):
+            raise PydanticCustomError(
+                "trace_xor",
+                "statement must have exactly one of 'source' or 'derived'",
+            )
+        return self
 
 
 class LlrStatement(_BaseStatement):
@@ -88,10 +95,10 @@ class LlrStatement(_BaseStatement):
 
     up_ref_key: ClassVar[str] = "parent_req"
 
-    parent_req: RefList | None = None
+    parent_req: RefList
 
     @property
-    def up_refs(self) -> list[str] | None:
+    def up_refs(self) -> list[str]:
         return self.parent_req
 
 

@@ -3,4 +3,4 @@ description:
   1:
     text: The widget shall do the thing.
     derived: true
-    terminal: null
+    source: null

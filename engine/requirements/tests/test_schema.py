@@ -36,7 +36,7 @@ NEGATIVE_CASES = [
     ("non-integer description key", ["hlr_desc_strkey.yaml"], "E-SCHEMA", "error"),
     ("duplicate description key", ["hlr_desc_dup.yaml"], "E-DESCKEY-DUP", "error"),
     ("empty description statement", ["hlr_desc_empty.yaml"], "E-SCHEMA", "error"),
-    ("explicit null rejected", ["hlr_terminal_null.yaml"], "E-SCHEMA", "error"),
+    ("explicit null rejected", ["hlr_source_null.yaml"], "E-SCHEMA", "error"),
     ("visibility must be non-empty string", ["llr_bad_visibility.yaml"], "E-SCHEMA", "error"),
     ("bad filename prefix", ["badprefix.yaml"], "E-PREFIX", "error"),
     ("two shall in a statement", ["hlr_two_shall.yaml"], "W-RS3", "warning"),
