@@ -167,7 +167,3 @@ The "delay_for" procedure in the HAL can be tuned at compile time to act faster 
 ## Command-input and diagnostic streams
 
 TODO: This will be refined at a future revision of this document.
-
-## Code conventions
-
-There should be no global variables.

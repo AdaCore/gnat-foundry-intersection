@@ -21,11 +21,20 @@ follow the **specification** of the entity.
 
 All subprograms should have documentation.
 
+## Type system
+
+Leverage the Ada typing system: introduce narrow types as needed. Introduce new types to avoid
+danger of introducing arithmetic operations involving types that are not meant to be compatible.
+
 ## Commented-out code
 
 It is possible for code to be commented out (for instance, code deferred for future implementation,
 or code that can be activated for debug purposes). The reason for commenting code out should be
 explained in a comment.
+
+## Global variables
+
+There should be no global variables.
 
 ## Constants
 
