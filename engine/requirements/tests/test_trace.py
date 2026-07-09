@@ -56,6 +56,7 @@ Some explanatory prose, not a leaf.
 
 
 def write_conops(tmp_path: Path) -> Path:
+    """Write the fixture CONOPS document and return its path."""
     p = tmp_path / "conops.md"
     p.write_text(CONOPS_TEXT, encoding="utf-8")
     return p
@@ -80,6 +81,7 @@ def write_req(
 
 
 def write_waivers(tmp_path: Path, name: str, entries: Sequence[tuple[str, str]]) -> Path:
+    """Write a waiver file from (node, reason) entries and return its path."""
     lines = ["waivers:"]
     for node, reason in entries:
         lines.append(f'  - leaf: "{node}"')
@@ -90,10 +92,12 @@ def write_waivers(tmp_path: Path, name: str, entries: Sequence[tuple[str, str]])
 
 
 def conops_layer(path: Path, waivers: Path | None = None) -> Layer:
+    """Make a CONOPS (markdown-leaves) layer."""
     return Layer("CONOPS", "markdown-leaves", path, waivers=waivers)
 
 
 def hlr_layer(hlr_dir: Path, waivers: Path | None = None) -> Layer:
+    """Make an HLR layer whose up-refs are CONOPS leaf citations."""
     return Layer(
         "HLR",
         "requirement-yaml",
@@ -104,10 +108,12 @@ def hlr_layer(hlr_dir: Path, waivers: Path | None = None) -> Layer:
 
 
 def llr_layer(llr_dir: Path) -> Layer:
+    """Make an LLR layer whose up-refs are HLR statement IDs."""
     return Layer("LLR", "requirement-yaml", llr_dir, id_pattern=r"(.+\.\d+)")
 
 
 def codes(diags: Sequence[Diagnostic]) -> set[tuple[str, str]]:
+    """Reduce diagnostics to their (code, level) pairs."""
     return {(d.code, d.level) for d in diags}
 
 
@@ -120,6 +126,7 @@ def conops_hlr_chain(
     *,
     waive: Sequence[tuple[str, str]] | None = None,
 ) -> list[Layer]:
+    """Build a CONOPS -> HLR chain with the given HLR statements and waivers."""
     conops = write_conops(tmp_path)
     hlr_dir = tmp_path / "hlr"
     hlr_dir.mkdir(exist_ok=True)
@@ -132,12 +139,14 @@ def conops_hlr_chain(
 
 
 def test_parse_leaves_extracts_bullets_only(tmp_path: Path) -> None:
+    """Only marked leaf bullets are extracted, each with a positive line number."""
     leaves = parse_leaves(write_conops(tmp_path))
     assert set(leaves) == {"1.1", "2.1", "2.2", "3.1"}
     assert all(isinstance(line, int) and line > 0 for line in leaves.values())
 
 
 def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
+    """Layer paths in a chain config resolve relative to the config file."""
     write_conops(tmp_path)
     (tmp_path / "hlr").mkdir()
     write_waivers(tmp_path, "trace_waivers.yaml", [("1.1", "ok")])
@@ -159,11 +168,13 @@ def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
 
 
 def test_clean_when_every_leaf_covered_or_waived(tmp_path: Path) -> None:
+    """A chain where every leaf is covered or waived is clean even under --complete."""
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "Physical site assumption.")])
     assert check_trace(chain, complete=True) == []
 
 
 def test_uncovered_leaf_warns_by_default(tmp_path: Path) -> None:
+    """An uncovered, unwaived leaf is a warning (not an error) by default."""
     chain = conops_hlr_chain(tmp_path, COVERING)  # 1.1 uncovered/unwaived
     diags = check_trace(chain)
     assert ("W-TRACE-UNCOVERED", "warning") in codes(diags)
@@ -171,23 +182,26 @@ def test_uncovered_leaf_warns_by_default(tmp_path: Path) -> None:
 
 
 def test_uncovered_leaf_errors_under_complete(tmp_path: Path) -> None:
+    """Under --complete an uncovered leaf escalates to an error."""
     chain = conops_hlr_chain(tmp_path, COVERING)
     assert ("E-TRACE-UNCOVERED", "error") in codes(check_trace(chain, complete=True))
 
 
 def test_waiver_suppresses_uncovered(tmp_path: Path) -> None:
+    """A waiver excuses an uncovered leaf: no UNCOVERED diagnostic fires."""
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "Physical assumption.")])
     diags = check_trace(chain, complete=True)
     assert not [d for d in diags if d.code.endswith("UNCOVERED")]
 
 
 def test_waiver_for_unknown_node_is_error(tmp_path: Path) -> None:
+    """A waiver naming a node that is not in its layer is an error."""
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok"), ("9.9", "stale")])
     assert ("E-TRACE-WAIVER-UNKNOWN", "error") in codes(check_trace(chain))
 
 
 def test_redundant_waiver_warns(tmp_path: Path) -> None:
-    # 2.1 is both covered and waived -> the waiver is unnecessary.
+    """A waiver naming a node the layer below covers (2.1) draws a warning."""
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok"), ("2.1", "unnecessary")])
     assert ("W-TRACE-WAIVER-REDUNDANT", "warning") in codes(check_trace(chain))
 
@@ -196,24 +210,26 @@ def test_redundant_waiver_warns(tmp_path: Path) -> None:
 
 
 def test_dangling_ref_is_error(tmp_path: Path) -> None:
+    """An up-ref to a non-existent CONOPS leaf is a dangling-ref error."""
     chain = conops_hlr_chain(tmp_path, [["CONOPS §9.9"]])
     assert ("E-TRACE-DANGLING", "error") in codes(check_trace(chain))
 
 
 def test_hlr_without_source_fails_schema(tmp_path: Path) -> None:
-    # Statement 1 has neither source nor derived: a backward gap.
+    """A statement with neither source nor derived (a backward gap) fails the schema."""
     chain = conops_hlr_chain(tmp_path, [[], *COVERING], waive=[("1.1", "ok")])
     # `[]` writes `source:` with no items.
     assert ("E-SCHEMA", "error") in codes(check_trace(chain))
 
 
 def test_derived_statement_is_traced_not_untraced(tmp_path: Path) -> None:
+    """A derived statement counts as accounted for, not UNTRACED."""
     chain = conops_hlr_chain(tmp_path, [None, *COVERING], waive=[("1.1", "ok")])  # stmt 1 derived
     assert check_trace(chain, complete=True) == []
 
 
 def test_source_that_is_not_a_conops_ref_is_untraced(tmp_path: Path) -> None:
-    # Cites a standard directly instead of a CONOPS leaf -> no valid upward trace.
+    """Citing a standard instead of a CONOPS leaf is UNTRACED, not DANGLING."""
     chain = conops_hlr_chain(tmp_path, [["MUTCD §4E.01"], *COVERING], waive=[("1.1", "ok")])
     diags = check_trace(chain)
     assert ("E-TRACE-UNTRACED", "error") in codes(diags)
@@ -224,6 +240,7 @@ def test_source_that_is_not_a_conops_ref_is_untraced(tmp_path: Path) -> None:
 
 
 def test_engine_generalizes_to_hlr_llr(tmp_path: Path) -> None:
+    """The same engine checks the HLR -> LLR pair of a three-layer chain."""
     conops = write_conops(tmp_path)
     hlr_dir, llr_dir = tmp_path / "hlr", tmp_path / "llr"
     hlr_dir.mkdir()
@@ -253,6 +270,7 @@ def test_engine_generalizes_to_hlr_llr(tmp_path: Path) -> None:
 
 
 def test_render_tables_show_bidirectional_status(tmp_path: Path) -> None:
+    """The tables show both coverage (forward) and upward-trace (backward) status."""
     chain = conops_hlr_chain(tmp_path, COVERING)  # 1.1 uncovered
     out = render_tables(chain)
     assert "CONOPS" in out
@@ -263,7 +281,7 @@ def test_render_tables_show_bidirectional_status(tmp_path: Path) -> None:
 
 
 def test_render_tables_wrap_wide_column_to_width(tmp_path: Path) -> None:
-    # A leaf covered by many statements makes the "Covered by" cell very wide.
+    """A very wide "Covered by" cell wraps to the terminal width instead of overflowing."""
     conops = write_conops(tmp_path)
     hlr_dir = tmp_path / "hlr"
     hlr_dir.mkdir()
@@ -279,6 +297,7 @@ def test_render_tables_wrap_wide_column_to_width(tmp_path: Path) -> None:
 
 
 def test_severity_style_flags_problems() -> None:
+    """Row styles: red for real gaps, yellow for waived/derived, green otherwise."""
     for status in ("UNCOVERED", "UNTRACED", "DANGLING"):
         assert _severity_style(status) == "red bold"
     for status in ("WAIVED", "DERIVED"):
@@ -287,6 +306,7 @@ def test_severity_style_flags_problems() -> None:
 
 
 def test_render_tables_are_boxed(tmp_path: Path) -> None:
+    """The output is a boxed rich table with row separators, not an ASCII pipe table."""
     chain = conops_hlr_chain(tmp_path, COVERING, waive=[("1.1", "ok")])
     out = render_tables(chain, width=80)
     assert "─" in out  # a boxed rich table with row separators, not an ASCII pipe table
@@ -296,6 +316,7 @@ def test_render_tables_are_boxed(tmp_path: Path) -> None:
 
 
 def write_chain_file(tmp_path: Path, waive: Sequence[tuple[str, str]]) -> Path:
+    """Write a full CONOPS -> HLR fixture plus its chain config; return the config path."""
     write_conops(tmp_path)
     hlr_dir = tmp_path / "hlr"
     hlr_dir.mkdir(exist_ok=True)
@@ -313,18 +334,21 @@ def write_chain_file(tmp_path: Path, waive: Sequence[tuple[str, str]]) -> Path:
 
 
 def test_cli_chain_exit_zero_when_clean(tmp_path: Path) -> None:
+    """`reqs trace --complete` exits 0 on a clean chain."""
     chain = write_chain_file(tmp_path, [("1.1", "ok")])
     result = runner.invoke(app, ["trace", "--chain", str(chain), "--complete"])
     assert result.exit_code == 0, result.output
 
 
 def test_cli_chain_exit_nonzero_when_uncovered_under_complete(tmp_path: Path) -> None:
+    """`reqs trace --complete` exits non-zero when a leaf is uncovered."""
     chain = write_chain_file(tmp_path, [])  # 1.1 not waived
     result = runner.invoke(app, ["trace", "--chain", str(chain), "--complete"])
     assert result.exit_code != 0, result.output
 
 
 def test_cli_format_table_renders(tmp_path: Path) -> None:
+    """`reqs trace --format table` renders the tables to stdout."""
     chain = write_chain_file(tmp_path, [("1.1", "ok")])
     result = runner.invoke(app, ["trace", "--chain", str(chain), "--format", "table"])
     assert result.exit_code == 0, result.output

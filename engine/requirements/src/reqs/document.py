@@ -74,10 +74,12 @@ class HlrStatement(_BaseStatement):
 
     @property
     def up_refs(self) -> list[str] | None:
+        """The statement's `source` refs; None when derived."""
         return self.source
 
     @property
     def is_derived(self) -> bool:
+        """Whether the statement is marked `derived: true`."""
         return self.derived is True
 
     @model_validator(mode="after")
@@ -99,6 +101,7 @@ class LlrStatement(_BaseStatement):
 
     @property
     def up_refs(self) -> list[str]:
+        """The statement's `parent_req` refs."""
         return self.parent_req
 
 
@@ -124,10 +127,14 @@ class _BaseDocument(_Model):
 
 
 class HlrDocument(_BaseDocument):
+    """A high-level requirement container document."""
+
     description: Annotated[dict[int, HlrStatement], Field(min_length=1)]
 
 
 class LlrDocument(_BaseDocument):
+    """A low-level requirement container document."""
+
     visibility: NonEmptyStr | None = None
     description: Annotated[dict[int, LlrStatement], Field(min_length=1)]
     preconditions: list[NonEmptyStr] | None = None

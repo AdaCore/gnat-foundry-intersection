@@ -71,6 +71,8 @@ def project_root() -> Path:
 
 @dataclass
 class Diagnostic:
+    """One located finding (error or warning) from any of the checks."""
+
     level: str  # "error" | "warning"
     code: str  # e.g. "E-SCHEMA", "W-RS3", "E-EARS-PATTERN"
     message: str
@@ -79,6 +81,7 @@ class Diagnostic:
     path: tuple[str, ...] = ()  # location within the file, e.g. ("description", "4")
 
     def format(self) -> str:
+        """Render as a one-line `file:line: [LEVEL CODE] message` report."""
         loc = str(self.file)
         if self.line is not None:
             loc += f":{self.line}"

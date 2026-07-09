@@ -111,6 +111,7 @@ class TraceChecker:
         self.complete = complete
 
     def check(self) -> list[Diagnostic]:
+        """Check every adjacent pair of the chain; return any diagnostics."""
         diags: list[Diagnostic] = []
         loaded = [self._load(layer, diags) for layer in self.layers]
         for upper, lower in pairwise(loaded):
@@ -118,6 +119,7 @@ class TraceChecker:
         return diags
 
     def print_tables(self, console: Console | None = None) -> None:
+        """Print the coverage / upward-trace tables for every adjacent pair."""
         console = console or Console(width=_terminal_width())
         loaded = [self._load(layer, []) for layer in self.layers]
         for upper, lower in pairwise(loaded):

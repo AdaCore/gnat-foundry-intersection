@@ -59,6 +59,7 @@ NEGATIVE_CASES = [
     ids=[desc for desc, *_ in NEGATIVE_CASES],
 )
 def test_negative_fixture_fires(files: list[str], code: str, level: str) -> None:
+    """Each invalid fixture is reported with its expected diagnostic code and level."""
     diags = validate_paths([FIX / f for f in files])
     assert (code, level) in {(d.code, d.level) for d in diags}
 
@@ -91,9 +92,6 @@ def test_missing_path_reports_clean_diagnostic(tmp_path: Path) -> None:
     assert diags == [Diagnostic("error", "E-IO", "no such file or directory", missing)]
 
 
-# RS.3 counts "shall" over requirement prose only -- the same reduction the EARS
-# lint uses (reqs.core.prose). A "shall" hiding in markup must not be counted,
-# else the two checks disagree about what is prose.
 @pytest.mark.parametrize(
     ("statement", "expected"),
     [
@@ -105,4 +103,11 @@ def test_missing_path_reports_clean_diagnostic(tmp_path: Path) -> None:
     ],
 )
 def test_count_shall_ignores_markup(statement: str, expected: int) -> None:
+    """
+    RS.3 counts "shall" over requirement prose only.
+
+    This is the same reduction the EARS lint uses (reqs.core.prose). A "shall"
+    hiding in markup must not be counted, else the two checks disagree about
+    what is prose.
+    """
     assert _count_shall(statement) == expected

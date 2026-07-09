@@ -35,6 +35,7 @@ NEGATIVE_CASES = [
     ids=[desc for desc, *_ in NEGATIVE_CASES],
 )
 def test_negative_fixture_fires(fname: str, code: str) -> None:
+    """Each invalid fixture is reported with its expected diagnostic code."""
     assert code in {d.code for d in lint_paths([FIX / fname])}
 
 

@@ -24,6 +24,8 @@ from reqs.core import report
 
 
 class OutputFormat(StrEnum):
+    """Output formats supported by the `trace` command."""
+
     text = "text"  # diagnostics (the CI gate)
     table = "table"  # coverage / upward-trace tables for development
 
@@ -87,6 +89,7 @@ def trace(
 
 
 def main() -> None:
+    """Entry point for the `reqs` executable."""
     app()
 
 

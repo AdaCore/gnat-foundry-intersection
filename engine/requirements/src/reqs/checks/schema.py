@@ -55,6 +55,7 @@ class RequirementChecker:
         self.complete = complete
 
     def check(self, paths: Iterable[str | os.PathLike[str]]) -> list[Diagnostic]:
+        """Validate every requirement file under the given paths; return any diagnostics."""
         reqset, diags = RequirementSet.load(paths)
         # Files with duplicate stems still deserve diagnostics.
         for file in (*reqset, *reqset.duplicates):

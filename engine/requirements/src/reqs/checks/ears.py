@@ -56,6 +56,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 
 def classify(prose: str) -> str | None:
+    """Return the name of the EARS pattern the statement matches, or None."""
     for name, pat in _PATTERNS:
         if pat.match(prose):
             return name
@@ -84,6 +85,7 @@ class EarsChecker:
     """Classify every `description` statement against the EARS grammar."""
 
     def check(self, paths: Iterable[str | os.PathLike[str]]) -> list[Diagnostic]:
+        """Lint every statement under the given paths; return any diagnostics."""
         files, diags = iter_yaml_files(paths)
         for path in files:
             data, lines, _dups = load_yaml(path)
