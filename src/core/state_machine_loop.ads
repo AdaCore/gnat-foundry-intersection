@@ -15,16 +15,16 @@
 with States;
 
 generic
+   with procedure Delay_For (Ms : States.Duration_Ms);
    --  Wait the delay required by the current state
    --  (Timings.Delay_For's signature).
-   with procedure Delay_For (Ms : States.Duration_Ms);
 
+   with procedure Read_Sources (Sensors : out States.Sensors_State);
    --  Consumer side of the source bus: sample every input source into one
    --  snapshot (Buses.Source_Bus.Read's signature).
-   with procedure Read_Sources (Sensors : out States.Sensors_State);
 
+   with procedure Write_Display (Outputs : States.Display_State);
    --  Producer side of the display bus: push the outputs to the display
    --  (Buses.Display_Bus.Write's signature).
-   with procedure Write_Display (Outputs : States.Display_State);
 procedure State_Machine_Loop
 with SPARK_Mode => On, No_Return;

@@ -1,7 +1,8 @@
 # E-PARENT-FORMAT: parent_req must be a <stem>.<number> statement ID, not a bare
 # container stem (hlr_Widget_1 names a file, not a single requirement).
-parent_req:
-  - hlr_Widget_1
 visibility: compiler
 description:
-  1: The widget shall do the dependent thing.
+  1:
+    text: The widget shall do the dependent thing.
+    parent_req:
+      - hlr_Widget_1

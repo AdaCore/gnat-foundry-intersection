@@ -1,8 +1,3 @@
-source:
-  - CONOPS §5.1
-  - CONOPS §6.1
-  - CONOPS §6.3
-
 context: |-
   The controller's top-level supervisory machine: a two-state Moore machine whose
   states are the operating *modes* NORMAL_OPERATION and FAULT. These modes contain
@@ -24,23 +19,33 @@ context: |-
   external power cycle, which restarts the controller into NORMAL_OPERATION via
   the power-on default (statement 2); the power-cycle mechanism is an LLR concern.
 
-  NOTE (interim): per-statement CONOPS traces are carried as trailing comments
-  below, since the format's `source:` is container-level only.
-
 description:
-  1: |-                                  # CONOPS §5.1, §6.1
-    The controller shall provide two top-level operating modes: NORMAL_OPERATION
-    and FAULT.
+  1:
+    text: |-
+      The controller shall provide two top-level operating modes: NORMAL_OPERATION
+      and FAULT.
+    source:
+      - CONOPS §5.1
+      - CONOPS §6.1
 
-  2: |-                                  # Derived
-    When the controller starts up, the controller shall enter NORMAL_OPERATION.
+  2:
+    text: |-
+      When the controller starts up, the controller shall enter NORMAL_OPERATION.
+    source:
+      - CONOPS §5.3
 
-  3: |-                                  # CONOPS §6.1
-    While the controller is in NORMAL_OPERATION, when the fault-detection signal is
-    asserted, the controller shall transition to FAULT.
+  3:
+    text: |-
+      While the controller is in NORMAL_OPERATION, when the fault-detection signal is
+      asserted, the controller shall transition to FAULT.
+    source:
+      - CONOPS §6.1
 
-  4: |-                                  # CONOPS §6.3
-    While the controller is in FAULT, the controller shall remain in FAULT.
+  4:
+    text: |-
+      While the controller is in FAULT, the controller shall remain in FAULT.
+    source:
+      - CONOPS §6.3
 
 rationale: |-
   A single supervisory machine sits above every other region: NORMAL_OPERATION runs

@@ -1,7 +1,8 @@
 # E-SCHEMA: visibility vocabulary is project-defined, but the slot must still be
 # a non-empty string; an empty value is rejected.
-parent_req:
-  - hlr_Widget_1.1
 visibility: ""
 description:
-  1: The widget shall do the thing.
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_Widget_1.1

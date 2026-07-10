@@ -2,8 +2,9 @@
 
 This describes the high-level architecture of the implementation: the project
 structure, the bus boundary, and the core-loop concept. The low-level
-design — units, state records, the discrete-event timing model, the
-proof architecture — is in `low-level-design.md`.
+design — units, state records, and the discrete-event timing model — is in
+`low-level-design.md`, and the verification strategy is in `proof.md`. Edit
+these as needed to maintain them in sync with the code.
 
 ## Overview
 
@@ -169,7 +170,3 @@ The "delay_for" procedure in the HAL can be tuned at compile time to act faster 
 ## Command-input and diagnostic streams
 
 TODO: This will be refined at a future revision of this document.
-
-## Code conventions
-
-There should be no global variables.

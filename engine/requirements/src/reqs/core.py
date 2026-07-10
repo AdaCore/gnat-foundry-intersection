@@ -42,6 +42,14 @@ def prose(statement: str) -> str:
     return re.sub(r"\s+", " ", " ".join(lines)).strip()
 
 
+def statement_text(statement) -> str | None:
+    """Return a statement's prose text, or None if its shape is malformed."""
+    if isinstance(statement, dict):
+        text = statement.get("text")
+        return text if isinstance(text, str) else None
+    return None
+
+
 @cache
 def project_root() -> Path:
     """Return the `engine/requirements` directory (nearest ancestor with pyproject.toml)."""
@@ -99,8 +107,9 @@ def compose_lines(text: str) -> tuple[dict[tuple[str, ...], int], list[str]]:
     """
     Walk the compose node tree once, returning ``(lines, dups)``.
 
-    ``lines`` maps top-level keys and `description` sub-keys to 1-based source
-    lines. ``dups`` lists `description` sub-keys that appear more than once:
+    ``lines`` maps top-level keys, `description` sub-keys, and each statement's
+    own fields to 1-based source lines -- e.g. ``("description", "4", "text")``.
+    ``dups`` lists `description` sub-keys that appear more than once:
     ``safe_load`` silently merges duplicate mapping keys (last value wins), so a
     repeated statement number is invisible after parsing -- the node tree
     preserves every occurrence, so we surface them from the same pass.
@@ -118,9 +127,14 @@ def compose_lines(text: str) -> tuple[dict[tuple[str, ...], int], list[str]]:
         lines[(key,)] = key_node.start_mark.line + 1
         if key == "description" and isinstance(value_node, yaml.MappingNode):
             seen: set[str] = set()
-            for sub_key, _ in value_node.value:
+            for sub_key, sub_value in value_node.value:
                 k = str(sub_key.value)
                 lines[("description", k)] = sub_key.start_mark.line + 1
+                if isinstance(sub_value, yaml.MappingNode):
+                    for field_key, _ in sub_value.value:
+                        lines[("description", k, str(field_key.value))] = (
+                            field_key.start_mark.line + 1
+                        )
                 if k in seen and k not in dups:
                     dups.append(k)
                 seen.add(k)

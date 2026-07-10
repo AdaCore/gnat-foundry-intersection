@@ -1,5 +1,6 @@
 # Opt-out: a deliberately non-EARS statement carrying the ears:skip token is
 # not reported. (Used to prove the escape hatch works.)
-derived: True
 description:
-  1: This note is intentionally not an EARS requirement. ears:skip
+  1:
+    text: This note is intentionally not an EARS requirement. ears:skip
+    derived: true

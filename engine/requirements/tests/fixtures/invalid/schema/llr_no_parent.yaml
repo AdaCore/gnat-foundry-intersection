@@ -1,4 +1,5 @@
 # E-SCHEMA: an LLR must declare parent_req (required).
 visibility: compiler
 description:
-  1: The widget shall do the thing.
+  1:
+    text: The widget shall do the thing.

@@ -1,9 +1,9 @@
-derived: True
-
 description:
-  1: |-
-    When `X` is `NaN`, `+Infinity`, or `-Infinity`, the S'Floor attribute shall
-    return `X`.
+  1:
+    text: |-
+      When `X` is `NaN`, `+Infinity`, or `-Infinity`, the S'Floor attribute shall
+      return `X`.
+    derived: true
 
 rationale: |-
   There is no information in the Ada Reference manual about how the Floor

@@ -17,58 +17,86 @@ is
    --  Output signals (driven by the controller). Only controller-meaningful
    --  *values* live here; lens/arrow/pictograph *symbology* is a HAL concern.
 
+   type Vehicle_Face is (Red, Yellow, Green, Flashing_Red);
    --  Every vehicle face output signal (hlr_4_signals.1). Flashing_Red is a
    --  FAULT-only value (hlr_2_fault.1) but belongs to the alphabet regardless.
-   type Vehicle_Face is (Red, Yellow, Green, Flashing_Red);
+   --  @enum Red Stop
+   --  @enum Yellow Change -- release ending, about to stop
+   --  @enum Green Go
+   --  @enum Flashing_Red FAULT-only stop-and-proceed
 
+   type Pedestrian_Head is (None, Walk, Flash_Dont_Walk, Dont_Walk);
    --  Every crosswalk's pedestrian head output signal, where None is dark
    --  (hlr_4_signals.2). None is a FAULT-only value (hlr_2_fault.2).
-   type Pedestrian_Head is (None, Walk, Flash_Dont_Walk, Dont_Walk);
+   --  @enum None Dark head -- FAULT-only
+   --  @enum Walk WALK -- crossing permitted
+   --  @enum Flash_Dont_Walk Flashing DONT WALK -- pedestrian clearance
+   --  @enum Dont_Walk Steady DONT WALK -- do not cross
 
-   --  Every crosswalk's request indicator output signal (hlr_4_signals.3).
    type Request_Indicator is (No_Request, Request_Pending);
+   --  Every crosswalk's request indicator output signal (hlr_4_signals.3).
+   --  @enum No_Request No pedestrian request outstanding
+   --  @enum Request_Pending A pedestrian request has been registered
 
    --  Input signals (read by the controller).
 
-   --  The fault-detection input signal (hlr_4_signals.4).
    type Fault_Detection is (Not_Asserted, Asserted);
+   --  The fault-detection input signal (hlr_4_signals.4).
+   --  @enum Not_Asserted No fault detected
+   --  @enum Asserted A fault is being signalled
 
+   type Pedestrian_Button is (Released, Pressed);
    --  Each crosswalk's pedestrian demand button input signal
    --  (hlr_4_signals.5).
-   type Pedestrian_Button is (Released, Pressed);
+   --  @enum Released Button not pressed
+   --  @enum Pressed Button pressed this cycle
 
-   --  Each approach's left-turn detector input signal (hlr_4_signals.6).
    type Left_Turn_Detector is (No_Vehicle, Vehicle_Present);
+   --  Each approach's left-turn detector input signal (hlr_4_signals.6).
+   --  @enum No_Vehicle No vehicle in the left-turn lane
+   --  @enum Vehicle_Present A vehicle is waiting in the left-turn lane
 
    -----------------------------------------------------------------------
    --  Shared approach / crosswalk / lamp vocabulary
    -----------------------------------------------------------------------
 
-   --  The four approaches of the intersection.
    type Approach is (North, South, East, West);
+   --  The four approaches of the intersection.
+   --  @enum North The northbound approach
+   --  @enum South The southbound approach
+   --  @enum East The eastbound approach
+   --  @enum West The westbound approach
 
-   --  The four crosswalks, named by the axis and side they serve.
    type Crosswalk is (NS_North, NS_South, EW_East, EW_West);
+   --  The four crosswalks, named by the axis and side they serve.
+   --  @enum NS_North NS-axis crosswalk on the north side
+   --  @enum NS_South NS-axis crosswalk on the south side
+   --  @enum EW_East EW-axis crosswalk on the east side
+   --  @enum EW_West EW-axis crosswalk on the west side
 
+   type Lamp is (Red, Yellow, Green);
    --  The three physical bulbs of a vehicular signal head. Red/Yellow/Green
    --  are also literals of Vehicle_Face (overloaded enumeration literals,
    --  resolved by context); a few call sites may need qualification.
-   type Lamp is (Red, Yellow, Green);
+   --  @enum Red The red bulb
+   --  @enum Yellow The yellow bulb
+   --  @enum Green The green bulb
 
    -----------------------------------------------------------------------
    --  Machine-state enumerations (requirements/state-machines.md + HLRs)
    -----------------------------------------------------------------------
 
-   --  The two top-level operating modes (hlr_1_modes.1). Fault is terminal.
    type Mode is (Normal_Operation, Fault);
+   --  The two top-level operating modes (hlr_1_modes.1). Fault is terminal.
+   --  @enum Normal_Operation Ordinary signalling operation
+   --  @enum Fault Terminal fault mode -- every face FLASHING_RED
 
+   type Left_Demand_State is (No_Left_Demand, Left_Demand_Pending);
    --  Per-approach left-turn demand machine
    --  (hlr_5_vehicle_1_left_demand.1).
-   type Left_Demand_State is (No_Left_Demand, Left_Demand_Pending);
+   --  @enum No_Left_Demand No protected-left demand latched
+   --  @enum Left_Demand_Pending A protected-left demand is latched
 
-   --  The vehicle phase sequencer states, declared in cycle order: the NS
-   --  block then its EW mirror (hlr_5_vehicle.1, .24 and
-   --  requirements/state-machines.md §2).
    type Vehicle_Sequencer_State is
      (N_Lead,
       N_Lead_Yellow,
@@ -90,11 +118,30 @@ is
       W_Lag_Yellow,
       EW_Both_Drop_Yellow,
       EW_Barrier_Allred);
+   --  The vehicle phase sequencer states, declared in cycle order: the NS
+   --  block then its EW mirror (hlr_5_vehicle.1, .24 and
+   --  requirements/state-machines.md §2).
+   --  @enum N_Lead North leading protected left
+   --  @enum N_Lead_Yellow North lead-left yellow change
+   --  @enum N_Lead_Clear North lead-left red clearance
+   --  @enum NS_Both_Through Both NS throughs green
+   --  @enum N_Drop_Yellow North through yellow, dropping to the lag
+   --  @enum N_Drop_Clear North through red clearance
+   --  @enum S_Lag South lagging protected left
+   --  @enum S_Lag_Yellow South lag-left yellow change
+   --  @enum NS_Both_Drop_Yellow Both NS movements yellow, ending the axis
+   --  @enum NS_Barrier_Allred NS barrier all-red clearance
+   --  @enum E_Lead East leading protected left
+   --  @enum E_Lead_Yellow East lead-left yellow change
+   --  @enum E_Lead_Clear East lead-left red clearance
+   --  @enum EW_Both_Through Both EW throughs green
+   --  @enum E_Drop_Yellow East through yellow, dropping to the lag
+   --  @enum E_Drop_Clear East through red clearance
+   --  @enum W_Lag West lagging protected left
+   --  @enum W_Lag_Yellow West lag-left yellow change
+   --  @enum EW_Both_Drop_Yellow Both EW movements yellow, ending the axis
+   --  @enum EW_Barrier_Allred EW barrier all-red clearance
 
-   --  The pedestrian crosswalk machine states (hlr_6_pedestrian.1 and
-   --  requirements/state-machines.md §4). The Serving_Pedestrian_Request
-   --  superstate is flattened into its four contiguous sub-states so the
-   --  subtype below can name it directly.
    type Pedestrian_State is
      (No_Pedestrian_Request,
       Pending_Pedestrian_Request,
@@ -102,17 +149,27 @@ is
       Change_Interval,
       Buffer_Interval,
       Buffer_Interval_Latched);
+   --  The pedestrian crosswalk machine states (hlr_6_pedestrian.1 and
+   --  requirements/state-machines.md §4). The Serving_Pedestrian_Request
+   --  superstate is flattened into its four contiguous sub-states so the
+   --  subtype below can name it directly.
+   --  @enum No_Pedestrian_Request Idle -- no demand registered
+   --  @enum Pending_Pedestrian_Request Demand latched, awaiting WALK
+   --  @enum Walk_Interval WALK displayed
+   --  @enum Change_Interval Flashing DONT WALK -- pedestrian clearance
+   --  @enum Buffer_Interval Post-clearance buffer before releasing the hold
+   --  @enum Buffer_Interval_Latched Buffer with a fresh demand already latched
 
-   --  The Serving_Pedestrian_Request superstate: the RED-hold safety
-   --  obligation (hlr_0_safety.1) is conditioned on being in this range.
    subtype Serving_Pedestrian_State is
      Pedestrian_State range Walk_Interval .. Buffer_Interval_Latched;
+   --  The Serving_Pedestrian_Request superstate: the RED-hold safety
+   --  obligation (hlr_0_safety.1) is conditioned on being in this range.
 
-   --  Per-approach latched left-turn demand (`hlr_5_vehicle_1_left_demand`).
    type Left_Demand_Array is array (Approach) of Left_Demand_State;
+   --  Per-approach latched left-turn demand (`hlr_5_vehicle_1_left_demand`).
 
-   --  Per-crosswalk pedestrian control state (`hlr_6_pedestrian`).
    type Pedestrian_Array is array (Crosswalk) of Pedestrian_State;
+   --  Per-crosswalk pedestrian control state (`hlr_6_pedestrian`).
 
    -----------------------------------------------------------------------
    --  Display state -- the aggregate of every output signal
@@ -122,10 +179,18 @@ is
    --  a vehicle face per approach going straight and per approach turning
    --  left, a pedestrian head per crosswalk, and a request indicator per
    --  crosswalk (hlr_4_signals.1-.3).
+
    type Through_Faces is array (Approach) of Vehicle_Face;
+   --  A vehicle face per approach for the through movement.
+
    type Left_Faces is array (Approach) of Vehicle_Face;
+   --  A vehicle face per approach for the protected-left movement.
+
    type Pedestrian_Heads is array (Crosswalk) of Pedestrian_Head;
+   --  A pedestrian head per crosswalk.
+
    type Request_Indicators is array (Crosswalk) of Request_Indicator;
+   --  A request indicator per crosswalk.
 
    type Display_State is record
       Through  : Through_Faces;
@@ -133,20 +198,31 @@ is
       Heads    : Pedestrian_Heads;
       Requests : Request_Indicators;
    end record;
+   --  The whole output surface written to the display bus in one shot.
+   --  @field Through Vehicle faces for the through movements
+   --  @field Left Vehicle faces for the protected-left movements
+   --  @field Heads Pedestrian heads, one per crosswalk
+   --  @field Requests Request indicators, one per crosswalk
 
    -----------------------------------------------------------------------
    --  Vehicle movements -- the index the safety invariant quantifies over
    -----------------------------------------------------------------------
 
+   type Movement is
+     (N_Thru, S_Thru, E_Thru, W_Thru, N_Left, S_Left, E_Left, W_Left);
    --  The eight vehicle movements -- the eight vehicle face output signals of
    --  `hlr_4_signals.1`: the four through movements and the four protected-left
    --  movements. This is the index the vehicle-conflict invariant
    --  `hlr_0_safety.2` quantifies over.
-   type Movement is
-     (N_Thru, S_Thru, E_Thru, W_Thru, N_Left, S_Left, E_Left, W_Left);
+   --  @enum N_Thru North through movement
+   --  @enum S_Thru South through movement
+   --  @enum E_Thru East through movement
+   --  @enum W_Thru West through movement
+   --  @enum N_Left North protected-left movement
+   --  @enum S_Left South protected-left movement
+   --  @enum E_Left East protected-left movement
+   --  @enum W_Left West protected-left movement
 
-   --  The face a Display_State drives for a given movement: the through
-   --  movements read the Through faces, the left movements the Left faces.
    function Face_Of (D : Display_State; M : Movement) return Vehicle_Face
    is (case M is
          when N_Thru => D.Through (North),
@@ -157,13 +233,20 @@ is
          when S_Left => D.Left (South),
          when E_Left => D.Left (East),
          when W_Left => D.Left (West));
+   --  The face a Display_State drives for a given movement: the through
+   --  movements read the Through faces, the left movements the Left faces.
+   --  @param D The display state to read
+   --  @param M The movement whose face is wanted
+   --  @return The vehicle face driven for that movement
 
+   function Is_Go (F : Vehicle_Face) return Boolean
+   is (F in Green | Yellow);
    --  A face is "go" -- releasing traffic -- exactly when it is GREEN or
    --  YELLOW. `hlr_0_safety.2` forbids two conflicting movements being driven
    --  to GREEN or YELLOW at once; RED and the FAULT-only FLASHING_RED are both
    --  restrictive (stop), hence safe together.
-   function Is_Go (F : Vehicle_Face) return Boolean
-   is (F in Green | Yellow);
+   --  @param F The face to test
+   --  @return True when the face is releasing traffic (GREEN or YELLOW)
 
    -----------------------------------------------------------------------
    --  Sensors state -- the aggregate of every input signal
@@ -174,23 +257,31 @@ is
    --  approach, and the intersection-wide fault-detection line
    --  (hlr_4_signals.4-.6). A single record so the whole input surface
    --  crosses the source bus in one shot (design/architecture.md §Buses).
+
    type Pedestrian_Buttons is array (Crosswalk) of Pedestrian_Button;
+   --  A pedestrian demand button per crosswalk.
+
    type Left_Turn_Detectors is array (Approach) of Left_Turn_Detector;
+   --  A left-turn detector per approach.
 
    type Sensors_State is record
       Buttons    : Pedestrian_Buttons;
       Left_Turns : Left_Turn_Detectors;
       Fault      : Fault_Detection;
    end record;
+   --  The whole input surface sampled from the source bus in one shot.
+   --  @field Buttons Pedestrian demand buttons, one per crosswalk
+   --  @field Left_Turns Left-turn detectors, one per approach
+   --  @field Fault The intersection-wide fault-detection line
 
    -----------------------------------------------------------------------
    --  Timing constants (hlr_3_timing)
    -----------------------------------------------------------------------
 
+   type Duration_Ms is range 0 .. 3_600_000;
    --  All durations are in milliseconds: the HAL tick and Delay_For work in
    --  ms (design/architecture.md §Tasking / §Timing simulation). The ceiling
    --  is well above any interval and kept explicit so overflow is provable.
-   type Duration_Ms is range 0 .. 3_600_000;
 
    --  Standard-fixed durations (hlr_3_timing.1-.3).
    T_Walk   : constant Duration_Ms := 7_000;    --  WALK interval, 7 s

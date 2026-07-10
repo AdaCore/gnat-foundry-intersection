@@ -1,34 +1,38 @@
-parent_req:
-  - hlr_Exponentiation_Int_1.1
-  - hlr_Exponentiation_Int_1.2
-  - hlr_Exponentiation_Int_1.3
-
 visibility: compiler
 
 context:
   Given `Int` the `Unsigned` or `Long_Long_Unsigned` type.
 
 description:
-  1: |-
-    The RTL shall implement the generic `Exponu` function with the following
-    specification:
+  1:
+    text: |-
+      The RTL shall implement the generic `Exponu` function with the following
+      specification:
 
-    ```ada
-    generic
-      type Int is mod <>;
+      ```ada
+      generic
+        type Int is mod <>;
 
-    function System.Exponu (Left : Int; Right : Natural) return Int;
-    -- Left: The base of the exponentiation of type Int
-    -- Right: The exponent of type Natural
-    -- Exponu'Result: the exponentiation of Left by Right
-    ```
+      function System.Exponu (Left : Int; Right : Natural) return Int;
+      -- Left: The base of the exponentiation of type Int
+      -- Right: The exponent of type Natural
+      -- Exponu'Result: the exponentiation of Left by Right
+      ```
+    parent_req:
+      - hlr_Exponentiation_Int_1.1
 
-  2: |-
-    When `Right` is strictly positive, the `Exponu` function shall return the
-    result of the multiplication of `Left` by itself `Right - 1` times.
+  2:
+    text: |-
+      When `Right` is strictly positive, the `Exponu` function shall return the
+      result of the multiplication of `Left` by itself `Right - 1` times.
+    parent_req:
+      - hlr_Exponentiation_Int_1.2
 
-  3: |-
-    When `Right` is equal to 0, the `Exponu` function shall return 1.
+  3:
+    text: |-
+      When `Right` is equal to 0, the `Exponu` function shall return 1.
+    parent_req:
+      - hlr_Exponentiation_Int_1.3
 
 implemented_by:
   - System.Exp_Uns
