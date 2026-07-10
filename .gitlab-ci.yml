@@ -118,7 +118,7 @@ pro:x86_64-linux:
     # Test with coverage
     - make coverage-instrumentation
     - make coverage-build
-    - make coverage-test-pro
+    - make coverage-test
     - make coverage-report-html
     - make coverage-report-cobertura
     - make coverage-report-text
@@ -185,7 +185,7 @@ community:x86_64-linux:
     - make coverage-rts
     - make coverage-instrumentation
     - make coverage-build
-    - make coverage-test-community
+    - make coverage-test
     - make coverage-report-cobertura
     - make coverage-report-text
 

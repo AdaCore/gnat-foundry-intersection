@@ -6,11 +6,12 @@ SHELL := bash
 .PHONY: printenv generate-config build-native build-target run-native run-target \
         prove \
         format format-ada format-python check check-ada check-shell check-python \
-        generate-tests-pro test-pro generate-tests-community test-community \
+        generate-tests test \
         validate-reqs trace test-reqs-engine \
-        setup-community reset-hard \
+        setup-community setup-pro reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
-        coverage-test-pro coverage-report
+        coverage-test all-coverage \
+        coverage-report-cobertura coverage-report-html coverage-report-text
 
 # TCP port for QEMU's UART1 (wire-protocol command channel).
 QEMU_UART1 ?= 5556
@@ -24,32 +25,53 @@ QEMU_UART1 ?= 5556
 TICK_PERIOD_US ?= 1000
 
 # --- Local tooling layout ---------------------------------------------------
-# The locally-installed alr/uv under install/ are preferred when present;
-# otherwise we fall back to whatever is on PATH. Setup *output* (toolchains +
-# installed binaries) always lands under install/ regardless of which binary
-# is used, so reset-hard is a complete wipe.
-INSTALL_DIR    := $(CURDIR)/install
-LOCAL_BIN      := $(INSTALL_DIR)/bin
-ALIRE_SETTINGS := $(INSTALL_DIR)/alire/settings
-ALIRE_PREFIX   := $(INSTALL_DIR)/alire/prefix
-UV_DATA_DIR    := $(INSTALL_DIR)/uv
+# Everything the setup-* targets install lands under install/, so reset-hard
+# is a complete wipe. Locally-installed tools are preferred; anything missing
+# is expected on PATH.
+INSTALL_DIR  := $(CURDIR)/install
+LOCAL_BIN    := $(INSTALL_DIR)/bin
+ALIRE_PREFIX := $(INSTALL_DIR)/alire/prefix
+UV_DATA_DIR  := $(INSTALL_DIR)/uv
+
+# A pre-defined ALIRE_SETTINGS_DIR takes precedence over the local default.
+ALIRE_SETTINGS_DIR ?= $(INSTALL_DIR)/alire/settings
+
+# --- Pro tooling layout (make setup-pro) ------------------------------------
+# The pro products are installed from GNAT Tracker downloads (the product
+# tarballs, or the zipfiles wrapping them) staged under $(PRO_DOWNLOADS),
+# each into its own prefix under install/pro/. The staging dir is kept
+# outside install/ so reset-hard does not delete the downloads.
+PRO_DIR       := $(INSTALL_DIR)/pro
+PRO_DOWNLOADS ?= $(CURDIR)/pro-downloads
+PRO_BINS      := $(PRO_DIR)/gnatpro/bin:$(PRO_DIR)/arm-elf/bin:$(PRO_DIR)/spark/bin:$(PRO_DIR)/gnatdas/bin
 
 # Prefer the locally-installed binaries; fall back to PATH if absent.
 ALR := $(if $(wildcard $(LOCAL_BIN)/alr),$(LOCAL_BIN)/alr -n,alr -n)
 UV  := $(if $(wildcard $(LOCAL_BIN)/uv),$(LOCAL_BIN)/uv,uv)
 
-# Once the local Alire settings exist (i.e. setup has run), point every alr
-# invocation at the local toolchains + installed-tool prefix. Before that, we
-# leave the environment alone so a system alr keeps using its own ~/.alire.
-ifneq ($(wildcard $(ALIRE_SETTINGS)),)
-export ALIRE_SETTINGS_DIR := $(ALIRE_SETTINGS)
+# Which setup provisioned install/, as recorded in $(SETUP_MARKER) by the
+# last setup-* target that ran: "pro", "community", or "none" (no local
+# setup; tools are expected on PATH already).
+SETUP_MARKER := $(INSTALL_DIR)/setup
+SETUP := $(or $(filter pro community,$(shell cat '$(SETUP_MARKER)' 2>/dev/null)),none)
+
+# The setup-* recipes run against this unmodified PATH so the previous
+# setup's toolchain cannot leak into the new one.
+SYSTEM_PATH := $(PATH)
+
+# Compose the detected setup's tools onto PATH. For SETUP=none the
+# environment is left alone.
+ifeq ($(SETUP),pro)
+export PATH := $(LOCAL_BIN):$(PRO_BINS):$(PATH)
+else ifeq ($(SETUP),community)
 export PATH := $(LOCAL_BIN):$(ALIRE_PREFIX)/bin:$(PATH)
 endif
+ifneq ($(SETUP),none)
+export ALIRE_SETTINGS_DIR
+endif
 
-# Likewise for uv (the analogue of ALIRE_SETTINGS_DIR + --prefix): once it is
-# installed locally, keep its cache, managed Python, and installed tools under
-# install/ so reset-hard wipes them too. A system uv keeps its own defaults
-# (~/.cache/uv, ~/.local/share/uv) until setup runs.
+# Once uv is installed locally, keep its cache, managed Python, and installed
+# tools under install/ so reset-hard wipes them too.
 ifneq ($(wildcard $(LOCAL_BIN)/uv),)
 export UV_CACHE_DIR          := $(UV_DATA_DIR)/cache
 export UV_TOOL_DIR           := $(UV_DATA_DIR)/tools
@@ -145,24 +167,17 @@ check-python:
 	$(UV) --directory "$(REQS_ENGINE)" run mypy
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
 
-# Generate/refresh GNATtest skeletons
-generate-tests-pro: generate-config
-	$(ALR) exec -P -- gnattest --exit-status=on
-
-# Build and run the AUnit harness
+# Build and run the AUnit harness. gnattest/gprbuild run in the tests/ crate
+# context (`alr -C tests`), which provides AUnit with either toolchain.
 HARNESS := obj/development/gnattest/harness
-test-pro: generate-tests-pro
-	$(ALR) exec -- gprbuild -q -P $(HARNESS)/test_driver.gpr
-	$(HARNESS)/test_runner
 
-# To use community tools, we run from inside `tests/` to pick up `alr`-managed
-# `gnattest_bin` and `aunit`.
-generate-tests-community: generate-config
+# Generate/refresh GNATtest skeletons.
+generate-tests: generate-config
 	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
 	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr --exit-status=on
 
-test-community: generate-tests-community
-	$(ALR) -C tests exec -- gprbuild -P ../$(HARNESS)/test_driver.gpr
+test: generate-tests
+	$(ALR) -C tests exec -- gprbuild -q -P ../$(HARNESS)/test_driver.gpr
 	$(HARNESS)/test_runner
 
 # ----------------------------------------------------------------------------
@@ -190,29 +205,45 @@ test-reqs-engine:
 	$(UV) --directory "$(REQS_ENGINE)" run pytest
 
 # ----------------------------------------------------------------------------
-# Community setup: provision all developer tooling locally under install/
+# Setup: provision all developer tooling locally under install/. Pick one:
+#   setup-community: community tools, fetched via Alire (needs internet).
+#   setup-pro:       pro tools, from GNAT Tracker downloads staged under
+#                    $(PRO_DOWNLOADS) (setup-pro says which when absent).
+# Re-running the other setup target switches between the two; all build/test/
+# prove/coverage targets are the same regardless of toolchain.
 # ----------------------------------------------------------------------------
 
-# One-shot: provision the full toolchain locally under install/ — uv, Alire,
-# the GNAT toolchains, and gnattest/gnatcov/gnatformat/gnatprove. Everything a
-# contributor needs to build, test, and prove.
+# One-shot: uv, Alire, the community GNAT toolchains, and
+# gnattest/gnatcov/gnatformat/gnatprove.
 setup-community:
-	@LOCAL_BIN='$(LOCAL_BIN)' \
-	    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS)' \
+	@PATH='$(SYSTEM_PATH)' \
+	    LOCAL_BIN='$(LOCAL_BIN)' \
+	    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS_DIR)' \
 	    ALIRE_PREFIX='$(ALIRE_PREFIX)' \
+	    SETUP_MARKER='$(SETUP_MARKER)' \
 	    scripts/setup/community.sh
+
+# One-shot: GNAT Pro (native + arm-elf), SPARK Pro and GNATDAS from the
+# staged tarballs, plus alr configured to build against them.
+setup-pro:
+	@PATH='$(SYSTEM_PATH)' \
+	    LOCAL_BIN='$(LOCAL_BIN)' \
+	    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS_DIR)' \
+	    PRO_DIR='$(PRO_DIR)' \
+	    PRO_DOWNLOADS='$(PRO_DOWNLOADS)' \
+	    SETUP_MARKER='$(SETUP_MARKER)' \
+	    scripts/setup/pro.sh
 
 # ----------------------------------------------------------------------------
 # Reset: remove everything the setup-* targets installed.
 # ----------------------------------------------------------------------------
 
-# Remove all locally-installed setup tooling (uv, alr, toolchains, gnattest /
-# gnatcov / gnatformat / gnatprove). Source and build artifacts (bin/, obj/)
-# are untouched.
+# Remove install/ entirely. Staged pro downloads ($(PRO_DOWNLOADS)), sources
+# and build artifacts (bin/, obj/) are untouched.
 reset-hard:
 	@echo "Removing locally-installed setup tooling at $(INSTALL_DIR) ..."
 	rm -rf "$(INSTALL_DIR)"
-	echo "Done. Source and build artifacts left untouched."
+	echo "Done. Staged tarballs, sources and build artifacts left untouched."
 
 ####################
 # Coverage support #
@@ -230,6 +261,9 @@ COVERAGE_REPORTS := $$(pwd)/reports/coverage
 $(COVERAGE_REPORTS):
 	mkdir -p $(COVERAGE_REPORTS)
 
+# Provision the local gnatcov RTS (named alias for the file rule below).
+coverage-rts: $(GNATCOV_RTS)
+
 # Local gnatcov RTS
 $(GNATCOV_RTS):
 	$(ALR) exec -- gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
@@ -246,28 +280,14 @@ coverage-build:
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 
-# Instrument, build and run the tests for coverage
-coverage-test-pro: generate-tests-pro
+# Instrument, build and run the tests for coverage.
+coverage-test: generate-tests
 	rm -rf $(GNATCOV_TRACES)
 	mkdir -p $(GNATCOV_TRACES)
-	$(ALR) exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
+	$(ALR) -C tests exec -- gnatcov instrument -P ../$(HARNESS)/test_driver.gpr \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
-	$(ALR) exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
-	    -g -O0 -m2 \
-	    --src-subdirs=gnatcov-instr \
-	    --implicit-with=$(GNATCOV_RTS)
-	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
-	    $(HARNESS)/test_runner
-
-# Instrument, build and run the tests for coverage
-coverage-test-community: generate-tests-community
-	rm -rf $(GNATCOV_TRACES)
-	mkdir -p $(GNATCOV_TRACES)
-	$(ALR) -C tests exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
-		--level=stmt+mcdc \
-	    --runtime-project $(GNATCOV_RTS)
-	$(ALR) -C tests exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
+	$(ALR) -C tests exec -- gprbuild -P ../$(HARNESS)/test_driver.gpr \
 	    -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
@@ -304,7 +324,7 @@ coverage-report-text: $(COVERAGE_REPORTS)
 # "quiet" all-in-one coverage, for use by agents: create a
 # coverage report and print only the errors, if any.
 COVERAGE_LOG := coverage.log
-all-coverage-pro:
-	@make coverage-instrumentation coverage-build coverage-test-pro > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
+all-coverage:
+	@make coverage-instrumentation coverage-build coverage-test > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
 	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
 	@grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' $(COVERAGE_REPORTS)/report.txt || true
