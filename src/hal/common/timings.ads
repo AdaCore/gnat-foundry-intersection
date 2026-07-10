@@ -6,6 +6,7 @@ with States;
 
 package Timings is
 
+   procedure Delay_For (Ms : States.Duration_Ms);
    --  Wait the requested number of *logical* milliseconds. The wall-clock
    --  span is scaled at compile time by the TICK_PERIOD_US profile (see the
    --  Timings.Tick_Config child selected by the Naming trick in src/hal.gpr)
@@ -17,6 +18,6 @@ package Timings is
    --  "waits N ms" contract and the architecture's no-globals convention. It
    --  is therefore not drift-free across calls; a monotonic deadline can be
    --  reintroduced behind this same spec should cadence accuracy be required.
-   procedure Delay_For (Ms : States.Duration_Ms);
+   --  @param Ms Number of logical milliseconds to wait
 
 end Timings;

@@ -6,6 +6,7 @@ with States;
 
 package Sources is
 
+   procedure Sample (Value : out States.Sensors_State);
    --  Sample the whole input surface -- pedestrian demand buttons, left-turn
    --  detectors, and the fault-detection line -- into one Sensors_State. This
    --  is exactly the signature of Buses.Source_Bus's generic formal Activate,
@@ -14,6 +15,6 @@ package Sources is
    --     package Source is new Buses.Source_Bus (Bus_Write => Sources.Sample);
    --
    --  It replaces the old ad-hoc Read_Button / Read_Cmd_Byte surface.
-   procedure Sample (Value : out States.Sensors_State);
+   --  @param Value The sampled snapshot of every input source
 
 end Sources;

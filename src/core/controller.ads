@@ -54,14 +54,11 @@ package Controller
   with SPARK_Mode => On
 is
 
+   type Pedestrian_Timers is array (States.Crosswalk) of States.Duration_Ms;
    --  Per-crosswalk remaining time in the current pedestrian sub-state; 0 and
    --  unused while the crosswalk is in NO_PEDESTRIAN_REQUEST or
    --  PENDING_PEDESTRIAN_REQUEST (those sub-states carry no timer).
-   type Pedestrian_Timers is array (States.Crosswalk) of States.Duration_Ms;
 
-   --  The whole controller state -- the composite state of the five machines
-   --  plus their discrete-event timers. No globals (design/architecture.md
-   --  §Code conventions): all state lives here and is threaded `in out`.
    type Controller_State is record
       Mode      : States.Mode;                     --  hlr_1_modes
       Vehicle   : States.Vehicle_Sequencer_State;  --  hlr_5_vehicle
@@ -72,31 +69,42 @@ is
       Ped       : States.Pedestrian_Array;          --  hlr_6_pedestrian
       Ped_Timer : Pedestrian_Timers;               --  time left in Ped (c)
    end record;
+   --  The whole controller state -- the composite state of the five machines
+   --  plus their discrete-event timers. No globals (design/architecture.md
+   --  §Code conventions): all state lives here and is threaded `in out`.
 
+   procedure Initialize (State : out Controller_State);
    --  Power-on state (the Derived initialization statements): mode
    --  NORMAL_OPERATION (`hlr_1_modes.2`), the sequencer in EW_BARRIER_ALLRED
    --  (`hlr_5_vehicle.47`), every approach NO_LEFT_DEMAND
    --  (`hlr_5_vehicle_1_left_demand.2`), every crosswalk NO_PEDESTRIAN_REQUEST
    --  (`hlr_6_pedestrian.2`), and the barrier timer armed.
-   procedure Initialize (State : out Controller_State);
+   --  @param State The controller state, set to its power-on value
 
+   function Project_Outputs
+     (State : Controller_State) return States.Display_State
+   with Post => Conflicts.Safe_Faces (Project_Outputs'Result);
    --  Project the composite state to the display-bus payload -- a pure Moore
    --  output function (`hlr_2_fault`, `hlr_5_vehicle` output rows,
    --  `hlr_6_pedestrian` head / lamp rows). Total and literal per state so the
    --  hlr_0_safety.2 postcondition discharges by enumeration.
-   function Project_Outputs
-     (State : Controller_State) return States.Display_State
-   with Post => Conflicts.Safe_Faces (Project_Outputs'Result);
+   --  @param State The controller state to project
+   --  @return The display-bus payload for that state
 
-   --  One core-loop step: emit the current composite state's outputs, report
-   --  the delay to remain in it (`Wait`, the min time to the next event), and
-   --  advance every machine by that delay -- ready for the next call. The
-   --  emitted outputs honour the vehicle-conflict invariant hlr_0_safety.2.
    procedure Step
      (State   : in out Controller_State;
       Sensors : States.Sensors_State;
       Outputs : out States.Display_State;
       Wait    : out States.Duration_Ms)
    with Post => Conflicts.Safe_Faces (Outputs);
+   --  One core-loop step: emit the current composite state's outputs, report
+   --  the delay to remain in it (`Wait`, the min time to the next event), and
+   --  advance every machine by that delay -- ready for the next call. The
+   --  emitted outputs honour the vehicle-conflict invariant hlr_0_safety.2.
+   --  @param State The controller state, advanced in place by this step
+   --  @param Sensors The input snapshot sampled for this step
+   --  @param Outputs The output signals emitted for the current state
+   --  @param Wait The delay to the next event -- how long to remain in the
+   --    current composite state
 
 end Controller;

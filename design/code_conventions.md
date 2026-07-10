@@ -21,6 +21,13 @@ follow the **specification** of the entity.
 
 All subprograms should have documentation.
 
+Use gnatdoc tags to document entities:
+
+* `@enum Enum_Name description` for enum literals
+* `@field Field_Name description` for record fields
+* `@param Param_Name description` for subprogram parameters
+* `@return description` for function return value
+
 ## Type system
 
 Leverage the Ada typing system: introduce narrow types as needed. Introduce new types to avoid

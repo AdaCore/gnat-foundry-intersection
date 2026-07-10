@@ -125,6 +125,11 @@ check-ada: generate-config
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
+	# Commented for now, pending
+	#   eng/ide/gnatdoc#189
+	#   eng/ide/gnatdoc#190
+	#   eng/ide/gnatdoc#191
+	# $(ALR) exec -P -- gnatdoc --warnings --style trailing
 
 # Lint shell scripts with shellcheck.
 check-shell:

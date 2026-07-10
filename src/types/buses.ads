@@ -27,11 +27,13 @@ is
       with procedure Bus_Write (Value : out States.Sensors_State);
       --  Producer side (HAL): reads the state of all sensors writes this to
       --  the bus.
+      --  @param Value The sensor snapshot written to the bus
    package Source_Bus is
       procedure Bus_Read (Value : out States.Sensors_State);
       --  Consumer side (core): read the whole sensor snapshot. Transitional --
       --  this samples afresh through Bus_Write for now; a later revision will
       --  have the producer drive a latch and leave Bus_Read a pure read-reset.
+      --  @param Value The sensor snapshot read from the bus
    end Source_Bus;
 
    --  Display data bus -- "fired on write". Holds the traffic-light state and
@@ -42,9 +44,11 @@ is
       with procedure Bus_Read (S : States.Display_State);
       --  Consumer side (display): reads the state of the traffic lights from
       --  the bus and renders it to the display.
+      --  @param S The traffic-light state read from the bus
    package Display_Bus is
       procedure Bus_Write (S : States.Display_State);
       --  Producer side (core): push the state to the consumer synchronously.
+      --  @param S The traffic-light state pushed to the consumer
    end Display_Bus;
 
 end Buses;
