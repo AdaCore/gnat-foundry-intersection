@@ -7,7 +7,7 @@ A requirement's ID is ``<stem>.<number>`` (see docs/README.md): the file's stem
 identifies the *container*, the ``description`` key identifies the statement.
 
 Checks:
-    - E-DUPID : container stems are not unique across the set
+    - E-DUPID : container stems are not unique across the files found
     - E-PREFIX : filename has neither level prefix
     - E-IO / E-YAML : unreadable / unparsable file (from ``reqs.core.load_yaml``)
     - E-SCHEMA : structure or types do not match the document schema (see

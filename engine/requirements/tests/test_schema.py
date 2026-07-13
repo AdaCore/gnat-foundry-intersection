@@ -8,6 +8,7 @@ import pytest
 
 from reqs.checks.schema import _count_shall, validate_paths
 from reqs.core import Diagnostic, project_root
+from reqs.requirement_set import RequirementSet
 
 EXAMPLES = project_root() / "docs" / "examples"
 FIX = Path(__file__).parent / "fixtures" / "invalid" / "schema"
@@ -83,6 +84,44 @@ def test_duplicate_stem_resolves_into_first_file_only() -> None:
     missing = [d for d in diags if d.code == "W-PARENT-MISSING"]
     assert [d for d in missing if "hlr_dup_stem.2" in d.message], missing
     assert not [d for d in missing if "hlr_dup_stem.1" in d.message], missing
+
+
+def test_duplicate_stem_with_invalid_first_claimant() -> None:
+    """A duplicate file is flagged E-DUPID even if the first claimant is invalid."""
+    first = FIX / "dup_stem_invalid_first" / "first" / "hlr_dup_inv.yaml"
+    second = FIX / "dup_stem_invalid_first" / "second" / "hlr_dup_inv.yaml"
+    llr = FIX / "dup_stem_invalid_first" / "llr_dup_inv_ref.yaml"
+
+    assert validate_paths([first, second, llr]) == [
+        Diagnostic(
+            "error",
+            "E-SCHEMA",
+            "Extra inputs are not permitted",
+            first,
+            line=3,
+            path=("unknown_key",),
+        ),
+        Diagnostic(
+            "error",
+            "E-DUPID",
+            f"duplicate container stem 'hlr_dup_inv' (also {first})",
+            second,
+        ),
+        Diagnostic(
+            "warning",
+            "W-PARENT-MISSING",
+            "parent_req 'hlr_dup_inv.2' resolves to nothing "
+            "(no requirement container 'hlr_dup_inv' in the set) "
+            "(use --complete to require resolution)",
+            llr,
+            line=7,
+            path=("description", "1", "parent_req"),
+        ),
+    ]
+
+    reqset, _ = RequirementSet.load([first, second, llr])
+    assert set(reqset.by_stem) == {"llr_dup_inv_ref"}
+    assert {f.path for f in reqset.duplicates} == {second}
 
 
 def test_missing_path_reports_clean_diagnostic(tmp_path: Path) -> None:

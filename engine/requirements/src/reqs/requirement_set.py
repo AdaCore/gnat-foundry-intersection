@@ -18,7 +18,7 @@ the way:
                   ``reqs.document``)
   E-DESCKEY     : description keys are not contiguous from 1
   E-DESCKEY-DUP : a statement number is repeated within a file
-  E-DUPID       : RS.2 - container stems are not unique across the set
+  E-DUPID       : RS.2 - container stems are not unique across the files found
 
 A file that fails validation is reported and left out of the set. Additional
 schema rules that do not need to be enforced to load a type-valid
@@ -162,14 +162,14 @@ class RequirementSet:
     by_stem: dict[str, RequirementFile]
     duplicates: tuple[RequirementFile, ...]
 
-    def __init__(self, files: Iterable[RequirementFile]) -> None:
-        self.by_stem = {}
-        duplicates: list[RequirementFile] = []
-        for file in files:
-            if file.stem in self.by_stem:
-                duplicates.append(file)
-            else:
-                self.by_stem[file.stem] = file
+    def __init__(
+        self, files: Iterable[RequirementFile], duplicates: Iterable[RequirementFile] = ()
+    ) -> None:
+        files = tuple(files)
+        self.by_stem = {file.stem: file for file in files}
+        if len(self.by_stem) != len(files):
+            msg = "files must contain at most one file per stem; partition duplicates first"
+            raise ValueError(msg)
         self.duplicates = tuple(duplicates)
 
     @classmethod
@@ -179,6 +179,7 @@ class RequirementSet:
         """Validate and load requirement files, collecting diagnostics for the rest."""
         found, diags = iter_yaml_files(paths)
         files: list[RequirementFile] = []
+        duplicates: list[RequirementFile] = []
         seen_stems: dict[str, Path] = {}
 
         for path in found:
@@ -194,7 +195,8 @@ class RequirementSet:
                 )
                 continue
 
-            if path.stem in seen_stems:
+            is_duplicate = path.stem in seen_stems
+            if is_duplicate:
                 diags.append(
                     Diagnostic(
                         "error",
@@ -213,11 +215,13 @@ class RequirementSet:
             diags.extend(_duplicate_key_diagnostics(path, lines, dups))
 
             try:
-                files.append(file_class.load(path, data, lines))
+                file = file_class.load(path, data, lines)
             except ValidationError as exc:
                 diags.extend(_validation_diagnostics(path, exc, lines))
+            else:
+                (duplicates if is_duplicate else files).append(file)
 
-        return cls(files), diags
+        return cls(files, duplicates), diags
 
     def __iter__(self) -> Iterator[RequirementFile]:
         return iter(self.by_stem.values())

@@ -1,0 +1,7 @@
+# Companion for the E-DUPID invalid-first-claimant case: claims the stem first
+# but fails schema validation (unknown top-level key), so it never enters the set.
+unknown_key: rejected
+description:
+  1:
+    text: The widget shall do the thing.
+    derived: true
