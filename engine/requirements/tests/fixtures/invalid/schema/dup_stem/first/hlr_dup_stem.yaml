@@ -1,0 +1,6 @@
+# Companion for the E-DUPID resolution case: the first file to claim the stem.
+# Has statement 1 only.
+description:
+  1:
+    text: The widget shall do the thing.
+    derived: true

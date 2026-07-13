@@ -1,0 +1,9 @@
+# E-DUPID: same stem as ../first/hlr_dup_stem.yaml. Its extra statement 2 should
+# not resolve.
+description:
+  1:
+    text: The widget shall do the thing differently.
+    derived: true
+  2:
+    text: The widget shall also do a second thing.
+    derived: true

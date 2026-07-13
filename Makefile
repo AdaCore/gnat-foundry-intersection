@@ -7,7 +7,7 @@ SHELL := bash
         prove \
         format format-ada format-python check check-ada check-shell check-python \
         generate-tests-pro test-pro generate-tests-community test-community \
-        validate-reqs test-reqs-engine \
+        validate-reqs trace test-reqs-engine \
         setup-community reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
         coverage-test-pro coverage-report
@@ -172,11 +172,18 @@ test-community: generate-tests-community
 REQS_ENGINE := $(CURDIR)/engine/requirements
 REQS_DIR    := $(CURDIR)/requirements
 
-# Check the requirements files for structural validity and conformance to the
-# EARS syntax.
+# Check the requirement files for structural validity, EARS syntax, and
+# traceability across the chain (every node covered by / traced to a neighbour,
+# or waived / derived). --complete makes an uncovered node a hard error.
 validate-reqs:
-	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)"
-	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr"  # "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr"  # "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(REQS_DIR)/trace_chain.yaml"
+
+# Show the traceability tables for development (coverage + upward trace per pair).
+# `validate-reqs` runs the same check as the hard CI gate.
+trace:
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --format table --chain "$(REQS_DIR)/trace_chain.yaml"
 
 # Run the validation engine's own test suite.
 test-reqs-engine:

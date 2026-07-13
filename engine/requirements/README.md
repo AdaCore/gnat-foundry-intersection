@@ -2,9 +2,8 @@
 
 Tooling for the requirement YAML files in this directory: schema validation,
 EARS linting, and (planned) traceability and reporting. The requirement format
-itself is documented under [`docs/`](docs/README.md); the machine-checkable
-contract is [`schema/requirement.schema.json`](schema/requirement.schema.json)
-(JSON Schema 2020-12).
+itself is documented under [`docs/`](docs/README.md); a machine-checkable
+schema is defined (with Pydantic) in [`src/reqs/document.py`](src/reqs/document.py).
 
 ## Usage
 
@@ -32,11 +31,12 @@ engine/requirements/
 ├── src/reqs/
 │   ├── cli.py              # Typer app: `reqs validate {schema,ears}`
 │   ├── core.py             # Diagnostic, file walking, YAML+source-line load, reporting
+│   ├── document.py         # requirement file schema as Pydantic models
+│   ├── requirement_set.py  # loading of requirement files
 │   └── checks/
 │       ├── schema.py       # RequirementChecker (schema + structural + RS.3)
 │       └── ears.py         # EarsChecker (EARS grammar)
 ├── tests/                  # pytest suites + negative fixtures
-├── schema/                 # the JSON Schema contract
 └── docs/                   # the requirement-format documentation + examples
 ```
 
@@ -53,11 +53,11 @@ The CLI emits coded diagnostics; each runtime message is self-describing. The
 
 | Code | Level | Violates |
 | --- | --- | --- |
-| `E-PREFIX` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
-| `E-YAML` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
-| `E-SCHEMA` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
-| `E-DESCKEY` | error | [`requirement.schema.json`](schema/requirement.schema.json) |
-| `E-DESCKEY-DUP` | error | [`checks/schema.py`](src/reqs/checks/schema.py) |
+| `E-PREFIX` | error | [`requirement_set.py`](src/reqs/requirement_set.py) |
+| `E-YAML` | error | [`requirement_set.py`](src/reqs/requirement_set.py) |
+| `E-SCHEMA` | error | [`document.py`](src/reqs/document.py) |
+| `E-DESCKEY` | error | [`document.py`](src/reqs/document.py) |
+| `E-DESCKEY-DUP` | error | [`requirement_set.py`](src/reqs/requirement_set.py) |
 | `E-DUPID` | error | [`rules.md` RS.2](docs/rules.md#rule-rs2) |
 | `E-PARENT-FORMAT` | error | [`rules.md` RS.2](docs/rules.md#rule-rs2) |
 | `E-PARENT-TYPE` | error | [`checks/schema.py`](src/reqs/checks/schema.py) |

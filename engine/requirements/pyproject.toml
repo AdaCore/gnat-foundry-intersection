@@ -9,8 +9,9 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6",
-    "jsonschema>=4.18",
     "typer>=0.12",
+    "rich>=13",
+    "pydantic>=2.13.4",
 ]
 
 [project.scripts]
@@ -23,7 +24,6 @@ dev = [
     "mypy>=1.10",
     "ruff>=0.6",
     "types-PyYAML>=6",
-    "types-jsonschema>=4.18",
 ]
 
 [build-system]
@@ -84,6 +84,7 @@ select = [
     "SLOT",  # flake8-slots
     "SIM",   # flake8-simplify
     "TID",   # flake8-tidy-imports
+    "TC",    # flake8-type-checking
     "INT",   # flake8-gettext
     "ARG",   # flake8-unused-arguments
     "PTH",   # flake8-use-pathlib
@@ -100,9 +101,6 @@ select = [
 ignore = [
     "COM812",  # Recommended by ruff as it can conflict with the formatter
     "D100",    # public-module
-    "D101",    # public-class
-    "D102",    # public-method
-    "D103",    # public-function
     "D104",    # public-package
     "D105",    # magic-method
     "D106",    # public-nested-class
@@ -127,6 +125,10 @@ ignore = [
     "FBT003", # typer.Option(False, ...) passes the default positionally by design
 ]
 
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-decorators = ["typer.Typer.command"]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
 [tool.ruff.lint.isort]
 combine-as-imports = true
 
@@ -134,7 +136,9 @@ combine-as-imports = true
 python_version = "3.11"
 files = ["src", "tests"]
 mypy_path = ["src"]
+plugins = "pydantic.mypy"
 namespace_packages = true
 explicit_package_bases = true
-warn_unused_ignores = true
-warn_redundant_casts = true
+strict = true
+warn_unreachable = true
+strict_equality = true

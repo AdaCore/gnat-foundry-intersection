@@ -13,7 +13,7 @@ EXAMPLES = project_root() / "docs" / "examples"
 FIX = Path(__file__).parent / "fixtures" / "invalid" / "ears"
 
 
-def test_examples_lint_clean():
+def test_examples_lint_clean() -> None:
     """Every example statement classifies as a valid EARS pattern."""
     diags = lint_paths([EXAMPLES])
     assert not diags, "examples should lint clean:\n  " + "\n  ".join(d.format() for d in diags)
@@ -34,16 +34,17 @@ NEGATIVE_CASES = [
     [(fname, code) for _, fname, code in NEGATIVE_CASES],
     ids=[desc for desc, *_ in NEGATIVE_CASES],
 )
-def test_negative_fixture_fires(fname, code):
+def test_negative_fixture_fires(fname: str, code: str) -> None:
+    """Each invalid fixture is reported with its expected diagnostic code."""
     assert code in {d.code for d in lint_paths([FIX / fname])}
 
 
-def test_optout_suppresses():
+def test_optout_suppresses() -> None:
     """The ears:skip token suppresses all findings for a statement."""
     assert not lint_paths([FIX / "hlr_ears_skip.yaml"])
 
 
-def test_missing_path_reports_io(tmp_path):
+def test_missing_path_reports_io(tmp_path: Path) -> None:
     """A nonexistent path yields a located E-IO error, not a traceback."""
     missing = tmp_path / "does_not_exist"
     diags = lint_paths([missing])

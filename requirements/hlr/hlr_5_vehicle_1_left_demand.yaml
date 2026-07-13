@@ -91,5 +91,3 @@ rationale: |-
   arrival — re-arms the machine for the next cycle, so continuous demand is served
   every cycle. Detector debounce and placement remain LLR concerns, including a
   vehicle that physically lingers on the loop past clearance.
-
-  Derived item (2) is the power-on initial state, which the CONOPS does not specify.
