@@ -115,6 +115,8 @@ class TraceChecker:
         """Check every adjacent pair of the chain; return any diagnostics."""
         diags: list[Diagnostic] = []
         loaded = [self._load(layer, diags) for layer in self.layers]
+        if any(d.level == "error" for d in diags):
+          return diags   # corpus isn't valid; traceability over it is meaningless
         for upper, lower in pairwise(loaded):
             diags.extend(self._diagnostics(_analyze(upper, lower)))
         return diags
@@ -301,12 +303,12 @@ def _pair_tables(pair: _Pair) -> list[Table]:
 
     upward = _new_table(f"{lo} → {up}  (upward trace)", lo, f"Traces to ({up})")
     for nid, statement in pair.lower.reqset.all_statements():
-        if nid in pair.resolved:
+        if nid in pair.dangling:
+            status, detail = "DANGLING", ", ".join(pair.dangling[nid])
+        elif nid in pair.resolved:
             status, detail = "OK", ", ".join(pair.resolved[nid])
         elif statement.is_derived:
             status, detail = "DERIVED", "—"
-        elif nid in pair.dangling:
-            status, detail = "DANGLING", ", ".join(pair.dangling[nid])
         else:
             status, detail = "UNTRACED", "—"
         upward.add_row(nid, status, detail, style=_severity_style(status))

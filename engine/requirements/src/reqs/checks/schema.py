@@ -60,7 +60,8 @@ class RequirementChecker:
         # Files with duplicate stems still deserve diagnostics.
         for file in (*reqset, *reqset.duplicates):
             diags.extend(self._rs3_lint(file))
-        diags.extend(self._referential_integrity(reqset))
+        if not any(d.level == "error" for d in diags):
+          diags.extend(self._referential_integrity(reqset))
         return diags
 
     def _rs3_lint(self, file: RequirementFile) -> list[Diagnostic]:
