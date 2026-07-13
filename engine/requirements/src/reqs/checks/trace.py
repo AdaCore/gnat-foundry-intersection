@@ -116,7 +116,7 @@ class TraceChecker:
         diags: list[Diagnostic] = []
         loaded = [self._load(layer, diags) for layer in self.layers]
         if any(d.level == "error" for d in diags):
-          return diags   # corpus isn't valid; traceability over it is meaningless
+            return diags  # corpus isn't valid; traceability over it is meaningless
         for upper, lower in pairwise(loaded):
             diags.extend(self._diagnostics(_analyze(upper, lower)))
         return diags

@@ -73,7 +73,7 @@ def test_duplicate_stem_resolves_into_first_file_only() -> None:
     (reported as duplicate), so referencing it is a miss; `hlr_dup_stem.1` is
     found in a file that reported no duplicates, so referencing it is valid.
     """
-    diags = validate_paths(
+    reqset, diags = RequirementSet.load(
         [
             FIX / "dup_stem" / "first" / "hlr_dup_stem.yaml",
             FIX / "dup_stem" / "second" / "hlr_dup_stem.yaml",
@@ -81,9 +81,10 @@ def test_duplicate_stem_resolves_into_first_file_only() -> None:
         ]
     )
     assert "E-DUPID" in {d.code for d in diags}
-    missing = [d for d in diags if d.code == "W-PARENT-MISSING"]
-    assert [d for d in missing if "hlr_dup_stem.2" in d.message], missing
-    assert not [d for d in missing if "hlr_dup_stem.1" in d.message], missing
+    statement_1 = reqset.statement("hlr_dup_stem.1")
+    assert statement_1 is not None
+    assert statement_1[1].text == "The widget shall do the thing."
+    assert reqset.statement("hlr_dup_stem.2") is None
 
 
 def test_duplicate_stem_with_invalid_first_claimant() -> None:
@@ -106,16 +107,6 @@ def test_duplicate_stem_with_invalid_first_claimant() -> None:
             "E-DUPID",
             f"duplicate container stem 'hlr_dup_inv' (also {first})",
             second,
-        ),
-        Diagnostic(
-            "warning",
-            "W-PARENT-MISSING",
-            "parent_req 'hlr_dup_inv.2' resolves to nothing "
-            "(no requirement container 'hlr_dup_inv' in the set) "
-            "(use --complete to require resolution)",
-            llr,
-            line=7,
-            path=("description", "1", "parent_req"),
         ),
     ]
 

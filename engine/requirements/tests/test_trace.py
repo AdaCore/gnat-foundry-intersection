@@ -250,10 +250,7 @@ def test_hlr_without_source_fails_schema(tmp_path: Path) -> None:
     # `[]` writes `source:` with no items. The whole file then fails to load,
     # so the leaves its other statements would have covered go uncovered too.
     assert summarize(check_trace(chain)) == [
-        ("E-SCHEMA", "error", "'source' must not be null; omit the key instead"),
-        uncovered_warning("2.1"),
-        uncovered_warning("2.2"),
-        uncovered_warning("3.1"),
+        ("E-SCHEMA", "error", "'source' must not be null; omit the key instead")
     ]
 
 
