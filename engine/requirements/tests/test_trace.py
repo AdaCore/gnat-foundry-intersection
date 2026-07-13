@@ -315,6 +315,17 @@ def test_render_tables_show_bidirectional_status(tmp_path: Path) -> None:
     assert "hlr_x.1" in out  # backward: the HLR statement appears with its trace
 
 
+def test_render_tables_surface_partially_dangling_node(tmp_path: Path) -> None:
+    """A node with both a resolved and a dangling up-ref is DANGLING, not OK."""
+    chain = conops_hlr_chain(
+        tmp_path, [["CONOPS §2.1", "CONOPS §9.9"], ["CONOPS §2.2"], ["CONOPS §3.1"]]
+    )
+    out = render_tables(chain, width=80)
+    (row,) = [line for line in out.splitlines() if line.startswith("│ hlr_x.1 ")]
+    assert "DANGLING" in row  # the resolved ref must not mask the dangling one
+    assert "CONOPS §9.9" in row  # ...and the table names the unresolvable ref
+
+
 def test_render_tables_wrap_wide_column_to_width(tmp_path: Path) -> None:
     """A very wide "Covered by" cell wraps to the terminal width instead of overflowing."""
     conops = write_conops(tmp_path)
