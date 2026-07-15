@@ -16,6 +16,9 @@ description:
       ```
     parent_req:
       - hlr_Floating_Point_Floor_01.1
+    implemented_by:
+      - System.Fat_LFlt.Attr_Long_Float.Floor
+      - System.Fat_Flt.Attr_Float.Floor
 
   2:
     text: |-
@@ -23,12 +26,18 @@ description:
       equal to `X`.
     parent_req:
       - hlr_Floating_Point_Floor_01.2
+    implemented_by:
+      - System.Fat_LFlt.Attr_Long_Float.Floor
+      - System.Fat_Flt.Attr_Float.Floor
 
   3:
     text: |-
       When `X` is zero, the function shall return zero with the sign of `X`.
     parent_req:
       - hlr_Floating_Point_Floor_01.3
+    implemented_by:
+      - System.Fat_LFlt.Attr_Long_Float.Floor
+      - System.Fat_Flt.Attr_Float.Floor
 
   4:
     text: |-
@@ -36,6 +45,9 @@ description:
       return `X`.
     parent_req:
       - hlr_Floating_Point_Floor_02.1
+    implemented_by:
+      - System.Fat_LFlt.Attr_Long_Float.Floor
+      - System.Fat_Flt.Attr_Float.Floor
 
 algorithm_aspects: |-
   Calling `Truncation(X)` will remove the decimal part of `X`.
@@ -51,7 +63,3 @@ algorithm_aspects: |-
   \operatorname{Floor}(X) = \operatorname{Truncation}(X) & \text{if } X > 0.
   \end{cases}
   $$
-
-implemented_by:
-  - System.Fat_LFlt.Attr_Long_Float.Floor
-  - System.Fat_Flt.Attr_Float.Floor

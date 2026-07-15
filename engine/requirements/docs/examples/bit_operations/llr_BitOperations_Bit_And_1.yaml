@@ -21,6 +21,8 @@ description:
     parent_req:
       - hlr_BitOperations_1.1
       - hlr_BitOperations_LogicalOperators_1.1
+    implemented_by:
+      - System.Bit_Ops.Bit_And
 
   2:
     text: |-
@@ -29,6 +31,8 @@ description:
       bits of the bit-packed array located at address Right.
     parent_req:
       - hlr_BitOperations_LogicalOperators_1.2
+    implemented_by:
+      - System.Bit_Ops.Bit_And
 
   3:
     text: |-
@@ -36,6 +40,8 @@ description:
       referenced by Result.
     parent_req:
       - hlr_BitOperations_1.1
+    implemented_by:
+      - System.Bit_Ops.Bit_And
 
   4:
     text: |-
@@ -43,6 +49,8 @@ description:
       the bitwise operation on all bits up to the next full byte.
     parent_req:
       - hlr_BitOperations_1.1
+    implemented_by:
+      - System.Bit_Ops.Bit_And
 
   5:
     text: |-
@@ -50,13 +58,12 @@ description:
       Constraint_Error.
     parent_req:
       - hlr_BitOperations_LogicalOperators_1.4
+    implemented_by:
+      - System.Bit_Ops.Bit_And
 
 preconditions:
   - Llen > 0
   - Rlen <= Natural'Last - 7
-
-implemented_by:
-  - System.Bit_Ops.Bit_And
 
 rationale: |-
   1. At a language level, performing the bitwise operation on all bits up to the
