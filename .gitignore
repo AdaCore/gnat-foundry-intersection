@@ -19,7 +19,7 @@ config/
 
 # Locally-provisioned developer tooling (make setup-* / reset-hard) and the
 # staged GNAT Tracker downloads it installs from
-install/
+/install/
 /pro-downloads/
 
 # GNATtest — regenerated test specs (the .adb bodies are yours, do not gitignore)

@@ -213,25 +213,25 @@ test-reqs-engine:
 # prove/coverage targets are the same regardless of toolchain.
 # ----------------------------------------------------------------------------
 
+# Env vars common to both setup-* targets.
+SETUP_ENV := PATH='$(SYSTEM_PATH)' \
+    LOCAL_BIN='$(LOCAL_BIN)' \
+    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS_DIR)' \
+    SETUP_MARKER='$(SETUP_MARKER)'
+
 # One-shot: uv, Alire, the community GNAT toolchains, and
 # gnattest/gnatcov/gnatformat/gnatprove.
 setup-community:
-	@PATH='$(SYSTEM_PATH)' \
-	    LOCAL_BIN='$(LOCAL_BIN)' \
-	    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS_DIR)' \
+	@$(SETUP_ENV) \
 	    ALIRE_PREFIX='$(ALIRE_PREFIX)' \
-	    SETUP_MARKER='$(SETUP_MARKER)' \
 	    scripts/setup/community.sh
 
 # One-shot: GNAT Pro (native + arm-elf), SPARK Pro and GNATDAS from the
 # staged tarballs, plus alr configured to build against them.
 setup-pro:
-	@PATH='$(SYSTEM_PATH)' \
-	    LOCAL_BIN='$(LOCAL_BIN)' \
-	    ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS_DIR)' \
+	@$(SETUP_ENV) \
 	    PRO_DIR='$(PRO_DIR)' \
 	    PRO_DOWNLOADS='$(PRO_DOWNLOADS)' \
-	    SETUP_MARKER='$(SETUP_MARKER)' \
 	    scripts/setup/pro.sh
 
 # ----------------------------------------------------------------------------

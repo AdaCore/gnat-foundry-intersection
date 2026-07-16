@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Provision the pro (GNAT Pro / SPARK Pro / GNATDAS) versions of all tooling
-# needed for the demo, from tarballs or zip files downlaoded from GNAT Tracker
+# needed for the demo, from tarballs or zip files downloaded from GNAT Tracker
 
 set -euo pipefail
 
@@ -56,7 +56,7 @@ install_product() {
     return 0
   fi
 
-  require_cmd tar make tee clear
+  require_cmd tar make
 
   # `|| true`: when $PRO_DOWNLOADS does not exist yet, find fails and pipefail
   # would abort the script before the fatal below can explain.
@@ -71,7 +71,7 @@ install_product() {
 $PRO_DOWNLOADS
 (the directory has just been created for you).
 Log in to GNAT Tracker and download the x86_64-linux packages for GNAT Pro
-(native and arm-elf), SPARK Pro and GNATDAS, as either the product tarballs
+(native and arm-elf), SPARK Pro and GNAT DAS, as either the product tarballs
 or the zipfiles wrapping them. Copy them into the directory above, then
 re-run 'make setup-pro'."
   fi
@@ -87,7 +87,7 @@ re-run 'make setup-pro'."
   mkdir -p "$prefix"
   # `doinstall <dir>` runs `make ins-all prefix=<dir>` unattended.
   log="$tmp/install.log"
-  if ! (cd "$srcdir" && ./doinstall "$prefix") >"$log" 2>&1; then
+  if ! (cd "$srcdir" && ./doinstall "$prefix" && [ -x "$prefix/$marker" ]) >"$log" 2>&1; then
     tail -n 40 "$log" >&2 || true
     fatal "doinstall failed for $label (full log: $log)."
   fi
@@ -126,8 +126,8 @@ print_summary() {
   detail "SPARK Pro          $PRO_DIR/spark"
   detail "GNATDAS            $PRO_DIR/gnatdas"
   printf '\n'
-  detail "The Makefile detects this install automatically (SETUP=pro). To run"
-  detail "the tools from your shell, add to your profile:"
+  detail "The Makefile detects this install automatically. To run the tools"
+  detail "from your shell, add to your profile:"
   detail "  export PATH=\"$LOCAL_BIN:$PRO_DIR/gnatpro/bin:$PRO_DIR/arm-elf/bin:$PRO_DIR/spark/bin:$PRO_DIR/gnatdas/bin:\$PATH\""
   detail "  export ALIRE_SETTINGS_DIR=\"$ALIRE_SETTINGS_DIR\""
 }
