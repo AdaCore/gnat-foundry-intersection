@@ -17,6 +17,9 @@ description:
       ```
     parent_req:
       - hlr_Exponentiation_Int_1.1
+    implemented_by:
+      - System.Exp_Int
+      - System.Exp_LLI
 
   2:
     text: |-
@@ -25,6 +28,9 @@ description:
       `Right - 1` times.
     parent_req:
       - hlr_Exponentiation_Int_1.2
+    implemented_by:
+      - System.Exp_Int
+      - System.Exp_LLI
 
   3:
     text: |-
@@ -32,6 +38,9 @@ description:
       package shall return 1.
     parent_req:
       - hlr_Exponentiation_Int_1.3
+    implemented_by:
+      - System.Exp_Int
+      - System.Exp_LLI
 
   4:
     text: |-
@@ -39,6 +48,9 @@ description:
       function of the `System.Expont` package shall return 0.
     parent_req:
       - hlr_Exponentiation_Int_1.2
+    implemented_by:
+      - System.Exp_Int
+      - System.Exp_LLI
 
   5:
     text: |-
@@ -46,10 +58,9 @@ description:
       `System.Expont` package shall raise `Constraint_Error`.
     parent_req:
       - hlr_Exponentiation_Int_2.1
-
-implemented_by:
-  - System.Exp_Int
-  - System.Exp_LLI
+    implemented_by:
+      - System.Exp_Int
+      - System.Exp_LLI
 
 algorithm_aspects:
   This function uses the **exponentiation by squaring** approach.

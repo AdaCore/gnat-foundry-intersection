@@ -1,0 +1,7 @@
+# E-SCHEMA: `implemented_by` must be non-empty.
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_widget.1
+    implemented_by: []

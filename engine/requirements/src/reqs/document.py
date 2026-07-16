@@ -3,9 +3,8 @@ The requirement file format, as pydantic models.
 
 A requirement file is a *container* (see docs/README.md): its `description`
 map holds the numbered shall-statements, each an object carrying its own
-upward trace. `HlrDocument` / `LlrDocument` describe the two levels'
-documents and are the machine-checkable contract for the format documented
-under ``docs/``.
+trace refs. `HlrDocument` / `LlrDocument` describe the two levels' documents and
+are the machine-checkable contract for the format documented under ``docs/``.
 """
 
 from __future__ import annotations
@@ -42,7 +41,7 @@ class _Model(BaseModel):
 
 
 class _BaseStatement(_Model):
-    """One atomic shall-statement, carrying its own upward trace."""
+    """One atomic shall-statement, carrying its own trace refs."""
 
     up_ref_key: ClassVar[str]  # name of the subclass's up-ref field
 
@@ -98,6 +97,7 @@ class LlrStatement(_BaseStatement):
     up_ref_key: ClassVar[str] = "parent_req"
 
     parent_req: RefList
+    implemented_by: RefList | None = None
 
     @property
     def up_refs(self) -> list[str]:
@@ -138,7 +138,6 @@ class LlrDocument(_BaseDocument):
     visibility: NonEmptyStr | None = None
     description: Annotated[dict[int, LlrStatement], Field(min_length=1)]
     preconditions: list[NonEmptyStr] | None = None
-    implemented_by: list[NonEmptyStr] | None = None
     algorithm_aspects: NonEmptyStr | None = None
 
 
