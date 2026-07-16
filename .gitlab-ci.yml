@@ -115,6 +115,9 @@ pro:x86_64-linux:
     # Build
     - make build-native
 
+    # Test (test w/ non-instrumented harness build)
+    - make test
+
     # Test with coverage
     - make coverage-instrumentation
     - make coverage-build
@@ -162,11 +165,8 @@ pro:arm-elf:
     # Sanity check
     - arm-eabi-gnat --version
 
-    # Remove the explicit dependency on `gnat_arm_elf` so we don't try to fetch
-    # the community version.
-    - alr -n -C traffic_light_qemu/ with --del gnat_arm_elf
-
-    # Build
+    # Build (SETUP=none: gprbuild runs directly against the anod toolchain,
+    # so the qemu crate's community `gnat_arm_elf` dependency is not fetched)
     - make build-target
 
 community:x86_64-linux:

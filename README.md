@@ -21,6 +21,7 @@ Early scaffold.
 make setup-community  # community tools, fetched via Alire (needs internet)
 # or
 make setup-pro  # pro tools, from GNAT Tracker staged under pro-downloads/
+                # (or adopted from PATH when your env already provides them)
 
 # Host build (runs on your laptop, uses stub HAL)
 make build-native
@@ -34,6 +35,30 @@ make prove
 # Build the bare-metal arm-eabi firmware (runs under QEMU xilinx-zynq-a9)
 make build-target
 ```
+
+### Staging the pro downloads for `make setup-pro`
+
+`make setup-pro` installs from [GNAT Tracker](https://support.adacore.com/)
+downloads staged under `pro-downloads/` (created on first run). Log in and
+download the x86_64 Linux packages for:
+
+| Product                    | Expected download                             |
+| -------------------------- | --------------------------------------------- |
+| GNAT Pro for Ada (native)  | `gnatpro-<version>-x86_64-linux-bin.tar.gz`   |
+| GNAT Pro for Ada (arm-elf) | `gnatpro-<version>-arm-elf-*-bin.tar.gz`      |
+| SPARK Pro                  | `spark-pro-<version>-x86_64-linux-bin.tar.gz` |
+| GNAT DAS                   | `gnatdas-<version>-x86_64-linux-bin.tar.gz`   |
+
+Copy either the product tarballs themselves or the zipfiles into
+`pro-downloads/`; `make setup-pro` will pick the newest version if several are
+staged. The staging directory survives `make reset-hard`.
+
+### Using pro tools already provided by your environment
+
+If the pro tools are already installed and on your PATH, `make setup-pro` uses
+them directly instead of installing anything, provided nothing is staged in
+`pro-downloads/`. `PRO_TOOLS=install` or `PRO_TOOLS=external` forces either
+mode.
 
 ## Repository layout
 

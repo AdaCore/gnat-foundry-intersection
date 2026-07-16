@@ -73,66 +73,21 @@ detect_platform() {
   printf '%s %s\n' "$arch" "$os"
 }
 
-# Alire: install the latest official (community) release from GitHub, locally
-# into $LOCAL_BIN. Shared by both the community and pro setups until we have an
-# official release.
-#
-# Requires $LOCAL_BIN to be set.
-install_alire() {
-  header "alr (Ada source package manager)"
-
+# Run alr non-interactively: the locally-installed copy if present, else from
+# PATH. Requires $LOCAL_BIN to be set; alr itself is installed by common.sh.
+run_alr() {
   if [ -x "$LOCAL_BIN/alr" ]; then
-    detail "Already installed locally ($LOCAL_BIN/alr); skipping."
-    return 0
+    "$LOCAL_BIN/alr" -n "$@"
+  else
+    alr -n "$@"
   fi
-  if command -v alr >/dev/null 2>&1; then
-    detail "Found on PATH ($(command -v alr)); skipping local install."
-    return 0
-  fi
-
-  require_cmd curl unzip
-
-  local platform arch os url tmp
-  platform=$(detect_platform)
-  arch=${platform%% *}
-  os=${platform##* }
-  detail "Querying GitHub for the latest Alire release asset ($arch-$os) ..."
-  url=$(
-    curl -fsSL https://api.github.com/repos/alire-project/alire/releases/latest \
-      | grep -o "\"browser_download_url\": \"[^\"]*bin-$arch-${os}[^\"]*\"" \
-      | grep -o 'https://[^"]*' \
-      | head -1 \
-      || true
-  )
-  if [ -z "$url" ]; then
-    fatal "could not find an Alire release asset for $arch-$os."
-  fi
-
-  tmp=$(mktemp -d)
-  detail "Downloading $url"
-  detail "  to temporary dir $tmp"
-  curl -fsSL "$url" -o "$tmp/alr.zip"
-  unzip -q "$tmp/alr.zip" -d "$tmp/alr"
-
-  detail "Installing alr into $LOCAL_BIN"
-  mkdir -p "$LOCAL_BIN"
-  mv "$tmp/alr/bin/alr" "$LOCAL_BIN/alr"
-  chmod +x "$LOCAL_BIN/alr"
-  rm -rf "$tmp"
-  detail "Installed version: $("$LOCAL_BIN/alr" --version)"
 }
 
-# Resolve the base `alr` command into a global $ALR array.
-#
-# Invoke after `install_alire`. Requires $LOCAL_BIN to be set. $ALR is consumed
-# by the sourcing script (community.sh / pro.sh), not here; hence SC2034.
-# shellcheck disable=SC2034
-resolve_alr() {
-  if [ -x "$LOCAL_BIN/alr" ]; then
-    ALR=("$LOCAL_BIN/alr" -n)
-  else
-    ALR=(alr -n)
-  fi
+# Set a global alr setting ($1) to $2. Which keys are built-in (and whether
+# --builtin exists) varies across alr versions; fall back to a plain --set.
+set_alr_setting() {
+  run_alr settings --global --set --builtin "$1" "$2" 2>/dev/null \
+    || run_alr settings --global --set "$1" "$2"
 }
 
 # Record which setup provisioned install/ ($1: "community" or "pro") in

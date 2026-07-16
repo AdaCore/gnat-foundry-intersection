@@ -45,15 +45,19 @@ PRO_DIR       := $(INSTALL_DIR)/pro
 PRO_DOWNLOADS ?= $(CURDIR)/pro-downloads
 PRO_BINS      := $(PRO_DIR)/gnatpro/bin:$(PRO_DIR)/arm-elf/bin:$(PRO_DIR)/spark/bin:$(PRO_DIR)/gnatdas/bin
 
+# Force the setup-pro source: make setup-pro PRO_TOOLS=install (staged
+# downloads) or PRO_TOOLS=external (tools on PATH); empty auto-detects.
+PRO_TOOLS ?=
+
 # Prefer the locally-installed binaries; fall back to PATH if absent.
 ALR := $(if $(wildcard $(LOCAL_BIN)/alr),$(LOCAL_BIN)/alr -n,alr -n)
 UV  := $(if $(wildcard $(LOCAL_BIN)/uv),$(LOCAL_BIN)/uv,uv)
 
 # Which setup provisioned install/, as recorded in $(SETUP_MARKER) by the
-# last setup-* target that ran: "pro", "community", or "none" (no local
-# setup; tools are expected on PATH already).
+# last setup-* target that ran: "pro", "community", "external" (pro tools
+# from PATH), or "none" (no local setup; tools are expected on PATH already).
 SETUP_MARKER := $(INSTALL_DIR)/setup
-SETUP := $(or $(filter pro community,$(shell cat '$(SETUP_MARKER)' 2>/dev/null)),none)
+SETUP := $(or $(filter pro community external,$(shell cat '$(SETUP_MARKER)' 2>/dev/null)),none)
 
 # The setup-* recipes run against this unmodified PATH so the previous
 # setup's toolchain cannot leak into the new one.
@@ -61,10 +65,13 @@ SYSTEM_PATH := $(PATH)
 
 # Compose the detected setup's tools onto PATH. For SETUP=none the
 # environment is left alone.
+# For SETUP=external, only a locally-installed uv/alr is added.
 ifeq ($(SETUP),pro)
 export PATH := $(LOCAL_BIN):$(PRO_BINS):$(PATH)
 else ifeq ($(SETUP),community)
 export PATH := $(LOCAL_BIN):$(ALIRE_PREFIX)/bin:$(PATH)
+else ifeq ($(SETUP),external)
+export PATH := $(LOCAL_BIN):$(PATH)
 endif
 ifneq ($(SETUP),none)
 export ALIRE_SETTINGS_DIR
@@ -104,8 +111,16 @@ build-native:
 # We have to generate the root `config/` directory explicitly because the
 # `traffic_light` crate is not in the Alire closure (but its config is in the
 # GPR closure).
+#
+# Only community builds via `alr` (its gnat_arm_elf dep provides the cross
+# compiler); otherwise gprbuild runs directly with the arm-elf tools on PATH.
 build-target: generate-config
+ifeq ($(SETUP),community)
 	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
+else
+	cd traffic_light_qemu && gprbuild -q -P traffic_light_qemu.gpr \
+	    -XBUILD_KIND=target -XTICK_PERIOD_US=$(TICK_PERIOD_US)
+endif
 
 # Run the host executable. (Not `alr run`: the QEMU crate emits an
 # identically-named binary under bin/, so `alr run` finds two candidates and
@@ -136,17 +151,36 @@ check: check-ada check-shell check-python
 clean:
 	rm -rf obj reports
 
-# Reformat all Ada sources of the default project in place (gnatformat).
+# Reformat all Ada sources of the three projects in place (gnatformat).
+# With pro tools (pro/external), run gnatformat directly: `alr` would fetch
+# the community gnat_arm_elf/aunit crates for the nested crates instead.
+# Otherwise alr provides those crates (community) or resolves them from the
+# configured index (the SETUP=none CI check job).
 format-ada: generate-config
+ifneq (,$(filter pro external,$(SETUP)))
+	gnatformat -P traffic_light.gpr -U --charset utf-8
+	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
+	    -XBUILD_KIND=target -U --charset utf-8
+	gnatformat -P tests/tests.gpr -U --charset utf-8
+else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C tests exec -P -- gnatformat -U --charset utf-8
+endif
 
 # Verify formatting without editing; exits non-zero if any file would change.
+# Same split as `format-ada` above.
 check-ada: generate-config
+ifneq (,$(filter pro external,$(SETUP)))
+	gnatformat -P traffic_light.gpr -U --charset utf-8 --check
+	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
+	    -XBUILD_KIND=target -U --charset utf-8 --check
+	gnatformat -P tests/tests.gpr -U --check --charset utf-8
+else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
+endif
 	# Commented for now, pending
 	#   eng/ide/gnatdoc#189
 	#   eng/ide/gnatdoc#190
@@ -167,17 +201,28 @@ check-python:
 	$(UV) --directory "$(REQS_ENGINE)" run mypy
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
 
-# Build and run the AUnit harness. gnattest/gprbuild run in the tests/ crate
-# context (`alr -C tests`), which provides AUnit with either toolchain.
+# Build and run the AUnit harness.
+#
+# When `SETUP=community`, run in the context of the `tests/` nested crate,
+# which provides AUnit through `alr`. Otherwise run in the root crate
+# context: AUnit ships with GNAT Pro, and gnattest/gprbuild resolve on PATH.
 HARNESS := obj/development/gnattest/harness
 
 # Generate/refresh GNATtest skeletons.
 generate-tests: generate-config
+ifeq ($(SETUP),community)
 	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
 	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr --exit-status=on
+else
+	$(ALR) exec -P -- gnattest --exit-status=on
+endif
 
 test: generate-tests
+ifeq ($(SETUP),community)
 	$(ALR) -C tests exec -- gprbuild -q -P ../$(HARNESS)/test_driver.gpr
+else
+	$(ALR) exec -- gprbuild -q -P $(HARNESS)/test_driver.gpr
+endif
 	$(HARNESS)/test_runner
 
 # ----------------------------------------------------------------------------
@@ -208,7 +253,7 @@ test-reqs-engine:
 # Setup: provision all developer tooling locally under install/. Pick one:
 #   setup-community: community tools, fetched via Alire (needs internet).
 #   setup-pro:       pro tools, from GNAT Tracker downloads staged under
-#                    $(PRO_DOWNLOADS) (setup-pro says which when absent).
+#                    $(PRO_DOWNLOADS), or from PATH if already provided.
 # Re-running the other setup target switches between the two; all build/test/
 # prove/coverage targets are the same regardless of toolchain.
 # ----------------------------------------------------------------------------
@@ -226,12 +271,14 @@ setup-community:
 	    ALIRE_PREFIX='$(ALIRE_PREFIX)' \
 	    scripts/setup/community.sh
 
-# One-shot: GNAT Pro (native + arm-elf), SPARK Pro and GNATDAS from the
-# staged tarballs, plus alr configured to build against them.
+# One-shot: GNAT Pro (native + arm-elf), SPARK Pro and GNAT DAS, from the
+# staged tarballs or from PATH ($(PRO_TOOLS)). alr is left unconfigured:
+# the pro tools resolve on PATH.
 setup-pro:
 	@$(SETUP_ENV) \
 	    PRO_DIR='$(PRO_DIR)' \
 	    PRO_DOWNLOADS='$(PRO_DOWNLOADS)' \
+	    PRO_TOOLS='$(PRO_TOOLS)' \
 	    scripts/setup/pro.sh
 
 # ----------------------------------------------------------------------------
@@ -280,10 +327,12 @@ coverage-build:
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 
-# Instrument, build and run the tests for coverage.
+# Instrument, build and run the tests for coverage. Same community/other
+# split as `test` above.
 coverage-test: generate-tests
 	rm -rf $(GNATCOV_TRACES)
 	mkdir -p $(GNATCOV_TRACES)
+ifeq ($(SETUP),community)
 	$(ALR) -C tests exec -- gnatcov instrument -P ../$(HARNESS)/test_driver.gpr \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
@@ -291,6 +340,15 @@ coverage-test: generate-tests
 	    -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
+else
+	$(ALR) exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
+		--level=stmt+mcdc \
+	    --runtime-project $(GNATCOV_RTS)
+	$(ALR) exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
+	    -g -O0 -m2 \
+	    --src-subdirs=gnatcov-instr \
+	    --implicit-with=$(GNATCOV_RTS)
+endif
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	    $(HARNESS)/test_runner
 
