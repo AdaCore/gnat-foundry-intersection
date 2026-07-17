@@ -21,11 +21,34 @@ deploy_toolchains() {
 
   mkdir -p "$ALIRE_SETTINGS_DIR"
 
-  # Undo the pro setup's offline configuration, if present: re-allow the
-  # community index to be auto-added and auto-refreshed, so the community
-  # crates resolve again. (`--unset` of a missing key is an error.)
-  set_alr_setting index.auto_community true
-  run_alr settings --global --unset index.auto_update >/dev/null 2>&1 || true
+  # Undo the pro setup's offline configuration, if present: restore the
+  # index auto-refresh defaults. (`--unset` of a missing key is an error.)
+  local key
+  for key in index.auto_community index.auto_update; do
+    run_alr settings --global --unset "$key" >/dev/null 2>&1 || true
+  done
+
+  # Configure the community index manually.
+  # Re-adding an existing index is an error, hence the --list check.
+  local indexes
+  indexes=$(run_alr index --list 2>/dev/null || true)
+  if grep -qE '^[0-9]+ +community ' <<<"$indexes"; then
+    detail "Community index already configured."
+  else
+    detail "Adding the community index ..."
+    run_alr index --add https://github.com/alire-project/alire-index.git \
+      --name community
+  fi
+
+  # Fail early, and clearly, if this alr cannot resolve community crates
+  # before toolchain selection trips over it (which has a less clear error).
+  local crates
+  crates=$(run_alr search --crates gnat_arm_elf 2>/dev/null || true)
+  if ! grep -q '^gnat_arm_elf ' <<<"$crates"; then
+    fatal "the community index is configured, but 'gnat_arm_elf' does not
+resolve in it. This alr ($(run_alr --version 2>/dev/null || echo unknown))
+may be incompatible with the index format."
+  fi
 
   detail "Deploying gnat_arm_elf. Deploying and selecting gnat_native and gprbuild ..."
   run_alr toolchain --select gnat_arm_elf gnat_native gprbuild

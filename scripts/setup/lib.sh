@@ -86,8 +86,18 @@ run_alr() {
 # Set a global alr setting ($1) to $2. Which keys are built-in (and whether
 # --builtin exists) varies across alr versions; fall back to a plain --set.
 set_alr_setting() {
-  run_alr settings --global --set --builtin "$1" "$2" 2>/dev/null \
-    || run_alr settings --global --set "$1" "$2"
+  local out
+  if out=$(run_alr settings --global --set --builtin "$1" "$2" 2>&1); then
+    return 0
+  fi
+  case "$out" in
+    *"not a built-in setting"*)
+      detail "This alr has no setting '$1'; skipped."
+      ;;
+    *)
+      run_alr settings --global --set "$1" "$2"
+      ;;
+  esac
 }
 
 # Record which setup provisioned install/ ($1: "community" or "pro") in

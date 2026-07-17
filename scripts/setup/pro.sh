@@ -193,7 +193,10 @@ configure_alr_offline() {
   header "Alire offline configuration"
 
   mkdir -p "$ALIRE_SETTINGS_DIR"
-  # No auto-add/auto-refresh of the community index, no toolchain assistant.
+  # Remove the community index a community setup configured (`--del` of an
+  # absent index is an error), and keep alr builds that know the setting
+  # from silently re-adding it. No auto-refresh, no toolchain assistant.
+  run_alr index --del community >/dev/null 2>&1 || true
   set_alr_setting index.auto_community false
   set_alr_setting index.auto_update 0
   set_alr_setting toolchain.assistant false
@@ -211,7 +214,7 @@ configure_alr_offline() {
 print_summary() {
   header "setup-pro complete"
   detail "uv                 $(report_tool uv)"
-  detail "alr                $(report_tool alr) (community build)"
+  detail "alr                $(report_tool alr)"
   detail "GNAT Pro (native)  $PRO_DIR/gnatpro"
   detail "GNAT Pro (arm-elf) $PRO_DIR/arm-elf"
   detail "SPARK Pro          $PRO_DIR/spark"
@@ -226,7 +229,7 @@ print_summary() {
 print_summary_external() {
   header "setup-pro complete (external tools)"
   detail "uv                 $(report_tool uv)"
-  detail "alr                $(report_tool alr) (community build)"
+  detail "alr                $(report_tool alr)"
   detail "Pro tools          from the environment (see above)"
   printf '\n'
   detail "The Makefile detects this setup automatically, but installs no"
