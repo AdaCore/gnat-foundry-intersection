@@ -34,24 +34,18 @@ is
 
    function Compatible (A, B : States.Movement) return Boolean
    is (A = B
-       or else
-         (A in States.N_Thru | States.N_Left
-          and then B in States.N_Thru | States.N_Left)
-       or else
-         (A in States.S_Thru | States.S_Left
-          and then B in States.S_Thru | States.S_Left)
-       or else
-         (A in States.E_Thru | States.E_Left
-          and then B in States.E_Thru | States.E_Left)
-       or else
-         (A in States.W_Thru | States.W_Left
-          and then B in States.W_Thru | States.W_Left)
-       or else
-         (A in States.N_Thru | States.S_Thru
-          and then B in States.N_Thru | States.S_Thru)
-       or else
-         (A in States.E_Thru | States.W_Thru
-          and then B in States.E_Thru | States.W_Thru));
+       or else (A in States.N_Thru | States.N_Left
+                and then B in States.N_Thru | States.N_Left)
+       or else (A in States.S_Thru | States.S_Left
+                and then B in States.S_Thru | States.S_Left)
+       or else (A in States.E_Thru | States.E_Left
+                and then B in States.E_Thru | States.E_Left)
+       or else (A in States.W_Thru | States.W_Left
+                and then B in States.W_Thru | States.W_Left)
+       or else (A in States.N_Thru | States.S_Thru
+                and then B in States.N_Thru | States.S_Thru)
+       or else (A in States.E_Thru | States.W_Thru
+                and then B in States.E_Thru | States.W_Thru));
    --  Two movements are *compatible* -- releasable together -- exactly when
    --  the serialized Moore sequencer ever drives them non-RED in the same
    --  output row (`hlr_5_vehicle.2`-.11 / .25-.34): a through with its own
