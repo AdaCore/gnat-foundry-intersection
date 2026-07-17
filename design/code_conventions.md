@@ -39,6 +39,12 @@ It is possible for code to be commented out (for instance, code deferred for fut
 or code that can be activated for debug purposes). The reason for commenting code out should be
 explained in a comment.
 
+## Elaboration code
+
+Packages bodies should _not_ contain elaboration code. Prefer an explicit `Initialize` subprogram
+to be called by the application at startup. Package specs might have elaboration code by way of
+constants initialization.
+
 ## Global variables
 
 There should be no global variables.
