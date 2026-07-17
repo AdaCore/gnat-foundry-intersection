@@ -89,7 +89,10 @@ endif
 # Print environment for tools/dependencies
 printenv:
 	@$(ALR) printenv
-	# We don't need to print `PATH` because it is already printed by `alr printenv`.
+ifneq (,$(filter pro external,$(SETUP)))
+	# `alr printenv` only prints `PATH` when alr manages the toolchain
+	echo "export PATH=\"$$PATH\""
+endif
 	for var in ALIRE_SETTINGS_DIR UV_CACHE_DIR UV_TOOL_DIR UV_TOOL_BIN_DIR UV_PYTHON_INSTALL_DIR; do
 	  if [ -v "$$var" ]; then echo "export $$var=\"$${!var}\""; fi
 	done
