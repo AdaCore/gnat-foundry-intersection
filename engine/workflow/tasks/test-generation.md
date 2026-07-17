@@ -7,6 +7,7 @@ in meaningful test bodies, so the suite builds and passes.
 
 ## Inputs
 
+- `workflow/<feature>/notes.md` — if this exists, it may contain notes relevant to this task.
 - New/changed `src/` specs — the subprograms needing tests.
 - Existing test bodies under `src/tests/` (e.g. `controller-test_data-tests.adb`,
   `conflicts-*`, `states-*`, and `src/tests/common/`) — match their style. Only

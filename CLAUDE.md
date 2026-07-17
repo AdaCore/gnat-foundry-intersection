@@ -29,7 +29,7 @@ regardless of which one you ran.
 ## Feature workflow
 
 Add a feature as a succession of **Tasks**, each delegated to a purpose-built
-sub-agent, each (except the Plan task) gated by a **mechanical oracle** (a `make` command that must
+sub-agent, each gated by a **mechanical oracle** (a command that must
 pass). The task specs and oracles are defined once, tool-agnostically, in
 [`engine/workflow/`](engine/workflow/README.md) — read it before orchestrating.
 

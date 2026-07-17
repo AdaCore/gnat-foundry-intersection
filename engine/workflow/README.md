@@ -10,7 +10,6 @@ A **feature** is added as a succession of **Tasks**. Each Task type has:
 - a **spec** in [`tasks/`](tasks/) describing exactly what to do, and
 - an **oracle** — a mechanical command whose success *is* the definition of
   "done". A Task is complete only when its oracle passes. Nothing else counts.
-  (Except for the Plan task, which has no oracle.)
 
 ## Task types and default order
 

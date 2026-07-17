@@ -30,7 +30,11 @@ and the code conventions.
 
 ## Oracle
 
-No oracle command — the plan is done when the notes are complete.
+```bash
+bash -c "[ -s workflow/<feature>/notes.md ]"
+```
+
+**Done when the plan file exists and is non-empty.**
 
 ## Escalation
 
