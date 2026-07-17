@@ -9,6 +9,7 @@ must **never** reference the CONOPS.
 
 ## Inputs
 
+- `workflow/<feature>/notes.md` — if it exists.
 - `requirements/hlr/*.yaml` — the parents (LLRs trace to these).
 - `engine/requirements/HLR.drafting.md` — LLR vs HLR distinction (LLR owns
   unobservable mechanism).
@@ -35,6 +36,9 @@ must **never** reference the CONOPS.
 3. Set `parent_req` on every statement to the HLR ID(s) it refines.
 4. Record mechanism detail (algorithms, latches, error paths) that the HLR omits.
 5. Validate (the oracle).
+6. Remove from `workflow/<feature>/notes.md` any notes that have been addressed by the LLRs.
+7. Add to `workflow/<feature>/notes.md` any notes that are useful for implementation, in particular
+   any LLRs that you have added/modified and that are not yet implemented by code.
 
 ## Oracle
 

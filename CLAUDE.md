@@ -29,23 +29,24 @@ regardless of which one you ran.
 ## Feature workflow
 
 Add a feature as a succession of **Tasks**, each delegated to a purpose-built
-sub-agent, each gated by a **mechanical oracle** (a `make` command that must
+sub-agent, each (except the Plan task) gated by a **mechanical oracle** (a `make` command that must
 pass). The task specs and oracles are defined once, tool-agnostically, in
 [`engine/workflow/`](engine/workflow/README.md) — read it before orchestrating.
 
-Task types and their sub-agents / oracles:
+Task types and their sub-agents:
 
-| Task | Sub-agent | Oracle |
-|------|-----------|--------|
-| Elaborate HLR | `hlr-author` | `make validate-reqs` |
-| Elaborate LLR | `llr-author` | `make validate-reqs` |
-| Architecture | `architecture-editor` | `make check && make build-native` |
-| Implementation | `implementer` | `make check && make build-native && make test-pro` |
-| Prove | `prover` | `make prove` |
-| Test generation | `test-generator` | `make generate-tests-pro && make build-native && make test-pro` |
-| Coverage | `coverage-closer` | `make all-coverage-pro` (no findings) |
+| Task | Sub-agent |
+|------|-----------|
+| Elaborate HLR | `hlr-author` |
+| Elaborate LLR | `llr-author` |
+| Architecture | `architecture-editor` |
+| Plan | `planner` |
+| Implementation | `implementer` |
+| Prove | `prover` |
+| Test generation | `test-generator` |
+| Coverage | `coverage-closer` |
 
-Default order: HLR → LLR → Architecture → Implementation → Prove → Test
+Default order: HLR → LLR → Architecture → Plan → Implementation → Prove → Test
 generation → Coverage. **A feature uses only the subset it needs.**
 
 As the orchestrating (main) session:

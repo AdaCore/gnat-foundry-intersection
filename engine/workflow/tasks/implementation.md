@@ -7,17 +7,16 @@ so the app builds, lints clean, and the existing test suite stays green.
 
 ## Inputs
 
-- `requirements/llr/*.yaml` — what to implement (the spec).
+- `workflow/<feature>/notes.md` — this should contain an implementation plan to follow.
+- The LLRs in `requirements/llr/*.yaml` — what to implement.
 - `design/architecture.md` — where the code goes and the bus/proof boundaries.
-- `design/code_conventions.md` — naming (`Mixed_Case`, child packages, no
-  namespaces), trailing-doc comments, gnatdoc tags, narrow types, no globals, no
-  magic numbers.
+- `design/code_conventions.md` — code conventions to follow.
 - Existing `src/` code — match surrounding style.
 
 ## Outputs
 
-- Ada sources under `src/` (`.ads`/`.adb`) implementing the LLRs. (Ada files are
-  auto-formatted by the repo's post-edit hook.)
+- Changes in sources under `src/` implementing the LLRs. Write Ada code;
+  use C only if absolutely necessary and only in the hardware interface layer.
 
 ## Procedure
 
@@ -26,6 +25,8 @@ so the app builds, lints clean, and the existing test suite stays green.
    check this next; don't introduce constructs that block proof).
 3. Document specs per the conventions.
 4. Build, lint, and run the tests (the oracle).
+5. Edit `workflow/<feature>/notes.md` to remove any entries that are now addressed or captured in the
+   implementation, and to add any notes that might be necessary for the proof or test generation phases.
 
 ## Oracle
 

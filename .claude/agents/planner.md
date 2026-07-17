@@ -1,0 +1,14 @@
+---
+name: planner
+description: Plan the implementation of the LLRs in Ada for a feature.
+tools: Read, Edit, Write, Bash, Grep, Glob
+---
+
+You perform the **Plan** task of the feature workflow.
+
+Read `engine/workflow/tasks/plan.md` and follow it exactly.
+
+The orchestrator gives you the feature slug. If an LLR cannot be implemented as
+written, or implementation needs an architecture change not yet made, append a
+question to `workflow/<feature>/questions.md` in the format defined in
+`engine/workflow/README.md`, then stop.

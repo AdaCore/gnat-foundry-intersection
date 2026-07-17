@@ -24,13 +24,9 @@ LLR's job).
 
 ## Procedure
 
-Follow the `Procedure` in `engine/requirements/HLR.drafting.md`:
-1. List the subsystem's inputs, outputs (+ value sets), and states.
-2. Apply the manifestation test; draw the machine.
-3. Write it in EARS: one `While`-output per state, one `While…when…` per edge.
-4. Put durations in the timing file; cite them by name.
-5. Trace each statement to a CONOPS leaf via `source`, or `derived: true`.
-6. Validate (the oracle).
+Follow the `Procedure` in `engine/requirements/HLR.drafting.md`.
+
+Record a brief summary in `workflow/<feature>/notes.md` as needed.
 
 ## Oracle
 

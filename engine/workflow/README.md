@@ -10,11 +10,12 @@ A **feature** is added as a succession of **Tasks**. Each Task type has:
 - a **spec** in [`tasks/`](tasks/) describing exactly what to do, and
 - an **oracle** — a mechanical command whose success *is* the definition of
   "done". A Task is complete only when its oracle passes. Nothing else counts.
+  (Except for the Plan task, which has no oracle.)
 
 ## Task types and default order
 
 ```
-HLR ─▶ LLR ─▶ Architecture ─▶ Implementation ─▶ Prove ─▶ Test generation ─▶ Coverage
+HLR ─▶ LLR ─▶ Architecture ─▶ Plan ─▶ Implementation ─▶ Prove ─▶ Test generation ─▶ Coverage
 ```
 
 A feature uses **only the subset it needs** — e.g. a proof-strengthening change
@@ -22,19 +23,19 @@ may run `Prove` + `Coverage` alone; a pure requirements clarification may run
 `HLR` alone. The orchestrator picks the chain per feature (see
 [Orchestration](#orchestration)).
 
-| # | Task | Spec | Oracle command | Passes when |
-|---|------|------|----------------|-------------|
-| 1 | Elaborate HLR | [`tasks/hlr.md`](tasks/hlr.md) | `make validate-reqs` | 0 diagnostics |
-| 2 | Elaborate LLR | [`tasks/llr.md`](tasks/llr.md) | `make validate-reqs` | 0 diagnostics (incl. HLR→LLR trace) |
-| 3 | Architecture | [`tasks/architecture.md`](tasks/architecture.md) | `make check && make build-native` | clean + builds |
-| 4 | Implementation | [`tasks/implementation.md`](tasks/implementation.md) | `make check && make build-native && make test-pro` | clean, builds, tests green |
-| 5 | Prove | [`tasks/prove.md`](tasks/prove.md) | `make prove` | clean, no escape hatches |
-| 6 | Test generation | [`tasks/test-generation.md`](tasks/test-generation.md) | `make generate-tests-pro && make build-native && make test-pro` | harness builds, tests pass |
-| 7 | Coverage | [`tasks/coverage.md`](tasks/coverage.md) | `make all-coverage-pro` | no `file:line:col:` findings |
+| # | Task | Spec |
+|---|------|------|
+| 1 | Elaborate HLR | [`tasks/hlr.md`](tasks/hlr.md) |
+| 2 | Elaborate LLR | [`tasks/llr.md`](tasks/llr.md) |
+| 3 | Architecture | [`tasks/architecture.md`](tasks/architecture.md) |
+| 4 | Plan | [`tasks/plan.md`](tasks/plan.md) |
+| 5 | Implementation | [`tasks/implementation.md`](tasks/implementation.md) |
+| 6 | Prove | [`tasks/prove.md`](tasks/prove.md) |
+| 7 | Test generation | [`tasks/test-generation.md`](tasks/test-generation.md) |
+| 8 | Coverage | [`tasks/coverage.md`](tasks/coverage.md) |
 
 Every spec follows the same shape — **Purpose / Inputs / Outputs / Procedure /
-Oracle / Escalation** — modeled on `engine/requirements/HLR.drafting.md`
-(`Procedure` + `Done-checklist`).
+Oracle / Escalation**.
 
 ## Orchestration
 
@@ -46,13 +47,12 @@ There is no orchestration engine — the loop is:
    per task (see [Run state](#run-state)).
 3. For each task, in order:
    a. Dispatch the matching sub-agent (task `hlr` → agent `hlr-author`, etc.).
-   b. **Block until the task's oracle command passes.** Do not advance on a
-      sub-agent's say-so — advance on the oracle.
+      Pass the feature slug to the sub-agent.
+   b. **Block until the sub-agent completes.**.
    c. After the sub-agent returns, read `workflow/<feature>/questions.md`. If it
-      contains an unanswered question, relay it to the human (Claude Code:
-      `AskUserQuestion`), write the answer back into the file, and re-dispatch the
-      sub-agent so it can resume.
-   d. Update the task's status in `plan.md`.
+      contains an unanswered question, relay it to the human, write the answer
+      back into the file, and re-dispatch the sub-agent so it can resume.
+   d. Update the task's status in `workflow/<feature>/plan.md`.
 4. The feature is done when every task in the chain is `oracle-passed`.
 
 ## Run state
@@ -70,8 +70,11 @@ The selected chain and per-task status. One line per task; status is one of
 
 - [ ] hlr — todo
 - [ ] llr — todo
+- [ ] architecture — todo
+- [ ] plan — todo
 - [ ] implementation — todo
 - [ ] prove — todo
+- [ ] test-generation — todo
 - [ ] coverage — todo
 ```
 
@@ -92,8 +95,12 @@ A1:
 The human (or the orchestrator on their behalf) fills the `A<n>:` line. Work
 resumes on re-dispatch. Never edit or delete a prior Q/A — only append.
 
+### `notes.md`
+
+Any notes that are useful for the next sub-agents in the chain. Delete notes when addressed.
+
 ## Adding or changing a task type
 
 Edit the spec here (and, if the oracle command changes, the table above and the
 matching `.claude/agents/*.md` wrapper). Keep the substance in this directory;
-the agent wrappers stay thin so the two CLIs never diverge.
+the agent wrappers stay thin so the CLIs never diverge. Update `CLAUDE.md` accordingly.

@@ -1,6 +1,6 @@
 ---
 name: hlr-author
-description: Elaborate high-level requirements (HLR) for a feature. Use for the HLR task of the feature workflow — authors/edits requirements/hlr/*.yaml traced to the CONOPS. Oracle: `make validate-reqs`.
+description: Elaborate high-level requirements (HLR) for a feature. Use for the HLR task of the feature workflow — authors/edits requirements/hlr/*.yaml traced to the CONOPS. Oracle is `make validate-reqs`.
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 
