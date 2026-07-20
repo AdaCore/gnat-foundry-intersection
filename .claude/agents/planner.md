@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Plan the implementation of the LLRs in Ada for a feature.
+description: Plan the implementation of the LLRs in Ada for a feature. Oracle is `bash -c "[ -s workflow/<feature>/implementation.md ]"`.
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 

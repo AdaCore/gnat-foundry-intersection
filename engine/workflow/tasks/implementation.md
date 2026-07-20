@@ -7,7 +7,8 @@ so the app builds, lints clean, and the existing test suite stays green.
 
 ## Inputs
 
-- `workflow/<feature>/notes.md` — this should contain an implementation plan to follow.
+- `workflow/<feature>/implementation.md` if this exists — this is your blueprint for the implementation: follow this carefully.
+- `workflow/<feature>/notes.md` if this exists — it might contain useful notes.
 - The LLRs in `requirements/llr/*.yaml` — what to implement.
 - `design/architecture.md` — where the code goes and the bus/proof boundaries.
 - `design/code_conventions.md` — code conventions to follow.
@@ -27,6 +28,7 @@ so the app builds, lints clean, and the existing test suite stays green.
 4. Build, lint, and run the tests (the oracle).
 5. Edit `workflow/<feature>/notes.md` to remove any entries that are now addressed or captured in the
    implementation, and to add any notes that might be necessary for the proof or test generation phases.
+6. Remove `workflow/<feature>/implementation.md` if it exists — the plan is now implemented.
 
 ## Oracle
 
