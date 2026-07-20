@@ -108,7 +108,7 @@ description:
   # ---- timer discipline ----
   17: |-                                 # -> hlr_6_pedestrian.12, .13, .17, .18   impl: Controller.Running_Ped
     The controller shall treat State.Ped_Timer (C) as running exactly while
-    State.Ped (C) is in Serving_Pedestrian_State (Running_Ped).
+    State.Ped (C) is in Serving_Pedestrian_State.
 
 algorithm_aspects: |-
   Time-in-SERVING as a series clock. hlr_6_pedestrian.17/.18 fire when the
