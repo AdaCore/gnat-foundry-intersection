@@ -23,16 +23,28 @@ context: |-
 
   The interval durations T_LEAD, T_LAG, T_YELLOW, T_REDCLEAR, and T_BARRIER are
   fixed in `3_timing`; the fixed-axis-slot and pedestrian-buffer constraints there
-  make this machine's timing sound without observing pedestrian state. T_BOTH is
-  the exception: `3_timing` defines the both-through dwell as the residual that
+  make this machine's timing sound without observing pedestrian state. T_BOTH, the
+  both-through phase, is the exception: `3_timing` defines it as the residual that
   holds each axis's service slot (T_AXIS) independent of left-turn demand, so it
   grows and shrinks with how much of the slot the lead and lag phases consume in a
-  given cycle. That makes the both-through dwell the one interval that is not a
-  pure function of the current state — reaching NS_BOTH_THROUGH via the lead (16)
-  versus directly (13) must yield different dwells even for the same lag outcome,
-  while the lag dimension is already split across the guards of 17 and 18 — so this
-  is a deliberate departure from strict Moore form, with the residual computation
-  left to the LLR.
+  given cycle.
+
+  The both-through phase is served in two parts so the lag decision can be taken as
+  late as it can still be honoured. The both-through state (NS_BOTH_THROUGH /
+  EW_BOTH_THROUGH) runs a commit interval sized to leave exactly enough of the slot
+  for a full lagging-left block; the lagging approach's demand is read when that
+  commit interval elapses (17/18, 40/41), so a left arriving any time before then is
+  served this cycle. If the lag is demanded the phase ends there and the lag block
+  runs; if not, the phase continues through the HOLD sub-state (NS_BOTH_THROUGH_HOLD
+  / EW_BOTH_THROUGH_HOLD, 48-51) for the interval the lag block would have taken less
+  the closing both-drop yellow, then drops. Either way the slot closes exactly at
+  T_AXIS.
+
+  The commit interval is the one dwell that is not a pure function of the current
+  state — reaching the both-through state via the lead (16) versus directly (13)
+  must yield different commit intervals — so this is a deliberate departure from
+  strict Moore form, with the residual computation left to the LLR. The HOLD dwell,
+  by contrast, is a fixed interval.
 
   Lead/lag: on each axis the first-named direction (Northbound, Eastbound) leads
   and the opposite (Southbound, Westbound) lags; either left is skipped when its
@@ -46,10 +58,10 @@ description:
     text: |-
       While the controller is in NORMAL_OPERATION, the controller shall visit the
       NS-axis states N_LEAD, N_LEAD_YELLOW, N_LEAD_CLEAR, NS_BOTH_THROUGH,
-      N_DROP_YELLOW, N_DROP_CLEAR, S_LAG, S_LAG_YELLOW, NS_BOTH_DROP_YELLOW, and
-      NS_BARRIER_ALLRED only in that relative order; on any given cycle a state
-      is omitted when it is not reached because a left-turn demand machine is in
-      NO_LEFT_DEMAND (per transitions 12-23).
+      N_DROP_YELLOW, N_DROP_CLEAR, S_LAG, S_LAG_YELLOW, NS_BOTH_THROUGH_HOLD,
+      NS_BOTH_DROP_YELLOW, and NS_BARRIER_ALLRED only in that relative order; on
+      any given cycle a state is omitted when it is not reached because a left-turn
+      demand machine is in NO_LEFT_DEMAND (per transitions 12-23, 49).
     source:
       - CONOPS §5.1
       - CONOPS §2.6
@@ -190,16 +202,16 @@ description:
   17:
     text: |-
       While the controller is in NS_BOTH_THROUGH and the Southbound left-turn demand
-      machine is in LEFT_DEMAND_PENDING, when T_BOTH has elapsed, the controller
-      shall enter N_DROP_YELLOW.
+      machine is in LEFT_DEMAND_PENDING, when the both-through commit interval has
+      elapsed, the controller shall enter N_DROP_YELLOW.
     source:
       - CONOPS §2.6
 
   18:
     text: |-
       While the controller is in NS_BOTH_THROUGH and the Southbound left-turn demand
-      machine is in NO_LEFT_DEMAND, when T_BOTH has elapsed, the controller shall
-      enter NS_BOTH_DROP_YELLOW.
+      machine is in NO_LEFT_DEMAND, when the both-through commit interval has elapsed,
+      the controller shall enter NS_BOTH_THROUGH_HOLD.
     source:
       - CONOPS §2.6
 
@@ -245,10 +257,10 @@ description:
     text: |-
       While the controller is in NORMAL_OPERATION, the controller shall visit the
       EW-axis states E_LEAD, E_LEAD_YELLOW, E_LEAD_CLEAR, EW_BOTH_THROUGH,
-      E_DROP_YELLOW, E_DROP_CLEAR, W_LAG, W_LAG_YELLOW, EW_BOTH_DROP_YELLOW, and
-      EW_BARRIER_ALLRED only in that relative order; on any given cycle a state
-      is omitted when it is not reached because a left-turn demand machine is in
-      NO_LEFT_DEMAND (per transitions 35-46).
+      E_DROP_YELLOW, E_DROP_CLEAR, W_LAG, W_LAG_YELLOW, EW_BOTH_THROUGH_HOLD,
+      EW_BOTH_DROP_YELLOW, and EW_BARRIER_ALLRED only in that relative order; on
+      any given cycle a state is omitted when it is not reached because a left-turn
+      demand machine is in NO_LEFT_DEMAND (per transitions 35-46, 51).
     source:
       - CONOPS §5.1
       - CONOPS §2.6
@@ -389,16 +401,16 @@ description:
   40:
     text: |-
       While the controller is in EW_BOTH_THROUGH and the Westbound left-turn demand
-      machine is in LEFT_DEMAND_PENDING, when T_BOTH has elapsed, the controller
-      shall enter E_DROP_YELLOW.
+      machine is in LEFT_DEMAND_PENDING, when the both-through commit interval has
+      elapsed, the controller shall enter E_DROP_YELLOW.
     source:
       - CONOPS §2.6
 
   41:
     text: |-
       While the controller is in EW_BOTH_THROUGH and the Westbound left-turn demand
-      machine is in NO_LEFT_DEMAND, when T_BOTH has elapsed, the controller shall
-      enter EW_BOTH_DROP_YELLOW.
+      machine is in NO_LEFT_DEMAND, when the both-through commit interval has elapsed,
+      the controller shall enter EW_BOTH_THROUGH_HOLD.
     source:
       - CONOPS §2.6
 
@@ -446,6 +458,47 @@ description:
     source:
       - CONOPS §5.3
 
+  # ==================== both-through no-lag continuation ====================
+  # When the lag is skipped, the both-through phase continues through a HOLD
+  # sub-state (same green faces as NS/EW_BOTH_THROUGH) that spends the interval
+  # the skipped lag would have taken, so the service slot T_AXIS stays fixed
+  # (`3_timing.7`, .8). The HOLD states carry the same output row as their
+  # parent both-through state and exit unconditionally to the both-drop yellow.
+
+  48:
+    text: |-
+      While the controller is in NS_BOTH_THROUGH_HOLD, the controller shall drive the
+      N_thru output signal and the S_thru output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+
+  49:
+    text: |-
+      While the controller is in NS_BOTH_THROUGH_HOLD, when the both-through hold
+      interval has elapsed, the controller shall enter NS_BOTH_DROP_YELLOW.
+    source:
+      - CONOPS §5.1
+      - CONOPS §2.6
+
+  50:
+    text: |-
+      While the controller is in EW_BOTH_THROUGH_HOLD, the controller shall drive the
+      E_thru output signal and the W_thru output signal to GREEN, and hold all other
+      vehicle output signals at RED.
+    source:
+      - CONOPS §2.1
+      - CONOPS §2.2
+
+  51:
+    text: |-
+      While the controller is in EW_BOTH_THROUGH_HOLD, when the both-through hold
+      interval has elapsed, the controller shall enter EW_BOTH_DROP_YELLOW.
+    source:
+      - CONOPS §5.1
+      - CONOPS §2.6
+
 rationale: |-
   A single serialized Moore machine over both axes: every face value is a function
   of the current state (the output rows 2-11 / 25-34), and transitions are
@@ -464,8 +517,9 @@ rationale: |-
   NS_BARRIER_ALLRED), so the cycle closes.
 
   Protected-only left turns (§2.6, §2.7) run concurrently with their own through
-  and are skipped on no demand (13/36 bypass the lead branch, 18/41 the lag
-  branch). The corresponding left-turn demand machine is reset not on entry to the
+  and are skipped on no demand (13/36 bypass the lead branch; 18/41 skip the lag,
+  continuing through the both-through HOLD sub-state to fill the slot before the
+  drop). The corresponding left-turn demand machine is reset not on entry to the
   lead/lag but when that approach's next conflicting movement is released — i.e. when
   that movement's through face becomes GREEN at the end of the left's all-red
   clearance (`5_vehicle_1_left_demand.4`) — so the still-present triggering vehicle

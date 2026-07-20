@@ -32,6 +32,15 @@ description:
     source:
       - CONOPS §2.8
 
+  3:
+    text: |-
+      The controller shall treat every vehicular movement as conflicting with a
+      crosswalk except the two through movements of the axis parallel to that
+      crosswalk and the protected left turn of the approach whose through movement
+      is parallel and adjacent to that crosswalk.
+    source:
+      - CONOPS §3.9
+
 rationale: |-
   **The pedestrian-conflict invariant (1)** is CONOPS §3.4 and §3.5 — both MUTCD
   Standards, the core pedestrian-safety obligation — stated directly over our
@@ -63,8 +72,9 @@ rationale: |-
     hold.
   - **Binding:** the invariant quantifies over each crosswalk's set of conflicting
     vehicle faces (and, for the discharge, its single adjacent-through face). That
-    crosswalk → movement binding is deferred to the LLR (`TODO.md`); until it is
-    enumerated the invariant cannot be evaluated.
+    crosswalk → movement binding is now the crosswalk conflict relation of
+    statement 3, enumerated in the LLR (`llr_3_conflicts`); the adjacent-through
+    face the discharge uses is its `Adjacent_Through` binding.
   - **Discharge obligation:** showing the inequality holds for the chosen durations
     across every binding case — late-greening through vs the perpendicular release;
     lagging left vs the opposite crosswalk — is an LLR / verification obligation, not
@@ -112,3 +122,20 @@ rationale: |-
     cross-cutting under any future concurrent design.
 
   No Derived statement: the invariant traces to CONOPS §2.8.
+
+  **The crosswalk conflict relation (3)** is CONOPS §3.9 — a design decision over
+  MUTCD §4I.06 ¶02 and §4F.06 — stated as the definition invariant 1 and
+  `3_timing.10` quantify over ("every vehicular movement that conflicts with a
+  crosswalk"). Without it those obligations name a set that is never pinned; with
+  it the set is exact. §3.9's "the only non-conflicting movements are the parallel
+  throughs (both directions) and the parallel-adjacent (clockwise) protected left"
+  reduces, over our four crosswalks, to: the two through movements of the
+  crosswalk's parallel axis, plus the single protected left of the approach whose
+  through is parallel-adjacent to the crosswalk (the left that turns away from the
+  crosswalk rather than sweeping across it) — every other through and left
+  conflicts. Right turns are governed by the circular through indication (§2.2),
+  not separately signalized, so they are not modelled as movements and need no
+  exemption. Like invariant 2's conflict matrix the relation is a definition, not
+  a machine; its enumeration is the LLR's (`llr_3_conflicts`).
+
+  No Derived statement: the relation traces to CONOPS §3.9.

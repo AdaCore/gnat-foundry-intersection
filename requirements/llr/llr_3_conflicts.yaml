@@ -1,6 +1,7 @@
 parent_req:
   - hlr_0_safety.1
   - hlr_0_safety.2
+  - hlr_0_safety.3
   - hlr_3_timing.10
   - hlr_5_vehicle_1_left_demand.4
   - hlr_6_pedestrian.8
@@ -8,17 +9,20 @@ parent_req:
 context: |-
   Refinement of the intersection relations onto Conflicts
   (design/low-level-design.md §4) — the single home of the geometry the HLRs
-  leave quantified: "every conflicting movement" (hlr_0_safety.1/.2,
+  leave quantified: the vehicle conflict relation "every conflicting movement"
+  (hlr_0_safety.2), the crosswalk conflict relation "every vehicular movement
+  that conflicts with a crosswalk" (hlr_0_safety.3, used by hlr_0_safety.1 and
   hlr_3_timing.10), "that approach's next conflicting movement"
   (hlr_5_vehicle_1_left_demand.4), and "the through movement parallel and
-  adjacent to that crosswalk" (hlr_6_pedestrian.8). The conflict relation
-  (statement 1) is deliberately conservative rather than geometric — see
-  algorithm_aspects.
+  adjacent to that crosswalk" (hlr_6_pedestrian.8). The vehicle conflict
+  relation (statement 1) is deliberately conservative rather than geometric —
+  see algorithm_aspects.
 
 implemented_by:
   - Conflicts.Compatible
   - Conflicts.Conflicts
   - Conflicts.Safe_Faces
+  - Conflicts.Crosswalk_Conflicts
   - Conflicts.Next_Conflicting_Through
   - Conflicts.Adjacent_Through
 
@@ -26,9 +30,12 @@ description:
   # ---- the conflict matrix ----
   1: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Compatible
     The Conflicts package shall define the function Compatible returning TRUE
-    for a pair of movements exactly when they are the same movement, a through
-    movement and the protected left of the same approach, or the two opposing
-    through movements of one axis.
+    for exactly these movement pairs and FALSE for every other pair: any
+    movement with itself; N_THRU with N_LEFT, S_THRU with S_LEFT, E_THRU with
+    E_LEFT, and W_THRU with W_LEFT (each through with the protected left of its
+    own approach); and N_THRU with S_THRU and E_THRU with W_THRU (the two
+    opposing throughs of one axis). The full symmetric relation is tabulated in
+    algorithm_aspects.
   2: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Conflicts
     The Conflicts package shall define the function Conflicts returning TRUE
     for a pair of movements exactly when Compatible returns FALSE for that
@@ -52,14 +59,39 @@ description:
     NS_NORTH to NORTH, NS_SOUTH to SOUTH, EW_EAST to EAST, and EW_WEST to
     WEST.
 
+  # ---- the crosswalk conflict relation ----
+  6: |-                                  # -> hlr_0_safety.3, hlr_0_safety.1, hlr_3_timing.10   impl: Conflicts.Crosswalk_Conflicts
+    The Conflicts package shall define the function Crosswalk_Conflicts
+    returning FALSE for exactly these crosswalk/movement pairs and TRUE for
+    every other pair: NS_NORTH and NS_SOUTH each with N_THRU and S_THRU; EW_EAST
+    and EW_WEST each with E_THRU and W_THRU; and each crosswalk with the
+    protected left of its Adjacent_Through approach — NS_NORTH with N_LEFT,
+    NS_SOUTH with S_LEFT, EW_EAST with E_LEFT, and EW_WEST with W_LEFT. The full
+    relation is tabulated in algorithm_aspects.
+
 algorithm_aspects: |-
-  Compatible is stated positively over the pairs the serialized sequencer ever
-  drives non-RED together (the output rows of llr_4_controller_1_vehicle):
-  a through with its own protected left (the lead/lag rows) and one axis's two
-  opposing throughs (the both-through rows). Every other pair — including
-  pairs a fuller geometric analysis might permit — is treated as conflicting.
-  This conservatism is sound by direction: the predicate feeds the safety
-  postcondition hlr_0_safety.2, so widening the conflict set can only
+  Compatible (statement 1) is the following symmetric matrix over the eight
+  movements — `·` marks a compatible pair (releasable together), `X` a
+  conflicting pair:
+
+                NT ST ET WT NL SL EL WL
+      N_THRU     ·  ·  X  X  ·  X  X  X
+      S_THRU     ·  ·  X  X  X  ·  X  X
+      E_THRU     X  X  ·  ·  X  X  ·  X
+      W_THRU     X  X  ·  ·  X  X  X  ·
+      N_LEFT     ·  X  X  X  ·  X  X  X
+      S_LEFT     X  ·  X  X  X  ·  X  X
+      E_LEFT     X  X  ·  X  X  X  ·  X
+      W_LEFT     X  X  X  ·  X  X  X  ·
+
+  The compatible cells are exactly the pairs the serialized Moore sequencer
+  ever drives non-RED in one output row (the output rows of
+  llr_4_controller_1_vehicle): a through with its own protected left (the
+  lead/lag rows) and one axis's two opposing throughs (the both-through rows).
+  Every other pair — including pairs a fuller geometric analysis might permit,
+  such as the two opposing protected lefts N_LEFT/S_LEFT — is treated as
+  conflicting. This conservatism is sound by direction: the predicate feeds the
+  safety postcondition hlr_0_safety.2, so widening the conflict set can only
   strengthen the property proved, never weaken it.
 
   Next_Conflicting_Through encodes the schedule fact that makes the
@@ -72,7 +104,31 @@ algorithm_aspects: |-
 
   Adjacent_Through is the identity carried by the crosswalk naming convention:
   a crosswalk named for an axis and side is adjacent and parallel to that
-  side's through movement. The crosswalk-to-conflicting-movement *set* needed
-  by hlr_0_safety.1 is not enumerated as a function: the invariant is
-  discharged statically by the margin inequalities (llr_1_states.27/.28),
-  which quantify over the schedule via Adjacent_Through alone.
+  side's through movement.
+
+  Crosswalk_Conflicts enumerates the crosswalk conflict relation hlr_0_safety.3
+  (CONOPS §3.9). A movement is non-conflicting with a crosswalk only when it is
+  one of the two through movements of the crosswalk's parallel axis or the
+  protected left of the crosswalk's Adjacent_Through approach — the left that
+  turns away from the crosswalk rather than sweeping across it (in
+  right-hand-traffic geometry, S_LEFT exits west clear of the east-side crossing
+  NS_SOUTH, N_LEFT exits east clear of NS_NORTH, and likewise for the EW pair).
+  Right turns follow the circular through indication and are not movements, so
+  none is exempted for them. The full relation (`·` non-conflicting, `X`
+  conflicting):
+
+                N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
+      NS_NORTH    ·      ·      X      X      ·      X      X      X
+      NS_SOUTH    ·      ·      X      X      X      ·      X      X
+      EW_EAST     X      X      ·      ·      X      X      ·      X
+      EW_WEST     X      X      ·      ·      X      X      X      ·
+
+  The relation is the binding hlr_0_safety.1 and hlr_3_timing.10 quantify over
+  ("hold every conflicting movement RED while the crosswalk is served"). Nothing
+  reads Crosswalk_Conflicts at runtime: that invariant is discharged statically
+  by the margin inequalities (llr_1_states.27/.28) over the sequencer schedule,
+  and this table is what makes their completeness auditable — the margin's two
+  binding cases are exactly the conflicting movements each served crosswalk
+  faces (in the NS phase the lag S_LEFT conflicts with NS_NORTH — the "opposite
+  crosswalk" case; the lead N_LEFT conflicts only with NS_SOUTH, whose WALK has
+  not yet begun when N_LEFT is GREEN).

@@ -8,6 +8,8 @@ parent_req:
   - hlr_1_modes.1
   - hlr_5_vehicle.1
   - hlr_5_vehicle.24
+  - hlr_5_vehicle.48
+  - hlr_5_vehicle.50
   - hlr_5_vehicle_1_left_demand.1
   - hlr_6_pedestrian.1
   - hlr_0_safety.1
@@ -42,6 +44,9 @@ context: |-
   sequencer's fixed schedule to two inequalities over the named constants
   (statements 27, 28; derivation in algorithm_aspects), so any re-valuation
   must re-establish them.
+
+  Crosswalks are named by the axis they serve and the adjacent through
+  movement.
 
 implemented_by:
   - States.Vehicle_Face
@@ -107,13 +112,12 @@ description:
 
   # ---- instance indices ----
   7: |-                                  # -> hlr_5_vehicle_1_left_demand.1, hlr_6_pedestrian.1   impl: States.Approach
-    The States package shall define the type Approach with the literals NORTH,
-    SOUTH, EAST, and WEST as the index of every per-approach machine and
+    The States package shall define the type Approach with exactly the literals
+    NORTH, SOUTH, EAST, and WEST as the index of every per-approach machine and
     signal array.
   8: |-                                  # -> hlr_6_pedestrian.1   impl: States.Crosswalk
-    The States package shall define the type Crosswalk with the literals
-    NS_NORTH, NS_SOUTH, EW_EAST, and EW_WEST — each named by the axis it
-    serves and its adjacent through movement — as the index of every
+    The States package shall define the type Crosswalk with exactly the
+    literals NS_NORTH, NS_SOUTH, EW_EAST, and EW_WEST as the index of every
     per-crosswalk machine and signal array.
 
   # ---- machine-state enumerations ----
@@ -126,12 +130,14 @@ description:
   11: |-                                 # -> hlr_5_vehicle_1_left_demand.1   impl: States.Left_Demand_Array
     The States package shall define the array type Left_Demand_Array over
     Approach holding one Left_Demand_State per approach.
-  12: |-                                 # -> hlr_5_vehicle.1, hlr_5_vehicle.24   impl: States.Vehicle_Sequencer_State
+  12: |-                                 # -> hlr_5_vehicle.1, .24, .48, .50   impl: States.Vehicle_Sequencer_State
     The States package shall define the type Vehicle_Sequencer_State with
-    exactly the twenty sequencer states of the NS and EW axes (N_LEAD,
+    exactly the twenty-two sequencer states of the NS and EW axes (N_LEAD,
     N_LEAD_YELLOW, N_LEAD_CLEAR, NS_BOTH_THROUGH, N_DROP_YELLOW, N_DROP_CLEAR,
-    S_LAG, S_LAG_YELLOW, NS_BOTH_DROP_YELLOW, NS_BARRIER_ALLRED, and their EW
-    mirror).
+    S_LAG, S_LAG_YELLOW, NS_BOTH_THROUGH_HOLD, NS_BOTH_DROP_YELLOW,
+    NS_BARRIER_ALLRED, E_LEAD, E_LEAD_YELLOW, E_LEAD_CLEAR, EW_BOTH_THROUGH,
+    E_DROP_YELLOW, E_DROP_CLEAR, W_LAG, W_LAG_YELLOW,
+    EW_BOTH_DROP_YELLOW, and EW_BARRIER_ALLRED).
   13: |-                                 # -> hlr_6_pedestrian.1   impl: States.Pedestrian_State
     The States package shall define the type Pedestrian_State with exactly the
     literals NO_PEDESTRIAN_REQUEST, PENDING_PEDESTRIAN_REQUEST, WALK_INTERVAL,
@@ -188,8 +194,7 @@ description:
     pending their final derivation from the MUTCD kinematic basis.
   26: |-                                 # -> hlr_3_timing.9   impl: States.T_Axis
     The States package shall value the policy durations at T_AXIS = 40_000,
-    T_LEAD = 6_000, T_LAG = 6_000, and T_BOTH_MIN = 10_000 milliseconds, with
-    T_LEAD and T_LAG each no more than T_AXIS / 2.
+    T_LEAD = 6_000, T_LAG = 6_000, and T_BOTH_MIN = 10_000 milliseconds.
 
   # ---- the static pedestrian margin, as constraints on the valuation ----
   27: |-                                 # -> hlr_3_timing.10, hlr_0_safety.1   impl: States.T_Both_Min
@@ -220,11 +225,13 @@ algorithm_aspects: |-
   - Perpendicular release after a late-greening through (statement 27). The
     latest adjacent-through onset in a slot is at both-through entry; the
     earliest subsequent release of the perpendicular axis is via the no-lag
-    exit: T_BOTH, then the both-drop yellow (T_YELLOW), then the barrier
-    (T_BARRIER). With T_BOTH at its floor T_BOTH_MIN the gap is
-    T_BOTH_MIN + T_YELLOW + T_BARRIER = 10 + 4 + 2 = 16 s — exactly
-    T_WALK + T_FDW + T_BUFFER. This case is tight: any re-valuation that
-    shrinks T_BOTH_MIN, T_YELLOW, or T_BARRIER must re-establish it.
+    exit: T_BOTH — spanning the both-through state and, on the no-lag exit, its
+    HOLD continuation, across which the through faces stay GREEN so the
+    crosswalk's WALK onset stays at both-through entry — then the both-drop
+    yellow (T_YELLOW), then the barrier (T_BARRIER). With T_BOTH at its floor
+    T_BOTH_MIN the gap is T_BOTH_MIN + T_YELLOW + T_BARRIER = 10 + 4 + 2 = 16 s
+    — exactly T_WALK + T_FDW + T_BUFFER. This case is tight: any re-valuation
+    that shrinks T_BOTH_MIN, T_YELLOW, or T_BARRIER must re-establish it.
 
   - The lagging left against the opposite crosswalk (statement 28). The lag
     left's release follows its axis's own adjacent-through onsets; whether or
@@ -235,7 +242,9 @@ algorithm_aspects: |-
     the previous axis by the barrier case above).
 
   The floor inequality (29) instantiates hlr_3_timing.12 for the worst case
-  (both lefts served): the residual T_BOTH computed by
-  Controller.Both_Duration never drops below T_BOTH_MIN, since the
-  lead-and-lag overhead subtracted from T_AXIS is maximal exactly in that
-  case; with these values the worst-case residual is exactly T_BOTH_MIN.
+  (both lefts served): the both-through commit interval computed by
+  Controller.Both_Duration never drops below T_BOTH_MIN, since the lead-and-lag
+  overhead subtracted from T_AXIS is maximal exactly in that case; with these
+  values the worst-case commit interval is exactly T_BOTH_MIN. The HOLD
+  continuation runs only when the lag is skipped and only ever adds to the
+  both-through phase, so the phase as a whole never falls below T_BOTH_MIN.

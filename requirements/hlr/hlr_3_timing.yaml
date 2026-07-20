@@ -74,12 +74,17 @@ description:
 
   8:
     text: |-
-      The controller shall set each axis's both-through interval (T_BOTH) to the
-      portion of that axis's service slot (T_AXIS) left after the leading (T_LEAD) and
-      lagging (T_LAG) protected-left intervals, the yellow-change (T_YELLOW) and
-      red-clearance (T_REDCLEAR) intervals, and the barrier-clearance (T_BARRIER)
-      interval that actually run in that slot, so that T_AXIS is held independent of
-      left-turn demand (statement 7).
+      The controller shall make each axis's both-through phase (T_BOTH) run for the
+      portion of that axis's service slot (T_AXIS) that remains after the
+      barrier-clearance interval (T_BARRIER), the leading protected-left overhead
+      (T_LEAD + T_YELLOW + T_REDCLEAR) when the lead runs, and — closing the slot —
+      either the lagging protected-left overhead (T_YELLOW + T_REDCLEAR + T_LAG +
+      T_YELLOW) when the lag runs or a single both-through drop-yellow (T_YELLOW)
+      when it does not, so that T_AXIS is held independent of left-turn demand
+      (statement 7). T_BOTH is therefore the residual that each cycle leaves, not a
+      value chosen in advance: the lag branch is decided part-way through the phase
+      (`5_vehicle`), and when the lag is skipped the interval its overhead would have
+      taken is spent continuing the both-through phase rather than shortening the slot.
     derived: true
 
   9:
