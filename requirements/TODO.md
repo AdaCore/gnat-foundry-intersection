@@ -99,7 +99,5 @@ parallelizable cleanup or downstream (CONOPS / LLR) work. Terse by design.
 
 ## Tooling / format
 
-- **Forward-coverage `reqs` subcommand**: invert traces, list mappable CONOPS
-  leaves with no covering HLR (operationalizes `coverage.md`).
 - **DRY the EW mirror**: a parameterized axis sub-machine instantiated twice
   (the `hlr_5_vehicle` EW block is the exact mirror of the NS block).

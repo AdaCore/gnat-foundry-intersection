@@ -52,14 +52,15 @@ is
        or else
          (A in States.E_Thru | States.W_Thru
           and then B in States.E_Thru | States.W_Thru));
-   --  Two movements are *compatible* -- releasable together -- exactly when the
-   --  serialized Moore sequencer ever drives them non-RED in the same output
-   --  row (`hlr_5_vehicle.2`-.11 / .25-.34): a through with its own protected
-   --  left (the lead / lag rows) or the two opposing throughs of one axis (the
-   --  both-through rows). Every other pair is treated as conflicting. This is a
-   --  sound (conservative) realization of the deferred geometric conflict
-   --  matrix: any pair not known compatible is held to conflict, so the
-   --  hlr_0_safety.2 postcondition it feeds can only be stronger, never weaker.
+   --  Two movements are *compatible* -- releasable together -- exactly when
+   --  the serialized Moore sequencer ever drives them non-RED in the same
+   --  output row (`hlr_5_vehicle.2`-.11 / .25-.34): a through with its own
+   --  protected left (the lead / lag rows) or the two opposing throughs of one
+   --  axis (the both-through rows). Every other pair is treated as
+   --  conflicting. This is a sound (conservative) realization of the deferred
+   --  geometric conflict matrix: any pair not known compatible is held to
+   --  conflict, so the hlr_0_safety.2 postcondition it feeds can only be
+   --  stronger, never weaker.
    --  @param A One movement
    --  @param B The other movement
    --  @return True when the two movements may be released together
@@ -81,8 +82,8 @@ is
                     and then States.Is_Go (States.Face_Of (D, M2))))));
    --  hlr_0_safety.2 as a property of one Display_State: no two conflicting
    --  movements are both "go" at once. Holds trivially in FAULT (every face
-   --  FLASHING_RED, none "go") and, in NORMAL_OPERATION, by construction of the
-   --  Moore output rows (each row's non-RED faces are a compatible set).
+   --  FLASHING_RED, none "go") and, in NORMAL_OPERATION, by construction of
+   --  the Moore output rows (each row's non-RED faces are a compatible set).
    --  NOTE: documented in leading style pending a gnatdoc fix -- a trailing
    --  comment on this nested-quantifier expression function crashes the
    --  trailing extractor (gnatdoc-comments-extractor-trailing.adb:843).

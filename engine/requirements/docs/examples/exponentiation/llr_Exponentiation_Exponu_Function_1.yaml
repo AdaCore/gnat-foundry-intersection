@@ -20,6 +20,9 @@ description:
       ```
     parent_req:
       - hlr_Exponentiation_Int_1.1
+    implemented_by:
+      - System.Exp_Uns
+      - System.Exp_LLU
 
   2:
     text: |-
@@ -27,16 +30,18 @@ description:
       result of the multiplication of `Left` by itself `Right - 1` times.
     parent_req:
       - hlr_Exponentiation_Int_1.2
+    implemented_by:
+      - System.Exp_Uns
+      - System.Exp_LLU
 
   3:
     text: |-
       When `Right` is equal to 0, the `Exponu` function shall return 1.
     parent_req:
       - hlr_Exponentiation_Int_1.3
-
-implemented_by:
-  - System.Exp_Uns
-  - System.Exp_LLU
+    implemented_by:
+      - System.Exp_Uns
+      - System.Exp_LLU
 
 rationale: |-
   Because `Unsigned` and `Long_Long_Unsigned` are modular types, there is no

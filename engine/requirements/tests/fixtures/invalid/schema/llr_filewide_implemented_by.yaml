@@ -1,0 +1,9 @@
+# E-SCHEMA: `implemented_by` is now recorded per-statement, not file-wide.
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_widget.1
+
+implemented_by:
+  - Pkg.Do_The_Thing

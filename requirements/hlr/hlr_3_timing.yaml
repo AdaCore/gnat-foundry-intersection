@@ -91,7 +91,8 @@ description:
     text: |-
       The controller shall limit each protected left-turn interval, leading (T_LEAD)
       or lagging (T_LAG), to no more than half of its axis's service slot (T_AXIS / 2).
-    derived: true
+    source:
+      - CONOPS §2.10
 
   # ---- pedestrian conflict buffer (static margin) ----
 
@@ -122,7 +123,8 @@ description:
       The controller shall size each axis's service slot (T_AXIS) so that the
       both-through residual (T_BOTH, statement 8) is never less than a minimum
       both-through interval (T_BOTH_MIN).
-    derived: true
+    source:
+      - CONOPS §2.9
 
 rationale: |-
   Naming each duration once gives the two state machines a single value to cite
@@ -154,6 +156,5 @@ rationale: |-
   machines (their *_YELLOW / *_CLEAR / NS_BARRIER_ALLRED states); this file only
   fixes how long those intervals last.
 
-  Derived items (8, 9) are flow-control policy with no CONOPS ancestor: the
-  both-through floor and the left-turn time fraction are engineering knobs, to be
-  pushed up as CONOPS decision leaves if they are to carry a trace.
+  Derived item (8) is pure arithmetic, defining T_BOTH in terms of (7) and the
+  named durations.

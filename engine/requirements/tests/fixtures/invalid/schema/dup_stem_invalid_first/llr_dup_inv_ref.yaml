@@ -1,0 +1,8 @@
+# Companion: refers into the duplicated stem. hlr_dup_inv.2 exists only in the
+# second file (reported as duplicate), so it must not resolve.
+visibility: compiler
+description:
+  1:
+    text: The widget shall do the dependent thing.
+    parent_req:
+      - hlr_dup_inv.2

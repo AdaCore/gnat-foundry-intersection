@@ -33,7 +33,8 @@ description:
     text: |-
       While the controller is in FAULT, the controller shall drive every crosswalk's
       request indicator output signal to NO_REQUEST.
-    derived: true
+    source:
+      - CONOPS §6.4
 
 rationale: |-
   The fault state's outputs realize the MUTCD flashing-operation safe state: the
@@ -44,8 +45,3 @@ rationale: |-
   FLASHING_RED is a face value used only in this mode; the normal sequencer's faces
   range over RED / YELLOW / GREEN. The pedestrian NONE value is the same dark value
   the `6_pedestrian` machine names for its outputs.
-
-  Statement 3 (request indicators extinguished in FAULT) is Derived: §6.2 darkens
-  the pedestrian heads but is silent on the request lamps. Leaving a request lamp
-  lit while the heads are dark would be misleading, so the safe-state default
-  extinguishes them; this is a candidate to push up as a CONOPS decision leaf.

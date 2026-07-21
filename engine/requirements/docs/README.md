@@ -27,18 +27,18 @@ examples:
 | `context` | both | Givens scoping the requirement statements. |
 | `description` | both | Numbered map of atomic statements (see below). |
 | `preconditions` | LLR | Conditions assumed to hold (not re-checked) by the implementation. |
-| `implemented_by` | LLR | Code entities that realize the requirement. |
 | `algorithm_aspects` | LLR | Informative notes on the implementation approach. |
 | `rationale` | both | Why the requirement exists / why it is shaped this way. |
 
 A *statement* is an object carrying its `text` (the shall-statement itself)
-and an upward trace:
+and upward/downward traces:
 
 - an HLR statement carries exactly one of `source` (upstream references, e.g.
   clauses of a governing specification or standard) or `derived: true` (no
   upstream source; an implementation/design choice);
-- an LLR statement carries `parent_req` — full statement IDs
-  (`<stem>.<number>`) of the HLR statement(s) this one refines.
+- an LLR statement carries `parent_req` (full `<stem>.<number>` statement IDs
+  of the HLR statement(s) this one refines) and optionally `implemented_by`
+  (the full expanded names of the code entities that realize this statement).
 
 ## Curated examples
 

@@ -529,21 +529,3 @@ rationale: |-
   12-23) with E/W substituted for N/S. The duplication is a cost of the flat
   requirements form; a parameterized axis sub-machine instantiated twice would be
   the DRY alternative and is worth considering when these sketches are farmed out.
-
-  Every output and transition traces to the vehicular CONOPS clauses (§2.2
-  through-and-right circular, §2.5 yellow-then-red termination, §2.6 protected
-  demand-actuated lefts, §2.7 arrow indications, §2.8 conflict-free release with
-  all-red clearance, §5.1 single deterministic mode). The lone Derived statement is
-  the power-on entry (47), and it is not a free default: because fault recovery is an
-  external power cycle (§6.3), power-on *is* the flashing-to-steady
-  transition MUTCD 4G.04.01.B governs — flashing red must give way to steady red and
-  then to the green that begins the major-street cycle. EW_BARRIER_ALLRED is exactly
-  that steady all-red barrier, and its existing transitions (12/13) carry the
-  sequencer into NS (major-street) service, so the cold start satisfies the
-  provision. The barrier interval also lets the left-turn demand machines be polled
-  before NS service begins, so a Northbound left already waiting at power-on is
-  served via the lead (transition 12 -> N_LEAD) rather than skipped; with no demand,
-  transition 13 enters NS_BOTH_THROUGH directly. The entry is Derived only until a
-  CONOPS initialization leaf (tied to 4G.04.01.B) is added — see `TODO.md`; the other
-  machines' startup states (`1_modes.2`, `5_vehicle_1_left_demand.2`,
-  `6_pedestrian.2`) sit in the same bucket.

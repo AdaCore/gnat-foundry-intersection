@@ -1,0 +1,9 @@
+# E-DUPID: same stem as ../first/hlr_dup_inv.yaml, even though that file failed
+# validation. Still a duplicate; its statement 2 must not resolve.
+description:
+  1:
+    text: The widget shall do the thing differently.
+    derived: true
+  2:
+    text: The widget shall also do a second thing.
+    derived: true

@@ -1,0 +1,35 @@
+# CONOPS leaves that no HLR realizes because they are physical/environmental
+# assumptions or explicit exclusions, each recorded here with its reason.
+waivers:
+  - leaf: "1.1"
+    reason: Physical site assumption. Has no impact on controller behavior.
+  - leaf: "1.2"
+    reason: >-
+      Physical site assumption (a dedicated left-turn lane per approach). The
+      controller's protected left-turn behavior is already required by
+      CONOPS 2.6.
+  - leaf: "1.3"
+    reason: Physical site assumption (a marked crosswalk crossing each approach).
+  - leaf: "1.4"
+    reason: Environmental scope premise (isolated intersection, not coordinated/interconnected).
+  - leaf: "2.3"
+    reason: >-
+      Physical signal-head geometry (faces vertical, red-over-yellow-over-green,
+      top to bottom) -- a mounting/hardware property the controller does not
+      encode. The existence and meaning of the red/yellow/green indications is
+      required by CONOPS 2.2 (and left-turn arrows by 2.7), both covered by HLRs.
+  - leaf: "2.4"
+    reason: Physical installation (at least two signal faces per approach); hardware, not controller logic.
+  - leaf: "3.1"
+    reason: Physical installation (a pedestrian head per crosswalk); existence premise behind the pedestrian HLRs.
+  - leaf: "5.2"
+    reason: Explicit exclusion (no coordination, preemption, or priority control); negative scope.
+  - leaf: "5.4"
+    reason: >-
+      A hardware power cycle is external to the software; 5.4 is relevant only
+      as a justification for 5.3.
+
+  - leaf: "3.9"
+    reason: >-
+      TODO - no HLR explicitly enumerates conflicts between vehicle movements
+      and crosswalks.

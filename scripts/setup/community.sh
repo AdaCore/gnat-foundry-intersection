@@ -8,81 +8,50 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=scripts/setup/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-require_vars LOCAL_BIN ALIRE_SETTINGS_DIR ALIRE_PREFIX
+require_vars LOCAL_BIN ALIRE_SETTINGS_DIR ALIRE_PREFIX SETUP_MARKER
 
-# Alire: install the latest official release from GitHub, locally into $LOCAL_BIN.
-install_alire() {
-  header "alr (Ada source package manager)"
-
-  if [ -x "$LOCAL_BIN/alr" ]; then
-    detail "Already installed locally ($LOCAL_BIN/alr) — skipping."
-    return 0
-  fi
-  if command -v alr >/dev/null 2>&1; then
-    detail "Found on PATH ($(command -v alr)) — skipping local install."
-    return 0
-  fi
-
-  require_cmd curl unzip
-
-  local platform arch os url tmp
-  platform=$(detect_platform)
-  arch=${platform%% *}
-  os=${platform##* }
-  detail "Querying GitHub for the latest Alire release asset ($arch-$os) ..."
-  url=$(
-    curl -fsSL https://api.github.com/repos/alire-project/alire/releases/latest \
-      | grep -o "\"browser_download_url\": \"[^\"]*bin-$arch-${os}[^\"]*\"" \
-      | grep -o 'https://[^"]*' \
-      | head -1 \
-      || true
-  )
-  if [ -z "$url" ]; then
-    fatal "could not find an Alire release asset for $arch-$os."
-  fi
-
-  tmp=$(mktemp -d)
-  detail "Downloading $url"
-  detail "  to temporary dir $tmp"
-  curl -fsSL "$url" -o "$tmp/alr.zip"
-  unzip -q "$tmp/alr.zip" -d "$tmp/alr"
-
-  detail "Installing alr into $LOCAL_BIN"
-  mkdir -p "$LOCAL_BIN"
-  mv "$tmp/alr/bin/alr" "$LOCAL_BIN/alr"
-  chmod +x "$LOCAL_BIN/alr"
-  rm -rf "$tmp"
-  detail "Installed version: $("$LOCAL_BIN/alr" --version)"
-}
-
-# Resolve the base `alr` command into a global $ALR array.
-#
-# Invoke after `install_alire`.
-resolve_alr() {
-  if [ -x "$LOCAL_BIN/alr" ]; then
-    ALR=("$LOCAL_BIN/alr" -n)
-  else
-    ALR=(alr -n)
-  fi
-}
-
-# Deploy the GNAT toolchains needed by the demo, under the local settings dir.
+# Deploy the GNAT toolchains needed by the demo and select the native one as
+# alr's default. gnat_native and gnat_arm_elf both provide the abstract
+# `gnat`, so this deploys all three but selects only gnat_native and
+# gprbuild; the qemu crate picks up gnat_arm_elf through its own manifest.
+# Always (re-)selects so that switching back from a pro setup restores the
+# community selection; deployments are cached, so re-runs don't re-download.
 deploy_toolchains() {
   header "GNAT toolchains (gnat_arm_elf, gnat_native, gprbuild)"
 
   mkdir -p "$ALIRE_SETTINGS_DIR"
 
-  local deployed
-  deployed=$("${ALR[@]}" toolchain 2>/dev/null || true)
-  if grep -q gnat_arm_elf <<<"$deployed" \
-    && grep -q gnat_native <<<"$deployed" \
-    && grep -q gprbuild <<<"$deployed"; then
-    detail "All three already deployed — skipping."
-    return 0
+  # Undo the pro setup's offline configuration, if present: restore the
+  # index auto-refresh defaults. (`--unset` of a missing key is an error.)
+  local key
+  for key in index.auto_community index.auto_update; do
+    run_alr settings --global --unset "$key" >/dev/null 2>&1 || true
+  done
+
+  # Configure the community index manually.
+  # Re-adding an existing index is an error, hence the --list check.
+  local indexes
+  indexes=$(run_alr index --list 2>/dev/null || true)
+  if grep -qE '^[0-9]+ +community ' <<<"$indexes"; then
+    detail "Community index already configured."
+  else
+    detail "Adding the community index ..."
+    run_alr index --add https://github.com/alire-project/alire-index.git \
+      --name community
   fi
 
-  detail "Deploying gnat_arm_elf, gnat_native, gprbuild ..."
-  "${ALR[@]}" toolchain --select gnat_arm_elf gnat_native gprbuild
+  # Fail early, and clearly, if this alr cannot resolve community crates
+  # before toolchain selection trips over it (which has a less clear error).
+  local crates
+  crates=$(run_alr search --crates gnat_arm_elf 2>/dev/null || true)
+  if ! grep -q '^gnat_arm_elf ' <<<"$crates"; then
+    fatal "the community index is configured, but 'gnat_arm_elf' does not
+resolve in it. This alr ($(run_alr --version 2>/dev/null || echo unknown))
+may be incompatible with the index format."
+  fi
+
+  detail "Deploying gnat_arm_elf. Deploying and selecting gnat_native and gprbuild ..."
+  run_alr toolchain --select gnat_arm_elf gnat_native gprbuild
 }
 
 # Install the Alire-installed tools needed by the demo into the local prefix.
@@ -95,26 +64,13 @@ install_tools() {
     && [ -x "$ALIRE_PREFIX/bin/gnatcov" ] \
     && [ -x "$ALIRE_PREFIX/bin/gnatformat" ] \
     && [ -x "$ALIRE_PREFIX/bin/gnatprove" ]; then
-    detail "All already installed — skipping."
+    detail "All already installed; skipping."
     return 0
   fi
 
   detail "Installing gnattest, gnatcov, gnatformat, gnatprove ..."
-  "${ALR[@]}" install --prefix="$ALIRE_PREFIX" \
+  run_alr install --prefix="$ALIRE_PREFIX" \
     gnattest_bin gnatcov_bin gnatformat_bin gnatprove
-}
-
-# Echo a description of a tool's location.
-report_tool() {
-  local bin=$1 path
-  path=$(PATH="$LOCAL_BIN:$PATH" command -v "$bin" 2>/dev/null || true)
-  if [ -z "$path" ]; then
-    printf 'not found'
-  elif [ "$path" = "$LOCAL_BIN/$bin" ]; then
-    printf 'installed at %s' "$path"
-  else
-    printf 'detected at %s' "$path"
-  fi
 }
 
 print_summary() {
@@ -132,8 +88,7 @@ print_summary() {
 
 
 "$SCRIPT_DIR/common.sh"
-install_alire
-resolve_alr
 deploy_toolchains
 install_tools
+write_setup_marker community
 print_summary
