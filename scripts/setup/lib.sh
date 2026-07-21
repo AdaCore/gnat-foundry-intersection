@@ -72,3 +72,52 @@ detect_platform() {
   esac
   printf '%s %s\n' "$arch" "$os"
 }
+
+# Run alr non-interactively: the locally-installed copy if present, else from
+# PATH. Requires $LOCAL_BIN to be set; alr itself is installed by common.sh.
+run_alr() {
+  if [ -x "$LOCAL_BIN/alr" ]; then
+    "$LOCAL_BIN/alr" -n "$@"
+  else
+    alr -n "$@"
+  fi
+}
+
+# Set a global alr setting ($1) to $2. Which keys are built-in (and whether
+# --builtin exists) varies across alr versions; fall back to a plain --set.
+set_alr_setting() {
+  local out
+  if out=$(run_alr settings --global --set --builtin "$1" "$2" 2>&1); then
+    return 0
+  fi
+  case "$out" in
+    *"not a built-in setting"*)
+      detail "This alr has no setting '$1'; skipped."
+      ;;
+    *)
+      run_alr settings --global --set "$1" "$2"
+      ;;
+  esac
+}
+
+# Record which setup provisioned install/ ($1: "community" or "pro") in
+# $SETUP_MARKER, which the Makefile reads as $(SETUP). Call once the setup
+# has succeeded.
+write_setup_marker() {
+  mkdir -p "$(dirname "$SETUP_MARKER")"
+  printf '%s\n' "$1" >"$SETUP_MARKER"
+}
+
+# Echo a description of a tool's location (installed locally vs detected on
+# PATH vs not found). Requires $LOCAL_BIN to be set.
+report_tool() {
+  local bin=$1 path
+  path=$(PATH="$LOCAL_BIN:$PATH" command -v "$bin" 2>/dev/null || true)
+  if [ -z "$path" ]; then
+    printf 'not found'
+  elif [ "$path" = "$LOCAL_BIN/$bin" ]; then
+    printf 'installed at %s' "$path"
+  else
+    printf 'detected at %s' "$path"
+  fi
+}

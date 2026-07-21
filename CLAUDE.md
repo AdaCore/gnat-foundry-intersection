@@ -16,11 +16,15 @@ Essential commands:
 
 ```bash
 make build-native   # Build the native app
-make test-pro       # Run the testsuite
+make test           # Run the testsuite
 make prove          # Run the prover
 
-make all-coverage-pro  # Generate a coverage report
+make all-coverage   # Generate a coverage report
 ```
+
+The `test`/`coverage` targets auto-detect the toolchain provisioned under
+`install/` (`make setup-pro` or `make setup-community`), so they are the same
+regardless of which one you ran.
 
 ## When editing code
 
@@ -47,5 +51,5 @@ generics, the `core` project carries a small in-SPARK instantiation harness
 ## When editing tests
 
 - Format with `make format`
-- Validate your change with `make build-native && make test-pro`
-- If working on coverage augmentation, run `make all-coverage-pro` to list uncovered code.
+- Validate your change with `make build-native && make test`
+- If working on coverage augmentation, run `make all-coverage` to list uncovered code.
