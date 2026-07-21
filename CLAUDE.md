@@ -26,6 +26,46 @@ The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same
 regardless of which one you ran.
 
+## Feature workflow
+
+Add a feature as a succession of **Tasks**, each delegated to a purpose-built
+sub-agent, each gated by a **mechanical oracle** (a command that must
+pass). The task specs and oracles are defined once, tool-agnostically, in
+[`engine/workflow/`](engine/workflow/README.md) — read it before orchestrating.
+
+Task types and their sub-agents:
+
+| Task | Sub-agent |
+|------|-----------|
+| Elaborate HLR | `hlr-author` |
+| Elaborate LLR | `llr-author` |
+| Architecture | `architecture-editor` |
+| Plan | `planner` |
+| Implementation | `implementer` |
+| Prove | `prover` |
+| Test generation | `test-generator` |
+| Coverage | `coverage-closer` |
+
+Default order: HLR → LLR → Architecture → Plan → Implementation → Prove → Test
+generation → Coverage. **A feature uses only the subset it needs.**
+
+As the orchestrating (main) session:
+
+1. Slugify the feature and create `workflow/<feature>/`.
+2. Write `workflow/<feature>/plan.md`: the selected chain, one status line per
+   task (`todo` / `in-progress` / `oracle-passed` / `blocked`).
+3. For each task in order: dispatch the matching sub-agent (Task tool /
+   `subagent_type`), passing the feature slug. **Advance only when that task's
+   oracle command passes — verify it yourself, don't take the sub-agent's word.**
+4. After each sub-agent returns, check `workflow/<feature>/questions.md`; if it
+   has an unanswered `Q`, relay it to the human via `AskUserQuestion`, write the
+   `A:` back, and re-dispatch so the sub-agent resumes.
+5. Update `plan.md`. Done when every task in the chain is `oracle-passed`.
+
+Sub-agents cannot prompt the human directly — the **shared questions file**
+(`workflow/<feature>/questions.md`, append-only) is the only escalation channel;
+its format is in `engine/workflow/README.md`.
+
 ## When editing code
 
 - Read the code architecture: `design/architecture.md`
