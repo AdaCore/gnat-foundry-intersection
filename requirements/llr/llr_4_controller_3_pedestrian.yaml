@@ -1,21 +1,3 @@
-parent_req:
-  - hlr_6_pedestrian.3
-  - hlr_6_pedestrian.4
-  - hlr_6_pedestrian.5
-  - hlr_6_pedestrian.6
-  - hlr_6_pedestrian.7
-  - hlr_6_pedestrian.8
-  - hlr_6_pedestrian.9
-  - hlr_6_pedestrian.10
-  - hlr_6_pedestrian.11
-  - hlr_6_pedestrian.12
-  - hlr_6_pedestrian.13
-  - hlr_6_pedestrian.14
-  - hlr_6_pedestrian.15
-  - hlr_6_pedestrian.16
-  - hlr_6_pedestrian.17
-  - hlr_6_pedestrian.18
-
 context: |-
   Refinement of the per-crosswalk pedestrian control machines
   (hlr_6_pedestrian) onto Controller (design/low-level-design.md §5.5-§5.7):
@@ -30,85 +12,177 @@ context: |-
   reaching T_WALK + T_FDW + T_BUFFER; the realization uses a series of
   sub-state timers rather than a superstate clock — see algorithm_aspects.
 
-implemented_by:
-  - Controller.Head_Of
-  - Controller.Request_Of
-  - Controller.Running_Ped
-  - Controller.Advance_Ped
-  - Controller.Step
-
 description:
   # ---- Moore outputs: the pedestrian head ----
-  1: |-                                  # -> hlr_6_pedestrian.3   impl: Controller.Head_Of
-    While State.Ped (C) is NO_PEDESTRIAN_REQUEST, Head_Of shall return
-    DONT_WALK for that crosswalk's pedestrian head.
-  2: |-                                  # -> hlr_6_pedestrian.6   impl: Controller.Head_Of
-    While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST, Head_Of shall return
-    DONT_WALK for that crosswalk's pedestrian head.
-  3: |-                                  # -> hlr_6_pedestrian.10   impl: Controller.Head_Of
-    While State.Ped (C) is WALK_INTERVAL, Head_Of shall return WALK for that
-    crosswalk's pedestrian head.
-  4: |-                                  # -> hlr_6_pedestrian.11   impl: Controller.Head_Of
-    While State.Ped (C) is CHANGE_INTERVAL, Head_Of shall return
-    FLASH_DONT_WALK for that crosswalk's pedestrian head.
-  5: |-                                  # -> hlr_6_pedestrian.14   impl: Controller.Head_Of
-    While State.Ped (C) is BUFFER_INTERVAL or BUFFER_INTERVAL_LATCHED,
-    Head_Of shall return DONT_WALK for that crosswalk's pedestrian head.
+  1:
+    text: |-
+      While State.Ped (C) is NO_PEDESTRIAN_REQUEST, Head_Of shall return
+      DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.3
+    implemented_by:
+      - Controller.Head_Of
+
+  2:
+    text: |-
+      While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST, Head_Of shall return
+      DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.6
+    implemented_by:
+      - Controller.Head_Of
+
+  3:
+    text: |-
+      While State.Ped (C) is WALK_INTERVAL, Head_Of shall return WALK for that
+      crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.10
+    implemented_by:
+      - Controller.Head_Of
+
+  4:
+    text: |-
+      While State.Ped (C) is CHANGE_INTERVAL, Head_Of shall return
+      FLASH_DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.11
+    implemented_by:
+      - Controller.Head_Of
+
+  5:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL or BUFFER_INTERVAL_LATCHED,
+      Head_Of shall return DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.14
+    implemented_by:
+      - Controller.Head_Of
 
   # ---- Moore outputs: the request indicator ----
-  6: |-                                  # -> hlr_6_pedestrian.4   impl: Controller.Request_Of
-    While State.Ped (C) is NO_PEDESTRIAN_REQUEST, Request_Of shall return
-    NO_REQUEST for that crosswalk's request indicator.
-  7: |-                                  # -> hlr_6_pedestrian.7   impl: Controller.Request_Of
-    While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST, Request_Of shall
-    return REQUEST_PENDING for that crosswalk's request indicator.
-  8: |-                                  # -> hlr_6_pedestrian.9   impl: Controller.Request_Of
-    While State.Ped (C) is WALK_INTERVAL, CHANGE_INTERVAL, or
-    BUFFER_INTERVAL, Request_Of shall return NO_REQUEST for that crosswalk's
-    request indicator.
-  9: |-                                  # -> hlr_6_pedestrian.16   impl: Controller.Request_Of
-    While State.Ped (C) is BUFFER_INTERVAL_LATCHED, Request_Of shall return
-    REQUEST_PENDING for that crosswalk's request indicator.
+  6:
+    text: |-
+      While State.Ped (C) is NO_PEDESTRIAN_REQUEST, Request_Of shall return
+      NO_REQUEST for that crosswalk's request indicator.
+    parent_req:
+      - hlr_6_pedestrian.4
+    implemented_by:
+      - Controller.Request_Of
+
+  7:
+    text: |-
+      While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST, Request_Of shall
+      return REQUEST_PENDING for that crosswalk's request indicator.
+    parent_req:
+      - hlr_6_pedestrian.7
+    implemented_by:
+      - Controller.Request_Of
+
+  8:
+    text: |-
+      While State.Ped (C) is WALK_INTERVAL, CHANGE_INTERVAL, or
+      BUFFER_INTERVAL, Request_Of shall return NO_REQUEST for that crosswalk's
+      request indicator.
+    parent_req:
+      - hlr_6_pedestrian.9
+    implemented_by:
+      - Controller.Request_Of
+
+  9:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL_LATCHED, Request_Of shall return
+      REQUEST_PENDING for that crosswalk's request indicator.
+    parent_req:
+      - hlr_6_pedestrian.16
+    implemented_by:
+      - Controller.Request_Of
 
   # ---- input arming (Step, before outputs are emitted) ----
-  10: |-                                 # -> hlr_6_pedestrian.5   impl: Controller.Step
-    While State.Ped (C) is NO_PEDESTRIAN_REQUEST for a crosswalk C, when Step
-    observes Sensors.Buttons (C) PRESSED, Step shall set State.Ped (C) to
-    PENDING_PEDESTRIAN_REQUEST.
-  11: |-                                 # -> hlr_6_pedestrian.15   impl: Controller.Step
-    While State.Ped (C) is BUFFER_INTERVAL for a crosswalk C, when Step
-    observes Sensors.Buttons (C) PRESSED, Step shall set State.Ped (C) to
-    BUFFER_INTERVAL_LATCHED, leaving State.Ped_Timer (C) unchanged.
+  10:
+    text: |-
+      While State.Ped (C) is NO_PEDESTRIAN_REQUEST for a crosswalk C, when Step
+      observes Sensors.Buttons (C) PRESSED, Step shall set State.Ped (C) to
+      PENDING_PEDESTRIAN_REQUEST.
+    parent_req:
+      - hlr_6_pedestrian.5
+    implemented_by:
+      - Controller.Step
+
+  11:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL for a crosswalk C, when Step
+      observes Sensors.Buttons (C) PRESSED, Step shall set State.Ped (C) to
+      BUFFER_INTERVAL_LATCHED, leaving State.Ped_Timer (C) unchanged.
+    parent_req:
+      - hlr_6_pedestrian.15
+    implemented_by:
+      - Controller.Step
 
   # ---- the service edge (Step, after the sequencer advances) ----
-  12: |-                                 # -> hlr_6_pedestrian.8   impl: Controller.Step
-    While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST for a crosswalk C, when
-    the through face of Conflicts.Adjacent_Through (C) rises to GREEN in this
-    step (llr_4_controller.20), Step shall set State.Ped (C) to WALK_INTERVAL
-    and State.Ped_Timer (C) to T_WALK.
+  12:
+    text: |-
+      While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST for a crosswalk C, when
+      the through face of Conflicts.Adjacent_Through (C) rises to GREEN in this
+      step (llr_4_controller.20), Step shall set State.Ped (C) to WALK_INTERVAL
+      and State.Ped_Timer (C) to T_WALK.
+    parent_req:
+      - hlr_6_pedestrian.8
+    implemented_by:
+      - Controller.Step
 
   # ---- timed transitions (Advance_Ped) ----
-  13: |-                                 # -> hlr_6_pedestrian.12   impl: Controller.Advance_Ped
-    While State.Ped (C) is WALK_INTERVAL, when its dwell (T_WALK) elapses,
-    Advance_Ped shall set State.Ped (C) to CHANGE_INTERVAL and
-    State.Ped_Timer (C) to T_FDW.
-  14: |-                                 # -> hlr_6_pedestrian.13   impl: Controller.Advance_Ped
-    While State.Ped (C) is CHANGE_INTERVAL, when its dwell (T_FDW) elapses,
-    Advance_Ped shall set State.Ped (C) to BUFFER_INTERVAL and
-    State.Ped_Timer (C) to T_BUFFER.
-  15: |-                                 # -> hlr_6_pedestrian.17   impl: Controller.Advance_Ped
-    While State.Ped (C) is BUFFER_INTERVAL, when its dwell (T_BUFFER)
-    elapses, Advance_Ped shall set State.Ped (C) to NO_PEDESTRIAN_REQUEST and
-    State.Ped_Timer (C) to 0.
-  16: |-                                 # -> hlr_6_pedestrian.18   impl: Controller.Advance_Ped
-    While State.Ped (C) is BUFFER_INTERVAL_LATCHED, when its dwell (the
-    T_BUFFER remainder) elapses, Advance_Ped shall set State.Ped (C) to
-    PENDING_PEDESTRIAN_REQUEST and State.Ped_Timer (C) to 0.
+  13:
+    text: |-
+      While State.Ped (C) is WALK_INTERVAL, when its dwell (T_WALK) elapses,
+      Advance_Ped shall set State.Ped (C) to CHANGE_INTERVAL and
+      State.Ped_Timer (C) to T_FDW.
+    parent_req:
+      - hlr_6_pedestrian.12
+    implemented_by:
+      - Controller.Advance_Ped
+
+  14:
+    text: |-
+      While State.Ped (C) is CHANGE_INTERVAL, when its dwell (T_FDW) elapses,
+      Advance_Ped shall set State.Ped (C) to BUFFER_INTERVAL and
+      State.Ped_Timer (C) to T_BUFFER.
+    parent_req:
+      - hlr_6_pedestrian.13
+    implemented_by:
+      - Controller.Advance_Ped
+
+  15:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL, when its dwell (T_BUFFER)
+      elapses, Advance_Ped shall set State.Ped (C) to NO_PEDESTRIAN_REQUEST and
+      State.Ped_Timer (C) to 0.
+    parent_req:
+      - hlr_6_pedestrian.17
+    implemented_by:
+      - Controller.Advance_Ped
+
+  16:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL_LATCHED, when its dwell (the
+      T_BUFFER remainder) elapses, Advance_Ped shall set State.Ped (C) to
+      PENDING_PEDESTRIAN_REQUEST and State.Ped_Timer (C) to 0.
+    parent_req:
+      - hlr_6_pedestrian.18
+    implemented_by:
+      - Controller.Advance_Ped
 
   # ---- timer discipline ----
-  17: |-                                 # -> hlr_6_pedestrian.12, .13, .17, .18   impl: Controller.Running_Ped
-    The controller shall treat State.Ped_Timer (C) as running exactly while
-    State.Ped (C) is in Serving_Pedestrian_State.
+  17:
+    text: |-
+      The controller shall treat State.Ped_Timer (C) as running exactly while
+      State.Ped (C) is in Serving_Pedestrian_State.
+    parent_req:
+      - hlr_6_pedestrian.12
+      - hlr_6_pedestrian.13
+      - hlr_6_pedestrian.17
+      - hlr_6_pedestrian.18
+    implemented_by:
+      - Controller.Running_Ped
 
 algorithm_aspects: |-
   Time-in-SERVING as a series clock. hlr_6_pedestrian.17/.18 fire when the

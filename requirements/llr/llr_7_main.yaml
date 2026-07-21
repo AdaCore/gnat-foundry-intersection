@@ -1,12 +1,3 @@
-parent_req:
-  - hlr_1_modes.2
-  - hlr_4_signals.1
-  - hlr_4_signals.2
-  - hlr_4_signals.3
-  - hlr_4_signals.4
-  - hlr_4_signals.5
-  - hlr_4_signals.6
-
 context: |-
   Refinement of the application composition onto Main
   (design/low-level-design.md §8) — the one place the four projects meet. Main
@@ -14,24 +5,54 @@ context: |-
   consumer renders the output signals), instantiates the core loop, initializes
   the display, and runs the loop. All wiring is local; nothing is global.
 
-implemented_by:
-  - Main
-
 description:
-  1: |-                                  # -> hlr_4_signals.4, .5, .6   impl: Main
-    The Main procedure shall instantiate Buses.Source_Bus with
-    Sources.Sample as its producer, binding every input signal to the HAL
-    sources.
-  2: |-                                  # -> hlr_4_signals.1, .2, .3   impl: Main
-    The Main procedure shall instantiate Buses.Display_Bus with Display.Show
-    as its consumer, binding every output signal to the HAL display.
-  3: |-                                  # -> hlr_1_modes.2   impl: Main
-    The Main procedure shall instantiate State_Machine_Loop with
-    Timings.Delay_For, the source bus's Bus_Read, and the display bus's
-    Bus_Write.
-  4: |-                                  # -> hlr_1_modes.2   impl: Main
-    When the controller starts up, the Main procedure shall call
-    Display.Initialize.
-  5: |-                                  # -> hlr_1_modes.2   impl: Main
-    When Display.Initialize has returned, the Main procedure shall run
-    State_Machine_Loop.
+  1:
+    text: |-
+      The Main procedure shall instantiate Buses.Source_Bus with
+      Sources.Sample as its producer, binding every input signal to the HAL
+      sources.
+    parent_req:
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+    implemented_by:
+      - Main
+
+  2:
+    text: |-
+      The Main procedure shall instantiate Buses.Display_Bus with Display.Show
+      as its consumer, binding every output signal to the HAL display.
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+    implemented_by:
+      - Main
+
+  3:
+    text: |-
+      The Main procedure shall instantiate State_Machine_Loop with
+      Timings.Delay_For, the source bus's Bus_Read, and the display bus's
+      Bus_Write.
+    parent_req:
+      - hlr_1_modes.2
+    implemented_by:
+      - Main
+
+  4:
+    text: |-
+      When the controller starts up, the Main procedure shall call
+      Display.Initialize.
+    parent_req:
+      - hlr_1_modes.2
+    implemented_by:
+      - Main
+
+  5:
+    text: |-
+      When Display.Initialize has returned, the Main procedure shall run
+      State_Machine_Loop.
+    parent_req:
+      - hlr_1_modes.2
+    implemented_by:
+      - Main

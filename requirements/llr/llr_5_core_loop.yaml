@@ -1,14 +1,3 @@
-parent_req:
-  - hlr_1_modes.2
-  - hlr_1_modes.4
-  - hlr_3_timing.11
-  - hlr_4_signals.1
-  - hlr_4_signals.2
-  - hlr_4_signals.3
-  - hlr_4_signals.4
-  - hlr_4_signals.5
-  - hlr_4_signals.6
-
 context: |-
   Refinement of the controller's driving cycle onto State_Machine_Loop
   (design/low-level-design.md §6): the generic loop that fires every HLR
@@ -19,22 +8,42 @@ context: |-
   the composite state exists nowhere else. The proof-only harness
   State_Machine_Loop_Proof (§1) carries no requirements.
 
-implemented_by:
-  - State_Machine_Loop
-
 description:
-  1: |-                                  # -> hlr_1_modes.2   impl: State_Machine_Loop
-    When the core loop starts, State_Machine_Loop shall call
-    Controller.Initialize on its local Controller_State exactly once, before
-    the first iteration.
-  2: |-                                  # -> hlr_4_signals.1-.6   impl: State_Machine_Loop
-    While running, State_Machine_Loop shall perform each iteration as, in
-    order: Read_Sources into the sensor snapshot, Controller.Step on the
-    state with that snapshot, Write_Display of the outputs Step produced,
-    and Delay_For of the Wait Step produced.
-  3: |-                                  # -> hlr_1_modes.4, hlr_3_timing.11   impl: State_Machine_Loop
-    The State_Machine_Loop procedure shall iterate indefinitely (No_Return),
-    with no termination path.
+  1:
+    text: |-
+      When the core loop starts, State_Machine_Loop shall call
+      Controller.Initialize on its local Controller_State exactly once, before
+      the first iteration.
+    parent_req:
+      - hlr_1_modes.2
+    implemented_by:
+      - State_Machine_Loop
+
+  2:
+    text: |-
+      While running, State_Machine_Loop shall perform each iteration as, in
+      order: Read_Sources into the sensor snapshot, Controller.Step on the
+      state with that snapshot, Write_Display of the outputs Step produced,
+      and Delay_For of the Wait Step produced.
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+    implemented_by:
+      - State_Machine_Loop
+
+  3:
+    text: |-
+      The State_Machine_Loop procedure shall iterate indefinitely (No_Return),
+      with no termination path.
+    parent_req:
+      - hlr_1_modes.4
+      - hlr_3_timing.11
+    implemented_by:
+      - State_Machine_Loop
 
 algorithm_aspects: |-
   The four-stage order realizes the discrete-event contract

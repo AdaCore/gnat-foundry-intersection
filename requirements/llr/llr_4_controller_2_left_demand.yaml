@@ -1,7 +1,3 @@
-parent_req:
-  - hlr_5_vehicle_1_left_demand.3
-  - hlr_5_vehicle_1_left_demand.4
-
 context: |-
   Refinement of the per-approach left-turn demand machines
   (hlr_5_vehicle_1_left_demand) onto Controller.Step
@@ -15,23 +11,37 @@ context: |-
   rising edge of Conflicts.Next_Conflicting_Through (A) (llr_4_controller.19,
   llr_3_conflicts.4).
 
-implemented_by:
-  - Controller.Step
-
 description:
-  1: |-                                  # -> hlr_5_vehicle_1_left_demand.3   impl: Controller.Step
-    While State.Left (A) is NO_LEFT_DEMAND for an approach A, when Step
-    observes Sensors.Left_Turns (A) VEHICLE_PRESENT, Step shall set
-    State.Left (A) to LEFT_DEMAND_PENDING.
-  2: |-                                  # -> hlr_5_vehicle_1_left_demand.3   impl: Controller.Step
-    While State.Left (A) is LEFT_DEMAND_PENDING for an approach A, Step shall
-    leave State.Left (A) unchanged by any observation of
-    Sensors.Left_Turns (A).
-  3: |-                                  # -> hlr_5_vehicle_1_left_demand.4   impl: Controller.Step
-    While State.Left (A) is LEFT_DEMAND_PENDING for an approach A, when the
-    through face of Conflicts.Next_Conflicting_Through (A) rises to GREEN in
-    this step (llr_4_controller.19), Step shall set State.Left (A) to
-    NO_LEFT_DEMAND.
+  1:
+    text: |-
+      While State.Left (A) is NO_LEFT_DEMAND for an approach A, when Step
+      observes Sensors.Left_Turns (A) VEHICLE_PRESENT, Step shall set
+      State.Left (A) to LEFT_DEMAND_PENDING.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.3
+    implemented_by:
+      - Controller.Step
+
+  2:
+    text: |-
+      While State.Left (A) is LEFT_DEMAND_PENDING for an approach A, Step shall
+      leave State.Left (A) unchanged by any observation of
+      Sensors.Left_Turns (A).
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.3
+    implemented_by:
+      - Controller.Step
+
+  3:
+    text: |-
+      While State.Left (A) is LEFT_DEMAND_PENDING for an approach A, when the
+      through face of Conflicts.Next_Conflicting_Through (A) rises to GREEN in
+      this step (llr_4_controller.19), Step shall set State.Left (A) to
+      NO_LEFT_DEMAND.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.4
+    implemented_by:
+      - Controller.Step
 
 algorithm_aspects: |-
   The arming is level-triggered and guarded by the machine's own state

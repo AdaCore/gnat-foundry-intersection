@@ -1,26 +1,3 @@
-parent_req:
-  - hlr_1_modes.1
-  - hlr_1_modes.2
-  - hlr_1_modes.3
-  - hlr_1_modes.4
-  - hlr_2_fault.1
-  - hlr_2_fault.2
-  - hlr_2_fault.3
-  - hlr_4_signals.1
-  - hlr_4_signals.2
-  - hlr_4_signals.3
-  - hlr_3_timing.11
-  - hlr_0_safety.2
-  - hlr_5_vehicle.1
-  - hlr_5_vehicle.24
-  - hlr_5_vehicle.47
-  - hlr_5_vehicle_1_left_demand.1
-  - hlr_5_vehicle_1_left_demand.2
-  - hlr_5_vehicle_1_left_demand.4
-  - hlr_6_pedestrian.1
-  - hlr_6_pedestrian.2
-  - hlr_6_pedestrian.8
-
 context: |-
   Refinement of the controller frame onto Controller
   (design/low-level-design.md §5): the composite state record, the power-on
@@ -48,14 +25,6 @@ context: |-
   fault outputs and does nothing else, and FAULT is terminal
   (hlr_1_modes.3/.4).
 
-implemented_by:
-  - Controller.Controller_State
-  - Controller.Pedestrian_Timers
-  - Controller.Initialize
-  - Controller.Project_Outputs
-  - Controller.Step
-  - Controller.Fault_Dwell
-
 preconditions:
   - The core loop calls Initialize exactly once, before the first Step.
   - The core loop calls Step once per iteration, passing the sensor snapshot
@@ -65,99 +34,234 @@ preconditions:
 
 description:
   # ---- the composite state ----
-  1: |-                                  # -> hlr_1_modes.1, hlr_5_vehicle.1, hlr_5_vehicle_1_left_demand.1, hlr_6_pedestrian.1   impl: Controller.Controller_State
-    The Controller package shall define the record type Controller_State
-    holding : the Mode, the Vehicle_Sequencer_State with its remaining-time
-    field Veh_Timer, the Left_Demand_Array, and the Pedestrian_Array with its
-    per-crosswalk remaining-time array Ped_Timer.
+  1:
+    text: |-
+      The Controller package shall define the record type Controller_State
+      holding : the Mode, the Vehicle_Sequencer_State with its remaining-time
+      field Veh_Timer, the Left_Demand_Array, and the Pedestrian_Array with its
+      per-crosswalk remaining-time array Ped_Timer.
+    parent_req:
+      - hlr_1_modes.1
+      - hlr_5_vehicle.1
+      - hlr_5_vehicle_1_left_demand.1
+      - hlr_6_pedestrian.1
+    implemented_by:
+      - Controller.Controller_State
 
   # ---- power-on state ----
-  2: |-                                  # -> hlr_1_modes.2   impl: Controller.Initialize
-    When Initialize is called, the controller shall set State.Mode to
-    NORMAL_OPERATION.
-  3: |-                                  # -> hlr_5_vehicle.47   impl: Controller.Initialize
-    When Initialize is called, the controller shall set State.Vehicle to
-    EW_BARRIER_ALLRED and State.Veh_Timer to T_BARRIER.
-  4: |-                                  # -> hlr_5_vehicle_1_left_demand.2   impl: Controller.Initialize
-    When Initialize is called, the controller shall set State.Left to
-    NO_LEFT_DEMAND for every approach.
-  5: |-                                  # -> hlr_6_pedestrian.2   impl: Controller.Initialize
-    When Initialize is called, the controller shall set State.Ped to
-    NO_PEDESTRIAN_REQUEST, and State.Ped_Timer to 0, for every crosswalk.
+  2:
+    text: |-
+      When Initialize is called, the controller shall set State.Mode to
+      NORMAL_OPERATION.
+    parent_req:
+      - hlr_1_modes.2
+    implemented_by:
+      - Controller.Initialize
+
+  3:
+    text: |-
+      When Initialize is called, the controller shall set State.Vehicle to
+      EW_BARRIER_ALLRED and State.Veh_Timer to T_BARRIER.
+    parent_req:
+      - hlr_5_vehicle.47
+    implemented_by:
+      - Controller.Initialize
+
+  4:
+    text: |-
+      When Initialize is called, the controller shall set State.Left to
+      NO_LEFT_DEMAND for every approach.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.2
+    implemented_by:
+      - Controller.Initialize
+
+  5:
+    text: |-
+      When Initialize is called, the controller shall set State.Ped to
+      NO_PEDESTRIAN_REQUEST, and State.Ped_Timer to 0, for every crosswalk.
+    parent_req:
+      - hlr_6_pedestrian.2
+    implemented_by:
+      - Controller.Initialize
 
   # ---- output projection ----
-  6: |-                                  # -> hlr_2_fault.1   impl: Controller.Project_Outputs
-    While State.Mode is FAULT, Project_Outputs shall return FLASHING_RED for
-    every through face and every left face.
-  7: |-                                  # -> hlr_2_fault.2   impl: Controller.Project_Outputs
-    While State.Mode is FAULT, Project_Outputs shall return NONE for every
-    crosswalk's pedestrian head.
-  8: |-                                  # -> hlr_2_fault.3   impl: Controller.Project_Outputs
-    While State.Mode is FAULT, Project_Outputs shall return NO_REQUEST for
-    every crosswalk's request indicator.
-  9: |-                                  # -> hlr_4_signals.1   impl: Controller.Project_Outputs
-    While State.Mode is NORMAL_OPERATION, Project_Outputs shall return the
-    through and left faces of Vehicle_Face_Outputs (State.Vehicle)
-    (llr_4_controller_1_vehicle).
-  10: |-                                 # -> hlr_4_signals.2   impl: Controller.Project_Outputs
-    While State.Mode is NORMAL_OPERATION, Project_Outputs shall return, for
-    each crosswalk, the pedestrian head Head_Of (State.Ped (C))
-    (llr_4_controller_3_pedestrian).
-  11: |-                                 # -> hlr_4_signals.3   impl: Controller.Project_Outputs
-    While State.Mode is NORMAL_OPERATION, Project_Outputs shall return, for
-    each crosswalk, the request indicator Request_Of (State.Ped (C))
-    (llr_4_controller_3_pedestrian).
+  6:
+    text: |-
+      While State.Mode is FAULT, Project_Outputs shall return FLASHING_RED for
+      every through face and every left face.
+    parent_req:
+      - hlr_2_fault.1
+    implemented_by:
+      - Controller.Project_Outputs
+
+  7:
+    text: |-
+      While State.Mode is FAULT, Project_Outputs shall return NONE for every
+      crosswalk's pedestrian head.
+    parent_req:
+      - hlr_2_fault.2
+    implemented_by:
+      - Controller.Project_Outputs
+
+  8:
+    text: |-
+      While State.Mode is FAULT, Project_Outputs shall return NO_REQUEST for
+      every crosswalk's request indicator.
+    parent_req:
+      - hlr_2_fault.3
+    implemented_by:
+      - Controller.Project_Outputs
+
+  9:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Project_Outputs shall return the
+      through and left faces of Vehicle_Face_Outputs (State.Vehicle)
+      (llr_4_controller_1_vehicle).
+    parent_req:
+      - hlr_4_signals.1
+    implemented_by:
+      - Controller.Project_Outputs
+
+  10:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Project_Outputs shall return, for
+      each crosswalk, the pedestrian head Head_Of (State.Ped (C))
+      (llr_4_controller_3_pedestrian).
+    parent_req:
+      - hlr_4_signals.2
+    implemented_by:
+      - Controller.Project_Outputs
+
+  11:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Project_Outputs shall return, for
+      each crosswalk, the request indicator Request_Of (State.Ped (C))
+      (llr_4_controller_3_pedestrian).
+    parent_req:
+      - hlr_4_signals.3
+    implemented_by:
+      - Controller.Project_Outputs
+
+  12:
+    text: |-
+      The Project_Outputs function shall carry the postcondition
+      Conflicts.Safe_Faces (Project_Outputs'Result).
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - Controller.Project_Outputs
 
   # ---- Step: fault pre-emption ----
-  13: |-                                 # -> hlr_1_modes.3   impl: Controller.Step
-    While State.Mode is NORMAL_OPERATION, when Step is called with
-    Sensors.Fault ASSERTED, the controller shall set State.Mode to FAULT.
-  14: |-                                 # -> hlr_1_modes.4   impl: Controller.Step
-    While State.Mode is FAULT, Step shall set Outputs to
-    Project_Outputs (State).
-  15: |-                                 # -> hlr_1_modes.4   impl: Controller.Step
-    While State.Mode is FAULT, Step shall set Wait to a fixed positive pacing
-    interval and return without arming, advancing, or deriving edges for any
-    NORMAL_OPERATION sub-machine.
+  13:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, when Step is called with
+      Sensors.Fault ASSERTED, the controller shall set State.Mode to FAULT.
+    parent_req:
+      - hlr_1_modes.3
+    implemented_by:
+      - Controller.Step
+
+  14:
+    text: |-
+      While State.Mode is FAULT, Step shall set Outputs to
+      Project_Outputs (State).
+    parent_req:
+      - hlr_1_modes.4
+    implemented_by:
+      - Controller.Step
+
+  15:
+    text: |-
+      While State.Mode is FAULT, Step shall set Wait to a fixed positive pacing
+      interval and return without arming, advancing, or deriving edges for any
+      NORMAL_OPERATION sub-machine.
+    parent_req:
+      - hlr_1_modes.4
+    implemented_by:
+      - Controller.Step
 
   # ---- Step: advance, emit, wait ----
-  16: |-                                 # -> hlr_4_signals.1, .2, .3   impl: Controller.Step
-    While State.Mode is NORMAL_OPERATION, Step shall set Outputs to
-    Project_Outputs of the state resulting from this step's input arming
-    (llr_4_controller_2_left_demand.1, llr_4_controller_3_pedestrian.10-.11) and
-    timed transition (statements 18-20).
-  17: |-                                 # -> hlr_3_timing.11   impl: Controller.Step
-    While State.Mode is NORMAL_OPERATION, Step shall set Wait to the minimum
-    of State.Veh_Timer and every State.Ped_Timer (C) whose crosswalk is in a
-    Serving_Pedestrian_State, taken over the state resulting from this step's
-    transition.
-  18: |-                                 # -> hlr_3_timing.11   impl: Controller.Step
-    While State.Mode is NORMAL_OPERATION, Step shall apply the timed transition
-    (Advance_Vehicle, Advance_Ped) of each timed machine whose remaining dwell
-    has elapsed as of this step, decrementing every other running timer by that
-    same elapsed interval, and shall evaluate each fired transition's guard
-    against this step's armed inputs.
-  19: |-                                 # -> hlr_5_vehicle_1_left_demand.4   impl: Controller.Step
-    While State.Mode is NORMAL_OPERATION, Step shall apply the demand-clear
-    edge (llr_4_controller_2_left_demand.3) keyed on the through faces that
-    are GREEN in the sequencer state after this step's advance and were not
-    GREEN in the sequencer state before it.
-  20: |-                                 # -> hlr_6_pedestrian.8   impl: Controller.Step
-    While State.Mode is NORMAL_OPERATION, Step shall apply the
-    pedestrian-service edge (llr_4_controller_3_pedestrian.12) keyed on the
-    through faces that are GREEN in the sequencer state after this step's
-    advance and were not GREEN in the sequencer state before it.
-  21: |-                                 # -> hlr_0_safety.2   impl: Controller.Step
-    The Step procedure shall carry the postcondition
-    Conflicts.Safe_Faces (Outputs).
+  16:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall set Outputs to
+      Project_Outputs of the state resulting from this step's input arming
+      (llr_4_controller_2_left_demand.1, llr_4_controller_3_pedestrian.10-.11) and
+      timed transition (statements 18-20).
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+    implemented_by:
+      - Controller.Step
+
+  17:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall set Wait to the minimum
+      of State.Veh_Timer and every State.Ped_Timer (C) whose crosswalk is in a
+      Serving_Pedestrian_State, taken over the state resulting from this step's
+      transition.
+    parent_req:
+      - hlr_3_timing.11
+    implemented_by:
+      - Controller.Step
+
+  18:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall apply the timed transition
+      (Advance_Vehicle, Advance_Ped) of each timed machine whose remaining dwell
+      has elapsed as of this step, decrementing every other running timer by that
+      same elapsed interval and evaluating each fired transition's guard against
+      this step's armed inputs.
+    parent_req:
+      - hlr_3_timing.11
+    implemented_by:
+      - Controller.Step
+
+  19:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall apply the demand-clear
+      edge (llr_4_controller_2_left_demand.3) keyed on the through faces that
+      are GREEN in the sequencer state after this step's advance and were not
+      GREEN in the sequencer state before it.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.4
+    implemented_by:
+      - Controller.Step
+
+  20:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall apply the
+      pedestrian-service edge (llr_4_controller_3_pedestrian.12) keyed on the
+      through faces that are GREEN in the sequencer state after this step's
+      advance and were not GREEN in the sequencer state before it.
+    parent_req:
+      - hlr_6_pedestrian.8
+    implemented_by:
+      - Controller.Step
+
+  21:
+    text: |-
+      The Step procedure shall carry the postcondition
+      Conflicts.Safe_Faces (Outputs).
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - Controller.Step
 
   # ---- Step: sampling boundary (CONOPS 4.3 realization) ----
-  22: |-                                 # -> hlr_6_pedestrian.8, hlr_5_vehicle_1_left_demand.4   impl: Controller.Step
-    While State.Mode is NORMAL_OPERATION, Step shall evaluate each timed
-    transition and its GREEN-edge couplings against the inputs armed at the step
-    on whose boundary the transition occurs, so that a pedestrian request or
-    left-turn detection registered before the resulting through GREEN onset is
-    served at that onset rather than deferred a cycle (CONOPS 4.3).
+  22:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall evaluate each timed
+      transition and its GREEN-edge couplings against the inputs armed at the step
+      on whose boundary the transition occurs, so that a pedestrian request or
+      left-turn detection registered before the resulting through GREEN onset is
+      served at that onset rather than deferred a cycle (CONOPS 4.3).
+    parent_req:
+      - hlr_6_pedestrian.8
+      - hlr_5_vehicle_1_left_demand.4
+    implemented_by:
+      - Controller.Step
 
 algorithm_aspects: |-
   Wait is well-defined because State.Veh_Timer always runs in

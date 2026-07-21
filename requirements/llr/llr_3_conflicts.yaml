@@ -1,11 +1,3 @@
-parent_req:
-  - hlr_0_safety.1
-  - hlr_0_safety.2
-  - hlr_0_safety.3
-  - hlr_3_timing.10
-  - hlr_5_vehicle_1_left_demand.4
-  - hlr_6_pedestrian.8
-
 context: |-
   Refinement of the intersection relations onto Conflicts
   (design/low-level-design.md §4) — the single home of the geometry the HLRs
@@ -18,56 +10,84 @@ context: |-
   relation (statement 1) is deliberately conservative rather than geometric —
   see algorithm_aspects.
 
-implemented_by:
-  - Conflicts.Compatible
-  - Conflicts.Conflicts
-  - Conflicts.Safe_Faces
-  - Conflicts.Crosswalk_Conflicts
-  - Conflicts.Next_Conflicting_Through
-  - Conflicts.Adjacent_Through
-
 description:
   # ---- the conflict matrix ----
-  1: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Compatible
-    The Conflicts package shall define the function Compatible returning TRUE
-    for exactly these movement pairs and FALSE for every other pair: any
-    movement with itself; N_THRU with N_LEFT, S_THRU with S_LEFT, E_THRU with
-    E_LEFT, and W_THRU with W_LEFT (each through with the protected left of its
-    own approach); and N_THRU with S_THRU and E_THRU with W_THRU (the two
-    opposing throughs of one axis). The full symmetric relation is tabulated in
-    algorithm_aspects.
-  2: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Conflicts
-    The Conflicts package shall define the function Conflicts returning TRUE
-    for a pair of movements exactly when Compatible returns FALSE for that
-    pair.
+  1:
+    text: |-
+      The Conflicts package shall define the function Compatible returning TRUE
+      for exactly these movement pairs and FALSE for every other pair: any
+      movement with itself; N_THRU with N_LEFT, S_THRU with S_LEFT, E_THRU with
+      E_LEFT, and W_THRU with W_LEFT (each through with the protected left of its
+      own approach); and N_THRU with S_THRU and E_THRU with W_THRU (the two
+      opposing throughs of one axis). The full symmetric relation is tabulated in
+      algorithm_aspects.
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - Conflicts.Compatible
+
+  2:
+    text: |-
+      The Conflicts package shall define the function Conflicts returning TRUE
+      for a pair of movements exactly when Compatible returns FALSE for that
+      pair.
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - Conflicts.Conflicts
 
   # ---- the safety predicate ----
-  3: |-                                  # -> hlr_0_safety.2   impl: Conflicts.Safe_Faces
-    The Conflicts package shall define the function Safe_Faces returning TRUE
-    for a Display_State exactly when no two movements for which Conflicts is
-    TRUE both have Is_Go faces (States.Face_Of, States.Is_Go) in that state.
+  3:
+    text: |-
+      The Conflicts package shall define the function Safe_Faces returning TRUE
+      for a Display_State exactly when no two movements for which Conflicts is
+      TRUE both have Is_Go faces (States.Face_Of, States.Is_Go) in that state.
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - Conflicts.Safe_Faces
 
   # ---- geometry bindings ----
-  4: |-                                  # -> hlr_5_vehicle_1_left_demand.4   impl: Conflicts.Next_Conflicting_Through
-    The Conflicts package shall define the function Next_Conflicting_Through
-    mapping each approach to the approach whose through release clears its
-    left-turn demand: NORTH to SOUTH, SOUTH to EAST, EAST to WEST, and WEST
-    to NORTH.
-  5: |-                                  # -> hlr_6_pedestrian.8, hlr_0_safety.1, hlr_3_timing.10   impl: Conflicts.Adjacent_Through
-    The Conflicts package shall define the function Adjacent_Through mapping
-    each crosswalk to the approach of its parallel adjacent through movement:
-    NS_NORTH to NORTH, NS_SOUTH to SOUTH, EW_EAST to EAST, and EW_WEST to
-    WEST.
+  4:
+    text: |-
+      The Conflicts package shall define the function Next_Conflicting_Through
+      mapping each approach to the approach whose through release clears its
+      left-turn demand: NORTH to SOUTH, SOUTH to EAST, EAST to WEST, and WEST
+      to NORTH.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.4
+    implemented_by:
+      - Conflicts.Next_Conflicting_Through
+
+  5:
+    text: |-
+      The Conflicts package shall define the function Adjacent_Through mapping
+      each crosswalk to the approach of its parallel adjacent through movement:
+      NS_NORTH to NORTH, NS_SOUTH to SOUTH, EW_EAST to EAST, and EW_WEST to
+      WEST.
+    parent_req:
+      - hlr_6_pedestrian.8
+      - hlr_0_safety.1
+      - hlr_3_timing.10
+    implemented_by:
+      - Conflicts.Adjacent_Through
 
   # ---- the crosswalk conflict relation ----
-  6: |-                                  # -> hlr_0_safety.3, hlr_0_safety.1, hlr_3_timing.10   impl: Conflicts.Crosswalk_Conflicts
-    The Conflicts package shall define the function Crosswalk_Conflicts
-    returning FALSE for exactly these crosswalk/movement pairs and TRUE for
-    every other pair: NS_NORTH and NS_SOUTH each with N_THRU and S_THRU; EW_EAST
-    and EW_WEST each with E_THRU and W_THRU; and each crosswalk with the
-    protected left of its Adjacent_Through approach — NS_NORTH with N_LEFT,
-    NS_SOUTH with S_LEFT, EW_EAST with E_LEFT, and EW_WEST with W_LEFT. The full
-    relation is tabulated in algorithm_aspects.
+  6:
+    text: |-
+      The Conflicts package shall define the function Crosswalk_Conflicts
+      returning FALSE for exactly these crosswalk/movement pairs and TRUE for
+      every other pair: NS_NORTH and NS_SOUTH each with N_THRU and S_THRU; EW_EAST
+      and EW_WEST each with E_THRU and W_THRU; and each crosswalk with the
+      protected left of its Adjacent_Through approach — NS_NORTH with N_LEFT,
+      NS_SOUTH with S_LEFT, EW_EAST with E_LEFT, and EW_WEST with W_LEFT. The full
+      relation is tabulated in algorithm_aspects.
+    parent_req:
+      - hlr_0_safety.3
+      - hlr_0_safety.1
+      - hlr_3_timing.10
+    implemented_by:
+      - Conflicts.Crosswalk_Conflicts
 
 algorithm_aspects: |-
   Compatible (statement 1) is the following symmetric matrix over the eight
