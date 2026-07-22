@@ -1,0 +1,370 @@
+context: |-
+  Refinement of the controller's type vocabulary onto States
+  (design/low-level-design.md §2): the hlr_4_signals alphabets, the
+  machine-state sets of the machine HLRs, the I/O surfaces (Sensors_State,
+  Display_State), and one named Duration_Ms constant per hlr_3_timing
+  duration.
+
+  Valuation. hlr_3_timing fixes T_WALK / T_FDW / T_BUFFER numerically and
+  leaves the kinematic durations (T_YELLOW, T_REDCLEAR, T_BARRIER) and policy
+  durations (T_AXIS, T_LEAD, T_LAG, T_BOTH_MIN) bounded, not valued. The
+  values here are a PROVISIONAL deployment valuation — satisfying every stated
+  constraint, but with the final kinematic derivation and site policy still
+  deferred. T_BOTH is not a constant: it is the per-cycle residual
+  (llr_4_controller_1_vehicle).
+
+  Margin inequalities. The static margin hlr_3_timing.10 — the discharge of
+  the pedestrian-conflict invariant hlr_0_safety.1 — reduces over the
+  sequencer's fixed schedule to two inequalities over the named constants
+  (statements 27, 28; derivation in algorithm_aspects), so any re-valuation
+  must re-establish them.
+
+  Crosswalks are named by the axis they serve and the adjacent through
+  movement.
+
+description:
+  # ---- output signal alphabets ----
+  1:
+    text: |-
+      The States package shall define the type Vehicle_Face with exactly the
+      literals RED, YELLOW, GREEN, and FLASHING_RED as the value set of every
+      vehicle face output signal.
+    parent_req:
+      - hlr_4_signals.1
+    implemented_by:
+      - States.Vehicle_Face
+
+  2:
+    text: |-
+      The States package shall define the type Pedestrian_Head with exactly the
+      literals NONE, WALK, FLASH_DONT_WALK, and DONT_WALK as the value set of
+      every crosswalk's pedestrian head output signal, where NONE is dark.
+    parent_req:
+      - hlr_4_signals.2
+    implemented_by:
+      - States.Pedestrian_Head
+
+  3:
+    text: |-
+      The States package shall define the type Request_Indicator with exactly
+      the literals NO_REQUEST and REQUEST_PENDING as the value set of every
+      crosswalk's request indicator output signal.
+    parent_req:
+      - hlr_4_signals.3
+    implemented_by:
+      - States.Request_Indicator
+
+  # ---- input signal alphabets ----
+  4:
+    text: |-
+      The States package shall define the type Fault_Detection with exactly the
+      literals NOT_ASSERTED and ASSERTED as the value set of the fault-detection
+      input signal.
+    parent_req:
+      - hlr_4_signals.4
+    implemented_by:
+      - States.Fault_Detection
+
+  5:
+    text: |-
+      The States package shall define the type Pedestrian_Button with exactly
+      the literals RELEASED and PRESSED as the value set of every crosswalk's
+      pedestrian demand button input signal.
+    parent_req:
+      - hlr_4_signals.5
+    implemented_by:
+      - States.Pedestrian_Button
+
+  6:
+    text: |-
+      The States package shall define the type Left_Turn_Detector with exactly
+      the literals NO_VEHICLE and VEHICLE_PRESENT as the value set of every
+      approach's left-turn detector input signal.
+    parent_req:
+      - hlr_4_signals.6
+    implemented_by:
+      - States.Left_Turn_Detector
+
+  # ---- instance indices ----
+  7:
+    text: |-
+      The States package shall define the type Approach with exactly the literals
+      NORTH, SOUTH, EAST, and WEST as the index of every per-approach machine and
+      signal array.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.1
+      - hlr_6_pedestrian.1
+    implemented_by:
+      - States.Approach
+
+  8:
+    text: |-
+      The States package shall define the type Crosswalk with exactly the
+      literals NS_NORTH, NS_SOUTH, EW_EAST, and EW_WEST as the index of every
+      per-crosswalk machine and signal array.
+    parent_req:
+      - hlr_6_pedestrian.1
+    implemented_by:
+      - States.Crosswalk
+
+  # ---- machine-state enumerations ----
+  9:
+    text: |-
+      The States package shall define the type Mode with exactly the literals
+      NORMAL_OPERATION and FAULT.
+    parent_req:
+      - hlr_1_modes.1
+    implemented_by:
+      - States.Mode
+
+  10:
+    text: |-
+      The States package shall define the type Left_Demand_State with exactly
+      the literals NO_LEFT_DEMAND and LEFT_DEMAND_PENDING.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.1
+    implemented_by:
+      - States.Left_Demand_State
+
+  11:
+    text: |-
+      The States package shall define the array type Left_Demand_Array over
+      Approach holding one Left_Demand_State per approach.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.1
+    implemented_by:
+      - States.Left_Demand_Array
+
+  12:
+    text: |-
+      The States package shall define the type Vehicle_Sequencer_State with
+      exactly the twenty-two sequencer states of the NS and EW axes (N_LEAD,
+      N_LEAD_YELLOW, N_LEAD_CLEAR, NS_BOTH_THROUGH, N_DROP_YELLOW, N_DROP_CLEAR,
+      S_LAG, S_LAG_YELLOW, NS_BOTH_THROUGH_HOLD, NS_BOTH_DROP_YELLOW,
+      NS_BARRIER_ALLRED, E_LEAD, E_LEAD_YELLOW, E_LEAD_CLEAR, EW_BOTH_THROUGH,
+      E_DROP_YELLOW, E_DROP_CLEAR, W_LAG, W_LAG_YELLOW,
+      EW_BOTH_DROP_YELLOW, and EW_BARRIER_ALLRED).
+    parent_req:
+      - hlr_5_vehicle.1
+      - hlr_5_vehicle.24
+      - hlr_5_vehicle.48
+      - hlr_5_vehicle.50
+    implemented_by:
+      - States.Vehicle_Sequencer_State
+
+  13:
+    text: |-
+      The States package shall define the type Pedestrian_State with exactly the
+      literals NO_PEDESTRIAN_REQUEST, PENDING_PEDESTRIAN_REQUEST, WALK_INTERVAL,
+      CHANGE_INTERVAL, BUFFER_INTERVAL, and BUFFER_INTERVAL_LATCHED.
+    parent_req:
+      - hlr_6_pedestrian.1
+    implemented_by:
+      - States.Pedestrian_State
+
+  14:
+    text: |-
+      The States package shall define the array type Pedestrian_Array over
+      Crosswalk holding one Pedestrian_State per crosswalk.
+    parent_req:
+      - hlr_6_pedestrian.1
+    implemented_by:
+      - States.Pedestrian_Array
+
+  15:
+    text: |-
+      The States package shall define the subtype Serving_Pedestrian_State as
+      the contiguous range WALK_INTERVAL .. BUFFER_INTERVAL_LATCHED of
+      Pedestrian_State.
+    parent_req:
+      - hlr_6_pedestrian.1
+      - hlr_0_safety.1
+    implemented_by:
+      - States.Serving_Pedestrian_State
+
+  # ---- I/O aggregates ----
+  16:
+    text: |-
+      The States package shall define the record type Display_State aggregating
+      every output-signal value: a Vehicle_Face per approach for the through
+      faces, a Vehicle_Face per approach for the left faces, a Pedestrian_Head
+      per crosswalk, and a Request_Indicator per crosswalk.
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+    implemented_by:
+      - States.Display_State
+
+  17:
+    text: |-
+      The States package shall define the record type Sensors_State aggregating
+      every input-signal value: a Pedestrian_Button per crosswalk, a
+      Left_Turn_Detector per approach, and the Fault_Detection line.
+    parent_req:
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+    implemented_by:
+      - States.Sensors_State
+
+  # ---- the movement view (what the safety invariant quantifies over) ----
+  18:
+    text: |-
+      The States package shall define the type Movement with exactly the eight
+      vehicle movements N_THRU, S_THRU, E_THRU, W_THRU, N_LEFT, S_LEFT, E_LEFT,
+      and W_LEFT.
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - States.Movement
+
+  19:
+    text: |-
+      The States package shall define the function Face_Of returning, for a
+      Display_State and a Movement, the through face of that movement's approach
+      for the through movements and the left face for the left movements.
+    parent_req:
+      - hlr_0_safety.2
+      - hlr_4_signals.1
+    implemented_by:
+      - States.Face_Of
+
+  20:
+    text: |-
+      The States package shall define the function Is_Go returning TRUE for a
+      Vehicle_Face exactly when it is GREEN or YELLOW.
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - States.Is_Go
+
+  # ---- durations: representation ----
+  21:
+    text: |-
+      The States package shall define the type Duration_Ms as the integer range
+      0 .. 3_600_000, representing every duration in logical milliseconds.
+    parent_req:
+      - hlr_3_timing.1
+      - hlr_3_timing.2
+      - hlr_3_timing.3
+    implemented_by:
+      - States.Duration_Ms
+
+  # ---- durations: standard-fixed valuation ----
+  22:
+    text: |-
+      The States package shall value T_WALK at 7_000 milliseconds.
+    parent_req:
+      - hlr_3_timing.1
+    implemented_by:
+      - States.T_Walk
+
+  23:
+    text: |-
+      The States package shall value T_FDW at 7_000 milliseconds.
+    parent_req:
+      - hlr_3_timing.2
+    implemented_by:
+      - States.T_FDW
+
+  24:
+    text: |-
+      The States package shall value T_BUFFER at 2_000 milliseconds.
+    parent_req:
+      - hlr_3_timing.3
+    implemented_by:
+      - States.T_Buffer
+
+  # ---- durations: provisional kinematic / policy valuation ----
+  25:
+    text: |-
+      The States package shall value the kinematic durations provisionally at
+      T_YELLOW = 4_000, T_REDCLEAR = 2_000, and T_BARRIER = 2_000 milliseconds,
+      pending their final derivation from the MUTCD kinematic basis.
+    parent_req:
+      - hlr_3_timing.4
+      - hlr_3_timing.5
+      - hlr_3_timing.6
+    implemented_by:
+      - States.T_Yellow
+
+  26:
+    text: |-
+      The States package shall value the policy durations at T_AXIS = 40_000,
+      T_LEAD = 6_000, T_LAG = 6_000, and T_BOTH_MIN = 10_000 milliseconds.
+    parent_req:
+      - hlr_3_timing.9
+    implemented_by:
+      - States.T_Axis
+
+  # ---- the static pedestrian margin, as constraints on the valuation ----
+  27:
+    text: |-
+      The States package shall value the durations such that
+      T_BOTH_MIN + T_YELLOW + T_BARRIER is at least T_WALK + T_FDW + T_BUFFER.
+    parent_req:
+      - hlr_3_timing.10
+      - hlr_0_safety.1
+    implemented_by:
+      - States.T_Both_Min
+
+  28:
+    text: |-
+      The States package shall value the durations such that
+      T_AXIS - T_BARRIER - T_YELLOW - T_LAG is at least
+      T_WALK + T_FDW + T_BUFFER.
+    parent_req:
+      - hlr_3_timing.10
+      - hlr_0_safety.1
+    implemented_by:
+      - States.T_Axis
+
+  # ---- the both-through floor, as a constraint on the valuation ----
+  29:
+    text: |-
+      The States package shall value the durations such that
+      T_AXIS - T_BARRIER - (T_LEAD + T_YELLOW + T_REDCLEAR)
+      - (T_YELLOW + T_REDCLEAR + T_LAG + T_YELLOW) is at least T_BOTH_MIN.
+    parent_req:
+      - hlr_3_timing.12
+    implemented_by:
+      - States.T_Axis
+
+algorithm_aspects: |-
+  The margin inequalities (27, 28) are the static discharge of the
+  pedestrian-conflict invariant hlr_0_safety.1 via hlr_3_timing.10, derived
+  over the sequencer's fixed schedule (llr_4_controller_1_vehicle) under the
+  no-gap-out premise (hlr_3_timing.11). A crosswalk's service (WALK onset)
+  coincides with its adjacent through face's GREEN onset, and its
+  SERVING_PEDESTRIAN_REQUEST dwell is exactly T_WALK + T_FDW + T_BUFFER
+  (llr_4_controller_3_pedestrian), so the obligation is: no conflicting
+  movement's face becomes GREEN or YELLOW within that window after any
+  adjacent-through onset. Over the schedule this has two binding cases:
+
+  - Perpendicular release after a late-greening through (statement 27). The
+    latest adjacent-through onset in a slot is at both-through entry; the
+    earliest subsequent release of the perpendicular axis is via the no-lag
+    exit: T_BOTH — spanning the both-through state and, on the no-lag exit, its
+    HOLD continuation, across which the through faces stay GREEN so the
+    crosswalk's WALK onset stays at both-through entry — then the both-drop
+    yellow (T_YELLOW), then the barrier (T_BARRIER). With T_BOTH at its floor
+    T_BOTH_MIN the gap is T_BOTH_MIN + T_YELLOW + T_BARRIER = 10 + 4 + 2 = 16 s
+    — exactly T_WALK + T_FDW + T_BUFFER. This case is tight: any re-valuation
+    that shrinks T_BOTH_MIN, T_YELLOW, or T_BARRIER must re-establish it.
+
+  - The lagging left against the opposite crosswalk (statement 28). The lag
+    left's release follows its axis's own adjacent-through onsets; whether or
+    not the lead ran, the gap from the earlier through onset to the lag-left
+    GREEN telescopes to T_AXIS - T_BARRIER - T_YELLOW - T_LAG
+    = 40 - 2 - 4 - 6 = 28 s. The leading left is safe by construction (it is
+    released before, not after, its axis's through onsets, and held RED from
+    the previous axis by the barrier case above).
+
+  The floor inequality (29) instantiates hlr_3_timing.12 for the worst case
+  (both lefts served): the both-through commit interval computed by
+  Controller.Both_Duration never drops below T_BOTH_MIN, since the lead-and-lag
+  overhead subtracted from T_AXIS is maximal exactly in that case; with these
+  values the worst-case commit interval is exactly T_BOTH_MIN. The HOLD
+  continuation runs only when the lag is skipped and only ever adds to the
+  both-through phase, so the phase as a whole never falls below T_BOTH_MIN.

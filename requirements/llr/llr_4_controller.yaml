@@ -1,0 +1,298 @@
+context: |-
+  Refinement of the controller frame onto Controller
+  (design/low-level-design.md §5): the composite state record, the power-on
+  state, the Moore output projection with its safety postcondition, and the
+  discrete-event step engine. The per-machine behavior is refined in the child
+  files — llr_4_controller_1_vehicle (the phase sequencer),
+  llr_4_controller_2_left_demand, and llr_4_controller_3_pedestrian.
+
+  The frame realizes the supervisory machine of hlr_1_modes and the
+  discrete-event timing model: the vehicle sequencer and each pedestrian
+  service in its SERVING superstate are timed; the left-demand machines and
+  the supervisor are not. Each Step re-samples the inputs, applies the timed
+  transition of any machine whose dwell has elapsed since the previous step —
+  evaluating that transition's guards and its GREEN-edge couplings against the
+  just-sampled inputs — then emits the resulting state and reports Wait, the
+  minimum time to the next timed transition. The core loop (llr_5_core_loop)
+  sleeps Wait and steps again. Evaluating a transition on the boundary it occurs
+  on, rather than pre-computing it a dwell earlier, is what lets an input
+  registered before a through's GREEN onset take effect at that onset (statement
+  22): a pedestrian request or left-turn detection is not missed by the very
+  green it was registered in time for.
+
+  The mode frame pre-empts every sub-machine: the machine HLRs drop the
+  NORMAL_OPERATION guard and rely on it, so in FAULT the controller emits the
+  fault outputs and does nothing else, and FAULT is terminal
+  (hlr_1_modes.3/.4).
+
+preconditions:
+  - The core loop calls Initialize exactly once, before the first Step.
+  - The core loop calls Step once per iteration, passing the sensor snapshot
+    just read from the source bus, writing Outputs to the display bus
+    immediately after, and delaying Wait logical milliseconds before the next
+    call (llr_5_core_loop).
+
+description:
+  # ---- the composite state ----
+  1:
+    text: |-
+      The Controller package shall define the record type Controller_State
+      holding : the Mode, the Vehicle_Sequencer_State with its remaining-time
+      field Veh_Timer, the Left_Demand_Array, and the Pedestrian_Array with its
+      per-crosswalk remaining-time array Ped_Timer.
+    parent_req:
+      - hlr_1_modes.1
+      - hlr_5_vehicle.1
+      - hlr_5_vehicle_1_left_demand.1
+      - hlr_6_pedestrian.1
+    implemented_by:
+      - Controller.Controller_State
+
+  # ---- power-on state ----
+  2:
+    text: |-
+      When Initialize is called, the controller shall set State.Mode to
+      NORMAL_OPERATION.
+    parent_req:
+      - hlr_1_modes.2
+    implemented_by:
+      - Controller.Initialize
+
+  3:
+    text: |-
+      When Initialize is called, the controller shall set State.Vehicle to
+      EW_BARRIER_ALLRED and State.Veh_Timer to T_BARRIER.
+    parent_req:
+      - hlr_5_vehicle.47
+    implemented_by:
+      - Controller.Initialize
+
+  4:
+    text: |-
+      When Initialize is called, the controller shall set State.Left to
+      NO_LEFT_DEMAND for every approach.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.2
+    implemented_by:
+      - Controller.Initialize
+
+  5:
+    text: |-
+      When Initialize is called, the controller shall set State.Ped to
+      NO_PEDESTRIAN_REQUEST, and State.Ped_Timer to 0, for every crosswalk.
+    parent_req:
+      - hlr_6_pedestrian.2
+    implemented_by:
+      - Controller.Initialize
+
+  # ---- output projection ----
+  6:
+    text: |-
+      While State.Mode is FAULT, Project_Outputs shall return FLASHING_RED for
+      every through face and every left face.
+    parent_req:
+      - hlr_2_fault.1
+    implemented_by:
+      - Controller.Project_Outputs
+
+  7:
+    text: |-
+      While State.Mode is FAULT, Project_Outputs shall return NONE for every
+      crosswalk's pedestrian head.
+    parent_req:
+      - hlr_2_fault.2
+    implemented_by:
+      - Controller.Project_Outputs
+
+  8:
+    text: |-
+      While State.Mode is FAULT, Project_Outputs shall return NO_REQUEST for
+      every crosswalk's request indicator.
+    parent_req:
+      - hlr_2_fault.3
+    implemented_by:
+      - Controller.Project_Outputs
+
+  9:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Project_Outputs shall return the
+      through and left faces of Vehicle_Face_Outputs (State.Vehicle)
+      (llr_4_controller_1_vehicle).
+    parent_req:
+      - hlr_4_signals.1
+    implemented_by:
+      - Controller.Project_Outputs
+
+  10:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Project_Outputs shall return, for
+      each crosswalk, the pedestrian head Head_Of (State.Ped (C))
+      (llr_4_controller_3_pedestrian).
+    parent_req:
+      - hlr_4_signals.2
+    implemented_by:
+      - Controller.Project_Outputs
+
+  11:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Project_Outputs shall return, for
+      each crosswalk, the request indicator Request_Of (State.Ped (C))
+      (llr_4_controller_3_pedestrian).
+    parent_req:
+      - hlr_4_signals.3
+    implemented_by:
+      - Controller.Project_Outputs
+
+  12:
+    text: |-
+      The Project_Outputs function shall carry the postcondition
+      Conflicts.Safe_Faces (Project_Outputs'Result).
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - Controller.Project_Outputs
+
+  # ---- Step: fault pre-emption ----
+  13:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, when Step is called with
+      Sensors.Fault ASSERTED, the controller shall set State.Mode to FAULT.
+    parent_req:
+      - hlr_1_modes.3
+    implemented_by:
+      - Controller.Step
+
+  14:
+    text: |-
+      While State.Mode is FAULT, Step shall set Outputs to
+      Project_Outputs (State).
+    parent_req:
+      - hlr_1_modes.4
+    implemented_by:
+      - Controller.Step
+
+  15:
+    text: |-
+      While State.Mode is FAULT, Step shall set Wait to a fixed positive pacing
+      interval and return without arming, advancing, or deriving edges for any
+      NORMAL_OPERATION sub-machine.
+    parent_req:
+      - hlr_1_modes.4
+    implemented_by:
+      - Controller.Step
+
+  # ---- Step: advance, emit, wait ----
+  16:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall set Outputs to
+      Project_Outputs of the state resulting from this step's input arming
+      (llr_4_controller_2_left_demand.1, llr_4_controller_3_pedestrian.10-.11) and
+      timed transition (statements 18-20).
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+    implemented_by:
+      - Controller.Step
+
+  17:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall set Wait to the minimum
+      of State.Veh_Timer and every State.Ped_Timer (C) whose crosswalk is in a
+      Serving_Pedestrian_State, taken over the state resulting from this step's
+      transition.
+    parent_req:
+      - hlr_3_timing.11
+    implemented_by:
+      - Controller.Step
+
+  18:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall apply the timed transition
+      (Advance_Vehicle, Advance_Ped) of each timed machine whose remaining dwell
+      has elapsed as of this step, decrementing every other running timer by that
+      same elapsed interval and evaluating each fired transition's guard against
+      this step's armed inputs.
+    parent_req:
+      - hlr_3_timing.11
+    implemented_by:
+      - Controller.Step
+
+  19:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall apply the demand-clear
+      edge (llr_4_controller_2_left_demand.3) keyed on the through faces that
+      are GREEN in the sequencer state after this step's advance and were not
+      GREEN in the sequencer state before it.
+    parent_req:
+      - hlr_5_vehicle_1_left_demand.4
+    implemented_by:
+      - Controller.Step
+
+  20:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall apply the
+      pedestrian-service edge (llr_4_controller_3_pedestrian.12) keyed on the
+      through faces that are GREEN in the sequencer state after this step's
+      advance and were not GREEN in the sequencer state before it.
+    parent_req:
+      - hlr_6_pedestrian.8
+    implemented_by:
+      - Controller.Step
+
+  21:
+    text: |-
+      The Step procedure shall carry the postcondition
+      Conflicts.Safe_Faces (Outputs).
+    parent_req:
+      - hlr_0_safety.2
+    implemented_by:
+      - Controller.Step
+
+  # ---- Step: sampling boundary (CONOPS 4.3 realization) ----
+  22:
+    text: |-
+      While State.Mode is NORMAL_OPERATION, Step shall evaluate each timed
+      transition and its GREEN-edge couplings against the inputs armed at the step
+      on whose boundary the transition occurs, so that a pedestrian request or
+      left-turn detection registered before the resulting through GREEN onset is
+      served at that onset rather than deferred a cycle (CONOPS 4.3).
+    parent_req:
+      - hlr_6_pedestrian.8
+      - hlr_5_vehicle_1_left_demand.4
+    implemented_by:
+      - Controller.Step
+
+algorithm_aspects: |-
+  Wait is well-defined because State.Veh_Timer always runs in
+  NORMAL_OPERATION (the sequencer has no untimed state); a Ped_Timer runs
+  exactly while its crosswalk is in the SERVING superstate.
+
+  The ordering is the substantive contract. Each step arms inputs from a fresh
+  sample, applies the transition of any machine whose dwell has elapsed since
+  the previous step — reading that transition's guards and deriving its
+  GREEN-edge couplings (19, 20) against the just-armed inputs — then emits the
+  resulting state, which the loop displays for its dwell. So a transition is
+  evaluated on the boundary it occurs on, with the inputs in force there, not
+  pre-computed a dwell earlier (22). This is what makes a request registered
+  before a through's GREEN onset take effect at that onset (CONOPS 4.3), and it
+  lets the both-through lag be read at the commit boundary
+  (llr_4_controller_1_vehicle) so a left arriving during the commit interval is
+  served this cycle. The state entered on a boundary and the couplings that fire
+  there are emitted together, in the same step, as the loop begins that state's
+  dwell.
+
+  Arming before emitting (16) still lights a request lamp in the same step as
+  the press that raised it (hlr_6_pedestrian.7): the lamp is a Moore function of
+  the post-arm state.
+
+  The FAULT Wait (statement 15) is pacing only: FAULT has no timed transitions
+  and its outputs never change (the flash is realized HAL-side), so the interval
+  affects nothing but the loop's wake-up cadence — any fixed positive value
+  serves, and the implementation uses Fault_Dwell = 1_000 ms.
+
+rationale: |-
+  hlr_0_safety.1 is deliberately not a runtime contract here — unlike the
+  vehicle-conflict invariant (statements 12, 21), it is a property of the
+  whole schedule, discharged as the static margin (llr_1_states.27/.28,
+  design/proof.md).

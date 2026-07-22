@@ -1,0 +1,207 @@
+context: |-
+  Refinement of the per-crosswalk pedestrian control machines
+  (hlr_6_pedestrian) onto Controller (design/low-level-design.md §5.5-§5.7):
+  the Moore output functions Head_Of and Request_Of, the timed transition
+  Advance_Ped, and the arming and service edges in Step. The state is Ped (C),
+  a Pedestrian_State per crosswalk, with the HLR's SERVING_PEDESTRIAN_REQUEST
+  superstate flattened into the contiguous Serving_Pedestrian_State
+  (llr_1_states.13/.14/.15), plus the dwell field Ped_Timer (C) (power-on in
+  llr_4_controller.5).
+
+  The HLR fires both buffer exits (hlr_6_pedestrian.17/.18) on time-in-SERVING
+  reaching T_WALK + T_FDW + T_BUFFER; the realization uses a series of
+  sub-state timers rather than a superstate clock — see algorithm_aspects.
+
+description:
+  # ---- Moore outputs: the pedestrian head ----
+  1:
+    text: |-
+      While State.Ped (C) is NO_PEDESTRIAN_REQUEST, Head_Of shall return
+      DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.3
+    implemented_by:
+      - Controller.Head_Of
+
+  2:
+    text: |-
+      While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST, Head_Of shall return
+      DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.6
+    implemented_by:
+      - Controller.Head_Of
+
+  3:
+    text: |-
+      While State.Ped (C) is WALK_INTERVAL, Head_Of shall return WALK for that
+      crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.10
+    implemented_by:
+      - Controller.Head_Of
+
+  4:
+    text: |-
+      While State.Ped (C) is CHANGE_INTERVAL, Head_Of shall return
+      FLASH_DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.11
+    implemented_by:
+      - Controller.Head_Of
+
+  5:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL or BUFFER_INTERVAL_LATCHED,
+      Head_Of shall return DONT_WALK for that crosswalk's pedestrian head.
+    parent_req:
+      - hlr_6_pedestrian.14
+    implemented_by:
+      - Controller.Head_Of
+
+  # ---- Moore outputs: the request indicator ----
+  6:
+    text: |-
+      While State.Ped (C) is NO_PEDESTRIAN_REQUEST, Request_Of shall return
+      NO_REQUEST for that crosswalk's request indicator.
+    parent_req:
+      - hlr_6_pedestrian.4
+    implemented_by:
+      - Controller.Request_Of
+
+  7:
+    text: |-
+      While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST, Request_Of shall
+      return REQUEST_PENDING for that crosswalk's request indicator.
+    parent_req:
+      - hlr_6_pedestrian.7
+    implemented_by:
+      - Controller.Request_Of
+
+  8:
+    text: |-
+      While State.Ped (C) is WALK_INTERVAL, CHANGE_INTERVAL, or
+      BUFFER_INTERVAL, Request_Of shall return NO_REQUEST for that crosswalk's
+      request indicator.
+    parent_req:
+      - hlr_6_pedestrian.9
+    implemented_by:
+      - Controller.Request_Of
+
+  9:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL_LATCHED, Request_Of shall return
+      REQUEST_PENDING for that crosswalk's request indicator.
+    parent_req:
+      - hlr_6_pedestrian.16
+    implemented_by:
+      - Controller.Request_Of
+
+  # ---- input arming (Step, before outputs are emitted) ----
+  10:
+    text: |-
+      While State.Ped (C) is NO_PEDESTRIAN_REQUEST for a crosswalk C, when Step
+      observes Sensors.Buttons (C) PRESSED, Step shall set State.Ped (C) to
+      PENDING_PEDESTRIAN_REQUEST.
+    parent_req:
+      - hlr_6_pedestrian.5
+    implemented_by:
+      - Controller.Step
+
+  11:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL for a crosswalk C, when Step
+      observes Sensors.Buttons (C) PRESSED, Step shall set State.Ped (C) to
+      BUFFER_INTERVAL_LATCHED, leaving State.Ped_Timer (C) unchanged.
+    parent_req:
+      - hlr_6_pedestrian.15
+    implemented_by:
+      - Controller.Step
+
+  # ---- the service edge (Step, after the sequencer advances) ----
+  12:
+    text: |-
+      While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST for a crosswalk C, when
+      the through face of Conflicts.Adjacent_Through (C) rises to GREEN in this
+      step (llr_4_controller.20), Step shall set State.Ped (C) to WALK_INTERVAL
+      and State.Ped_Timer (C) to T_WALK.
+    parent_req:
+      - hlr_6_pedestrian.8
+    implemented_by:
+      - Controller.Step
+
+  # ---- timed transitions (Advance_Ped) ----
+  13:
+    text: |-
+      While State.Ped (C) is WALK_INTERVAL, when its dwell (T_WALK) elapses,
+      Advance_Ped shall set State.Ped (C) to CHANGE_INTERVAL and
+      State.Ped_Timer (C) to T_FDW.
+    parent_req:
+      - hlr_6_pedestrian.12
+    implemented_by:
+      - Controller.Advance_Ped
+
+  14:
+    text: |-
+      While State.Ped (C) is CHANGE_INTERVAL, when its dwell (T_FDW) elapses,
+      Advance_Ped shall set State.Ped (C) to BUFFER_INTERVAL and
+      State.Ped_Timer (C) to T_BUFFER.
+    parent_req:
+      - hlr_6_pedestrian.13
+    implemented_by:
+      - Controller.Advance_Ped
+
+  15:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL, when its dwell (T_BUFFER)
+      elapses, Advance_Ped shall set State.Ped (C) to NO_PEDESTRIAN_REQUEST and
+      State.Ped_Timer (C) to 0.
+    parent_req:
+      - hlr_6_pedestrian.17
+    implemented_by:
+      - Controller.Advance_Ped
+
+  16:
+    text: |-
+      While State.Ped (C) is BUFFER_INTERVAL_LATCHED, when its dwell (the
+      T_BUFFER remainder) elapses, Advance_Ped shall set State.Ped (C) to
+      PENDING_PEDESTRIAN_REQUEST and State.Ped_Timer (C) to 0.
+    parent_req:
+      - hlr_6_pedestrian.18
+    implemented_by:
+      - Controller.Advance_Ped
+
+  # ---- timer discipline ----
+  17:
+    text: |-
+      The controller shall treat State.Ped_Timer (C) as running exactly while
+      State.Ped (C) is in Serving_Pedestrian_State.
+    parent_req:
+      - hlr_6_pedestrian.12
+      - hlr_6_pedestrian.13
+      - hlr_6_pedestrian.17
+      - hlr_6_pedestrian.18
+    implemented_by:
+      - Controller.Running_Ped
+
+algorithm_aspects: |-
+  Time-in-SERVING as a series clock. hlr_6_pedestrian.17/.18 fire when the
+  machine has been in the SERVING superstate for T_WALK + T_FDW + T_BUFFER.
+  Because entry to SERVING always arms T_WALK (statement 12), the timed chain
+  reloads T_FDW then T_BUFFER end-to-end (13, 14), and the buffer-press latch
+  (11) re-routes the exit without touching the running timer, the cumulative
+  series equals time-in-SERVING exactly — the buffer always runs its full
+  T_BUFFER no matter when the press lands, and no separate superstate clock
+  is needed. Statement 16's dwell is the T_BUFFER remainder for the same
+  reason: the latch may fire mid-buffer, and the timer simply runs on.
+
+  The service edge (12) fires in the same Step as the sequencer transition
+  that raises the adjacent through to GREEN, so the WALK onset and the green
+  onset land on the same display write — the coupling hlr_6_pedestrian.8
+  states is exact, not one wake-up late. The arming (10, 11) runs before the
+  step's outputs are emitted (llr_4_controller.16), so a press lights the
+  request lamp on the very step it is observed (hlr_6_pedestrian.7). As with
+  the left-demand machine, the arming is level-triggered and state-guarded,
+  so held buttons are coalesced; a press while PENDING, WALK_INTERVAL,
+  CHANGE_INTERVAL, or BUFFER_INTERVAL_LATCHED matches no arming guard and is
+  absorbed.

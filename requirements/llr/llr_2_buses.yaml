@@ -1,0 +1,62 @@
+context: |-
+  Refinement of the controller's I/O boundary onto the generic buses
+  Source_Bus and Display_Bus (design/low-level-design.md §3): how the
+  hlr_4_signals input signals reach the core (one Sensors_State snapshot) and
+  the output signals leave it (one Display_State write). Each bus carries one
+  whole aggregate per call, so a composite state crosses atomically. Two
+  distinct coalescings apply: the source bus coalesces repeated occurrences of
+  an event within one inter-read interval into a single active reading
+  (llr_2_buses.2), and the controller's level-triggered arming then coalesces a
+  demand held active across successive reads into one PENDING request
+  (llr_4_controller_2_left_demand, llr_4_controller_3_pedestrian). Debounce,
+  electrical sensing, and rendering are HAL concerns across the boundary, not
+  specified here.
+
+description:
+  1:
+    text: |-
+      When Bus_Read is called, the source bus shall obtain the whole
+      Sensors_State snapshot — every input-signal value at once — by invoking
+      its generic producer Bus_Write.
+    parent_req:
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+    implemented_by:
+      - Buses.Source_Bus.Bus_Read
+
+  2:
+    text: |-
+      When Bus_Read is called, the source bus shall report each input signal as
+      active if that signal's event (a button PRESSED, a left-turn detector
+      VEHICLE_PRESENT, or Fault ASSERTED) has occurred at least once since the
+      previous Bus_Read.
+    parent_req:
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+    implemented_by:
+      - Buses.Source_Bus.Bus_Read
+
+  3:
+    text: |-
+      When Bus_Read is called, the source bus shall clear each captured event,
+      retaining no captured value across a Bus_Read, so that a signal reports as
+      active in a later Bus_Read only if its event has recurred since.
+    parent_req:
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+    implemented_by:
+      - Buses.Source_Bus.Bus_Read
+
+  4:
+    text: |-
+      When Bus_Write is called, the display bus shall deliver the Display_State
+      value to its generic consumer Bus_Read before returning.
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+    implemented_by:
+      - Buses.Display_Bus.Bus_Write

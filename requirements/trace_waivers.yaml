@@ -28,8 +28,3 @@ waivers:
     reason: >-
       A hardware power cycle is external to the software; 5.4 is relevant only
       as a justification for 5.3.
-
-  - leaf: "3.9"
-    reason: >-
-      TODO - no HLR explicitly enumerates conflicts between vehicle movements
-      and crosswalks.

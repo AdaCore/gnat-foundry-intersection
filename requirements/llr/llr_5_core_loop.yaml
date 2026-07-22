@@ -1,0 +1,61 @@
+context: |-
+  Refinement of the controller's driving cycle onto State_Machine_Loop
+  (design/low-level-design.md §6): the generic loop that fires every HLR
+  trigger by moving input signals in (Read_Sources), output signals out
+  (Write_Display), and time forward (Delay_For with Step's Wait). It is
+  generic over exactly those three procedures, so the core never names a HAL
+  unit (wiring in llr_7_main), and it owns the Controller_State locally, so
+  the composite state exists nowhere else. The proof-only harness
+  State_Machine_Loop_Proof (§1) carries no requirements.
+
+description:
+  1:
+    text: |-
+      When the core loop starts, State_Machine_Loop shall call
+      Controller.Initialize on its local Controller_State exactly once, before
+      the first iteration.
+    parent_req:
+      - hlr_1_modes.2
+    implemented_by:
+      - State_Machine_Loop
+
+  2:
+    text: |-
+      While running, State_Machine_Loop shall perform each iteration as, in
+      order: Read_Sources into the sensor snapshot, Controller.Step on the
+      state with that snapshot, Write_Display of the outputs Step produced,
+      and Delay_For of the Wait Step produced.
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+    implemented_by:
+      - State_Machine_Loop
+
+  3:
+    text: |-
+      The State_Machine_Loop procedure shall iterate indefinitely (No_Return),
+      with no termination path.
+    parent_req:
+      - hlr_1_modes.4
+      - hlr_3_timing.11
+    implemented_by:
+      - State_Machine_Loop
+
+algorithm_aspects: |-
+  The four-stage order realizes the discrete-event contract
+  (llr_4_controller): Step emits the outputs of the state whose dwell is
+  Wait, Write_Display publishes them, and Delay_For sleeps exactly that dwell
+  — so the display holds each composite state for its scheduled duration and
+  the next iteration wakes at the nearest timed transition. Passing Wait
+  through unmodified is what makes the controller's timing (hlr_3_timing)
+  real on the target; the accuracy of the sleep itself is the HAL contract
+  (llr_6_hal.1).
+
+rationale: |-
+  Statement 3's No_Return discharges "remain in FAULT" (hlr_1_modes.4) too:
+  FAULT is a driven state — the loop keeps ticking and re-emitting the fault
+  outputs — not a halt.

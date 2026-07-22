@@ -239,8 +239,8 @@ REQS_DIR    := $(CURDIR)/requirements
 # traceability across the chain (every node covered by / traced to a neighbour,
 # or waived / derived). --complete makes an uncovered node a hard error.
 validate-reqs:
-	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr"  # "$(REQS_DIR)/llr"
-	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr"  # "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(REQS_DIR)/trace_chain.yaml"
 
 # Show the traceability tables for development (coverage + upward trace per pair).

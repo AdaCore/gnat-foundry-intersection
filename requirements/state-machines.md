@@ -72,6 +72,14 @@ closes within the one diagram: NS service ends at `NS_BARRIER_ALLRED`, which
 enters EW service (.35/.36); EW service ends at `EW_BARRIER_ALLRED`, which
 enters NS service (.12/.13).
 
+The both-through phase runs in two states. `*_BOTH_THROUGH` runs the **commit
+interval** — the slot residual sized as if the lag will run; the lagging
+approach's demand is read only when it elapses, so a left arriving during the
+commit interval is still served this cycle. If the lag is demanded the phase
+exits to the drop-yellow; if not it continues through `*_BOTH_THROUGH_HOLD`
+(same green faces) for the **hold interval** the lag block would have taken,
+then drops. Either way the axis slot closes at exactly `T_AXIS`.
+
 ```mermaid
 stateDiagram-v2
     [*] --> EW_BARRIER_ALLRED : power-on (.47)
@@ -83,8 +91,9 @@ stateDiagram-v2
     N_LEAD_YELLOW --> N_LEAD_CLEAR : yellow elapsed (.15)
     N_LEAD_CLEAR --> NS_BOTH_THROUGH : red clearance elapsed (.16)
 
-    NS_BOTH_THROUGH --> N_DROP_YELLOW : both elapsed · S left demand (.17)
-    NS_BOTH_THROUGH --> NS_BOTH_DROP_YELLOW : both elapsed · no S demand (.18)
+    NS_BOTH_THROUGH --> N_DROP_YELLOW : commit elapsed · S left demand (.17)
+    NS_BOTH_THROUGH --> NS_BOTH_THROUGH_HOLD : commit elapsed · no S demand (.18)
+    NS_BOTH_THROUGH_HOLD --> NS_BOTH_DROP_YELLOW : hold elapsed (.49)
 
     N_DROP_YELLOW --> N_DROP_CLEAR : yellow elapsed (.19)
     N_DROP_CLEAR --> S_LAG : red clearance elapsed (.20)
@@ -99,8 +108,9 @@ stateDiagram-v2
     E_LEAD_YELLOW --> E_LEAD_CLEAR : yellow elapsed (.38)
     E_LEAD_CLEAR --> EW_BOTH_THROUGH : red clearance elapsed (.39)
 
-    EW_BOTH_THROUGH --> E_DROP_YELLOW : both elapsed · W left demand (.40)
-    EW_BOTH_THROUGH --> EW_BOTH_DROP_YELLOW : both elapsed · no W demand (.41)
+    EW_BOTH_THROUGH --> E_DROP_YELLOW : commit elapsed · W left demand (.40)
+    EW_BOTH_THROUGH --> EW_BOTH_THROUGH_HOLD : commit elapsed · no W demand (.41)
+    EW_BOTH_THROUGH_HOLD --> EW_BOTH_DROP_YELLOW : hold elapsed (.51)
 
     E_DROP_YELLOW --> E_DROP_CLEAR : yellow elapsed (.42)
     E_DROP_CLEAR --> W_LAG : red clearance elapsed (.43)

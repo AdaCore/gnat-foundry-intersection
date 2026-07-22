@@ -1,0 +1,41 @@
+context: |-
+  Refinement of the HAL contract surface (Timings, Sources, Display;
+  design/low-level-design.md §7) — what the shared specs promise the core
+  across the bus boundary. How a profile realizes them — rendering, button
+  simulation, lamp symbology, the FLASH_DONT_WALK blink — is out of
+  requirement scope.
+
+  The core has design authority only over the delay semantics it invokes
+  (statement 1); input sampling and output rendering are HAL behavior the core
+  *relies on* but does not implement — they are realized by the HAL profile, not
+  the core — so they are recorded here as assumptions, not requirements:
+
+    - Sample assumption: on each call, the Sources producer sets the snapshot to
+      the current value of every input signal — each crosswalk's pedestrian
+      demand button, each approach's left-turn detector, and the fault-detection
+      line (the hlr_4_signals.4-.6 input alphabets).
+    - Show assumption: on each call, the Display consumer renders every
+      output-signal value the Display_State carries — each vehicle through and
+      left face, each pedestrian head, and each request indicator
+      (hlr_4_signals.1-.3) — to the display surface.
+
+  These assumptions carry hlr_4_signals conformance across the bus; that
+  reliance is discharged by the HAL profile, not verified as a controller
+  requirement (the controller-side refinement of those alphabets is the
+  projection and arming in llr_1_states / llr_2_buses / llr_4_controller).
+
+  All requirement durations are logical milliseconds (llr_1_states.21); the
+  wall-clock span of one is fixed at build time (Timings.Tick_Config), so
+  running faster than real time preserves conformance by construction. The
+  timing HLRs are stated over logical time.
+
+description:
+  1:
+    text: |-
+      When Delay_For is called with Ms, the Timings service shall return only
+      after Ms logical milliseconds have elapsed, where one logical millisecond
+      spans Tick_Period_Us microseconds of wall clock.
+    parent_req:
+      - hlr_3_timing.11
+    implemented_by:
+      - Timings.Delay_For
