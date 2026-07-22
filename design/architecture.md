@@ -1,10 +1,7 @@
 # Code architecture
 
-This describes the high-level architecture of the implementation: the project
-structure, the bus boundary, and the core-loop concept. The low-level
-design — units, state records, and the discrete-event timing model — is in
-`low-level-design.md`, and the verification strategy is in `proof.md`. Edit
-these as needed to maintain them in sync with the code.
+This describes the current state of the architecture; edit this as
+needed to maintain it in sync with the code.
 
 ## Overview
 

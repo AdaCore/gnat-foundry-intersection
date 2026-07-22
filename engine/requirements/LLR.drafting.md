@@ -11,7 +11,7 @@ enumeration literals, durations. The LLR is what the code is checked against:
 a literal LLR ↔ code correspondence is the point of the layer.
 
 Examples are drawn from the traffic-signal controller (its design is
-`design/low-level-design.md`); substitute your own units and entities.
+`design/architecture.md`); substitute your own units and entities.
 
 ## Tracing
 
@@ -53,7 +53,7 @@ that is expected and correct.
   vocabulary, independent of it in readability.
 - **`context` speaks HLRs and design only — never code.** The design is the
   baseline the LLR is written against; the code does not exist yet. Cite the
-  design section (`design/low-level-design.md §N`) and HLR IDs, and name design
+  design section (`design/architecture.md §N`) and HLR IDs, and name design
   entities — but never a source path, an `.ads`/`.adb`, or "the package body".
 - **Keep every field as terse as possible.** Drop anything the design or an
   HLR already states, and drop repeated boilerplate. Say it once, at the right
@@ -155,7 +155,7 @@ LLRs are EARS- and RS.3-linted exactly as HLRs (`reqs validate ears`).
   `engine/requirements/schema/requirement.schema.json`): **`parent_req`** and
   **`description`** (required); optional `context`, `preconditions`,
   `implemented_by`, `algorithm_aspects`, `rationale`, `visibility`.
-  - `context` — the unit, its `design/low-level-design.md` section, and the
+  - `context` — the unit, its `design/architecture.md` section, and the
     HLR machines it refines; HLRs and design only, never code.
   - `implemented_by` — the set of entities this file's statements implement.
   - `preconditions` — the calling contract (e.g. "the core loop calls `Step`
@@ -167,7 +167,7 @@ LLRs are EARS- and RS.3-linted exactly as HLRs (`reqs validate ears`).
 
 ## Procedure
 
-1. Read `design/low-level-design.md` (or the unit's design section) and the
+1. Read `design/architecture.md` (or the unit's design section) and the
    unit's spec; list its entities, state fields, and the HLR statements it
    realizes.
 2. Fix the file layout: one file per unit; child files where one unit
