@@ -1,16 +1,23 @@
 context: |-
   Refinement of the controller's I/O boundary onto the generic buses
-  Source_Bus and Display_Bus (design/low-level-design.md §3): how the
+  Source_Bus and Display_Bus (design/architecture.md §Buses): how the
   hlr_4_signals input signals reach the core (one Sensors_State snapshot) and
   the output signals leave it (one Display_State write). Each bus carries one
-  whole aggregate per call, so a composite state crosses atomically. Two
-  distinct coalescings apply: the source bus coalesces repeated occurrences of
-  an event within one inter-read interval into a single active reading
-  (llr_2_buses.2), and the controller's level-triggered arming then coalesces a
-  demand held active across successive reads into one PENDING request
-  (llr_4_controller_2_left_demand, llr_4_controller_3_pedestrian). Debounce,
-  electrical sensing, and rendering are HAL concerns across the boundary, not
-  specified here.
+  whole aggregate per call, so a composite state crosses atomically.
+
+  In this synchronous revision the source bus holds no state between reads:
+  each Bus_Read samples every input afresh through its producer and reports
+  that instantaneous level (llr_2_buses.2, .3), so a momentary event present
+  only between two reads is not observed. The coalescing that does apply is the
+  controller's level-triggered arming, which folds a demand held active across
+  successive reads into one PENDING request (llr_4_controller_2_left_demand,
+  llr_4_controller_3_pedestrian) — the input coalescing the bus does not itself
+  provide. A future asynchronous revision will add a coalescing latch as bus
+  instance state, cleared on read so momentary events survive; at that point
+  statements 2 and 3 tighten to "since the previous Bus_Read" semantics. That
+  latch is deliberately not required here (design/architecture.md §Buses).
+  Debounce, electrical sensing, and rendering are HAL concerns across the
+  boundary, not specified here.
 
 description:
   1:
@@ -27,10 +34,11 @@ description:
 
   2:
     text: |-
-      When Bus_Read is called, the source bus shall report each input signal as
-      active if that signal's event (a button PRESSED, a left-turn detector
-      VEHICLE_PRESENT, or Fault ASSERTED) has occurred at least once since the
-      previous Bus_Read.
+      When Bus_Read is called, the source bus shall report each input signal
+      with the value sampled from its producer during that call — the signal's
+      level at that call: a button as PRESSED or RELEASED, a left-turn detector
+      as VEHICLE_PRESENT or NO_VEHICLE, and the fault line as ASSERTED or
+      NOT_ASSERTED.
     parent_req:
       - hlr_4_signals.4
       - hlr_4_signals.5
@@ -40,9 +48,9 @@ description:
 
   3:
     text: |-
-      When Bus_Read is called, the source bus shall clear each captured event,
-      retaining no captured value across a Bus_Read, so that a signal reports as
-      active in a later Bus_Read only if its event has recurred since.
+      When Bus_Read is called, the source bus shall retain no value from that
+      call to the next, so each Bus_Read reports only the levels sampled during
+      it, independent of any earlier Bus_Read.
     parent_req:
       - hlr_4_signals.4
       - hlr_4_signals.5
