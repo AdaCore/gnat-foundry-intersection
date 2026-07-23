@@ -4,7 +4,8 @@ context: |-
   machine-state sets of the machine HLRs, the I/O surfaces (Sensors_State,
   Display_State), and one named Duration_Ms constant per hlr_3_timing
   duration, plus the LLR-chosen input sampling period T_SAMPLE
-  (statement 30).
+  (statement 30) and the alignment constraint that every dwell is a multiple
+  of it (statement 31).
 
   Valuation. hlr_3_timing fixes T_WALK / T_FDW / T_BUFFER numerically and
   leaves the kinematic durations (T_YELLOW, T_REDCLEAR, T_BARRIER) and policy
@@ -342,6 +343,18 @@ description:
     implemented_by:
       - States.T_Sample
 
+  # ---- the sampling-alignment constraint on the valuation ----
+  31:
+    text: |-
+      The States package shall value each of the dwell durations T_WALK,
+      T_FDW, T_BUFFER, T_YELLOW, T_REDCLEAR, T_BARRIER, T_AXIS, T_LEAD, T_LAG,
+      and T_BOTH_MIN at an integral multiple of the sampling period T_SAMPLE
+      (statement 30).
+    parent_req:
+      - hlr_3_timing.11
+    implemented_by:
+      - States.T_Sample
+
 algorithm_aspects: |-
   The margin inequalities (27, 28) are the static discharge of the
   pedestrian-conflict invariant hlr_0_safety.1 via hlr_3_timing.10, derived
@@ -380,6 +393,16 @@ algorithm_aspects: |-
   plus one iteration's processing. Valuing T_SAMPLE at half of T_ACK leaves
   the other half of the budget as margin for that processing and the display
   rendering; any re-valuation must keep twice T_SAMPLE at most T_ACK.
+
+  The alignment constraint (31) is what makes the fixed-cadence step engine
+  exact (llr_4_controller.17/.18): with every dwell a multiple of T_SAMPLE —
+  and the computed both-through residual a signed combination of dwells,
+  hence also a multiple — every timed transition's boundary falls exactly on
+  a sampling boundary, so advancing the timers by exactly T_SAMPLE per step
+  fires each transition on its precise boundary with no drift. Any
+  re-valuation of a dwell (or of T_SAMPLE itself) must preserve this
+  divisibility, or the schedule of hlr_3_timing would silently stretch to
+  the next sampling boundary.
 
   The floor inequality (29) instantiates hlr_3_timing.12 for the worst case
   (both lefts served): the both-through commit interval computed by

@@ -2,24 +2,26 @@ context: |-
   Refinement of the controller frame onto Controller
   (design/low-level-design.md §5): the composite state record, the power-on
   state, the Moore output projection with its safety postcondition, and the
-  discrete-event step engine. The per-machine behavior is refined in the child
+  fixed-cadence step engine. The per-machine behavior is refined in the child
   files — llr_4_controller_1_vehicle (the phase sequencer),
   llr_4_controller_2_left_demand, and llr_4_controller_3_pedestrian.
 
   The frame realizes the supervisory machine of hlr_1_modes and the
-  discrete-event timing model: the vehicle sequencer and each pedestrian
-  service in its SERVING superstate are timed; the left-demand machines and
-  the supervisor are not. Each Step re-samples the inputs, applies the timed
-  transition of any machine whose dwell has elapsed since the previous step —
-  evaluating that transition's guards and its GREEN-edge couplings against the
-  just-sampled inputs — then emits the resulting state and reports Wait: the
-  minimum time to the next timed transition, capped at the sampling period
-  T_SAMPLE (llr_1_states.30). The core loop (llr_5_core_loop) sleeps Wait and
-  steps again, so the inputs are re-sampled at least once every T_SAMPLE while
-  a dwell runs out; steps at which no dwell has elapsed are pure sampling
-  steps — they arm the freshly read inputs (a pedestrian press lights its
-  request lamp on that very step) and re-emit the current state's Moore
-  outputs unchanged. Evaluating a transition on the boundary it occurs
+  fixed-cadence sampled timing model: the vehicle sequencer and each
+  pedestrian service in its SERVING superstate are timed; the left-demand
+  machines and the supervisor are not. Each Step accounts for exactly one
+  sampling period T_SAMPLE (llr_1_states.30) of logical time: it re-samples
+  the inputs, applies the timed transition of any machine whose remaining
+  dwell elapses within this step's interval — evaluating that transition's
+  guards and its GREEN-edge couplings against the just-sampled inputs —
+  advances every other running timer by T_SAMPLE, then emits the resulting
+  state. The core loop (llr_5_core_loop) sleeps exactly T_SAMPLE and steps
+  again, so the inputs are re-sampled once every T_SAMPLE; steps at which no
+  dwell has elapsed are pure sampling steps — they arm the freshly read
+  inputs (a pedestrian press lights its request lamp on that very step) and
+  re-emit the current state's Moore outputs unchanged. All timing state is
+  carried by the timer fields of Controller_State (Veh_Timer, Ped_Timer) —
+  Step returns no timing value. Evaluating a transition on the boundary it occurs
   on, rather than pre-computing it a dwell earlier, is what lets an input
   registered before a through's GREEN onset take effect at that onset (statement
   22): a pedestrian request or left-turn detection is not missed by the very
@@ -34,8 +36,8 @@ preconditions:
   - The core loop calls Initialize exactly once, before the first Step.
   - The core loop calls Step once per iteration, passing the sensor snapshot
     just read from the source bus, writing Outputs to the display bus
-    immediately after, and delaying Wait logical milliseconds before the next
-    call (llr_5_core_loop).
+    immediately after, and delaying T_SAMPLE logical milliseconds before the
+    next call (llr_5_core_loop).
 
 description:
   # ---- the composite state ----
@@ -178,16 +180,14 @@ description:
 
   15:
     text: |-
-      While State.Mode is FAULT, Step shall set Wait to the sampling period
-      T_SAMPLE (llr_1_states.30) as its pacing interval and return without
-      arming, advancing, or deriving edges for any NORMAL_OPERATION
-      sub-machine.
+      While State.Mode is FAULT, Step shall return without arming, advancing,
+      or deriving edges for any NORMAL_OPERATION sub-machine.
     parent_req:
       - hlr_1_modes.4
     implemented_by:
       - Controller.Step
 
-  # ---- Step: advance, emit, wait ----
+  # ---- Step: advance and emit ----
   16:
     text: |-
       While State.Mode is NORMAL_OPERATION, Step shall set Outputs to
@@ -203,11 +203,10 @@ description:
 
   17:
     text: |-
-      While State.Mode is NORMAL_OPERATION, Step shall set Wait to the minimum
-      of the sampling period T_SAMPLE (llr_1_states.30), State.Veh_Timer, and
-      every State.Ped_Timer (C) whose crosswalk is in a
-      Serving_Pedestrian_State, taken over the state resulting from this step's
-      transition.
+      While State.Mode is NORMAL_OPERATION, Step shall account for exactly one
+      sampling period T_SAMPLE (llr_1_states.30) of logical time, advancing
+      every running timer — State.Veh_Timer, and each State.Ped_Timer (C)
+      whose crosswalk is in a Serving_Pedestrian_State — by exactly T_SAMPLE.
     parent_req:
       - hlr_3_timing.11
       - hlr_3_timing.13
@@ -218,9 +217,9 @@ description:
     text: |-
       While State.Mode is NORMAL_OPERATION, Step shall apply the timed transition
       (Advance_Vehicle, Advance_Ped) of each timed machine whose remaining dwell
-      has elapsed as of this step, decrementing every other running timer by that
-      same elapsed interval and evaluating each fired transition's guard against
-      this step's armed inputs.
+      is at most T_SAMPLE as of this step — the step on whose boundary that
+      dwell elapses (llr_1_states.31) — evaluating each fired transition's
+      guard against this step's armed inputs.
     parent_req:
       - hlr_3_timing.11
     implemented_by:
@@ -272,20 +271,22 @@ description:
       - Controller.Step
 
 algorithm_aspects: |-
-  Wait is well-defined because State.Veh_Timer always runs in
+  The running timers are well-defined because State.Veh_Timer always runs in
   NORMAL_OPERATION (the sequencer has no untimed state); a Ped_Timer runs
   exactly while its crosswalk is in the SERVING superstate.
 
-  Capping Wait at T_SAMPLE (17) turns the discrete-event cadence into a
-  sampled one without moving any boundary: each step still decrements the
-  running timers by exactly the interval slept (18), and the last step before
-  a dwell runs out returns the remainder (below T_SAMPLE), so timed
-  transitions keep firing on their exact boundaries. The intervening steps
-  are pure sampling steps whose only state effects are input arming; their
-  emitted outputs are the unchanged Moore projection of the unchanged state.
-  This is what realizes the acknowledgment bound (hlr_3_timing.13): a press
-  latched by the source bus is delivered by a Read_Sources at most T_SAMPLE
-  after it lands (llr_5_core_loop.4), armed by that step's arming
+  The fixed T_SAMPLE advance (17) keeps every boundary exact: every dwell
+  valuation is an integral multiple of T_SAMPLE (llr_1_states.31), and the
+  computed both-through residual is a signed combination of those dwells,
+  hence also a multiple — so every remaining dwell is always a multiple of
+  T_SAMPLE, and firing a timed transition on the step where the remainder is
+  at most T_SAMPLE (18) fires it exactly on its boundary, with no drift. The
+  intervening steps are pure sampling steps whose only state effects are the
+  timer decrements and input arming; their emitted outputs are the unchanged
+  Moore projection of the unchanged machine states. This is what realizes the
+  acknowledgment bound (hlr_3_timing.13): a press latched by the source bus
+  is delivered by a Read_Sources at most T_SAMPLE after it lands
+  (llr_5_core_loop.4), armed by that step's arming
   (llr_4_controller_3_pedestrian.10/.11), and carried out on the same
   iteration's display write (llr_5_core_loop.2).
 
@@ -307,11 +308,12 @@ algorithm_aspects: |-
   the press that raised it (hlr_6_pedestrian.7): the lamp is a Moore function of
   the post-arm state.
 
-  The FAULT Wait (statement 15) is pacing only: FAULT has no timed transitions
-  and its outputs never change (the flash is realized HAL-side), so any fixed
-  positive value would serve hlr_1_modes.4. T_SAMPLE is used so the loop keeps
-  one uniform wake-up cadence in both modes and llr_5_core_loop.4 holds
-  unconditionally — the source latch keeps being drained on the same period.
+  FAULT needs no timing of its own (statement 15): it has no timed
+  transitions and its outputs never change (the flash is realized HAL-side),
+  so a FAULT step just re-emits the fault projection (14) and touches nothing
+  else. The loop's fixed T_SAMPLE cadence (llr_5_core_loop.2) is uniform by
+  construction across both modes, so llr_5_core_loop.4 holds unconditionally —
+  the source latch keeps being drained on the same period.
 
 rationale: |-
   hlr_0_safety.1 is deliberately not a runtime contract here — unlike the

@@ -15,10 +15,9 @@ through its stages:
 - Poll the external sources (sensors that indicate cars wanting a left turn, or pedestrians wanting to cross)
 - Compute the next state of the traffic light
 - Update the traffic light outputs
-- Wait the delay the controller asked for: the time to the next timed
-  transition, capped at the sensor sampling period T_SAMPLE (100 ms,
-  `llr_1_states.30`), so the loop wakes at the earlier of the next state
-  change and the next sampling point
+- Wait the fixed sampling period T_SAMPLE (100 ms, `llr_1_states.30`), so
+  the loop runs at a uniform cadence and every iteration is both a sampling
+  point and a potential state change
 
 ## Buses
 
@@ -67,7 +66,8 @@ the implementation of the consumer, which is again provided by the HAL.
 
 The core loop is implemented as a generic subprogram, which is parameterized by:
 
-- a "Delay_For" procedure, which is used to wait for the required time
+- a "Delay_For" procedure, which the loop uses to sleep the fixed sampling
+  period T_SAMPLE at the end of every iteration
 - a procedure which reads the source data bus, sampling every external source
   (the sensors) into a `States.Sensors_State` "out" parameter and clearing the
   latch when the value is read
@@ -75,17 +75,21 @@ The core loop is implemented as a generic subprogram, which is parameterized by:
 
 ### Sampled cadence and the acknowledgment chain
 
-The delay slept at the end of each iteration is the `Wait` returned by
-`Controller.Step`: the time to the next timed transition, **capped at the
-sensor sampling period T_SAMPLE = 100 ms** (`llr_1_states.30`); in FAULT mode
-`Wait` is T_SAMPLE outright, as a pure pacing interval. The cap lives in the
-controller — which already owns discrete-event time — not in the loop: the
-loop carries no clock and no cadence knowledge, it just passes `Wait` through
-to `Delay_For`. Timed boundaries stay exact: the last step before a dwell runs
-out returns the remainder (below T_SAMPLE), so timed transitions still fire on
-their boundary; the intervening iterations are pure sampling steps that arm
-freshly read inputs and re-emit the current state's unchanged Moore outputs
-(so the display bus is re-written every ~100 ms, mostly with unchanged
+The delay slept at the end of each iteration is the **fixed sensor sampling
+period T_SAMPLE = 100 ms** (`llr_1_states.30`): the loop calls `Delay_For
+(States.T_Sample)` every iteration, in every mode — FAULT included, so no
+special pacing value is needed there. The cadence lives in the loop; the
+timers live in the controller. `Controller.Step` has no timing out-parameter:
+each call accounts for exactly one T_SAMPLE, advancing every running timer
+(the fields of `Controller_State`: `Veh_Timer` and the per-crosswalk
+`Ped_Timer` array) by exactly
+T_SAMPLE. Timed boundaries stay exact under this fixed advance because every
+dwell duration is an integral multiple of T_SAMPLE (`llr_1_states.31`): a
+timed transition fires on the step where its remaining dwell is <= T_SAMPLE,
+which is precisely its boundary — there is no drift and no fractional
+remainder to sleep. The intervening iterations are pure sampling steps that
+arm freshly read inputs and re-emit the current state's unchanged Moore
+outputs (so the display bus is re-written every 100 ms, mostly with unchanged
 values).
 
 This cadence is what bounds pedestrian acknowledgment (T_ACK = 0.2 s,

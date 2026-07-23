@@ -2,7 +2,8 @@ context: |-
   Refinement of the controller's driving cycle onto State_Machine_Loop
   (design/architecture.md §"The core loop"): the generic loop that fires every
   HLR trigger by moving input signals in (Read_Sources), output signals out
-  (Write_Display), and time forward (Delay_For with Step's Wait). It is
+  (Write_Display), and time forward (Delay_For of the fixed sampling period
+  T_SAMPLE every iteration). It is
   generic over exactly those three procedures, so the core never names a HAL
   unit (wiring in llr_7_main), and it owns the Controller_State locally, so
   the composite state exists nowhere else. The proof-only harness
@@ -24,7 +25,7 @@ description:
       While running, State_Machine_Loop shall perform each iteration as, in
       order: Read_Sources into the sensor snapshot, Controller.Step on the
       state with that snapshot, Write_Display of the outputs Step produced,
-      and Delay_For of the Wait Step produced.
+      and Delay_For of the sampling period T_SAMPLE (llr_1_states.30).
     parent_req:
       - hlr_4_signals.1
       - hlr_4_signals.2
@@ -55,18 +56,20 @@ description:
       - State_Machine_Loop
 
 algorithm_aspects: |-
-  The four-stage order realizes the sampled discrete-event contract
-  (llr_4_controller): Step emits the outputs of the current composite state
-  and returns Wait — the time to the next timed transition capped at the
-  sampling period T_SAMPLE (llr_4_controller.15/.17) — Write_Display
-  publishes them, and Delay_For sleeps exactly that Wait. The loop therefore
-  wakes at the earlier of the next timed transition and the next sampling
-  point: boundary iterations advance the machines exactly on their dwell, so
-  the controller's timing (hlr_3_timing) stays real on the target, while the
-  intervening sampling iterations re-read the inputs and re-emit the
-  unchanged Moore outputs. Because Wait never exceeds T_SAMPLE on any path,
-  the loop's plain pass-through of Wait is all statement 4 requires — the
-  loop carries no clock, no cadence knowledge, and no second code path. The
+  The four-stage order realizes the fixed-cadence sampled contract
+  (llr_4_controller): each Step accounts for exactly one sampling period of
+  logical time on the timers held in the loop's Controller_State
+  (llr_4_controller.17/.18), Write_Display publishes the outputs it emits,
+  and Delay_For sleeps exactly T_SAMPLE. The loop therefore wakes on every
+  sampling boundary — and because every dwell valuation is a multiple of
+  T_SAMPLE (llr_1_states.31), every timed transition's boundary is a sampling
+  boundary, so boundary iterations advance the machines exactly on their
+  dwell and the controller's timing (hlr_3_timing) stays real on the target,
+  while the intervening sampling iterations re-read the inputs and re-emit
+  the unchanged Moore outputs. The fixed cadence satisfies statement 4 by
+  construction — Read_Sources runs exactly once per T_SAMPLE on every path
+  and in both modes — and the loop still carries no clock and no second code
+  path: the cadence is the single constant it passes to Delay_For. The
   accuracy of the sleep itself is the HAL contract (llr_6_hal.1).
 
 rationale: |-

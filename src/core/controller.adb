@@ -428,22 +428,20 @@ is
    procedure Step
      (State   : in out Controller_State;
       Sensors : States.Sensors_State;
-      Outputs : out States.Display_State;
-      Wait    : out States.Duration_Ms)
+      Outputs : out States.Display_State)
    is
       Prev_V : constant Vehicle_Sequencer_State := State.Vehicle;
       Rose   : Approach_Flags;
    begin
       --  1. Fault pre-emption: entering FAULT abandons every NORMAL_OPERATION
       --     sub-machine (`hlr_1_modes.3`); FAULT is terminal (`hlr_1_modes.4`).
-      --     Wait is T_SAMPLE as pacing only -- FAULT has no timed transitions;
-      --     one uniform wake-up cadence in both modes keeps the loop's
-      --     sampling guarantee (`llr_5_core_loop.4`) unconditional
-      --     (`llr_4_controller.15`).
+      --     In FAULT, Step just emits the fault outputs and returns without
+      --     arming, advancing, or deriving edges (`llr_4_controller.15`); the
+      --     loop's uniform T_SAMPLE cadence needs no pacing value from the
+      --     controller (`llr_5_core_loop.4` holds by construction).
       if State.Mode = Fault or else Sensors.Fault = Asserted then
          State.Mode := Fault;
          Outputs := Project_Outputs (State);
-         Wait := T_Sample;
          return;
       end if;
 
@@ -475,42 +473,30 @@ is
       --  3. Emit the current (post-arm) composite state's outputs.
       Outputs := Project_Outputs (State);
 
-      --  4. Wait = min time to the next timed transition (the smallest running
-      --     timer; Veh_Timer always runs in NORMAL_OPERATION, so the min is
-      --     defined), capped at the sampling period T_SAMPLE
-      --     (`llr_4_controller.17`). Steps where the cap wins are pure
-      --     sampling steps: input arming plus re-emission of the unchanged
-      --     Moore outputs.
-      Wait := States.Duration_Ms'Min (T_Sample, State.Veh_Timer);
-      for C in Crosswalk loop
-         if Running_Ped (State.Ped (C)) and then State.Ped_Timer (C) < Wait
-         then
-            Wait := State.Ped_Timer (C);
-         end if;
-      end loop;
-
-      --  5. Advance every timed machine by Wait; the timer(s) that reach 0 fire
-      --     their timed transition. The subtraction runs only on the strictly
-      --     larger branch, so it cannot underflow. When the T_SAMPLE cap won
-      --     stage 4, Wait is strictly below every running timer: nothing
-      --     fires and every running timer is decremented -- the pure sampling
-      --     step.
-      if State.Veh_Timer <= Wait then
+      --  4. Advance every running timer by exactly one T_SAMPLE
+      --     (`llr_4_controller.17`); a machine whose remaining dwell is at
+      --     most T_SAMPLE fires its timed transition on this step -- its
+      --     exact boundary, since every dwell is a multiple of T_SAMPLE
+      --     (`llr_4_controller.18`, `llr_1_states.31`). The subtraction runs
+      --     only on the strictly-larger branch, so it cannot underflow.
+      --     Steps where nothing fires are the pure sampling steps: input
+      --     arming plus re-emission of the unchanged Moore outputs.
+      if State.Veh_Timer <= T_Sample then
          Advance_Vehicle (State);
       else
-         State.Veh_Timer := State.Veh_Timer - Wait;
+         State.Veh_Timer := State.Veh_Timer - T_Sample;
       end if;
       for C in Crosswalk loop
          if Running_Ped (State.Ped (C)) then
-            if State.Ped_Timer (C) <= Wait then
+            if State.Ped_Timer (C) <= T_Sample then
                Advance_Ped (State, C);
             else
-               State.Ped_Timer (C) := State.Ped_Timer (C) - Wait;
+               State.Ped_Timer (C) := State.Ped_Timer (C) - T_Sample;
             end if;
          end if;
       end loop;
 
-      --  6. GREEN-edge derivations off the vehicle transition just made
+      --  5. GREEN-edge derivations off the vehicle transition just made
       --     (unchanged vehicle => no edges). A rising edge is a through face
       --     that is GREEN now and was not before.
       for A in Approach loop
