@@ -11,10 +11,6 @@ is
 
    use States;
 
-   --  Nominal pacing delay used while in the terminal FAULT mode; FAULT has no
-   --  timed transitions (`hlr_1_modes.4`), so this only keeps the loop ticking.
-   Fault_Dwell : constant States.Duration_Ms := 1_000;
-
    type Approach_Flags is array (States.Approach) of Boolean;
 
    --  The vehicle face outputs of one sequencer state: the Through and Left
@@ -373,33 +369,35 @@ is
    --  sub-sequence (`hlr_6_pedestrian.12/.13/.17/.18`). Because both buffer
    --  exits key off time-in-SERVING (= T_WALK + T_FDW + T_BUFFER), and the .15
    --  latch does not reset the timer, running the per-sub-state timers in
-   --  series realizes that without a separate serving clock.
+   --  series realizes that without a separate serving clock. The Running_Ped
+   --  precondition (discharged by the sole call site's guard) narrows the
+   --  case to Serving_Pedestrian_State, so it is total over the four SERVING
+   --  sub-states with no dead alternative.
    procedure Advance_Ped
-     (State : in out Controller_State; C : States.Crosswalk) is
+     (State : in out Controller_State; C : States.Crosswalk)
+   with Pre => Running_Ped (State.Ped (C))
+   is
    begin
-      case State.Ped (C) is
-         when Walk_Interval                                      =>
+      case States.Serving_Pedestrian_State'(State.Ped (C)) is
+         when Walk_Interval           =>
             --  .12  WALK -> CHANGE
             State.Ped (C) := Change_Interval;
             State.Ped_Timer (C) := T_FDW;
 
-         when Change_Interval                                    =>
+         when Change_Interval         =>
             --  .13  CHANGE -> BUFFER
             State.Ped (C) := Buffer_Interval;
             State.Ped_Timer (C) := T_Buffer;
 
-         when Buffer_Interval                                    =>
+         when Buffer_Interval         =>
             --  .17  BUFFER -> NO_REQUEST
             State.Ped (C) := No_Pedestrian_Request;
             State.Ped_Timer (C) := 0;
 
-         when Buffer_Interval_Latched                            =>
+         when Buffer_Interval_Latched =>
             --  .18  LATCHED -> PENDING
             State.Ped (C) := Pending_Pedestrian_Request;
             State.Ped_Timer (C) := 0;
-
-         when No_Pedestrian_Request | Pending_Pedestrian_Request =>
-            null;  --  not running; unreachable (guarded by Running_Ped)
       end case;
    end Advance_Ped;
 
@@ -438,10 +436,14 @@ is
    begin
       --  1. Fault pre-emption: entering FAULT abandons every NORMAL_OPERATION
       --     sub-machine (`hlr_1_modes.3`); FAULT is terminal (`hlr_1_modes.4`).
+      --     Wait is T_SAMPLE as pacing only -- FAULT has no timed transitions;
+      --     one uniform wake-up cadence in both modes keeps the loop's
+      --     sampling guarantee (`llr_5_core_loop.4`) unconditional
+      --     (`llr_4_controller.15`).
       if State.Mode = Fault or else Sensors.Fault = Asserted then
          State.Mode := Fault;
          Outputs := Project_Outputs (State);
-         Wait := Fault_Dwell;
+         Wait := T_Sample;
          return;
       end if;
 
@@ -473,9 +475,13 @@ is
       --  3. Emit the current (post-arm) composite state's outputs.
       Outputs := Project_Outputs (State);
 
-      --  4. Wait = min time to the next event: the smallest running timer.
-      --     Veh_Timer always runs in NORMAL_OPERATION, so the min is defined.
-      Wait := State.Veh_Timer;
+      --  4. Wait = min time to the next timed transition (the smallest running
+      --     timer; Veh_Timer always runs in NORMAL_OPERATION, so the min is
+      --     defined), capped at the sampling period T_SAMPLE
+      --     (`llr_4_controller.17`). Steps where the cap wins are pure
+      --     sampling steps: input arming plus re-emission of the unchanged
+      --     Moore outputs.
+      Wait := States.Duration_Ms'Min (T_Sample, State.Veh_Timer);
       for C in Crosswalk loop
          if Running_Ped (State.Ped (C)) and then State.Ped_Timer (C) < Wait
          then
@@ -485,7 +491,10 @@ is
 
       --  5. Advance every timed machine by Wait; the timer(s) that reach 0 fire
       --     their timed transition. The subtraction runs only on the strictly
-      --     larger branch, so it cannot underflow.
+      --     larger branch, so it cannot underflow. When the T_SAMPLE cap won
+      --     stage 4, Wait is strictly below every running timer: nothing
+      --     fires and every running timer is decremented -- the pure sampling
+      --     step.
       if State.Veh_Timer <= Wait then
          Advance_Vehicle (State);
       else

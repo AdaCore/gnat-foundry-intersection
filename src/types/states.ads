@@ -324,4 +324,12 @@ is
    --  lead/lag/yellow/red-clear/barrier intervals that actually run, so that
    --  T_Axis is held independent of left-turn demand (see Controller).
 
+   --  Input sampling period (hlr_3_timing.13 realization): the LLR-chosen
+   --  period realizing the acknowledgment bound T_ACK = 0.2 s. The controller
+   --  caps its returned Wait at T_SAMPLE, so the core loop re-samples the
+   --  inputs at least once every T_SAMPLE. The valuation keeps
+   --  2 x T_SAMPLE <= T_ACK: one period of worst-case latch-to-read latency,
+   --  and one period of margin for processing and display rendering.
+   T_Sample : constant Duration_Ms := 100;  --  input sampling period, 0.1 s
+
 end States;

@@ -3,7 +3,8 @@ context: |-
   (design/low-level-design.md §2): the hlr_4_signals alphabets, the
   machine-state sets of the machine HLRs, the I/O surfaces (Sensors_State,
   Display_State), and one named Duration_Ms constant per hlr_3_timing
-  duration.
+  duration, plus the LLR-chosen input sampling period T_SAMPLE
+  (statement 30).
 
   Valuation. hlr_3_timing fixes T_WALK / T_FDW / T_BUFFER numerically and
   leaves the kinematic durations (T_YELLOW, T_REDCLEAR, T_BARRIER) and policy
@@ -331,6 +332,16 @@ description:
     implemented_by:
       - States.T_Axis
 
+  # ---- the input sampling period (T_ACK realization) ----
+  30:
+    text: |-
+      The States package shall value the input sampling period T_SAMPLE at
+      100 milliseconds.
+    parent_req:
+      - hlr_3_timing.13
+    implemented_by:
+      - States.T_Sample
+
 algorithm_aspects: |-
   The margin inequalities (27, 28) are the static discharge of the
   pedestrian-conflict invariant hlr_0_safety.1 via hlr_3_timing.10, derived
@@ -360,6 +371,15 @@ algorithm_aspects: |-
     = 40 - 2 - 4 - 6 = 28 s. The leading left is safe by construction (it is
     released before, not after, its axis's through onsets, and held RED from
     the previous axis by the barrier case above).
+
+  T_SAMPLE (30) is the LLR-chosen sampling period realizing the
+  acknowledgment bound hlr_3_timing.13 (T_ACK = 0.2 s, i.e. 200 logical
+  milliseconds): the core loop performs Read_Sources at least once every
+  T_SAMPLE (llr_5_core_loop.4) and emits the resulting outputs in the same
+  iteration, so press-to-indicator latency is bounded by one sampling period
+  plus one iteration's processing. Valuing T_SAMPLE at half of T_ACK leaves
+  the other half of the budget as margin for that processing and the display
+  rendering; any re-valuation must keep twice T_SAMPLE at most T_ACK.
 
   The floor inequality (29) instantiates hlr_3_timing.12 for the worst case
   (both lefts served): the both-through commit interval computed by

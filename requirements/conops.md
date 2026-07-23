@@ -77,6 +77,7 @@ Pedestrian service is demand-led.
 - **4.1 ◆** Service is pedestrian-actuated, with a push-button detector at each crosswalk. — *decision; MUTCD §4I.05*
 - **4.2 ✔** A request indicator (pilot light) at the button stays dark until actuation, then remains illuminated until the WALK indication for that crosswalk is displayed. — *MUTCD §4I.05 ¶16*
 - **4.3 ◆** A pending pedestrian request is served at the next parallel through-phase green for which it is registered before that green begins; a request arriving too late waits one full cycle. — *decision*
+- **4.4 ◆** A push-button actuation is acknowledged promptly: whenever an actuation registers a request (§4.2, §4.3), the request indicator illuminates within 0.2 s of that actuation. — *decision; cf. MUTCD §4I.05 ¶16*
 
 # 5. Operating Modes
 

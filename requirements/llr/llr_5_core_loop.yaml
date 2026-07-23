@@ -1,12 +1,12 @@
 context: |-
   Refinement of the controller's driving cycle onto State_Machine_Loop
-  (design/low-level-design.md §6): the generic loop that fires every HLR
-  trigger by moving input signals in (Read_Sources), output signals out
+  (design/architecture.md §"The core loop"): the generic loop that fires every
+  HLR trigger by moving input signals in (Read_Sources), output signals out
   (Write_Display), and time forward (Delay_For with Step's Wait). It is
   generic over exactly those three procedures, so the core never names a HAL
   unit (wiring in llr_7_main), and it owns the Controller_State locally, so
   the composite state exists nowhere else. The proof-only harness
-  State_Machine_Loop_Proof (§1) carries no requirements.
+  State_Machine_Loop_Proof carries no requirements.
 
 description:
   1:
@@ -45,17 +45,48 @@ description:
     implemented_by:
       - State_Machine_Loop
 
+  4:
+    text: |-
+      While running, State_Machine_Loop shall perform Read_Sources at least
+      once every T_SAMPLE logical milliseconds (llr_1_states.30).
+    parent_req:
+      - hlr_3_timing.13
+    implemented_by:
+      - State_Machine_Loop
+
 algorithm_aspects: |-
-  The four-stage order realizes the discrete-event contract
-  (llr_4_controller): Step emits the outputs of the state whose dwell is
-  Wait, Write_Display publishes them, and Delay_For sleeps exactly that dwell
-  — so the display holds each composite state for its scheduled duration and
-  the next iteration wakes at the nearest timed transition. Passing Wait
-  through unmodified is what makes the controller's timing (hlr_3_timing)
-  real on the target; the accuracy of the sleep itself is the HAL contract
-  (llr_6_hal.1).
+  The four-stage order realizes the sampled discrete-event contract
+  (llr_4_controller): Step emits the outputs of the current composite state
+  and returns Wait — the time to the next timed transition capped at the
+  sampling period T_SAMPLE (llr_4_controller.15/.17) — Write_Display
+  publishes them, and Delay_For sleeps exactly that Wait. The loop therefore
+  wakes at the earlier of the next timed transition and the next sampling
+  point: boundary iterations advance the machines exactly on their dwell, so
+  the controller's timing (hlr_3_timing) stays real on the target, while the
+  intervening sampling iterations re-read the inputs and re-emit the
+  unchanged Moore outputs. Because Wait never exceeds T_SAMPLE on any path,
+  the loop's plain pass-through of Wait is all statement 4 requires — the
+  loop carries no clock, no cadence knowledge, and no second code path. The
+  accuracy of the sleep itself is the HAL contract (llr_6_hal.1).
 
 rationale: |-
   Statement 3's No_Return discharges "remain in FAULT" (hlr_1_modes.4) too:
   FAULT is a driven state — the loop keeps ticking and re-emitting the fault
   outputs — not a halt.
+
+  Statement 4 refines the acknowledgment bound hlr_3_timing.13 (T_ACK =
+  0.2 s): a press landing between reads is captured by the source-bus latch
+  (llr_2_buses.2), the next Read_Sources — at most T_SAMPLE later — delivers
+  it, the same iteration's Step arms it into the pedestrian machine
+  (llr_4_controller_3_pedestrian.10/.11), and the same iteration's
+  Write_Display carries the REQUEST_PENDING indicator (statement 2). Press to
+  indicator is thus bounded by one sampling period plus one iteration's
+  processing and rendering, which the factor-of-two budget in T_SAMPLE's
+  valuation absorbs (llr_1_states.30).
+
+  The durable record of the coalesced inputs kept in the main loop is the
+  loop's local Controller_State itself: arming latches a seen press as
+  PENDING_PEDESTRIAN_REQUEST or BUFFER_INTERVAL_LATCHED, so no separate
+  loop-side input record exists. Inter-read coalescing stays in the source
+  bus (llr_2_buses.2/.3); across-read coalescing stays in the controller's
+  level-triggered, state-guarded arming.

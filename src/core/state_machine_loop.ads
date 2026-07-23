@@ -1,8 +1,10 @@
 --  The core loop -- the centrepiece of the controller (design/architecture.md
 --  §"The core loop"). A generic subprogram that drives the state machine
 --  through its four stages forever: poll the external sources, compute the
---  next state, update the outputs, then wait the delay the current state
---  requires.
+--  next state, update the outputs, then wait the delay the controller asked
+--  for -- the time to the next timed transition, capped at the sampling
+--  period States.T_Sample, so the sources are re-read at least once every
+--  T_SAMPLE (llr_5_core_loop.4).
 --
 --  It is parameterized by exactly the consumer/producer procedures of the two
 --  data buses -- never the bus packages themselves -- so the loop stays
@@ -16,7 +18,7 @@ with States;
 
 generic
    with procedure Delay_For (Ms : States.Duration_Ms);
-   --  Wait the delay required by the current state
+   --  Wait the delay the controller returned -- at most States.T_Sample
    --  (Timings.Delay_For's signature).
 
    with procedure Read_Sources (Sensors : out States.Sensors_State);

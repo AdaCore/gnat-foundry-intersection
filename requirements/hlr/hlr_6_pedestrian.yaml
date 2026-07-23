@@ -19,8 +19,8 @@ context: |-
     - the request indicator output signal (the lamp) — driven by this logic; value
       set fixed in `4_signals`.
 
-  The interval durations T_WALK, T_FDW, and T_BUFFER are named and fixed in
-  `3_timing`.
+  The interval durations T_WALK, T_FDW, and T_BUFFER, and the request
+  acknowledgment bound T_ACK, are named and fixed in `3_timing`.
 
 description:
   1:
@@ -57,9 +57,11 @@ description:
     text: |-
       While a crosswalk's pedestrian control machine is in NO_PEDESTRIAN_REQUEST, when
       that crosswalk's pedestrian demand button input signal becomes PRESSED, the
-      controller shall enter PENDING_PEDESTRIAN_REQUEST for that crosswalk.
+      controller shall enter PENDING_PEDESTRIAN_REQUEST for that crosswalk within
+      T_ACK of the press.
     source:
       - CONOPS §4.1
+      - CONOPS §4.4
 
   # ---- PENDING_PEDESTRIAN_REQUEST ----
 
@@ -156,10 +158,12 @@ description:
       While a crosswalk's pedestrian control machine is in
       SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL, when that crosswalk's pedestrian
       demand button input signal becomes PRESSED, the controller shall enter
-      SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL_LATCHED for that crosswalk.
+      SERVING_PEDESTRIAN_REQUEST.BUFFER_INTERVAL_LATCHED for that crosswalk within
+      T_ACK of the press.
     source:
       - CONOPS §4.1
       - CONOPS §4.2
+      - CONOPS §4.4
 
   16:
     text: |-

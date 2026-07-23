@@ -21,16 +21,20 @@
 --  but the controller is nine concurrent timed machines (one sequencer + four
 --  pedestrian services) with independent time bases -- a pedestrian service
 --  (T_WALK + T_FDW + T_BUFFER = 16 s) spans several vehicle states, and each
---  crosswalk can be at a different phase. So "the delay required by the current
---  state" is read as a **discrete-event, min-time-to-next-event** model: each
---  timed machine carries the time left in its current state; `Step` emits the
---  current composite state's outputs, returns `Wait` = the minimum of those
---  remaining times (the nearest transition), and advances every machine by
---  `Wait`, firing whichever transitions come due. Input edges landing between
---  wake-ups are held by the source bus's coalescing latch
---  (design/architecture.md §Buses) and serviced at the next wake, so the model
---  never misses a timed transition and never drops an input; worst-case input
---  latency is one inter-event interval, which the coalescing design sanctions.
+--  crosswalk can be at a different phase. So the model is a **sampled
+--  discrete-event** one: each timed machine carries the time left in its
+--  current state; `Step` emits the current composite state's outputs, returns
+--  `Wait` = the minimum of those remaining times (the nearest transition)
+--  **capped at the sampling period States.T_Sample**, and advances every
+--  machine by `Wait`, firing whichever transitions come due. Iterations where
+--  the cap wins are pure sampling steps (nothing fires; every running timer is
+--  decremented), and the last step before a dwell runs out returns the
+--  remainder, so timed transitions still fire exactly on their boundary. Input
+--  edges landing between wake-ups are held by the source bus's coalescing
+--  latch (design/architecture.md §Buses) and serviced at the next wake, so the
+--  model never misses a timed transition and never drops an input; worst-case
+--  input latency is one sampling period, which realizes the T_ACK
+--  acknowledgment bound (`hlr_3_timing.13`).
 --
 --  == Safety invariants (`hlr_0_safety`) ==
 --
@@ -98,13 +102,15 @@ is
       Wait    : out States.Duration_Ms)
    with Post => Conflicts.Safe_Faces (Outputs);
    --  One core-loop step: emit the current composite state's outputs, report
-   --  the delay to remain in it (`Wait`, the min time to the next event), and
-   --  advance every machine by that delay -- ready for the next call. The
-   --  emitted outputs honour the vehicle-conflict invariant hlr_0_safety.2.
+   --  the delay to remain in it (`Wait`, the min time to the next timed
+   --  transition capped at States.T_Sample), and advance every machine by
+   --  that delay -- ready for the next call. The emitted outputs honour the
+   --  vehicle-conflict invariant hlr_0_safety.2.
    --  @param State The controller state, advanced in place by this step
    --  @param Sensors The input snapshot sampled for this step
    --  @param Outputs The output signals emitted for the current state
-   --  @param Wait The delay to the next event -- how long to remain in the
-   --    current composite state
+   --  @param Wait The delay to the next timed transition, capped at the
+   --    sampling period T_SAMPLE -- how long to remain in the current
+   --    composite state before re-sampling
 
 end Controller;

@@ -15,7 +15,10 @@ through its stages:
 - Poll the external sources (sensors that indicate cars wanting a left turn, or pedestrians wanting to cross)
 - Compute the next state of the traffic light
 - Update the traffic light outputs
-- Wait the delay required by the current state
+- Wait the delay the controller asked for: the time to the next timed
+  transition, capped at the sensor sampling period T_SAMPLE (100 ms,
+  `llr_1_states.30`), so the loop wakes at the earlier of the next state
+  change and the next sampling point
 
 ## Buses
 
@@ -69,6 +72,32 @@ The core loop is implemented as a generic subprogram, which is parameterized by:
   (the sensors) into a `States.Sensors_State` "out" parameter and clearing the
   latch when the value is read
 - a procedure which is used to write the traffic light outputs
+
+### Sampled cadence and the acknowledgment chain
+
+The delay slept at the end of each iteration is the `Wait` returned by
+`Controller.Step`: the time to the next timed transition, **capped at the
+sensor sampling period T_SAMPLE = 100 ms** (`llr_1_states.30`); in FAULT mode
+`Wait` is T_SAMPLE outright, as a pure pacing interval. The cap lives in the
+controller — which already owns discrete-event time — not in the loop: the
+loop carries no clock and no cadence knowledge, it just passes `Wait` through
+to `Delay_For`. Timed boundaries stay exact: the last step before a dwell runs
+out returns the remainder (below T_SAMPLE), so timed transitions still fire on
+their boundary; the intervening iterations are pure sampling steps that arm
+freshly read inputs and re-emit the current state's unchanged Moore outputs
+(so the display bus is re-written every ~100 ms, mostly with unchanged
+values).
+
+This cadence is what bounds pedestrian acknowledgment (T_ACK = 0.2 s,
+`hlr_3_timing.13`): a button press landing between reads is held by the
+source bus's coalescing latch; the next `Read_Sources` — at most T_SAMPLE
+later — delivers it; the same iteration's `Step` arms it into the pedestrian
+machine; and the same iteration's `Write_Display` carries the lit request
+indicator. The durable record of the coalesced inputs is the loop-local
+`Controller_State` itself (arming latches a seen press as
+PENDING_PEDESTRIAN_REQUEST or BUFFER_INTERVAL_LATCHED) — there is no separate
+loop-side input record. Inter-read coalescing stays in the source-bus latch;
+across-read memory stays in the controller state.
 
 ## Project structure
 
