@@ -16,6 +16,7 @@ with System.Assertions;
 --  end read only
 
 with Ada.Characters.Latin_1;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;
 
 --  begin read only
@@ -127,15 +128,21 @@ package body Display.Test_Data.Tests is
          Heads    => (others => States.Dont_Walk),
          Requests => (others => States.No_Request));
 
-      Frame_Height : constant := 21;
+      Frame_Height : constant := 24;
       --  Height of the host display's ASCII-art frame (keep in step with
-      --  the Art constant in the host Display body).
+      --  the Art constant in the host Display body): 3 legend header rows
+      --  plus 21 picture rows.
 
       Green_On : constant String := ESC & "[92m";
       --  The SGR sequence the host display paints GREEN lamps with.
 
-      Count       : Natural := 0;
-      Green_Found : Natural := 0;
+      Count           : Natural := 0;
+      Green_Found     : Natural := 0;
+      Saw_Ped_Request : Boolean := False;
+      Saw_Left_Turn   : Boolean := False;
+      --  Set when the captured frame carries the keyboard-shortcut legend
+      --  rows in the header.
+
       procedure Render is
       begin
          Show (Probe);
@@ -159,7 +166,86 @@ package body Display.Test_Data.Tests is
                end;
             end if;
          end loop;
+
+         --  The header legend rows pin the keyboard-shortcut documentation.
+         if Ada.Strings.Fixed.Index (Line, "ped request") /= 0 then
+            Saw_Ped_Request := True;
+         end if;
+         if Ada.Strings.Fixed.Index (Line, "left-turn") /= 0 then
+            Saw_Left_Turn := True;
+         end if;
       end Check_Line;
+
+      --  Geometry probes: a served crosswalk must be painted PARALLEL to the
+      --  traffic it runs with, never lying across it. An NS-axis head is drawn
+      --  on the vertical '=' band spanning an E/W arm; an EW-axis head on the
+      --  horizontal '|' band spanning an N/S arm. (Painting them the other way
+      --  round -- a WALK sat across the green it moves with -- was the bug.)
+      NS_Walk_Probe : constant States.Display_State :=
+        (Through  => (others => States.Red),
+         Left     => (others => States.Red),
+         Heads    =>
+           (States.NS_North => States.Walk, others => States.Dont_Walk),
+         Requests => (others => States.No_Request));
+      EW_Walk_Probe : constant States.Display_State :=
+        (Through  => (others => States.Red),
+         Left     => (others => States.Red),
+         Heads    =>
+           (States.EW_West => States.Walk, others => States.Dont_Walk),
+         Requests => (others => States.No_Request));
+
+      Saw_NS_Walk : Boolean := False;
+      Saw_EW_Walk : Boolean := False;
+
+      procedure Render_NS_Walk is
+      begin
+         Show (NS_Walk_Probe);
+      end Render_NS_Walk;
+
+      procedure Render_EW_Walk is
+      begin
+         Show (EW_Walk_Probe);
+      end Render_EW_Walk;
+
+      procedure Check_NS_Walk (Line : String; Number : Positive) is
+         pragma Unreferenced (Number);
+      begin
+         for I in Line'First .. Line'Last - Green_On'Length + 1 loop
+            if Line (I .. I + Green_On'Length - 1) = Green_On
+              and then I + Green_On'Length <= Line'Last
+            then
+               declare
+                  Char : constant Character := Line (I + Green_On'Length);
+               begin
+                  Saw_NS_Walk := True;
+                  Assert
+                    (Char = '=' or Char = '-',
+                     "NS_North WALK must paint the vertical crosswalk band "
+                     & "(parallel to N-S traffic), not lie across the N-S road");
+               end;
+            end if;
+         end loop;
+      end Check_NS_Walk;
+
+      procedure Check_EW_Walk (Line : String; Number : Positive) is
+         pragma Unreferenced (Number);
+      begin
+         for I in Line'First .. Line'Last - Green_On'Length + 1 loop
+            if Line (I .. I + Green_On'Length - 1) = Green_On
+              and then I + Green_On'Length <= Line'Last
+            then
+               declare
+                  Char : constant Character := Line (I + Green_On'Length);
+               begin
+                  Saw_EW_Walk := True;
+                  Assert
+                    (Char = '|' or Char = ' ',
+                     "EW_West WALK must paint the horizontal crosswalk band "
+                     & "across the N-S arm (parallel to E-W traffic)");
+               end;
+            end if;
+         end loop;
+      end Check_EW_Walk;
 
    begin
 
@@ -171,6 +257,23 @@ package body Display.Test_Data.Tests is
 
       Assert
         (Green_Found > 0, "Show should paint at least one GREEN character");
+
+      Assert
+        (Saw_Ped_Request,
+         "the header should legend the ped-request key shortcuts");
+      Assert
+        (Saw_Left_Turn,
+         "the header should legend the left-turn key shortcuts");
+
+      Run_Captured (Render_NS_Walk'Access, Check_NS_Walk'Access, Count);
+      Assert
+        (Saw_NS_Walk,
+         "the NS_North WALK probe should paint at least one green stripe");
+
+      Run_Captured (Render_EW_Walk'Access, Check_EW_Walk'Access, Count);
+      Assert
+        (Saw_EW_Walk,
+         "the EW_West WALK probe should paint at least one green stripe");
 
 --  begin read only
    end Test_Show;
