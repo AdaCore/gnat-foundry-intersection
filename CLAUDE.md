@@ -66,6 +66,8 @@ Sub-agents cannot prompt the human directly — the **shared questions file**
 (`workflow/<feature>/questions.md`, append-only) is the only escalation channel;
 its format is in `engine/workflow/README.md`.
 
+Unless specifically asked, do not look at git branches other than the one you're on.
+
 ## When editing code
 
 - Read the code architecture: `design/architecture.md`
