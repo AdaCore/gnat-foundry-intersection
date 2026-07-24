@@ -324,4 +324,62 @@ is
    --  lead/lag/yellow/red-clear/barrier intervals that actually run, so that
    --  T_Axis is held independent of left-turn demand (see Controller).
 
+   --  Input sampling period (hlr_3_timing.13 realization): the LLR-chosen
+   --  period realizing the acknowledgment bound T_ACK = 0.2 s. Each
+   --  Controller.Step accounts for exactly one T_SAMPLE of logical time and
+   --  the core loop sleeps T_SAMPLE every iteration, so the inputs are
+   --  re-sampled exactly once every T_SAMPLE. The valuation keeps
+   --  2 x T_SAMPLE <= T_ACK: one period of worst-case latch-to-read latency,
+   --  and one period of margin for processing and display rendering.
+   T_Sample : constant Duration_Ms := 100;  --  input sampling period, 0.1 s
+
+   --  Sampling-alignment constraint (llr_1_states.31): every dwell duration
+   --  is an integral multiple of T_SAMPLE, which is what makes the
+   --  fixed-cadence step engine exact -- every timed transition's boundary
+   --  falls on a sampling boundary (llr_4_controller.17/.18). Any
+   --  re-valuation of a dwell (or of T_SAMPLE) must preserve divisibility;
+   --  these checks make a violation a compile-time error.
+   pragma
+     Compile_Time_Error
+       (T_Walk mod T_Sample /= 0,
+        "T_WALK must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_FDW mod T_Sample /= 0,
+        "T_FDW must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Buffer mod T_Sample /= 0,
+        "T_BUFFER must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Yellow mod T_Sample /= 0,
+        "T_YELLOW must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Redclear mod T_Sample /= 0,
+        "T_REDCLEAR must be an integral multiple of T_SAMPLE"
+        & " (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Barrier mod T_Sample /= 0,
+        "T_BARRIER must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Axis mod T_Sample /= 0,
+        "T_AXIS must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Lead mod T_Sample /= 0,
+        "T_LEAD must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Lag mod T_Sample /= 0,
+        "T_LAG must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   pragma
+     Compile_Time_Error
+       (T_Both_Min mod T_Sample /= 0,
+        "T_BOTH_MIN must be an integral multiple of T_SAMPLE"
+        & " (llr_1_states.31)");
+
 end States;

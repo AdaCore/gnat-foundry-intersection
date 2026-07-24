@@ -15,22 +15,29 @@
 --  contributes proof obligations to `make prove` as soon as it is in the
 --  project closure (via the core loop, exercised by State_Machine_Loop_Proof).
 --
---  == Concurrency / timing model (jeeves plan Q1, agreed) ==
+--  == Concurrency / timing model ==
 --
---  The architecture's core loop applies exactly one `Delay_For` per iteration,
---  but the controller is nine concurrent timed machines (one sequencer + four
+--  The controller is nine concurrent timed machines (one sequencer + four
 --  pedestrian services) with independent time bases -- a pedestrian service
 --  (T_WALK + T_FDW + T_BUFFER = 16 s) spans several vehicle states, and each
---  crosswalk can be at a different phase. So "the delay required by the current
---  state" is read as a **discrete-event, min-time-to-next-event** model: each
---  timed machine carries the time left in its current state; `Step` emits the
---  current composite state's outputs, returns `Wait` = the minimum of those
---  remaining times (the nearest transition), and advances every machine by
---  `Wait`, firing whichever transitions come due. Input edges landing between
+--  crosswalk can be at a different phase. The model is the **fixed-cadence
+--  sampled** one (llr_4_controller context, design/architecture.md §"Sampled
+--  cadence and the acknowledgment chain"): each timed machine carries the
+--  time left in its current state in Controller_State, and each `Step`
+--  accounts for exactly one sampling period States.T_Sample of logical time.
+--  The cadence lives in the core loop -- which sleeps exactly T_SAMPLE every
+--  iteration -- while the timers live here; Step returns no timing value.
+--  Timed boundaries stay exact under the fixed advance because every dwell
+--  is an integral multiple of T_SAMPLE (llr_1_states.31): a machine fires
+--  its timed transition on the step where its remaining dwell is at most
+--  T_SAMPLE, which is precisely its boundary. The intervening steps are pure
+--  sampling steps (nothing fires; every running timer is decremented; the
+--  unchanged Moore outputs are re-emitted). Input edges landing between
 --  wake-ups are held by the source bus's coalescing latch
---  (design/architecture.md §Buses) and serviced at the next wake, so the model
---  never misses a timed transition and never drops an input; worst-case input
---  latency is one inter-event interval, which the coalescing design sanctions.
+--  (design/architecture.md §Buses) and serviced at the next step, so the
+--  model never misses a timed transition and never drops an input;
+--  worst-case input latency is one sampling period, which realizes the T_ACK
+--  acknowledgment bound (`hlr_3_timing.13`).
 --
 --  == Safety invariants (`hlr_0_safety`) ==
 --
@@ -94,17 +101,18 @@ is
    procedure Step
      (State   : in out Controller_State;
       Sensors : States.Sensors_State;
-      Outputs : out States.Display_State;
-      Wait    : out States.Duration_Ms)
+      Outputs : out States.Display_State)
    with Post => Conflicts.Safe_Faces (Outputs);
-   --  One core-loop step: emit the current composite state's outputs, report
-   --  the delay to remain in it (`Wait`, the min time to the next event), and
-   --  advance every machine by that delay -- ready for the next call. The
-   --  emitted outputs honour the vehicle-conflict invariant hlr_0_safety.2.
+   --  One core-loop step, accounting for exactly one sampling period
+   --  T_SAMPLE of logical time (llr_4_controller.17): arm the freshly
+   --  sampled inputs, emit the current composite state's outputs, then
+   --  advance every running timer (Veh_Timer; each serving Ped_Timer) by
+   --  exactly T_SAMPLE, firing the timed transition of any machine whose
+   --  remaining dwell is at most T_SAMPLE -- the step on whose boundary that
+   --  dwell elapses, exact by llr_1_states.31. The emitted outputs honour
+   --  the vehicle-conflict invariant hlr_0_safety.2.
    --  @param State The controller state, advanced in place by this step
    --  @param Sensors The input snapshot sampled for this step
    --  @param Outputs The output signals emitted for the current state
-   --  @param Wait The delay to the next event -- how long to remain in the
-   --    current composite state
 
 end Controller;

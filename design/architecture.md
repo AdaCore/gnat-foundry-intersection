@@ -15,7 +15,9 @@ through its stages:
 - Poll the external sources (sensors that indicate cars wanting a left turn, or pedestrians wanting to cross)
 - Compute the next state of the traffic light
 - Update the traffic light outputs
-- Wait the delay required by the current state
+- Wait the fixed sampling period T_SAMPLE (100 ms, `llr_1_states.30`), so
+  the loop runs at a uniform cadence and every iteration is both a sampling
+  point and a potential state change
 
 ## Buses
 
@@ -64,11 +66,42 @@ the implementation of the consumer, which is again provided by the HAL.
 
 The core loop is implemented as a generic subprogram, which is parameterized by:
 
-- a "Delay_For" procedure, which is used to wait for the required time
+- a "Delay_For" procedure, which the loop uses to sleep the fixed sampling
+  period T_SAMPLE at the end of every iteration
 - a procedure which reads the source data bus, sampling every external source
   (the sensors) into a `States.Sensors_State` "out" parameter and clearing the
   latch when the value is read
 - a procedure which is used to write the traffic light outputs
+
+### Sampled cadence and the acknowledgment chain
+
+The delay slept at the end of each iteration is the **fixed sensor sampling
+period T_SAMPLE = 100 ms** (`llr_1_states.30`): the loop calls `Delay_For
+(States.T_Sample)` every iteration, in every mode — FAULT included, so no
+special pacing value is needed there. The cadence lives in the loop; the
+timers live in the controller. `Controller.Step` has no timing out-parameter:
+each call accounts for exactly one T_SAMPLE, advancing every running timer
+(the fields of `Controller_State`: `Veh_Timer` and the per-crosswalk
+`Ped_Timer` array) by exactly
+T_SAMPLE. Timed boundaries stay exact under this fixed advance because every
+dwell duration is an integral multiple of T_SAMPLE (`llr_1_states.31`): a
+timed transition fires on the step where its remaining dwell is <= T_SAMPLE,
+which is precisely its boundary — there is no drift and no fractional
+remainder to sleep. The intervening iterations are pure sampling steps that
+arm freshly read inputs and re-emit the current state's unchanged Moore
+outputs (so the display bus is re-written every 100 ms, mostly with unchanged
+values).
+
+This cadence is what bounds pedestrian acknowledgment (T_ACK = 0.2 s,
+`hlr_3_timing.13`): a button press landing between reads is held by the
+source bus's coalescing latch; the next `Read_Sources` — at most T_SAMPLE
+later — delivers it; the same iteration's `Step` arms it into the pedestrian
+machine; and the same iteration's `Write_Display` carries the lit request
+indicator. The durable record of the coalesced inputs is the loop-local
+`Controller_State` itself (arming latches a seen press as
+PENDING_PEDESTRIAN_REQUEST or BUFFER_INTERVAL_LATCHED) — there is no separate
+loop-side input record. Inter-read coalescing stays in the source-bus latch;
+across-read memory stays in the controller state.
 
 ## Project structure
 
