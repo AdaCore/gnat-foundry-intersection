@@ -134,7 +134,8 @@ package body Display.Test_Data.Tests is
       Green_On : constant String := ESC & "[92m";
       --  The SGR sequence the host display paints GREEN lamps with.
 
-      Count : Natural;
+      Count       : Natural := 0;
+      Green_Found : Natural := 0;
       procedure Render is
       begin
          Show (Probe);
@@ -147,12 +148,13 @@ package body Display.Test_Data.Tests is
          --  lamp: the northbound through arrow.
          for I in Line'First .. Line'Last - Green_On'Length + 1 loop
             if Line (I .. I + Green_On'Length - 1) = Green_On then
+               Green_Found := Green_Found + 1;
                declare
                   Char : Character := Line (I + Green_On'Length);
                begin
                   Assert
                     (I + Green_On'Length <= Line'Last
-                     and then (Char = '^' or Char = '.' or Char = 'v'),
+                     and then (Char = '^' or Char = '.'),
                      "GREEN should paint the north/south through arrows");
                end;
             end if;
@@ -166,6 +168,9 @@ package body Display.Test_Data.Tests is
       Assert
         (Count = Frame_Height,
          "Show should render the whole intersection frame");
+
+      Assert
+        (Green_Found > 0, "Show should paint at least one GREEN character");
 
 --  begin read only
    end Test_Show;
