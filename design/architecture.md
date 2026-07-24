@@ -35,6 +35,10 @@ Transport of data between the main loop and the external sources (sensors) and o
 
 Each bus goes in a single direction, from a producer to a consumer.
 
+**Invariant — there is no direct route from the sensors to the display.** The
+display is driven _only_ by the display bus (a `States.Display_State`); it never
+reads the source bus or the sensors.
+
 Buses serve as a boundary between the core loop and the hardware, and also as a boundary
 for the SPARK proof. They are written that way to mimic a likely real-world
 hardware implementation. In future implementation, we might add
@@ -169,7 +173,7 @@ above:
   bare-metal builds stay in step from a single definition.
 
 - `traffic_light.gpr` (repo root): the Alire crate root for the host build. It
-  *extends* `src/app.gpr` so the application sources — notably `main.adb` —
+  _extends_ `src/app.gpr` so the application sources — notably `main.adb` —
   belong to the crate root, which keeps it both the Alire crate root and the
   GNATtest driver root and pins the produced binary to the `traffic_light`
   name. The bare-metal arm-eabi cross-target build lives in its own sibling
@@ -199,4 +203,25 @@ The "delay_for" procedure in the HAL can be tuned at compile time to act faster 
 
 ## Command-input and diagnostic streams
 
-TODO: This will be refined at a future revision of this document.
+The source bus's producer is realized per profile (see §"Project structure",
+`src/hal/sources`). On the native/host profile the producer is a **keyboard
+simulation** of the physical sensors: the terminal stands in for the sensor
+harness. Keys `1 2 3 4` raise a pedestrian request on a crosswalk (by
+`States.Crosswalk` in enum order — NS_North, NS_South, EW_East, EW_West) and
+keys `n s e w` raise a left-turn request on an approach (North, South, East,
+West). Each poll drains the terminal input queue **non-blocking** (via
+`Ada.Text_IO.Get_Immediate` looping while input is available) and folds the keys
+seen since the previous poll into the `States.Sensors_State` snapshot it returns;
+keys not seen this poll read as inactive, and repeated presses of the same key
+within one inter-poll interval coalesce to a single active reading. Unrecognized
+keys are ignored. This is the host stand-in for the honest pass-through producer
+described in §Buses — the producer owns the buffering/consume-on-read guarantee,
+and the source bus itself adds no buffering.
+
+Still deferred (TODO):
+
+- The `qemu_zynq7000` target profile keeps its own hardware edge-capture
+  realization of the same producer; that body is a separate target concern and
+  is not the keyboard simulation.
+- A target-side UART command path (and any diagnostic output stream) is not yet
+  defined and will be refined at a future revision of this document.
