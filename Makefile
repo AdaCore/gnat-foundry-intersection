@@ -384,8 +384,11 @@ coverage-report-text: $(COVERAGE_REPORTS)
 
 # "quiet" all-in-one coverage, for use by agents: create a
 # coverage report and print only the errors, if any.
+#
+# Only NON-exempted violations count as errors.
 COVERAGE_LOG := coverage.log
 all-coverage:
 	@make coverage-instrumentation coverage-build coverage-test > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
 	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
-	@grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' $(COVERAGE_REPORTS)/report.txt || true
+	@awk '/^== 3\. EXEMPTED REGIONS ==/ {exit} {print}' $(COVERAGE_REPORTS)/report.txt \
+		| grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' || true
