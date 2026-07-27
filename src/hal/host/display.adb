@@ -28,8 +28,9 @@ package body Display is
    -----------------------------------------------------------------------
 
    Frame_Width  : constant := 39;
-   Frame_Height : constant := 21;
-   --  Dimensions of the ASCII-art frame below.
+   Frame_Height : constant := 24;
+   --  Dimensions of the ASCII-art frame below: 3 header (legend) rows on top
+   --  of the 21 picture rows.
 
    subtype Frame_Line is String (1 .. Frame_Width);
    type Frame is array (1 .. Frame_Height) of Frame_Line;
@@ -43,14 +44,20 @@ package body Display is
    --  "=" bands are the pedestrian crosswalks, one across each arm, and "o"
    --  is the pedestrian request-pending lamp at the corner serving that
    --  crosswalk.
+   --  The top three rows are a fixed legend of the host keyboard shortcuts
+   --  (see the Sources host body); they carry no lamp, so the mask leaves
+   --  them blank and they are always printed verbatim, never coloured.
    Art : constant Frame :=
-     ("            | .  . |      |          N ",
+     ("1/2/3/4 = ped request N/S/E/W crosswalk",
+      "n/s/e/w = left-turn N/S/E/W approach   ",
+      "                                       ",
+      "            | .  . |      |          N ",
       "            | .  . |      |            ",
       "            | .  . |      |            ",
       "            | v  > |      |            ",
       "            |      |      |            ",
       "            |      |      |            ",
-      "          o | || || || || | o          ",
+      "         4> | || || || || | 1v         ",
       "------------+             +------------",
       "         ==                 ==  < - - -",
       "         ==                 ==  v - - -",
@@ -58,7 +65,7 @@ package body Display is
       "- - - ^  ==                 ==         ",
       "- - - >  ==                 ==         ",
       "------------+             +------------",
-      "          o | || || || || | o          ",
+      "         2^ | || || || || | <3         ",
       "            |      |      |            ",
       "            |      |      |            ",
       "            |      | <  ^ |            ",
@@ -74,23 +81,34 @@ package body Display is
    --    'A' 'B' 'C' 'D' -- pedestrian head, in Crosswalk order:
    --                       A = NS_North, B = NS_South,
    --                       C = EW_East,  D = EW_West
+   --                     Each head is drawn across the arm its crosswalk runs
+   --                     PARALLEL to -- the arm it is served concurrently with
+   --                     (CONOPS 3.8/3.9). The NS-axis heads (A/B), served with
+   --                     the N-S green, cross the E/W arms (the vertical bands);
+   --                     the EW-axis heads (C/D), served with the E-W green,
+   --                     cross the N/S arms (the horizontal bands). So a WALK is
+   --                     never painted lying across the green it moves with --
+   --                     drawing them the other way round is the bug fixed here.
    --    'a' 'b' 'c' 'd' -- request indicator of the same crosswalk
    Mask : constant Frame :=
-     ("              S  s                     ",
+     ("                                       ",
+      "                                       ",
+      "                                       ",
       "              S  s                     ",
       "              S  s                     ",
       "              S  s                     ",
+      "              S  s                     ",
       "                                       ",
       "                                       ",
-      "          d  AAAAAAAAAAAAA  a          ",
+      "         dd  DDDDDDDDDDDDD  aa         ",
       "                                       ",
-      "         DD                 CC  WWWWWWW",
-      "         DD                 CC  wwwwwww",
-      "         DD                 CC         ",
-      "eeeeeee  DD                 CC         ",
-      "EEEEEEE  DD                 CC         ",
+      "         BB                 AA  WWWWWWW",
+      "         BB                 AA  wwwwwww",
+      "         BB                 AA         ",
+      "eeeeeee  BB                 AA         ",
+      "EEEEEEE  BB                 AA         ",
       "                                       ",
-      "          b  BBBBBBBBBBBBB  c          ",
+      "         bb  CCCCCCCCCCCCC  cc         ",
       "                                       ",
       "                                       ",
       "                     n  N              ",
