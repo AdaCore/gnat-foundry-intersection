@@ -3,7 +3,7 @@
 --  Such changes will be kept during further regeneration of this file.
 --  All code placed outside of test routine bodies will be lost. The
 --  code intended to set up and tear down the test environment should be
---  placed into States.Test_Data.
+--  placed into Sources.Test_Data.
 
 with AUnit.Assertions; use AUnit.Assertions;
 with System.Assertions;
@@ -17,7 +17,7 @@ with System.Assertions;
 
 --  begin read only
 --  end read only
-package body States.Test_Data.Tests is
+package body Sources.Test_Data.Tests is
 
 --  begin read only
 --  id:2.2/01/
@@ -30,46 +30,37 @@ package body States.Test_Data.Tests is
 --  end read only
 
 --  begin read only
-   procedure Test_Face_Of (Gnattest_T : in out Test);
-   procedure Test_Face_Of_e7c064 (Gnattest_T : in out Test) renames Test_Face_Of;
---  id:2.2/e7c064a7a7c8aaee/Face_Of/1/0/
-   procedure Test_Face_Of (Gnattest_T : in out Test) is
-   --  states.ads:230:4:Face_Of
+   procedure Test_Sample (Gnattest_T : in out Test);
+   procedure Test_Sample_fca1f9 (Gnattest_T : in out Test) renames Test_Sample;
+--  id:2.2/fca1f9d4f66af1b6/Sample/1/0/
+   procedure Test_Sample (Gnattest_T : in out Test) is
+   --  sources.ads:9:4:Sample
 --  end read only
 
-      --@covers llr_1_states.19
+      --@covers none: input sampling is out of requirement scope (llr_6_hal sample assumption)
 
       pragma Unreferenced (Gnattest_T);
 
-   begin
+      use type States.Sensors_State;
 
-      AUnit.Assertions.Assert
-        (Gnattest_Generated.Default_Assert_Value, "Test not implemented.");
-
---  begin read only
-   end Test_Face_Of;
---  end read only
-
-
---  begin read only
-   procedure Test_Is_Go (Gnattest_T : in out Test);
-   procedure Test_Is_Go_f67b6e (Gnattest_T : in out Test) renames Test_Is_Go;
---  id:2.2/f67b6e1a4950facc/Is_Go/1/0/
-   procedure Test_Is_Go (Gnattest_T : in out Test) is
-   --  states.ads:246:4:Is_Go
---  end read only
-
-      --@covers llr_1_states.20
-
-      pragma Unreferenced (Gnattest_T);
+      Value : States.Sensors_State;
 
    begin
 
-      AUnit.Assertions.Assert
-        (Gnattest_Generated.Default_Assert_Value, "Test not implemented.");
+      Sample (Value);
+
+      --  The host stub producer documents an all-quiet snapshot: no buttons
+      --  pressed, no left-turn vehicles, no fault asserted.
+      Assert
+        (Value
+         = States.Sensors_State'
+             (Buttons    => (others => States.Released),
+              Left_Turns => (others => States.No_Vehicle),
+              Fault      => States.Not_Asserted),
+         "the host Sample stub should produce the all-quiet snapshot");
 
 --  begin read only
-   end Test_Is_Go;
+   end Test_Sample;
 --  end read only
 
 --  begin read only
@@ -82,4 +73,4 @@ begin
    null;
 --  begin read only
 --  end read only
-end States.Test_Data.Tests;
+end Sources.Test_Data.Tests;

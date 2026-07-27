@@ -118,6 +118,7 @@ ignore = [
     "PLR2004", # Allow magic value comparison (e.g. `assert len(x) == 3`)
     "PLR0915", # Allow more than 50 statements (for long tests with lots of asserts)
     "TRY003",  # Allow long messages outside of exception class (for mock exceptions)
+    "PLR0913", # Fixture builders mirror a JSON schema; one keyword per field
 ]
 "src/reqs/cli.py" = [
     "FBT001", # Boolean flags are how Typer declares CLI options
@@ -135,7 +136,9 @@ combine-as-imports = true
 [tool.mypy]
 python_version = "3.11"
 files = ["src", "tests"]
-mypy_path = ["src"]
+# `tests` too, so the fixture helpers the test modules import are resolved rather
+# than typed as Any (which strict mode then reports at every call site).
+mypy_path = ["src", "tests"]
 plugins = "pydantic.mypy"
 namespace_packages = true
 explicit_package_bases = true

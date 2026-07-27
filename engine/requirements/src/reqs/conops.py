@@ -13,13 +13,15 @@ Only the leaf id is needed here; the marker and prose are the human's concern.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, Literal
+from typing import TYPE_CHECKING, ClassVar
 
 from reqs.core import LEAF_RE
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
+
+    from reqs.core import SubKey
 
 
 @dataclass(frozen=True)
@@ -29,8 +31,10 @@ class Leaf:
     line: int  # 1-based source line of the leaf bullet
 
     # The Statement trace surface (see reqs.document). A leaf carries no upward
-    # trace of its own: the CONOPS sits at the top of the chain.
+    # trace of its own: the CONOPS sits at the top of the chain, and it names
+    # nothing below it either -- that is the HLR's job.
     up_refs: ClassVar[None] = None
+    down_refs: ClassVar[None] = None
     is_derived: ClassVar[bool] = False
 
 
@@ -72,7 +76,7 @@ class ConopsSet:
         self,
         leaf_id: str,
         *,
-        sub_key: Literal["text", "up_ref"] | None = None,  # noqa: ARG002  # For signature parity with RequirementSet
+        sub_key: SubKey | None = None,  # noqa: ARG002  # For signature parity with RequirementSet
     ) -> tuple[Path, int, tuple[str, ...]]:
         """
         Return file path, line number and key path of the specified leaf.

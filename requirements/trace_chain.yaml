@@ -1,7 +1,12 @@
 # Traceability chain, top (most abstract) to bottom. `reqs trace` runs the same
-# bidirectional checks over each adjacent pair: every lower node must trace up to
-# a real upper node (or be `derived`), and every upper node must be covered by a
-# lower node (or waived). Paths are relative to this file.
+# bidirectional checks over each pair: every lower node must trace up to a real
+# upper node (or be `derived`), and every upper node must be covered by a lower
+# node (or waived). Paths are relative to this file.
+#
+# Each layer traces to its `parent`, which defaults to the entry above it. TEST
+# and CODE both name LLR, so this list is really a tree: a test cites the LLR it
+# verifies and an LLR cites the code that implements it, and neither has anything
+# to say about the other.
 layers:
   - name: CONOPS
     kind: markdown-leaves
@@ -15,3 +20,33 @@ layers:
     kind: requirement-yaml
     path: llr
     id_pattern: '(.+\.\d+)'
+  - name: TEST
+    kind: ada-tests
+    # The `ada_tracer` inventory of the GNATtest harness project -- the project
+    # that owns src/tests. A generated file, never committed: `make
+    # validate-reqs` / `make trace` regenerate it first (see `make
+    # inventories`), so it can never be stale.
+    path: ../obj/analysis/test_inventory.json
+    parent: LLR
+    id_pattern: '(.+\.\d+)'
+    # Tests cover LLRs only in part by design: most LLRs are discharged by proof
+    # or by construction, not by unit test. So an untested LLR is reported
+    # (`make trace`), never an error -- but every test must still declare, via a
+    # `--@covers` tag, which LLR(s) it verifies (or `--@covers none: <reason>`
+    # for a boundary test), so a test drifting off its requirement is caught.
+    partial_coverage: true
+  - name: CODE
+    kind: ada-entities
+    # Likewise generated, from traffic_light.gpr.
+    path: ../obj/analysis/code_inventory.json
+    parent: LLR
+    # The one layer whose refs run the other way. Code cites nothing; it is the
+    # LLR that names what implements it, via `implemented_by`. So the engine reads
+    # the refs from the LLR and resolves them here: an `implemented_by` naming
+    # something the code does not declare is a hard error, which is what catches a
+    # requirement drifting off its implementation.
+    refs_point_down: true
+    # And the converse is only partial by design: most of the code -- helpers, the
+    # HAL, anything below the requirement's altitude -- realizes no requirement
+    # directly, so code no LLR names is reported, never flagged.
+    partial_coverage: true

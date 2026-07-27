@@ -37,6 +37,8 @@ package body Conflicts.Test_Data.Tests is
    --  conflicts.ads:38:4:Compatible
 --  end read only
 
+      --@covers llr_3_conflicts.1
+
       pragma Unreferenced (Gnattest_T);
 
       use all type States.Movement;
@@ -94,6 +96,8 @@ package body Conflicts.Test_Data.Tests is
    --  conflicts.ads:89:4:Conflicts
 --  end read only
 
+      --@covers llr_3_conflicts.2
+
       pragma Unreferenced (Gnattest_T);
 
    begin
@@ -114,6 +118,8 @@ package body Conflicts.Test_Data.Tests is
    procedure Test_Safe_Faces (Gnattest_T : in out Test) is
    --  conflicts.ads:97:4:Safe_Faces
 --  end read only
+
+      --@covers llr_3_conflicts.3
 
       pragma Unreferenced (Gnattest_T);
 
@@ -157,6 +163,8 @@ package body Conflicts.Test_Data.Tests is
    --  conflicts.ads:112:4:Next_Conflicting_Through
 --  end read only
 
+      --@covers llr_3_conflicts.4
+
       pragma Unreferenced (Gnattest_T);
 
       use all type States.Approach;
@@ -192,6 +200,8 @@ package body Conflicts.Test_Data.Tests is
    procedure Test_Adjacent_Through (Gnattest_T : in out Test) is
    --  conflicts.ads:126:4:Adjacent_Through
 --  end read only
+
+      --@covers llr_3_conflicts.5
 
       pragma Unreferenced (Gnattest_T);
 

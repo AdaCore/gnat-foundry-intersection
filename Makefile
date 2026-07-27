@@ -8,6 +8,8 @@ SHELL := bash
         format format-ada format-python check check-ada check-shell check-python \
         generate-tests test \
         validate-reqs trace test-reqs-engine \
+        build-tracer \
+        code-inventory test-inventory inventories \
         setup-community setup-pro reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
         coverage-test all-coverage \
@@ -165,10 +167,12 @@ ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
 	    -XBUILD_KIND=target -U --charset utf-8
 	gnatformat -P tests/tests.gpr -U --charset utf-8
+	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr -U --charset utf-8
 else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C tests exec -P -- gnatformat -U --charset utf-8
+	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8
 endif
 
 # Verify formatting without editing; exits non-zero if any file would change.
@@ -179,10 +183,12 @@ ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
 	    -XBUILD_KIND=target -U --charset utf-8 --check
 	gnatformat -P tests/tests.gpr -U --check --charset utf-8
+	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr -U --check --charset utf-8
 else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
+	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 endif
 	# Commented for now, pending
 	#   eng/ide/gnatdoc#189
@@ -236,21 +242,73 @@ REQS_ENGINE := $(CURDIR)/engine/requirements
 REQS_DIR    := $(CURDIR)/requirements
 
 # Check the requirement files for structural validity, EARS syntax, and
-# traceability across the chain (every node covered by / traced to a neighbour,
-# or waived / derived). --complete makes an uncovered node a hard error.
+# traceability within the requirements layer.
 validate-reqs:
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(REQS_DIR)/trace_chain.yaml"
 
 # Show the traceability tables for development (coverage + upward trace per pair).
-# `validate-reqs` runs the same check as the hard CI gate.
-trace:
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --format table --chain "$(REQS_DIR)/trace_chain.yaml"
+trace: inventories
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format table --chain "$(REQS_DIR)/trace_chain.yaml"
 
 # Run the validation engine's own test suite.
 test-reqs-engine:
 	$(UV) --directory "$(REQS_ENGINE)" run pytest
+
+# ----------------------------------------------------------------------------
+# Code inventory (engine/ada_tracer)
+# ----------------------------------------------------------------------------
+
+TRACER_DIR := $(CURDIR)/engine/ada_tracer
+TRACER     := $(TRACER_DIR)/bin/ada_tracer
+
+build-tracer:
+ifeq ($(SETUP),community)
+	cd $(TRACER_DIR) && alr -n build
+else
+	gprbuild -q -P $(TRACER_DIR)/ada_tracer.gpr
+endif
+
+# Run the tracer through `alr exec`, to load the project and its environment.
+TRACER_RUN = $(ALR) exec -P -- $(TRACER)
+
+# ----------------------------------------------------------------------------
+# The inventories
+#
+# `validate-reqs` reads obj/analysis/{code,test}_inventory.json for its CODE and
+# TEST layers. They are generated fresh, not committed.
+# ----------------------------------------------------------------------------
+
+INVENTORY_DIR  := $(CURDIR)/obj/analysis
+CODE_INVENTORY := $(INVENTORY_DIR)/code_inventory.json
+TEST_INVENTORY := $(INVENTORY_DIR)/test_inventory.json
+
+code-inventory: build-tracer
+	mkdir -p "$(INVENTORY_DIR)"
+	$(TRACER_RUN) -U -o "$(CODE_INVENTORY)"
+
+# No -U: the root project's own sources *are* the test bodies, and its closure
+# (the application, aunit) has nothing to add to the TEST layer -- code-inventory
+# is where the application is reported.
+
+HARNESS_PROJECT := $(HARNESS)/test_traffic_light.gpr
+
+# In the community setup aunit reaches the harness project through the `tests`
+# nested crate, as for `make test`.
+ifeq ($(SETUP),community)
+TEST_TRACER_RUN = $(ALR) -C tests exec -- $(TRACER)
+else
+TEST_TRACER_RUN = $(ALR) exec -- $(TRACER)
+endif
+
+# --base-dir keeps the reported file names
+# relative to the repository root rather than to the harness directory.
+test-inventory: build-tracer generate-tests
+	mkdir -p "$(INVENTORY_DIR)" "$(CURDIR)/$(HARNESS)/test_obj"
+	$(TEST_TRACER_RUN) -P "$(CURDIR)/$(HARNESS_PROJECT)" --base-dir "$(CURDIR)" \
+	  -o "$(TEST_INVENTORY)"
+
+inventories: code-inventory test-inventory
 
 # ----------------------------------------------------------------------------
 # Setup: provision all developer tooling locally under install/. Pick one:

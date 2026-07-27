@@ -1,0 +1,208 @@
+"""
+Tests for the code-inventory loader and the CODE trace layer.
+
+The inventory is the `ada_tracer` JSON document (see
+``engine/ada_tracer/json_schema.md``). It is a *committed* derived file, so the
+loader's job is as much to notice that it is the wrong document as to read it:
+a version mismatch or a malformed file must be a located diagnostic, never a
+crash and never a silent empty layer that would report every test as untraced.
+
+:mod:`reqs.code_entities` then exposes it as the CODE layer, which is the one
+layer whose refs run downward -- the LLR names the code, not the reverse.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import TYPE_CHECKING
+
+from inventory_fixture import entity, package, subprogram, write_inventory
+
+from reqs import code_inventory
+from reqs.code_entities import CodeSet
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from reqs.core import Diagnostic
+
+CONFLICTS = "src/core/conflicts.ads"
+STATES = "src/types/states.ads"
+
+
+def codes(diags: Sequence[Diagnostic]) -> list[str]:
+    """Reduce diagnostics to their codes, preserving order."""
+    return [d.code for d in diags]
+
+
+def write_project(tmp_path: Path) -> Path:
+    """Write a small inventory standing in for the application's own."""
+    return write_inventory(
+        tmp_path / "code_inventory.json",
+        packages=[
+            package(
+                "Conflicts",
+                subprograms=[
+                    subprogram(
+                        "Compatible",
+                        qualified_name="Conflicts.Compatible",
+                        kind="function",
+                        declared_in="spec",
+                        file=CONFLICTS,
+                        line=35,
+                    )
+                ],
+            ),
+            package(
+                "States",
+                entities=[
+                    entity("States.Movement", file=STATES, line=211),
+                    entity("States.T_Walk", file=STATES, line=287, kind="constant"),
+                ],
+            ),
+        ],
+        library_subprograms=[subprogram("Main", file="src/app/main.adb", line=13, is_body=True)],
+    )
+
+
+# -- the loader --------------------------------------------------------------
+
+
+def test_valid_inventory_loads_without_diagnostics(tmp_path: Path) -> None:
+    """A well-formed document of the expected version loads clean."""
+    inventory, diags = code_inventory.load(write_project(tmp_path))
+    assert diags == []
+    assert [p.name for p in inventory.packages] == ["Conflicts", "States"]
+    assert [s.qualified_name for s in inventory.library_subprograms] == ["Main"]
+
+
+def test_missing_inventory_is_an_error(tmp_path: Path) -> None:
+    """A missing inventory is E-IO, not an empty layer: it is a build problem."""
+    _inventory, diags = code_inventory.load(tmp_path / "nope.json")
+    assert codes(diags) == ["E-IO"]
+
+
+def test_malformed_json_is_reported(tmp_path: Path) -> None:
+    """A truncated or hand-edited inventory is E-INVENTORY-JSON with a line."""
+    path = tmp_path / "code_inventory.json"
+    path.write_text('{"schema_version": 2,\n', encoding="utf-8")
+    _inventory, diags = code_inventory.load(path)
+    assert codes(diags) == ["E-INVENTORY-JSON"]
+    assert diags[0].line is not None
+
+
+def test_wrong_schema_version_is_reported(tmp_path: Path) -> None:
+    """A stale inventory from an older tracer is E-INVENTORY-SCHEMA, not a crash."""
+    path = write_inventory(
+        tmp_path / "code_inventory.json",
+        schema_version=code_inventory.SCHEMA_VERSION - 1,
+    )
+    inventory, diags = code_inventory.load(path)
+    assert codes(diags) == ["E-INVENTORY-SCHEMA"]
+    assert f"expected {code_inventory.SCHEMA_VERSION}" in diags[0].message
+    assert inventory.packages == []
+
+
+def test_wrong_tool_is_reported(tmp_path: Path) -> None:
+    """Some other tool's JSON is rejected even if it parses."""
+    path = write_inventory(tmp_path / "code_inventory.json", tool="something_else")
+    _inventory, diags = code_inventory.load(path)
+    assert codes(diags) == ["E-INVENTORY-SCHEMA"]
+
+
+def test_missing_required_field_is_reported(tmp_path: Path) -> None:
+    """A field the checks need, absent: E-INVENTORY-SCHEMA located at its key path."""
+    path = tmp_path / "code_inventory.json"
+    path.write_text('{"tool": "ada_tracer", "project": "p.gpr"}', encoding="utf-8")
+    _inventory, diags = code_inventory.load(path)
+    assert codes(diags) == ["E-INVENTORY-SCHEMA"]
+    assert diags[0].path == ("schema_version",)
+
+
+def test_unknown_fields_are_ignored(tmp_path: Path) -> None:
+    """The tracer's schema grows by addition, so an unread field is not an error."""
+    path = write_inventory(tmp_path / "code_inventory.json")
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["something_new"] = 42
+    document["packages"] = [{**package("Conflicts"), "future_field": True}]
+    path.write_text(json.dumps(document), encoding="utf-8")
+    inventory, diags = code_inventory.load(path)
+    assert diags == []
+    assert [p.name for p in inventory.packages] == ["Conflicts"]
+
+
+# -- the CODE layer's node set ----------------------------------------------
+
+
+def test_entities_and_subprograms_are_both_nodes(tmp_path: Path) -> None:
+    """A ref may name a subprogram, a type or a constant; all three are nodes."""
+    inventory, _diags = code_inventory.load(write_project(tmp_path))
+    nodes = CodeSet.from_inventory(inventory, tmp_path).nodes
+    assert set(nodes) == {
+        "Conflicts.Compatible",
+        "States.Movement",
+        "States.T_Walk",
+        "Main",
+    }
+
+
+def test_node_carries_its_kind_and_location(tmp_path: Path) -> None:
+    """A node locates its declaration so a finding can point at the source."""
+    inventory, _diags = code_inventory.load(write_project(tmp_path))
+    node = CodeSet.from_inventory(inventory, tmp_path).statement("States.T_Walk")
+    assert node is not None
+    assert node.kind == "constant"
+    assert (str(node.path), node.line) == (STATES, 287)
+
+
+def test_lookup_is_case_insensitive(tmp_path: Path) -> None:
+    """Ada is case-insensitive, so a ref spelled differently still resolves."""
+    inventory, _diags = code_inventory.load(write_project(tmp_path))
+    code = CodeSet.from_inventory(inventory, tmp_path)
+    assert code.statement("states.t_WALK") is not None
+    assert code.canonical("STATES.T_Walk") == "States.T_Walk"
+    assert code.canonical("States.Nonexistent") is None
+
+
+def test_code_node_has_no_refs_of_its_own(tmp_path: Path) -> None:
+    """Code cites nothing in either direction; the requirement cites it."""
+    inventory, _diags = code_inventory.load(write_project(tmp_path))
+    node = CodeSet.from_inventory(inventory, tmp_path).statement("Conflicts.Compatible")
+    assert node is not None
+    assert node.up_refs is None
+    assert node.down_refs is None
+    assert not node.is_derived
+
+
+def test_first_declaration_of_a_name_wins(tmp_path: Path) -> None:
+    """A name declared twice -- spec and body, or two overloads -- is one node."""
+    path = write_inventory(
+        tmp_path / "code_inventory.json",
+        packages=[
+            package(
+                "Conflicts",
+                subprograms=[
+                    subprogram(
+                        "Compatible",
+                        qualified_name="Conflicts.Compatible",
+                        declared_in="spec",
+                        file=CONFLICTS,
+                        line=35,
+                    ),
+                    subprogram(
+                        "Compatible",
+                        qualified_name="Conflicts.Compatible",
+                        declared_in="body",
+                        is_body=True,
+                        file="src/core/conflicts.adb",
+                        line=99,
+                    ),
+                ],
+            )
+        ],
+    )
+    inventory, _diags = code_inventory.load(path)
+    node = CodeSet.from_inventory(inventory, tmp_path).statement("Conflicts.Compatible")
+    assert node is not None
+    assert node.line == 35  # the spec declaration, which comes first

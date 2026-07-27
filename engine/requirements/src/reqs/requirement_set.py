@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 
 from pydantic import BaseModel, ValidationError
 
-from reqs.core import Diagnostic, YAMLLineMap, iter_yaml_files, load_yaml
+from reqs.core import Diagnostic, SubKey, YAMLLineMap, iter_yaml_files, load_yaml
 from reqs.document import HlrDocument, LlrDocument, Statement
 
 if TYPE_CHECKING:
@@ -84,7 +84,7 @@ class HlrFile(_BaseFile, HlrDocument):
         return cls.model_construct(path=path, lines=lines, **dict(document))
 
     def loc_of(
-        self, number: int, sub_key: Literal["text", "up_ref"] | None = None
+        self, number: int, sub_key: SubKey | None = None
     ) -> tuple[Path, int, tuple[str, ...]]:
         """
         Return file path, line number and YAML key path of the specified statement.
@@ -106,7 +106,7 @@ class LlrFile(_BaseFile, LlrDocument):
         return cls.model_construct(path=path, lines=lines, **dict(document))
 
     def loc_of(
-        self, number: int, sub_key: Literal["text", "up_ref"] | None = None
+        self, number: int, sub_key: SubKey | None = None
     ) -> tuple[Path, int, tuple[str, ...]]:
         """
         Return file path, line number and YAML key path of the specified statement.
@@ -120,7 +120,7 @@ RequirementFile = HlrFile | LlrFile
 
 
 def _loc_of(
-    file: RequirementFile, number: int, sub_key: Literal["text", "up_ref"] | None = None
+    file: RequirementFile, number: int, sub_key: SubKey | None = None
 ) -> tuple[Path, int, tuple[str, ...]]:
     """
     Return file path, line number and YAML key path of the specified statement.
@@ -130,8 +130,16 @@ def _loc_of(
     """
     statement = file.description[number]
     loc: tuple[str, ...] = ("description", str(number))
-    if sub_key is not None:
-        loc = (*loc, statement.up_ref_key if sub_key == "up_ref" else sub_key)
+    # The key a `sub_key` names is per-level ("source" vs "parent_req"), and a
+    # level may not have one at all -- only an LLR names what implements it. When
+    # it does not, the location falls back to the statement.
+    key = {
+        "text": "text",
+        "up_ref": statement.up_ref_key,
+        "down_ref": statement.down_ref_key,
+    }.get(sub_key or "")
+    if key is not None:
+        loc = (*loc, key)
     line = file.nearest_line(loc)
     if line is None:
         # Should be unreachable; `compose_lines()` should always record at least
@@ -244,7 +252,7 @@ class RequirementSet:
                 yield f"{file.stem}.{number}", statement
 
     def loc_of(
-        self, req_id: str, *, sub_key: Literal["text", "up_ref"] | None = None
+        self, req_id: str, *, sub_key: SubKey | None = None
     ) -> tuple[Path, int, tuple[str, ...]]:
         """
         Return file path, line number and YAML key path of the specified statement.
