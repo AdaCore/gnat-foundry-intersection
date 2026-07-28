@@ -9,8 +9,11 @@
 --    * the "next conflicting movement" list in `hlr_5_vehicle_1_left_demand`
 --      context (N_left -> S_thru, S_left -> E_thru, E_left -> W_thru,
 --      W_left -> N_thru), and
---    * the crosswalk naming (axis + side) in `states.ads`
---      (NS_North is adjacent to the North through, and so on).
+--    * keep-right geometry over the two naming conventions of `states.ads`
+--      (crosswalks named by the junction side they span, approaches by
+--      travel direction): northbound traffic keeps to the east half of the
+--      road, so the East_Side crossing is adjacent to the North through,
+--      and so on around the junction.
 --
 --  It is a stand-alone package rather than a child of `Controller` on purpose:
 --  `Controller`'s own contracts (the hlr_0_safety.2 postcondition on
@@ -104,14 +107,17 @@ is
 
    function Adjacent_Through (C : States.Crosswalk) return States.Approach
    is (case C is
-         when States.NS_North => States.North,
-         when States.NS_South => States.South,
-         when States.EW_East  => States.East,
-         when States.EW_West  => States.West);
+         when States.North_Side => States.West,
+         when States.South_Side => States.East,
+         when States.East_Side  => States.North,
+         when States.West_Side  => States.South);
    --  Binding for the pedestrian PENDING -> WALK edge (`hlr_6_pedestrian.8`):
    --  the through movement parallel and adjacent to each crosswalk. Crosswalks
-   --  are named axis + side in `states.ads`, so NS_North is adjacent to the
-   --  North approach's through, NS_South to South, and the EW pair likewise.
+   --  are named by the junction side they span and approaches by travel
+   --  direction, so the map is a 90-degree rotation, from keep-right geometry:
+   --  a through movement keeps to its own right half of the road, touching the
+   --  crossing on the arm to its right (northbound traffic hugs the east half,
+   --  so East_Side is adjacent to North, and so on around the junction).
    --  @param C The crosswalk whose adjacent through is wanted
    --  @return The approach whose through movement is parallel to that crosswalk
 

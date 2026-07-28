@@ -167,47 +167,54 @@ package body Display.Test_Data.Tests is
             end if;
          end loop;
 
-         --  The header legend rows pin the keyboard-shortcut documentation.
-         if Ada.Strings.Fixed.Index (Line, "ped request") /= 0 then
+         --  The header legend rows pin the keyboard-shortcut documentation,
+         --  key digits and side bindings included.
+         if Ada.Strings.Fixed.Index
+             (Line, "1/2/3/4 = ped request N/S/E/W crosswalk") /= 0
+         then
             Saw_Ped_Request := True;
          end if;
-         if Ada.Strings.Fixed.Index (Line, "left-turn") /= 0 then
+         if Ada.Strings.Fixed.Index
+             (Line, "n/s/e/w = left-turn N/S/E/W approach") /= 0
+         then
             Saw_Left_Turn := True;
          end if;
       end Check_Line;
 
       --  Geometry probes: a served crosswalk must be painted PARALLEL to the
-      --  traffic it runs with, never lying across it. An NS-axis head is drawn
-      --  on the vertical '=' band spanning an E/W arm; an EW-axis head on the
-      --  horizontal '|' band spanning an N/S arm. (Painting them the other way
-      --  round -- a WALK sat across the green it moves with -- was the bug.)
-      NS_Walk_Probe : constant States.Display_State :=
+      --  traffic it runs with, never lying across it. Crosswalks are named by
+      --  the arm they span: an East_Side/West_Side head (served with the N-S
+      --  green) is a vertical '=' band across its E/W arm; a North_Side/
+      --  South_Side head (served with the E-W green) is a horizontal '|' band
+      --  across its N/S arm. (Painting a WALK lying across the green it moves
+      --  with was the bug that motivated the side-of-junction names.)
+      East_Walk_Probe : constant States.Display_State :=
         (Through  => (others => States.Red),
          Left     => (others => States.Red),
          Heads    =>
-           (States.NS_North => States.Walk, others => States.Dont_Walk),
+           (States.East_Side => States.Walk, others => States.Dont_Walk),
          Requests => (others => States.No_Request));
-      EW_Walk_Probe : constant States.Display_State :=
+      North_Walk_Probe : constant States.Display_State :=
         (Through  => (others => States.Red),
          Left     => (others => States.Red),
          Heads    =>
-           (States.EW_West => States.Walk, others => States.Dont_Walk),
+           (States.North_Side => States.Walk, others => States.Dont_Walk),
          Requests => (others => States.No_Request));
 
-      Saw_NS_Walk : Boolean := False;
-      Saw_EW_Walk : Boolean := False;
+      Saw_East_Walk  : Boolean := False;
+      Saw_North_Walk : Boolean := False;
 
-      procedure Render_NS_Walk is
+      procedure Render_East_Walk is
       begin
-         Show (NS_Walk_Probe);
-      end Render_NS_Walk;
+         Show (East_Walk_Probe);
+      end Render_East_Walk;
 
-      procedure Render_EW_Walk is
+      procedure Render_North_Walk is
       begin
-         Show (EW_Walk_Probe);
-      end Render_EW_Walk;
+         Show (North_Walk_Probe);
+      end Render_North_Walk;
 
-      procedure Check_NS_Walk (Line : String; Number : Positive) is
+      procedure Check_East_Walk (Line : String; Number : Positive) is
          pragma Unreferenced (Number);
       begin
          for I in Line'First .. Line'Last - Green_On'Length + 1 loop
@@ -217,17 +224,17 @@ package body Display.Test_Data.Tests is
                declare
                   Char : constant Character := Line (I + Green_On'Length);
                begin
-                  Saw_NS_Walk := True;
+                  Saw_East_Walk := True;
                   Assert
                     (Char = '=' or Char = '-',
-                     "NS_North WALK must paint the vertical crosswalk band "
+                     "East_Side WALK must paint the vertical crosswalk band "
                      & "(parallel to N-S traffic), not lie across the N-S road");
                end;
             end if;
          end loop;
-      end Check_NS_Walk;
+      end Check_East_Walk;
 
-      procedure Check_EW_Walk (Line : String; Number : Positive) is
+      procedure Check_North_Walk (Line : String; Number : Positive) is
          pragma Unreferenced (Number);
       begin
          for I in Line'First .. Line'Last - Green_On'Length + 1 loop
@@ -237,15 +244,67 @@ package body Display.Test_Data.Tests is
                declare
                   Char : constant Character := Line (I + Green_On'Length);
                begin
-                  Saw_EW_Walk := True;
+                  Saw_North_Walk := True;
                   Assert
                     (Char = '|' or Char = ' ',
-                     "EW_West WALK must paint the horizontal crosswalk band "
-                     & "across the N-S arm (parallel to E-W traffic)");
+                     "North_Side WALK must paint the horizontal crosswalk band "
+                     & "across the north arm (parallel to E-W traffic)");
                end;
             end if;
          end loop;
-      end Check_EW_Walk;
+      end Check_North_Walk;
+
+      --  Legend probes: each corner key digit is painted by its OWN side's
+      --  request indicator -- the digit-to-crosswalk binding that makes the
+      --  header legend literally true. With a single side pending and every
+      --  other lamp restrictive, the request lamp is the frame's only
+      --  YELLOW paint, so it must land on that side's corner label.
+
+      Yellow_On : constant String := ESC & "[93m";
+      --  The SGR sequence the host display paints pending requests with.
+
+      Pending_Side : States.Crosswalk := States.North_Side;
+      Saw_Request  : Boolean := False;
+
+      function Corner_Label (C : States.Crosswalk) return String
+      is (case C is
+            when States.North_Side => "1>",
+            when States.South_Side => "<2",
+            when States.East_Side  => "3v",
+            when States.West_Side  => "4^");
+      --  The two art characters forming each crosswalk's corner key label.
+
+      procedure Render_Request is
+         S : States.Display_State :=
+           (Through  => (others => States.Red),
+            Left     => (others => States.Red),
+            Heads    => (others => States.Dont_Walk),
+            Requests => (others => States.No_Request));
+      begin
+         S.Requests (Pending_Side) := States.Request_Pending;
+         Show (S);
+      end Render_Request;
+
+      procedure Check_Request (Line : String; Number : Positive) is
+         pragma Unreferenced (Number);
+         Label : constant String := Corner_Label (Pending_Side);
+      begin
+         for I in Line'First .. Line'Last - Yellow_On'Length + 1 loop
+            if Line (I .. I + Yellow_On'Length - 1) = Yellow_On
+              and then I + Yellow_On'Length <= Line'Last
+            then
+               declare
+                  Char : constant Character := Line (I + Yellow_On'Length);
+               begin
+                  Saw_Request := True;
+                  Assert
+                    (Char = Label (1) or Char = Label (2),
+                     "a pending " & States.Crosswalk'Image (Pending_Side)
+                     & " request must light only its own corner key label");
+               end;
+            end if;
+         end loop;
+      end Check_Request;
 
    begin
 
@@ -265,15 +324,25 @@ package body Display.Test_Data.Tests is
         (Saw_Left_Turn,
          "the header should legend the left-turn key shortcuts");
 
-      Run_Captured (Render_NS_Walk'Access, Check_NS_Walk'Access, Count);
+      Run_Captured (Render_East_Walk'Access, Check_East_Walk'Access, Count);
       Assert
-        (Saw_NS_Walk,
-         "the NS_North WALK probe should paint at least one green stripe");
+        (Saw_East_Walk,
+         "the East_Side WALK probe should paint at least one green stripe");
 
-      Run_Captured (Render_EW_Walk'Access, Check_EW_Walk'Access, Count);
+      Run_Captured (Render_North_Walk'Access, Check_North_Walk'Access, Count);
       Assert
-        (Saw_EW_Walk,
-         "the EW_West WALK probe should paint at least one green stripe");
+        (Saw_North_Walk,
+         "the North_Side WALK probe should paint at least one green stripe");
+
+      for C in States.Crosswalk loop
+         Pending_Side := C;
+         Saw_Request  := False;
+         Run_Captured (Render_Request'Access, Check_Request'Access, Count);
+         Assert
+           (Saw_Request,
+            "the " & States.Crosswalk'Image (C)
+            & " request lamp should light its corner key label");
+      end loop;
 
 --  begin read only
    end Test_Show;

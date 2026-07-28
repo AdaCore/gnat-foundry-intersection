@@ -108,10 +108,10 @@ package body Controller.Test_Data.Tests is
          Veh_Lag   => False,
          Left      => (West => Left_Demand_Pending, others => No_Left_Demand),
          Ped       =>
-           (NS_North => Walk_Interval,
-            NS_South => Change_Interval,
-            EW_East  => Pending_Pedestrian_Request,
-            EW_West  => Buffer_Interval_Latched),
+           (North_Side => Buffer_Interval_Latched,
+            South_Side => Pending_Pedestrian_Request,
+            East_Side  => Walk_Interval,
+            West_Side  => Change_Interval),
          Ped_Timer => (others => 0));
 
       State   : Controller_State;
@@ -164,29 +164,29 @@ package body Controller.Test_Data.Tests is
       --  for PENDING and the buffer.
 
       Assert
-        (Outputs.Heads (NS_North) = Walk,
+        (Outputs.Heads (East_Side) = Walk,
          "WALK_INTERVAL should project the WALK head");
       Assert
-        (Outputs.Heads (NS_South) = Flash_Dont_Walk,
+        (Outputs.Heads (West_Side) = Flash_Dont_Walk,
          "CHANGE_INTERVAL should project the flashing DONT WALK head");
       Assert
-        (Outputs.Heads (EW_East) = Dont_Walk,
+        (Outputs.Heads (South_Side) = Dont_Walk,
          "PENDING_PEDESTRIAN_REQUEST should project the DONT WALK head");
       Assert
-        (Outputs.Heads (EW_West) = Dont_Walk,
+        (Outputs.Heads (North_Side) = Dont_Walk,
          "BUFFER_INTERVAL_LATCHED should project the DONT WALK head");
 
       --  NORMAL_OPERATION request lamps (llr_4_controller.11): Request_Of
       --  per sub-state -- lit exactly for PENDING and the latched buffer.
 
       Assert
-        (Outputs.Requests (EW_East) = Request_Pending
-         and then Outputs.Requests (EW_West) = Request_Pending,
+        (Outputs.Requests (South_Side) = Request_Pending
+         and then Outputs.Requests (North_Side) = Request_Pending,
          "PENDING and BUFFER_INTERVAL_LATCHED should light the request"
          & " lamp");
       Assert
-        (Outputs.Requests (NS_North) = No_Request
-         and then Outputs.Requests (NS_South) = No_Request,
+        (Outputs.Requests (East_Side) = No_Request
+         and then Outputs.Requests (West_Side) = No_Request,
          "a crosswalk being served should not light the request lamp");
 
       --  A lead/lag row (llr_4_controller.9, llr_4_controller_1_vehicle):
@@ -436,7 +436,7 @@ package body Controller.Test_Data.Tests is
       declare
          Pressing : Sensors_State := Quiet;
       begin
-         Pressing.Buttons (NS_North) := Pressed;
+         Pressing.Buttons (East_Side) := Pressed;
 
          Initialize (State);
          Step (State, Quiet, Outputs);  --  now mid-dwell
@@ -444,15 +444,15 @@ package body Controller.Test_Data.Tests is
          Step (State, Pressing, Outputs);
 
          Assert
-           (State.Ped (NS_North) = Pending_Pedestrian_Request,
+           (State.Ped (East_Side) = Pending_Pedestrian_Request,
             "a press sampled mid-dwell should arm the crosswalk to PENDING");
          Assert
-           (Outputs.Requests (NS_North) = Request_Pending,
+           (Outputs.Requests (East_Side) = Request_Pending,
             "the same Step should light the REQUEST_PENDING lamp");
          Assert
-           (Outputs.Requests (NS_South) = No_Request
-            and then Outputs.Requests (EW_East) = No_Request
-            and then Outputs.Requests (EW_West) = No_Request,
+           (Outputs.Requests (North_Side) = No_Request
+            and then Outputs.Requests (South_Side) = No_Request
+            and then Outputs.Requests (West_Side) = No_Request,
             "only the pressed crosswalk's lamp should light");
       end;
 
@@ -464,24 +464,24 @@ package body Controller.Test_Data.Tests is
       declare
          Pressing : Sensors_State := Quiet;
       begin
-         Pressing.Buttons (NS_North) := Pressed;
+         Pressing.Buttons (East_Side) := Pressed;
 
          State := Barrier_State (2_000);
-         State.Ped (NS_North) := Buffer_Interval;
-         State.Ped_Timer (NS_North) := 500;
+         State.Ped (East_Side) := Buffer_Interval;
+         State.Ped_Timer (East_Side) := 500;
 
          Step (State, Pressing, Outputs);
 
          Assert
-           (State.Ped (NS_North) = Buffer_Interval_Latched,
+           (State.Ped (East_Side) = Buffer_Interval_Latched,
             "a press sampled in BUFFER_INTERVAL should latch"
             & " BUFFER_INTERVAL_LATCHED");
          Assert
-           (Outputs.Requests (NS_North) = Request_Pending,
+           (Outputs.Requests (East_Side) = Request_Pending,
             "the latched buffer press should light the lamp on the"
             & " same Step");
          Assert
-           (State.Ped_Timer (NS_North) = 500 - T_Sample,
+           (State.Ped_Timer (East_Side) = 500 - T_Sample,
             "the serving pedestrian timer should decrement by T_SAMPLE"
             & " without firing");
       end;
@@ -492,17 +492,17 @@ package body Controller.Test_Data.Tests is
       --  vehicle timer advances by the same T_SAMPLE.
 
       State := Barrier_State (2_000);
-      State.Ped (NS_North) := Walk_Interval;
-      State.Ped_Timer (NS_North) := T_Sample;
+      State.Ped (East_Side) := Walk_Interval;
+      State.Ped_Timer (East_Side) := T_Sample;
 
       Step (State, Quiet, Outputs);
 
       Assert
-        (Outputs.Heads (NS_North) = Walk,
+        (Outputs.Heads (East_Side) = Walk,
          "the boundary step still emits the WALK head");
       Assert
-        (State.Ped (NS_North) = Change_Interval
-         and then State.Ped_Timer (NS_North) = T_FDW,
+        (State.Ped (East_Side) = Change_Interval
+         and then State.Ped_Timer (East_Side) = T_FDW,
          "the pedestrian boundary should fire exactly"
          & " (WALK -> CHANGE, timer reloaded to T_FDW)");
       Assert
@@ -512,7 +512,7 @@ package body Controller.Test_Data.Tests is
       Step (State, Quiet, Outputs);
 
       Assert
-        (Outputs.Heads (NS_North) = Flash_Dont_Walk,
+        (Outputs.Heads (East_Side) = Flash_Dont_Walk,
          "the step after the boundary should emit the new sub-state's"
          & " CHANGE head");
 
@@ -527,26 +527,26 @@ package body Controller.Test_Data.Tests is
          Steps : Natural := 0;
       begin
          State := Barrier_State (T_Barrier);
-         State.Ped (NS_North) := Walk_Interval;
-         State.Ped_Timer (NS_North) := T_Walk;
-         State.Ped (EW_East) := Pending_Pedestrian_Request;
+         State.Ped (East_Side) := Walk_Interval;
+         State.Ped_Timer (East_Side) := T_Walk;
+         State.Ped (South_Side) := Pending_Pedestrian_Request;
 
-         while State.Ped (NS_North) = Walk_Interval and then Steps < 100 loop
+         while State.Ped (East_Side) = Walk_Interval and then Steps < 100 loop
             Step (State, Quiet, Outputs);
             Total := Total + T_Sample;
             Steps := Steps + 1;
          end loop;
 
          Assert
-           (State.Ped (NS_North) = Change_Interval,
+           (State.Ped (East_Side) = Change_Interval,
             "the WALK boundary should fire within the step bound");
          Assert
            (Total = T_Walk,
             "the summed sampling periods should hit the WALK dwell"
             & " exactly");
          Assert
-           (State.Ped (EW_East) = Pending_Pedestrian_Request
-            and then State.Ped_Timer (EW_East) = 0,
+           (State.Ped (South_Side) = Pending_Pedestrian_Request
+            and then State.Ped_Timer (South_Side) = 0,
             "a PENDING crosswalk runs no timer: the T_SAMPLE advance"
             & " should not touch it");
       end;
@@ -556,16 +556,16 @@ package body Controller.Test_Data.Tests is
       --  it, and the request lamp stays lit through the expiry step.
 
       State := Barrier_State (2_000);
-      State.Ped (NS_North) := Buffer_Interval_Latched;
-      State.Ped_Timer (NS_North) := 100;
+      State.Ped (East_Side) := Buffer_Interval_Latched;
+      State.Ped_Timer (East_Side) := 100;
 
       Step (State, Quiet, Outputs);
 
       Assert
-        (State.Ped (NS_North) = Pending_Pedestrian_Request,
+        (State.Ped (East_Side) = Pending_Pedestrian_Request,
          "a latched buffer expiry should re-arm the crosswalk to PENDING");
       Assert
-        (Outputs.Requests (NS_North) = Request_Pending,
+        (Outputs.Requests (East_Side) = Request_Pending,
          "the lamp should stay lit through the latched buffer expiry");
 
       --  Left-demand clear (hlr_5_vehicle_1_left_demand.4): a latched West
@@ -637,7 +637,7 @@ package body Controller.Test_Data.Tests is
       --  Demand-serving full cycle (hlr_5_vehicle.12/.35,
       --  hlr_5_vehicle_1_left_demand.3, hlr_6_pedestrian.8/.12/.13/.17,
       --  hlr_3_timing.7): left-turn vehicles held present on every approach
-      --  and one pedestrian press on NS_South sampled at the start. The
+      --  and one pedestrian press on West_Side sampled at the start. The
       --  cycle serves every lead/lag state, walks the pedestrian through
       --  WALK -> CHANGE -> BUFFER -> idle, and -- the axis slot being
       --  demand-independent -- still takes exactly 2 x T_AXIS.
@@ -656,7 +656,7 @@ package body Controller.Test_Data.Tests is
       begin
          Lefts.Left_Turns := (others => Vehicle_Present);
          First := Lefts;
-         First.Buttons (NS_South) := Pressed;
+         First.Buttons (West_Side) := Pressed;
 
          Initialize (State);
 
@@ -669,8 +669,8 @@ package body Controller.Test_Data.Tests is
             "a sampled left-turn vehicle should latch the approach's"
             & " demand");
          Assert
-           (State.Ped (NS_South) = Pending_Pedestrian_Request,
-            "the sampled press should arm NS_South to PENDING");
+           (State.Ped (West_Side) = Pending_Pedestrian_Request,
+            "the sampled press should arm West_Side to PENDING");
 
          loop
             Step (State, Lefts, Outputs);
@@ -678,9 +678,9 @@ package body Controller.Test_Data.Tests is
             Steps := Steps + 1;
             Visited (State.Vehicle) := True;
             Seen_Walk :=
-              Seen_Walk or else Outputs.Heads (NS_South) = Walk;
+              Seen_Walk or else Outputs.Heads (West_Side) = Walk;
             Seen_FDW :=
-              Seen_FDW or else Outputs.Heads (NS_South) = Flash_Dont_Walk;
+              Seen_FDW or else Outputs.Heads (West_Side) = Flash_Dont_Walk;
             Departed := Departed or else State.Vehicle /= EW_Barrier_Allred;
             exit when
               (Departed and then State.Vehicle = EW_Barrier_Allred)
@@ -703,7 +703,7 @@ package body Controller.Test_Data.Tests is
             "the pedestrian service should display WALK then flashing"
             & " DONT WALK");
          Assert
-           (State.Ped (NS_South) = No_Pedestrian_Request,
+           (State.Ped (West_Side) = No_Pedestrian_Request,
             "an unlatched buffer expiry should release the crosswalk"
             & " to idle");
       end;
