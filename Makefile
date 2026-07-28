@@ -188,7 +188,9 @@ else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
-	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8 --check
+	# Temporary: exclude the tracer from the checks: it pulls Libadalang,
+	# which slows the CI down.
+	# cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 endif
 	# Commented for now, pending
 	#   eng/ide/gnatdoc#189
