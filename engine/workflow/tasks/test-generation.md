@@ -9,14 +9,15 @@ in meaningful test bodies, so the suite builds and passes.
 
 - `workflow/<feature>/notes.md` — if this exists, it may contain notes relevant to this task.
 - New/changed `src/` specs — the subprograms needing tests.
-- Existing test bodies under `src/tests/` (e.g. `controller-test_data-tests.adb`,
-  `conflicts-*`, `states-*`, and `src/tests/common/`) — match their style. Only
+- Existing test bodies under `tests/`, which mirrors `src/` (e.g.
+  `tests/core/controller-test_data-tests.adb`, `tests/core/conflicts-*`,
+  `tests/types/states-*`, `tests/hal/common/`) — match their style. Only
   code outside the `begin read only` regions is yours to edit.
 - `CLAUDE.md` — the "When editing tests" rules.
 
 ## Outputs
 
-- Regenerated GNATtest skeletons plus hand-written test bodies under `src/tests/`
+- Regenerated GNATtest skeletons plus hand-written test bodies under `tests/`
   covering the new behavior. (Generated `*-test_data.ads` files stay untracked;
   `.adb` bodies are tracked.)
 

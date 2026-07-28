@@ -1,5 +1,5 @@
 with "../config/traffic_light_config.gpr";
---  NOTE: this must not import core.gpr, hal.gpr, or app.gpr.
+--  NOTE: this must not import core.gpr or hal.gpr.
 --  See design/architecture.md.
 
 with "shared.gpr";

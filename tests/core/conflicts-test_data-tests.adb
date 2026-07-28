@@ -39,11 +39,47 @@ package body Conflicts.Test_Data.Tests is
 
       pragma Unreferenced (Gnattest_T);
 
+      use all type States.Movement;
+
+      type Movement_Pair is record
+         A, B : States.Movement;
+      end record;
+
+      type Pair_List is array (Positive range <>) of Movement_Pair;
+
+      Same_Approach_Pairs : constant Pair_List :=
+        ((N_Thru, N_Left), (S_Thru, S_Left),
+         (E_Thru, E_Left), (W_Thru, W_Left));
+
+      Opposing_Through_Pairs : constant Pair_List :=
+        ((N_Thru, S_Thru), (E_Thru, W_Thru));
+
+      Named_Pairs : constant Pair_List :=
+        Same_Approach_Pairs & Opposing_Through_Pairs;
+      --  Each unordered pair once; Expected closes them under symmetry.
+
+      function Expected (A, B : States.Movement) return Boolean
+      is (A = B
+          or else
+            (for some P of Named_Pairs =>
+               (A = P.A and then B = P.B)
+               or else (A = P.B and then B = P.A)));
+      --  The pairs llr_3_conflicts.1 names compatible, transcribed from its
+      --  three clauses rather than from the Compatible expression under test.
+
    begin
 
-      AUnit.Assertions.Assert
-        (Gnattest_Generated.Default_Assert_Value,
-         "Test not implemented.");
+      for A in States.Movement loop
+         for B in States.Movement loop
+            AUnit.Assertions.Assert
+              (Compatible (A, B) = Expected (A, B),
+               "Compatible (" & States.Movement'Image (A) & ", "
+               & States.Movement'Image (B) & ") = "
+               & Boolean'Image (Compatible (A, B))
+               & " but llr_3_conflicts.1 requires "
+               & Boolean'Image (Expected (A, B)));
+         end loop;
+      end loop;
 
 --  begin read only
    end Test_Compatible;

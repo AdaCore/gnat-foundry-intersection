@@ -17,7 +17,6 @@ with System.Assertions;
 
 --  begin read only
 --  end read only
-
 package body States.Test_Data.Tests is
 
 --  begin read only
@@ -48,6 +47,7 @@ package body States.Test_Data.Tests is
 --  begin read only
    end Test_Face_Of;
 --  end read only
+
 
 --  begin read only
    procedure Test_Is_Go (Gnattest_T : in out Test);

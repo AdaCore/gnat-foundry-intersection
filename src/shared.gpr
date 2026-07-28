@@ -17,18 +17,26 @@ project Shared is
        "-gnato"          --  overflow checking
       );
 
+   --  Build dirs relative to the repo root: a relative Object_Dir resolves
+   --  against the *referencing* project's dir, so each prepends its own depth.
+   Objdir_From_Root  := "";
+   Execdir_From_Root := "";
+
    case Build is
       when "native" =>
          Ada_Compiler_Switches := Ada_Compiler_Switches & ("-fstack-check");
-         for Object_Dir use "obj/" & Traffic_Light_Config.Build_Profile;
-         for Exec_Dir use "bin/";
+         Objdir_From_Root  := "obj/" & Traffic_Light_Config.Build_Profile;
+         Execdir_From_Root := "bin";
 
       when "target" =>
          for Target          use "arm-eabi";
          for Runtime ("Ada") use "light-tasking-zynq7000";
-         for Object_Dir use "obj/target/" & Traffic_Light_Config.Build_Profile;
-         for Exec_Dir use "bin/target";
+         Objdir_From_Root  := "obj/target/" & Traffic_Light_Config.Build_Profile;
+         Execdir_From_Root := "bin/target";
    end case;
+
+   for Object_Dir use "../" & Objdir_From_Root;
+   for Exec_Dir use "../" & Execdir_From_Root;
 
    package Compiler is
       for Default_Switches ("Ada") use Ada_Compiler_Switches;

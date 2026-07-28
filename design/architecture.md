@@ -137,7 +137,7 @@ The code is organised into .gpr projects, as follows:
     the state of the traffic
     lights on a GUI or console display.
 
-- `src/app.gpr`: the application layer, which contains
+- `traffic_light.gpr` (repo root): the application layer, which contains
   - `src/app/main.adb`: the main entry point, which initializes the HAL, the display,
     then "wires" the buses (i.e., instantiates the bus types, connecting them to displays
     and sources provided by the HAL project), and finally calls the main loop that's
@@ -145,13 +145,13 @@ The code is organised into .gpr projects, as follows:
 
 The `core.gpr` and `types.gpr` projects are expected to be proven with SPARK, at
 Silver level.
-The `hal.gpr` and `app.gpr` projects are not expected to be proven, but they may
+The `hal.gpr` project and the crate root are not expected to be proven, but they may
 contain annotations necessary to support the proof of the `core.gpr` and
 `types.gpr` projects.
 
 The dependencies are as follows:
 
-- app.gpr depends on core.gpr, hal.gpr, types.gpr
+- traffic_light.gpr depends on core.gpr, hal.gpr, types.gpr
 - core.gpr depends on types.gpr
 - hal.gpr depends on types.gpr
 - types.gpr has no dependencies
@@ -162,32 +162,29 @@ The core logic does not know anything about the implementation of sources or dis
 
 ### Build scaffolding: `shared.gpr` and `traffic_light.gpr`
 
-Two source-less support projects sit alongside the four architecture projects
-above:
-
 - `src/shared.gpr`: a source-less helper that centralises the build
-  configuration reused across `types`, `core`, `hal`, and `app`. It carries the
-  `BUILD_KIND` scenario variable (`native` vs `target`) and, keyed off it, the
-  object/exec directories, target, runtime, and the common compiler / binder /
-  linker switches. The four architecture projects `with` it so the host and
+  configuration reused across `types`, `core`, `hal`, and the crate root. It
+  carries the `BUILD_KIND` scenario variable (`native` vs `target`) and, keyed
+  off it, the object/exec directories, target, runtime, and the common compiler
+  / binder / linker switches. Those projects `with` it so the host and
   bare-metal builds stay in step from a single definition.
 
-- `traffic_light.gpr` (repo root): the Alire crate root for the host build. It
-  _extends_ `src/app.gpr` so the application sources — notably `main.adb` —
-  belong to the crate root, which keeps it both the Alire crate root and the
-  GNATtest driver root and pins the produced binary to the `traffic_light`
-  name. The bare-metal arm-eabi cross-target build lives in its own sibling
-  Alire crate, `traffic_light_qemu/`, which `with`s `../traffic_light.gpr` and
-  `../src/shared.gpr` with `BUILD_KIND=target`.
+- `traffic_light.gpr` (repo root): the Alire crate root for the host build, and
+  the owner of the application sources in `src/app`. `for Main` may only name a
+  source of the project declaring it, so owning `main.adb` here is what pins
+  the produced binary to the `traffic_light` name in this project's `bin/`; it
+  is also the GNATtest driver root. The bare-metal arm-eabi cross-target build
+  lives in its own sibling Alire crate, `traffic_light_qemu/`, which `with`s
+  `../traffic_light.gpr` and `../src/shared.gpr` with `BUILD_KIND=target`.
 
-### Rationale for the separation between `core.gpr` and `hal.gpr|app.gpr`
+### Rationale for the separation between `core.gpr` and `hal.gpr`
 
-It might make more sense to have the core loop hosted as part of the `app` project, but
-setting it in its own project is intentional, and structuring: it's meant as a
-safeguard to ensure that the core loop never depends on the HAL, and can be proven
-independently of the HAL. This comes at the price of contracted indirect
-calls in the proof target. We will revisit this if we find that we cannot prove the
-core loop at Silver level.
+It might make more sense to have the core loop hosted as part of the application
+layer, but setting it in its own project is intentional, and structuring: it's
+meant as a safeguard to ensure that the core loop never depends on the HAL, and
+can be proven independently of the HAL. This comes at the price of contracted
+indirect calls in the proof target. We will revisit this if we find that we
+cannot prove the core loop at Silver level.
 
 ## Tasking
 

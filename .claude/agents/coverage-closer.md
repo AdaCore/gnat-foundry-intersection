@@ -1,6 +1,6 @@
 ---
 name: coverage-closer
-description: Extend tests until GNATcov reports full coverage. Use for the Coverage task of the feature workflow — adds/extends AUnit tests under src/tests/ to close stmt+MCDC gaps. Oracle: `make all-coverage-pro` prints no findings.
+description: Extend tests until GNATcov reports full coverage. Use for the Coverage task of the feature workflow — adds/extends AUnit tests under tests/ to close stmt+MCDC gaps. Oracle: `make all-coverage-pro` prints no findings.
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 
