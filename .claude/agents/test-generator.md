@@ -1,6 +1,6 @@
 ---
 name: test-generator
-description: Generate the unit-test harness and bodies for new/changed code. Use for the Test generation task of the feature workflow — runs gnattest and fills AUnit test bodies under src/tests/. Oracle: `make generate-tests-pro && make build-native && make test-pro`.
+description: Generate the unit-test harness and bodies for new/changed code. Use for the Test generation task of the feature workflow — runs gnattest and fills AUnit test bodies under tests/. Oracle: `make generate-tests-pro && make build-native && make test-pro`.
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 

@@ -9,12 +9,12 @@ GNATcov report (stmt + MCDC) shows no uncovered lines.
 
 - The coverage report findings from the oracle command (printed as
   `file:line:col:` lines) and `coverage.log`.
-- Existing test bodies under `src/tests/` — extend these.
+- Existing test bodies under `tests/` — extend these.
 - `CLAUDE.md` — the "If working on coverage augmentation" note.
 
 ## Outputs
 
-- Additional/extended test bodies under `src/tests/` that exercise the uncovered
+- Additional/extended test bodies under `tests/` that exercise the uncovered
   lines and decisions.
 
 ## Procedure
