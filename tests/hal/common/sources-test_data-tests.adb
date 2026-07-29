@@ -111,17 +111,17 @@ package body Sources.Test_Data.Tests is
       --  Each crosswalk key isolates exactly its own pedestrian button;
       --  every unseen signal reads inactive.
       Assert
-        (Snapshot ("1") = With_Button (States.NS_North),
-         "'1' should press only the NS_North crosswalk button");
+        (Snapshot ("1") = With_Button (States.North_Side),
+         "'1' should press only the North_Side crosswalk button");
       Assert
-        (Snapshot ("2") = With_Button (States.NS_South),
-         "'2' should press only the NS_South crosswalk button");
+        (Snapshot ("2") = With_Button (States.South_Side),
+         "'2' should press only the South_Side crosswalk button");
       Assert
-        (Snapshot ("3") = With_Button (States.EW_East),
-         "'3' should press only the EW_East crosswalk button");
+        (Snapshot ("3") = With_Button (States.East_Side),
+         "'3' should press only the East_Side crosswalk button");
       Assert
-        (Snapshot ("4") = With_Button (States.EW_West),
-         "'4' should press only the EW_West crosswalk button");
+        (Snapshot ("4") = With_Button (States.West_Side),
+         "'4' should press only the West_Side crosswalk button");
 
       --  Each approach key isolates exactly its own left-turn detector.
       Assert
@@ -153,8 +153,8 @@ package body Sources.Test_Data.Tests is
 
       --  Coalescing: repeating a key within one poll is idempotent.
       Assert
-        (Snapshot ("11") = With_Button (States.NS_North),
-         "repeated '1' should coalesce to a single NS_North press");
+        (Snapshot ("11") = With_Button (States.North_Side),
+         "repeated '1' should coalesce to a single North_Side press");
 
       --  Unrecognized keys are ignored: the snapshot stays all-quiet.
       Assert

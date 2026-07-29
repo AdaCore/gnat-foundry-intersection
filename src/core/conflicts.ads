@@ -9,8 +9,11 @@
 --    * the "next conflicting movement" list in `hlr_5_vehicle_1_left_demand`
 --      context (N_left -> S_thru, S_left -> E_thru, E_left -> W_thru,
 --      W_left -> N_thru), and
---    * the crosswalk naming (axis + side) in `states.ads`
---      (NS_North is adjacent to the North through, and so on).
+--    * keep-right geometry over the two naming conventions of `states.ads`
+--      (crosswalks named by the junction side they span, approaches by
+--      travel direction): northbound traffic keeps to the east half of the
+--      road, so the East_Side crossing is adjacent to the North through,
+--      and so on around the junction.
 --
 --  It is a stand-alone package rather than a child of `Controller` on purpose:
 --  `Controller`'s own contracts (the hlr_0_safety.2 postcondition on
@@ -122,41 +125,44 @@ is
 
    function Adjacent_Through (C : States.Crosswalk) return States.Approach
    is (case C is
-         when States.NS_North => States.North,
-         when States.NS_South => States.South,
-         when States.EW_East  => States.East,
-         when States.EW_West  => States.West);
+         when States.North_Side => States.West,
+         when States.South_Side => States.East,
+         when States.East_Side  => States.North,
+         when States.West_Side  => States.South);
    --  Binding for the pedestrian PENDING -> WALK edge (`hlr_6_pedestrian.8`):
    --  the through movement parallel and adjacent to each crosswalk. Crosswalks
-   --  are named axis + side in `states.ads`, so NS_North is adjacent to the
-   --  North approach's through, NS_South to South, and the EW pair likewise.
+   --  are named by the junction side they span and approaches by travel
+   --  direction, so the map is a 90-degree rotation, from keep-right geometry:
+   --  a through movement keeps to its own right half of the road, touching the
+   --  crossing on the arm to its right (northbound traffic hugs the east half,
+   --  so East_Side is adjacent to North, and so on around the junction).
    --  @param C The crosswalk whose adjacent through is wanted
    --  @return The approach whose through movement is parallel to that crosswalk
 
    function Crosswalk_Conflicts
      (C : States.Crosswalk; M : States.Movement) return Boolean
    is (case C is
-         when States.NS_North =>
-           M not in States.N_Thru | States.S_Thru | States.N_Left,
-         when States.NS_South =>
-           M not in States.N_Thru | States.S_Thru | States.S_Left,
-         when States.EW_East  =>
+         when States.North_Side =>
+           M not in States.E_Thru | States.W_Thru | States.W_Left,
+         when States.South_Side =>
            M not in States.E_Thru | States.W_Thru | States.E_Left,
-         when States.EW_West  =>
-           M not in States.E_Thru | States.W_Thru | States.W_Left);
+         when States.East_Side  =>
+           M not in States.N_Thru | States.S_Thru | States.N_Left,
+         when States.West_Side  =>
+           M not in States.N_Thru | States.S_Thru | States.S_Left);
    --  The crosswalk conflict relation (`hlr_0_safety.3` / CONOPS §3.9): a
    --  movement conflicts with a crosswalk unless it is one of the two through
-   --  movements of the crosswalk's parallel axis, or the protected left of
-   --  `Adjacent_Through (C)` -- the left that turns away from the crosswalk
-   --  rather than sweeping across it. Each case arm above is one row of the
-   --  `llr_3_conflicts` algorithm_aspects table (`·` non-conflicting,
-   --  `X` conflicting):
+   --  movements of the crosswalk's parallel axis -- the axis perpendicular to
+   --  the arm it spans -- or the protected left of `Adjacent_Through (C)`, the
+   --  left that turns away from the crossing rather than sweeping across it.
+   --  Each case arm above is one row of the `llr_3_conflicts`
+   --  algorithm_aspects table (`·` non-conflicting, `X` conflicting):
    --
-   --                N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
-   --      NS_NORTH    ·      ·      X      X      ·      X      X      X
-   --      NS_SOUTH    ·      ·      X      X      X      ·      X      X
-   --      EW_EAST     X      X      ·      ·      X      X      ·      X
-   --      EW_WEST     X      X      ·      ·      X      X      X      ·
+   --                  N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
+   --      NORTH_SIDE    X      X      ·      ·      X      X      X      ·
+   --      SOUTH_SIDE    X      X      ·      ·      X      X      ·      X
+   --      EAST_SIDE     ·      ·      X      X      ·      X      X      X
+   --      WEST_SIDE     ·      ·      X      X      X      ·      X      X
    --
    --  This is the binding hlr_0_safety.1 and hlr_3_timing.10 quantify over
    --  ("hold every conflicting movement RED while the crosswalk is served").

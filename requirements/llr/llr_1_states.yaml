@@ -21,8 +21,11 @@ context: |-
   (statements 27, 28; derivation in algorithm_aspects), so any re-valuation
   must re-establish them.
 
-  Crosswalks are named by the axis they serve and the adjacent through
-  movement.
+  Naming conventions. Approaches are named by travel direction (NORTH is the
+  northbound approach), matching the HLR vocabulary. Crosswalks are named by
+  the side of the junction — the arm of the junction the crosswalk spans
+  (NORTH_SIDE spans the north arm; a pedestrian on it walks east–west and is
+  served concurrently with the E-W through green).
 
 description:
   # ---- output signal alphabets ----
@@ -102,8 +105,8 @@ description:
   8:
     text: |-
       The States package shall define the type Crosswalk with exactly the
-      literals NS_NORTH, NS_SOUTH, EW_EAST, and EW_WEST as the index of every
-      per-crosswalk machine and signal array.
+      literals NORTH_SIDE, SOUTH_SIDE, EAST_SIDE, and WEST_SIDE as the index
+      of every per-crosswalk machine and signal array.
     parent_req:
       - hlr_6_pedestrian.1
     implemented_by:

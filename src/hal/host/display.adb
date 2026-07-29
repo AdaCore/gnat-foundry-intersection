@@ -41,9 +41,10 @@ package body Display is
    --  arm carries the *approaching* movements on its right-hand half:
    --  northbound arrows sit in the south arm, and so on. Each approach shows
    --  a through arrow and a turn-left arrow (pointing where the turn exits).
-   --  "=" bands are the pedestrian crosswalks, one across each arm, and "o"
-   --  is the pedestrian request-pending lamp at the corner serving that
-   --  crosswalk.
+   --  The bands ("=" across the east/west arms, "|| ||" across the
+   --  north/south arms) are the pedestrian crosswalks, one per arm. Each
+   --  corner's digit label (e.g. "1>") is the request-pending lamp of the
+   --  crosswalk its arrow points at, showing the key that requests it.
    --  The top three rows are a fixed legend of the host keyboard shortcuts
    --  (see the Sources host body); they carry no lamp, so the mask leaves
    --  them blank and they are always printed verbatim, never coloured.
@@ -57,7 +58,7 @@ package body Display is
       "            | v  > |      |            ",
       "            |      |      |            ",
       "            |      |      |            ",
-      "         4> | || || || || | 1v         ",
+      "         1> | || || || || | 3v         ",
       "------------+             +------------",
       "         ==                 ==  < - - -",
       "         ==                 ==  v - - -",
@@ -65,7 +66,7 @@ package body Display is
       "- - - ^  ==                 ==         ",
       "- - - >  ==                 ==         ",
       "------------+             +------------",
-      "         2^ | || || || || | <3         ",
+      "         4^ | || || || || | <2         ",
       "            |      |      |            ",
       "            |      |      |            ",
       "            |      | <  ^ |            ",
@@ -79,16 +80,17 @@ package body Display is
    --    'N' 'S' 'E' 'W' -- through face of that approach
    --    'n' 's' 'e' 'w' -- protected-left face of that approach
    --    'A' 'B' 'C' 'D' -- pedestrian head, in Crosswalk order:
-   --                       A = NS_North, B = NS_South,
-   --                       C = EW_East,  D = EW_West
-   --                     Each head is drawn across the arm its crosswalk runs
-   --                     PARALLEL to -- the arm it is served concurrently with
-   --                     (CONOPS 3.8/3.9). The NS-axis heads (A/B), served with
-   --                     the N-S green, cross the E/W arms (the vertical bands);
-   --                     the EW-axis heads (C/D), served with the E-W green,
-   --                     cross the N/S arms (the horizontal bands). So a WALK is
-   --                     never painted lying across the green it moves with --
-   --                     drawing them the other way round is the bug fixed here.
+   --                       A = North_Side, B = South_Side,
+   --                       C = East_Side,  D = West_Side
+   --                     Crosswalks are named by the arm they span, so each
+   --                     head simply paints the band across its own arm:
+   --                     A/B the horizontal "|| ||" rows across the N/S
+   --                     arms, C/D the vertical "==" columns across the E/W
+   --                     arms. A band's pedestrians walk PARALLEL to the
+   --                     green they are served with (CONOPS 3.8/3.9) -- A/B
+   --                     run with the E-W green, C/D with the N-S green --
+   --                     so a WALK is never painted lying across the green
+   --                     it moves with.
    --    'a' 'b' 'c' 'd' -- request indicator of the same crosswalk
    Mask : constant Frame :=
      ("                                       ",
@@ -100,15 +102,15 @@ package body Display is
       "              S  s                     ",
       "                                       ",
       "                                       ",
-      "         dd  DDDDDDDDDDDDD  aa         ",
+      "         aa  AAAAAAAAAAAAA  cc         ",
       "                                       ",
-      "         BB                 AA  WWWWWWW",
-      "         BB                 AA  wwwwwww",
-      "         BB                 AA         ",
-      "eeeeeee  BB                 AA         ",
-      "EEEEEEE  BB                 AA         ",
+      "         DD                 CC  WWWWWWW",
+      "         DD                 CC  wwwwwww",
+      "         DD                 CC         ",
+      "eeeeeee  DD                 CC         ",
+      "EEEEEEE  DD                 CC         ",
       "                                       ",
-      "         bb  CCCCCCCCCCCCC  cc         ",
+      "         dd  BBBBBBBBBBBBB  bb         ",
       "                                       ",
       "                                       ",
       "                     n  N              ",
@@ -164,14 +166,14 @@ package body Display is
          when 's'    => Face_SGR (S.Left (States.South)),
          when 'e'    => Face_SGR (S.Left (States.East)),
          when 'w'    => Face_SGR (S.Left (States.West)),
-         when 'A'    => Head_SGR (S.Heads (States.NS_North)),
-         when 'B'    => Head_SGR (S.Heads (States.NS_South)),
-         when 'C'    => Head_SGR (S.Heads (States.EW_East)),
-         when 'D'    => Head_SGR (S.Heads (States.EW_West)),
-         when 'a'    => Request_SGR (S.Requests (States.NS_North)),
-         when 'b'    => Request_SGR (S.Requests (States.NS_South)),
-         when 'c'    => Request_SGR (S.Requests (States.EW_East)),
-         when 'd'    => Request_SGR (S.Requests (States.EW_West)),
+         when 'A'    => Head_SGR (S.Heads (States.North_Side)),
+         when 'B'    => Head_SGR (S.Heads (States.South_Side)),
+         when 'C'    => Head_SGR (S.Heads (States.East_Side)),
+         when 'D'    => Head_SGR (S.Heads (States.West_Side)),
+         when 'a'    => Request_SGR (S.Requests (States.North_Side)),
+         when 'b'    => Request_SGR (S.Requests (States.South_Side)),
+         when 'c'    => Request_SGR (S.Requests (States.East_Side)),
+         when 'd'    => Request_SGR (S.Requests (States.West_Side)),
          when others => "");
    --  Decode one mask character: the SGR colour of the lamp it names in the
    --  given state, or "" for positions the mask leaves unpainted.

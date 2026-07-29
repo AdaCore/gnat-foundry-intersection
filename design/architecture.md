@@ -204,8 +204,8 @@ The source bus's producer is realized per profile (see §"Project structure",
 `src/hal/sources`). On the native/host profile the producer is a **keyboard
 simulation** of the physical sensors: the terminal stands in for the sensor
 harness. Keys `1 2 3 4` raise a pedestrian request on a crosswalk (by
-`States.Crosswalk` in enum order — NS_North, NS_South, EW_East, EW_West) and
-keys `n s e w` raise a left-turn request on an approach (North, South, East,
+`States.Crosswalk` in enum order — North_Side, South_Side, East_Side, West_Side)
+and keys `n s e w` raise a left-turn request on an approach (North, South, East,
 West). Each poll drains the terminal input queue **non-blocking** (via
 `Ada.Text_IO.Get_Immediate` looping while input is available) and folds the keys
 seen since the previous poll into the `States.Sensors_State` snapshot it returns;

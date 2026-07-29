@@ -67,12 +67,16 @@ is
    --  @enum East The eastbound approach
    --  @enum West The westbound approach
 
-   type Crosswalk is (NS_North, NS_South, EW_East, EW_West);
-   --  The four crosswalks, named by the axis and side they serve.
-   --  @enum NS_North NS-axis crosswalk on the north side
-   --  @enum NS_South NS-axis crosswalk on the south side
-   --  @enum EW_East EW-axis crosswalk on the east side
-   --  @enum EW_West EW-axis crosswalk on the west side
+   type Crosswalk is (North_Side, South_Side, East_Side, West_Side);
+   --  The four crosswalks, named by the side of the junction -- the arm --
+   --  each one spans (approaches, by contrast, are named by travel
+   --  direction). Pedestrians on a crosswalk walk across its own arm and are
+   --  served concurrently with the perpendicular axis's through green
+   --  (CONOPS 3.8/3.9).
+   --  @enum North_Side Spans the north arm; walked E-W with the E-W green
+   --  @enum South_Side Spans the south arm; walked E-W with the E-W green
+   --  @enum East_Side Spans the east arm; walked N-S with the N-S green
+   --  @enum West_Side Spans the west arm; walked N-S with the N-S green
 
    type Lamp is (Red, Yellow, Green);
    --  The three physical bulbs of a vehicular signal head. Red/Yellow/Green

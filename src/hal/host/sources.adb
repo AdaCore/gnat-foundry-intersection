@@ -3,8 +3,8 @@
 --  poll and folds those keypresses into one Sensors_State snapshot.
 --
 --  Key map (the specification, no other magic literals):
---    '1' '2' '3' '4' -- pedestrian request, crosswalk NS_North / NS_South /
---                       EW_East / EW_West -> Pressed
+--    '1' '2' '3' '4' -- pedestrian request, crosswalk North_Side /
+--                       South_Side / East_Side / West_Side -> Pressed
 --    'n' 's' 'e' 'w' -- left-turn detector, approach North / South / East /
 --                       West -> Vehicle_Present
 --  Unrecognized keys are ignored; the fault-detection line has no key and
@@ -34,16 +34,16 @@ package body Sources is
    begin
       case Key is
          when '1'    =>
-            Value.Buttons (States.NS_North) := States.Pressed;
+            Value.Buttons (States.North_Side) := States.Pressed;
 
          when '2'    =>
-            Value.Buttons (States.NS_South) := States.Pressed;
+            Value.Buttons (States.South_Side) := States.Pressed;
 
          when '3'    =>
-            Value.Buttons (States.EW_East) := States.Pressed;
+            Value.Buttons (States.East_Side) := States.Pressed;
 
          when '4'    =>
-            Value.Buttons (States.EW_West) := States.Pressed;
+            Value.Buttons (States.West_Side) := States.Pressed;
 
          when 'n'    =>
             Value.Left_Turns (States.North) := States.Vehicle_Present;

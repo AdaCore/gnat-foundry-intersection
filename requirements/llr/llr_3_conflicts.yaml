@@ -63,8 +63,8 @@ description:
     text: |-
       The Conflicts package shall define the function Adjacent_Through mapping
       each crosswalk to the approach of its parallel adjacent through movement:
-      NS_NORTH to NORTH, NS_SOUTH to SOUTH, EW_EAST to EAST, and EW_WEST to
-      WEST.
+      NORTH_SIDE to WEST, SOUTH_SIDE to EAST, EAST_SIDE to NORTH, and
+      WEST_SIDE to SOUTH.
     parent_req:
       - hlr_6_pedestrian.8
       - hlr_0_safety.1
@@ -77,11 +77,11 @@ description:
     text: |-
       The Conflicts package shall define the function Crosswalk_Conflicts
       returning FALSE for exactly these crosswalk/movement pairs and TRUE for
-      every other pair: NS_NORTH and NS_SOUTH each with N_THRU and S_THRU; EW_EAST
-      and EW_WEST each with E_THRU and W_THRU; and each crosswalk with the
-      protected left of its Adjacent_Through approach — NS_NORTH with N_LEFT,
-      NS_SOUTH with S_LEFT, EW_EAST with E_LEFT, and EW_WEST with W_LEFT. The full
-      relation is tabulated in algorithm_aspects.
+      every other pair: EAST_SIDE and WEST_SIDE each with N_THRU and S_THRU;
+      NORTH_SIDE and SOUTH_SIDE each with E_THRU and W_THRU; and each crosswalk
+      with the protected left of its Adjacent_Through approach — NORTH_SIDE
+      with W_LEFT, SOUTH_SIDE with E_LEFT, EAST_SIDE with N_LEFT, and WEST_SIDE
+      with S_LEFT. The full relation is tabulated in algorithm_aspects.
     parent_req:
       - hlr_0_safety.3
       - hlr_0_safety.1
@@ -122,26 +122,30 @@ algorithm_aspects: |-
   for a lag (S_LEFT by E_THRU, W_LEFT by N_THRU). Its rising edge is therefore
   the observable end-of-clearance event.
 
-  Adjacent_Through is the identity carried by the crosswalk naming convention:
-  a crosswalk named for an axis and side is adjacent and parallel to that
-  side's through movement.
+  Adjacent_Through is derived from keep-right geometry, not read off the
+  names: crosswalks are named by the side of the junction (the arm spanned)
+  while approaches are named by travel direction, so the map is the
+  90-degree-rotation table of statement 5. The through movement parallel and
+  adjacent to a crossing is the one whose keep-right half of the road touches
+  it — northbound traffic keeps to the east half, so the east-arm crossing
+  EAST_SIDE is adjacent to NORTH, and likewise around the junction.
 
   Crosswalk_Conflicts enumerates the crosswalk conflict relation hlr_0_safety.3
   (CONOPS §3.9). A movement is non-conflicting with a crosswalk only when it is
   one of the two through movements of the crosswalk's parallel axis or the
   protected left of the crosswalk's Adjacent_Through approach — the left that
-  turns away from the crosswalk rather than sweeping across it (in
-  right-hand-traffic geometry, S_LEFT exits west clear of the east-side crossing
-  NS_SOUTH, N_LEFT exits east clear of NS_NORTH, and likewise for the EW pair).
-  Right turns follow the circular through indication and are not movements, so
-  none is exempted for them. The full relation (`·` non-conflicting, `X`
-  conflicting):
+  turns away from the crosswalk rather than sweeping across it (N_LEFT exits
+  west, clear of the east-arm crossing EAST_SIDE, while the opposite S_LEFT
+  sweeps across it; S_LEFT exits east, clear of WEST_SIDE; and likewise for
+  the E-W pair). Right turns follow the circular through indication and are
+  not movements, so none is exempted for them. The full relation
+  (`·` non-conflicting, `X` conflicting):
 
-                N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
-      NS_NORTH    ·      ·      X      X      ·      X      X      X
-      NS_SOUTH    ·      ·      X      X      X      ·      X      X
-      EW_EAST     X      X      ·      ·      X      X      ·      X
-      EW_WEST     X      X      ·      ·      X      X      X      ·
+                  N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
+      NORTH_SIDE    X      X      ·      ·      X      X      X      ·
+      SOUTH_SIDE    X      X      ·      ·      X      X      ·      X
+      EAST_SIDE     ·      ·      X      X      ·      X      X      X
+      WEST_SIDE     ·      ·      X      X      X      ·      X      X
 
   The relation is the binding hlr_0_safety.1 and hlr_3_timing.10 quantify over
   ("hold every conflicting movement RED while the crosswalk is served"). Nothing
@@ -149,6 +153,6 @@ algorithm_aspects: |-
   by the margin inequalities (llr_1_states.27/.28) over the sequencer schedule,
   and this table is what makes their completeness auditable — the margin's two
   binding cases are exactly the conflicting movements each served crosswalk
-  faces (in the NS phase the lag S_LEFT conflicts with NS_NORTH — the "opposite
-  crosswalk" case; the lead N_LEFT conflicts only with NS_SOUTH, whose WALK has
-  not yet begun when N_LEFT is GREEN).
+  faces (in the NS phase the lag S_LEFT conflicts with EAST_SIDE — the
+  "opposite crosswalk" case; the lead N_LEFT conflicts only with WEST_SIDE,
+  whose WALK has not yet begun when N_LEFT is GREEN).
