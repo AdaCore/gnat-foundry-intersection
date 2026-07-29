@@ -89,8 +89,8 @@ is
    --  trailing extractor (gnatdoc-comments-extractor-trailing.adb:843).
 
    function Next_Conflicting_Through
-     (A : States.Approach) return States.Approach
-   is (case A is
+     (Turn : States.Approach) return States.Approach
+   is (case Turn is
          when States.North => States.South,   --  N_left cleared by S_thru
          when States.South => States.East,     --  S_left cleared by E_thru
          when States.East  => States.West,     --  E_left cleared by W_thru
@@ -98,7 +98,8 @@ is
    --  Binding for the left-demand clear (`hlr_5_vehicle_1_left_demand.4`): the
    --  through movement whose GREEN release ends each approach's protected-left
    --  clearance and so clears that approach's latched demand.
-   --  @param A The approach whose latched left demand is being cleared
+   --  @param Turn The approach making the protected left turn, i.e. the one
+   --  whose latched left demand is being cleared
    --  @return The approach whose through release clears that demand
 
    function Adjacent_Through (C : States.Crosswalk) return States.Approach
