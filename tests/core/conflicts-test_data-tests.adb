@@ -233,6 +233,7 @@ package body Conflicts.Test_Data.Tests is
       pragma Unreferenced (Gnattest_T);
 
       use all type States.Crosswalk;
+      use all type States.Movement;
 
       type Movement_Row is array (States.Movement) of Boolean;
       type Crosswalk_Table is array (States.Crosswalk) of Movement_Row;
@@ -240,8 +241,7 @@ package body Conflicts.Test_Data.Tests is
       --  The llr_3_conflicts.6 table transcribed cell by cell from its
       --  algorithm_aspects rendering rather than from the expression under
       --  test, so a mis-edited case arm shows up here. True is a conflicting
-      --  cell (`X`), False a non-conflicting one (`·`); the columns are in
-      --  States.Movement order:
+      --  cell (`X`), False a non-conflicting one (`·`):
       --
       --              N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
       --  NORTH_SIDE    X      X      ·      ·      X      X      X      ·
@@ -250,13 +250,17 @@ package body Conflicts.Test_Data.Tests is
       --  WEST_SIDE     ·      ·      X      X      X      ·      X      X
       Expected : constant Crosswalk_Table :=
         (North_Side =>
-           (True, True, False, False, True, True, True, False),
+           (N_Thru => True,  S_Thru => True,  E_Thru => False, W_Thru => False,
+            N_Left => True,  S_Left => True,  E_Left => True,  W_Left => False),
          South_Side =>
-           (True, True, False, False, True, True, False, True),
+           (N_Thru => True,  S_Thru => True,  E_Thru => False, W_Thru => False,
+            N_Left => True,  S_Left => True,  E_Left => False, W_Left => True),
          East_Side =>
-           (False, False, True, True, False, True, True, True),
+           (N_Thru => False, S_Thru => False, E_Thru => True,  W_Thru => True,
+            N_Left => False, S_Left => True,  E_Left => True,  W_Left => True),
          West_Side =>
-           (False, False, True, True, True, False, True, True));
+           (N_Thru => False, S_Thru => False, E_Thru => True,  W_Thru => True,
+            N_Left => True,  S_Left => False, E_Left => True,  W_Left => True));
 
    begin
 
