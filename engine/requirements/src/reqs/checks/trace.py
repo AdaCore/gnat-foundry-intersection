@@ -20,13 +20,25 @@ anything to say about the other. The engine runs the same checks over every
   W-TRACE-WAIVER-REDUNDANT : a waiver naming a node the layer below covers.
 
   E-TRACE-PARENT           : a layer names a ``parent`` that is not in the chain.
+  E-TRACE-EMPTY            : a layer yielded fewer nodes than its ``min_nodes``.
+  E-TRACE-LAYER            : ``--layers`` named a layer that is not in the chain.
   E-INVENTORY-*            : the code inventory a layer reads is missing, stale
                              or malformed (see :mod:`reqs.code_inventory`).
 
 Nothing here is CONOPS- or HLR-specific. A :class:`Layer` says how to enumerate
 its nodes (``kind``: ``markdown-leaves``, ``requirement-yaml``, ``ada-tests`` or
 ``ada-entities``) and, for any layer that traces upward, how to extract a
-parent-node id from each ref (``id_pattern``, one capture group).
+parent-node id from each ref (``id_pattern``, one capture group, matched against
+the *whole* ref: a pattern that matched only a prefix would accept
+``llr_3_conflicts.1typo`` as ``llr_3_conflicts.1``).
+
+A layer may also declare ``min_nodes``: the fewest nodes it can plausibly yield.
+Without it an enumeration that silently comes back empty -- the wrong generated
+project, a source directory that moved, a routine filter that no longer matches
+-- reads as "every node traced" rather than as the build failure it is. That is
+harmless for a layer whose nodes are the files it is pointed at (a missing
+directory is already reported), and load-bearing for one read out of a generated
+inventory, which is why the TEST and CODE layers set it.
 
 One layer kind traces the other way. Code cites nothing -- it is the LLR that
 names what implements it -- so a layer may set ``refs_point_down``, and the
@@ -77,6 +89,7 @@ from reqs.requirement_set import RequirementSet
 
 if TYPE_CHECKING:
     import os
+    from collections.abc import Iterable
 
     from reqs.core import SubKey
 
@@ -107,6 +120,11 @@ class Layer:
     # layer: an entity does not cite the requirement it realizes, the requirement
     # cites it (`implemented_by`).
     refs_point_down: bool = False
+    # The fewest nodes this layer can plausibly hold. A layer read out of a
+    # generated inventory can come back valid but empty -- wrong project, moved
+    # sources -- and an empty lower layer has no untraced nodes to report, so the
+    # gate would pass. 0 disables the check.
+    min_nodes: int = 0
 
 
 def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
@@ -124,9 +142,34 @@ def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
             parent=item.get("parent"),
             partial_coverage=bool(item.get("partial_coverage", False)),
             refs_point_down=bool(item.get("refs_point_down", False)),
+            min_nodes=int(item.get("min_nodes", 0)),
         )
         for item in data.get("layers", [])
     ]
+
+
+def select_layers(
+    layers: list[Layer], names: Iterable[str], chain: Path
+) -> tuple[list[Layer], list[Diagnostic]]:
+    """
+    Restrict a chain to the named layers, keeping the file's order.
+
+    A caller that cannot afford every layer -- ``make validate-reqs`` runs with no
+    Ada toolchain, so the inventory-backed layers are out of its reach -- asks for
+    the portion it can check rather than dropping the check altogether. Only pairs
+    *wholly* inside the selection are then checked; a layer whose parent is left
+    out is reported as E-TRACE-PARENT, since silently checking nothing is the
+    failure mode this exists to avoid. An unknown name is E-TRACE-LAYER rather
+    than a silently smaller chain, for the same reason.
+    """
+    wanted = list(names)
+    known = {layer.name for layer in layers}
+    diags = [
+        Diagnostic("error", "E-TRACE-LAYER", f"no layer named {name!r} in this chain", chain)
+        for name in wanted
+        if name not in known
+    ]
+    return [layer for layer in layers if layer.name in wanted], diags
 
 
 @dataclass
@@ -189,6 +232,15 @@ class TraceChecker:
     # -- loading -------------------------------------------------------------
 
     def _load(self, layer: Layer, diags: list[Diagnostic]) -> _Loaded:
+        before = len(diags)
+        loaded = self._load_nodes(layer, diags)
+        # Only when the layer loaded cleanly: an inventory that failed to read is
+        # already reported, and "it is also empty" adds nothing but noise.
+        if len(diags) == before:
+            diags.extend(self._min_nodes_diagnostics(loaded))
+        return loaded
+
+    def _load_nodes(self, layer: Layer, diags: list[Diagnostic]) -> _Loaded:
         waived = self._load_waivers(layer, diags)
         if layer.kind == MARKDOWN_LEAVES:
             return _Loaded(layer, ConopsSet.load(layer.path), waived, layer.waivers)
@@ -199,16 +251,37 @@ class TraceChecker:
         if layer.kind in (ADA_TESTS, ADA_ENTITIES):
             inventory, load_diags = code_inventory.load(layer.path)
             diags.extend(load_diags)
-            nodes = (
-                TestSet.from_inventory(inventory, layer.path)
-                if layer.kind == ADA_TESTS
-                else CodeSet.from_inventory(inventory, layer.path)
+            if layer.kind == ADA_TESTS:
+                testset, test_diags = TestSet.from_inventory(inventory, layer.path)
+                diags.extend(test_diags)
+                return _Loaded(layer, testset, waived, layer.waivers)
+            return _Loaded(
+                layer, CodeSet.from_inventory(inventory, layer.path), waived, layer.waivers
             )
-            return _Loaded(layer, nodes, waived, layer.waivers)
         diags.append(
             Diagnostic("error", "E-TRACE-KIND", f"unknown layer kind {layer.kind!r}", layer.path)
         )
         return _Loaded(layer, RequirementSet(()), waived, layer.waivers)
+
+    @staticmethod
+    def _min_nodes_diagnostics(loaded: _Loaded) -> list[Diagnostic]:
+        """Report a layer that came back smaller than it can plausibly be."""
+        layer = loaded.layer
+        if layer.min_nodes <= 0:
+            return []
+        found = sum(1 for _nid, _node in loaded.reqset.all_statements())
+        if found >= layer.min_nodes:
+            return []
+        return [
+            Diagnostic(
+                "error",
+                "E-TRACE-EMPTY",
+                f"{layer.name} layer yielded {found} node(s), expected at least "
+                f"{layer.min_nodes}; the layer was enumerated from the wrong place, or "
+                f"min_nodes needs lowering deliberately",
+                layer.path,
+            )
+        ]
 
     def _load_waivers(self, layer: Layer, diags: list[Diagnostic]) -> dict[str, str]:
         if layer.waivers is None:
@@ -265,19 +338,20 @@ class TraceChecker:
                     path=loc,
                 )
             )
-        out.extend(self._coverage_diagnostics(pair))
+        out.extend(self._uncovered_diagnostics(pair))
+        out.extend(self._waiver_diagnostics(pair))
         return out
 
-    def _coverage_diagnostics(self, pair: _Pair) -> list[Diagnostic]:
-        out: list[Diagnostic] = []
-        up, lo = pair.upper.layer.name, pair.lower.layer.name
-        hint = "" if self.complete else " (use --complete to require coverage)"
+    def _uncovered_diagnostics(self, pair: _Pair) -> list[Diagnostic]:
         # A partial-coverage lower layer covers its parent only in part by
         # design (the rest is discharged elsewhere), so uncovered parent nodes
         # are shown in the table but never flagged -- not even under --complete.
+        if pair.lower.layer.partial_coverage:
+            return []
+        out: list[Diagnostic] = []
+        up, lo = pair.upper.layer.name, pair.lower.layer.name
+        hint = "" if self.complete else " (use --complete to require coverage)"
         for nid, _statement in pair.upper.reqset.all_statements():
-            if pair.lower.layer.partial_coverage:
-                break
             if nid in pair.coverage or nid in pair.upper.waived:
                 continue
             file, line, _loc = pair.upper.reqset.loc_of(nid)
@@ -290,6 +364,13 @@ class TraceChecker:
                     line=line,
                 )
             )
+        return out
+
+    @staticmethod
+    def _waiver_diagnostics(pair: _Pair) -> list[Diagnostic]:
+        """Lint the upper layer's waiver file: unknown nodes, redundant entries."""
+        out: list[Diagnostic] = []
+        up = pair.upper.layer.name
         waiver_file = pair.upper.waiver_file
         if waiver_file is not None:
             for nid in pair.upper.waived:
@@ -354,7 +435,10 @@ def _analyze(upper: _Loaded, lower: _Loaded) -> _Pair:
     for nid, statement in lower.reqset.all_statements():
         matched = False
         for ref in statement.up_refs or []:
-            m = pattern.match(ref) if pattern else None
+            # `fullmatch`, not `match`: with a prefix match, `llr_3_conflicts.1typo`
+            # would resolve to `llr_3_conflicts.1` and pass, so a fat-fingered tag
+            # would silently trace to the wrong requirement instead of dangling.
+            m = pattern.fullmatch(ref) if pattern else None
             if m is None:
                 continue  # ref does not target this layer -> out of scope
             matched = True

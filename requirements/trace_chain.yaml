@@ -7,6 +7,12 @@
 # and CODE both name LLR, so this list is really a tree: a test cites the LLR it
 # verifies and an LLR cites the code that implements it, and neither has anything
 # to say about the other.
+#
+# The TEST and CODE layers are read out of generated inventories, which cost an
+# Ada toolchain and a Libadalang build. `reqs trace --layers` selects a subset of
+# the chain so a caller that cannot pay for those still checks the rest: `make
+# validate-reqs` takes CONOPS,HLR,LLR, `make trace-check` (the CI gate) adds
+# TEST, and `make trace` tabulates the whole chain. See the Makefile.
 layers:
   - name: CONOPS
     kind: markdown-leaves
@@ -23,8 +29,8 @@ layers:
   - name: TEST
     kind: ada-tests
     # The `ada_tracer` inventory of the GNATtest harness project -- the project
-    # that owns src/tests. A generated file, never committed: `make
-    # validate-reqs` / `make trace` regenerate it first (see `make
+    # that owns the skeletons under `tests/`. A generated file, never committed:
+    # `make trace` / `make trace-check` regenerate it first (see `make
     # inventories`), so it can never be stale.
     path: ../obj/analysis/test_inventory.json
     parent: LLR
@@ -35,11 +41,22 @@ layers:
     # `--@covers` tag, which LLR(s) it verifies (or `--@covers none: <reason>`
     # for a boundary test), so a test drifting off its requirement is caught.
     partial_coverage: true
+    # `partial_coverage` and an empty inventory would between them make this gate
+    # vacuous: no test routines means no untraced tests to report and no
+    # uncovered LLRs to flag, so "0 tests found" would read exactly like "every
+    # test traced". The floor is the number of routines the harness holds today
+    # (15, across the six `*-test_data-tests.adb` files); raise it as tests are
+    # added, and lower it only deliberately.
+    min_nodes: 15
   - name: CODE
     kind: ada-entities
     # Likewise generated, from traffic_light.gpr.
     path: ../obj/analysis/code_inventory.json
     parent: LLR
+    # Same guard, as a floor rather than a count: the ~50 entities the LLRs name
+    # via `implemented_by` are a small fraction of what the project declares, so
+    # anything near zero means the wrong project was analysed.
+    min_nodes: 40
     # The one layer whose refs run the other way. Code cites nothing; it is the
     # LLR that names what implements it, via `implemented_by`. So the engine reads
     # the refs from the LLR and resolves them here: an `implemented_by` naming

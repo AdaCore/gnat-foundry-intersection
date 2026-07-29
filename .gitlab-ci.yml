@@ -81,8 +81,16 @@ check:
   extends:
      - .x86_64-linux-pro
      - .default_rules
-     - .uv
   before_script:
+    # Install uv. Note this cannot come from `extends: .uv`: `extends` *replaces*
+    # `before_script` rather than merging it, so the `before_script` below would
+    # supersede `.uv`'s wholesale -- and `.uv`'s other keys would still apply,
+    # overriding `.x86_64-linux-pro`'s `services` with its own
+    # `[image:e3-py313, cpu:1]` and demoting the pipeline's heaviest job to a
+    # single CPU on a different base image.
+    - pip install uv
+    - unset VIRTUAL_ENV
+
     # Deploy a sandbox
     - anod init wave
     - export ANOD_DEFAULT_SANDBOX_DIR=$(pwd)/wave
@@ -106,10 +114,6 @@ check:
 pro:x86_64-linux:
   extends: .pro
   script:
-    # Install uv
-    - pip install uv
-    - unset VIRTUAL_ENV
-
     # Install stable specs
     - for spec in gnat gnatformat spark2014 gnatcov gnattest langkit_support libadalang ; do
         anod install $spec --qualifier=stable ;
@@ -125,8 +129,10 @@ pro:x86_64-linux:
     # Build
     - make build-native
 
-    # Establish the traceability matrix
-    - make trace
+    # The traceability gate: every `--@covers` tag resolves to a real LLR and no
+    # test routine is untagged. Excludes the CODE layer, which carries a
+    # pre-existing gap tracked by #62 -- see GATE_LAYERS in the Makefile.
+    - make trace-check
 
     # Test (test w/ non-instrumented harness build)
     - make test

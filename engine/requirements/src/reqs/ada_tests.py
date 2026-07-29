@@ -35,6 +35,10 @@ queryable exactly like a :class:`~reqs.conops.ConopsSet` /
 :class:`~reqs.requirement_set.RequirementSet`, so the level-agnostic trace
 engine treats the tests as the chain's bottom layer (LLR -> TEST) with no
 special-casing.
+
+One diagnostic of its own:
+
+  E-TEST-DUPID : two routines in different files reduce to the same node id.
 """
 
 from __future__ import annotations
@@ -43,6 +47,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from reqs.core import Diagnostic
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -128,6 +134,10 @@ def _node_of(sub: Subprogram) -> TestNode:
 class TestSet:
     """The test routines of a code inventory, queryable like a ``RequirementSet``."""
 
+    # Not a pytest test class, despite the name: without this, collection tries to
+    # instantiate it and every run of the suite prints a PytestCollectionWarning.
+    __test__ = False
+
     path: Path
     nodes: dict[str, TestNode]
 
@@ -136,22 +146,42 @@ class TestSet:
         self.nodes = nodes
 
     @classmethod
-    def from_inventory(cls, inventory: Inventory, path: Path) -> TestSet:
+    def from_inventory(cls, inventory: Inventory, path: Path) -> tuple[TestSet, list[Diagnostic]]:
         """
         Turn every GNATtest routine body in `inventory` into a trace node.
 
         A node's id stem is its *file*'s unit (the stem up to the first ``-``)
-        rather than its Ada package name, which keeps the ids what they have
-        always been -- they appear in ``make trace`` output. A routine that
-        recurs across files keeps its first occurrence.
+        rather than its Ada package name, which keeps the ids what they have always
+        been -- they appear in ``make trace`` output.
+
+        Two files in different directories can share a unit stem, though -- a
+        per-profile ``display-test_data-tests.adb`` under both ``hal/host`` and
+        ``hal/qemu_zynq7000`` is a plausible next step -- and the id would then
+        name both. Keeping the first silently discards the second routine's
+        ``--@covers`` tags and never checks it again, so the collision is reported
+        (``E-TEST-DUPID``) rather than resolved.
         """
         nodes: dict[str, TestNode] = {}
+        diags: list[Diagnostic] = []
         for sub in inventory.all_subprograms():
             if not _is_test_routine(sub):
                 continue
             unit = Path(sub.location.file).stem.split("-", 1)[0]
-            nodes.setdefault(f"{unit}.{sub.name}", _node_of(sub))
-        return cls(path, nodes)
+            node_id = f"{unit}.{sub.name}"
+            if (first := nodes.get(node_id)) is not None:
+                diags.append(
+                    Diagnostic(
+                        "error",
+                        "E-TEST-DUPID",
+                        f"test node id {node_id!r} is claimed by two routines "
+                        f"({first.path} and {sub.location.file}); the trace of one of them "
+                        f"would be silently dropped -- rename the unit or the routine",
+                        path,
+                    )
+                )
+                continue
+            nodes[node_id] = _node_of(sub)
+        return cls(path, nodes), diags
 
     def all_statements(self) -> Iterator[tuple[str, TestNode]]:
         """Yield every test node as (node id, node), in discovery order."""

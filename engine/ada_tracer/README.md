@@ -52,10 +52,10 @@ provides (`-P`, `-X`, `-U`, `-C`, `-k`, positional file names, `--help`):
 The document shape is described in [`json_schema.md`](json_schema.md).
 
 `--base-dir` is for a *generated* project: the GNATtest harness project
-`obj/<profile>/gnattest/harness/test_traffic_light.gpr` names `src/tests` as a
-source dir from four levels down, so without it every test body is reported by
-its absolute name. Point it at the repository root and the names stay the
-repo-relative ones the rest of the toolchain prints.
+`obj/<profile>/gnattest/harness/test_traffic_light.gpr` names the skeleton
+directories under `tests/` as source dirs from four levels down, so without it
+every test body is reported by its absolute name. Point it at the repository root
+and the names stay the repo-relative ones the rest of the toolchain prints.
 
 Run it inside the Alire environment, which is what puts the crate's
 dependencies (`aunit`, for the harness project) on `GPR_PROJECT_PATH`:
@@ -67,9 +67,10 @@ alr exec -P -- ./engine/ada_tracer/bin/ada_tracer -U     # -P inserts the crate'
 From the repository root:
 
 ```bash
-make trace-code      # build if needed, then run against traffic_light.gpr
 make build-tracer    # build only
-make inventories     # both inventories, as `make validate-reqs` regenerates them
+make code-inventory  # build if needed, then run against traffic_light.gpr
+make test-inventory  # ...and against the generated GNATtest harness project
+make inventories     # both, which is what `make trace-check` / `make trace` need
 ```
 
 ## Building
@@ -86,9 +87,11 @@ is plain `alr build` from this directory. Two things to know:
 
 ### Against an already-installed Libadalang
 
-Much faster where one exists, and what `make build-tracer` picks automatically
-when it finds a `libadalang.gpr` on `GPR_PROJECT_PATH`. `ada_tracer.gpr`
-imports `libadalang` by name, so the same project file serves both routes.
+Much faster where one exists. `make build-tracer` picks this route for every
+setup but `community` (it switches on `$(SETUP)`, the marker the `setup-*` targets
+write), calling `gprbuild` directly rather than `alr build`; `ada_tracer.gpr`
+imports `libadalang` by name, so the same project file serves both routes and
+finding the library is left to `GPR_PROJECT_PATH`.
 
 In an AdaCore `wave` sandbox:
 
@@ -99,7 +102,7 @@ export GPR_PROJECT_PATH=$(printf '%s:' \
   $W/gnatcoll-bindings-{gmp,iconv}_ide_stable/install/share/gpr \
   $W/vss-extra/install/share/gpr)
 
-make trace-code LAL_BIN_DIR=$W/gnat_ide_stable/install/bin
+make build-tracer LAL_BIN_DIR=$W/gnat_ide_stable/install/bin
 ```
 
 `LAL_BIN_DIR` matters: the prebuilt libraries are only usable with the
@@ -109,9 +112,14 @@ at bind time with *"compiled with different GNAT versions"*. Point
 puts it in front of `PATH` for the tracer build alone, leaving the rest of the
 repository on its usual toolchain.
 
-`build-tracer` and `trace-code` are opt-in and are wired into no other target:
-`build-native`, `check` and `test` are what CI runs, and no CI job should pay
-for a Libadalang build.
+`build-tracer` is not wired into `build-native`, `check` or `test`, but it is no
+longer opt-in either: `make trace-check` depends on `inventories`, which depends
+on `build-tracer`, and `pro:x86_64-linux` runs `make trace-check` on every merge
+request. That job therefore pays for a Libadalang build — in practice a link
+against the anod-installed one, which is why the 10–25 minute figure above does
+not apply there. It is a deliberate trade: the alternative is a committed
+inventory, and one gone stale reports "every test traced" while the tests have
+moved.
 
 ## How comments are associated
 
@@ -189,7 +197,10 @@ there because a requirement may name what they hold:
 Between them, 49 of the 50 LLR `implemented_by:` refs resolve. The
 fiftieth — `Conflicts.Crosswalk_Conflicts` — resolves to nothing because
 `src/core/conflicts.ads` declares no such thing, which is the finding the
-exercise was for.
+exercise was for. It is tracked by
+#62, and is why
+the CI gate (`make trace-check`) leaves the CODE layer out for now while `make
+trace` still shows it.
 
 What is still out of scope: names are **not resolved**. Matching an
 `implemented_by:` ref is textual, against `qualified_name`; renamings and

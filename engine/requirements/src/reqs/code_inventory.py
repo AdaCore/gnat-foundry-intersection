@@ -10,11 +10,13 @@ document's shape.
 
 The inventory is *generated, never committed* (``make inventories`` writes
 ``obj/analysis/code_inventory.json`` and ``obj/analysis/test_inventory.json``,
-and ``make validate-reqs`` / ``make trace`` depend on it). It costs an Ada
-toolchain and a Libadalang build wherever the requirements checks run, which is
-the price of the alternative being unacceptable: a committed inventory that has
-gone stale reports "every test traced" while the tests have moved, and that is
-strictly worse than the regexes this replaced.
+and ``make trace-check`` / ``make trace`` depend on it). It costs an Ada
+toolchain and a Libadalang build wherever the inventory-backed layers are
+checked, which is the price of the alternative being unacceptable: a committed
+inventory that has gone stale reports "every test traced" while the tests have
+moved, and that is strictly worse than the regexes this replaced. That price is
+also why ``reqs trace`` takes a layer subset -- ``make validate-reqs`` checks
+CONOPS -> HLR -> LLR without paying it.
 
 Only the fields the checks consume are modelled, and unknown ones are ignored:
 the tracer's schema grows by addition, and a consumer that rejected a field it
