@@ -36,7 +36,7 @@ pass). The task specs and oracles are defined once, tool-agnostically, in
 Task types and their sub-agents:
 
 | Task | Sub-agent |
-|------|-----------|
+| ------ | ----------- |
 | Elaborate HLR | `hlr-author` |
 | Elaborate LLR | `llr-author` |
 | Architecture | `architecture-editor` |
@@ -98,7 +98,5 @@ generics, the `core` project carries a small in-SPARK instantiation harness
   tag (first editable line of its body) naming the LLR statement id(s) it
   verifies, or `--@covers none: <reason>` for a boundary test. `make trace-check`
   enforces this via the `TEST` layer of `requirements/trace_chain.yaml`; run
-  `make trace` to see the LLR↔test coverage tables. (`make validate-reqs` checks
-  only the requirements-only layers — CONOPS→HLR→LLR — because the `TEST` and
-  `CODE` layers need an Ada toolchain and a Libadalang build.)
+  `make trace` to see the LLR↔test coverage tables.
 - If working on coverage augmentation, run `make all-coverage` to list uncovered code.

@@ -4,29 +4,6 @@ Parses an Ada project with [Libadalang](https://github.com/AdaCore/libadalang)
 and emits, for every package it finds, the subprograms that package declares
 and the comments documenting each of them.
 
-This is *engine* tooling: it knows nothing about the traffic-light
-application, and takes the project to analyse on the command line.
-
-## Why it exists
-
-Nothing in this repository can answer *"which subprograms exist in which
-package, and what are they documented as?"* from the sources themselves. Two
-earlier attempts scraped comments with regular expressions and both rotted —
-`tools/trace-check.py` (deleted in `4c60218`, its stale output still committed
-at `docs/requirements/traceability.md` naming packages that no longer exist),
-and the regexes in `engine/requirements/src/reqs/ada_tests.py`, which landed in
-`d40417e` and which this tool has since replaced.
-
-Meanwhile `requirements/llr/*.yaml` carries ~50 distinct `implemented_by:`
-refs naming `Package.Entity` identifiers, and
-[`../requirements/LLR.drafting.md`](../requirements/LLR.drafting.md) states
-that each LLR statement is implemented by exactly one entity. `ada_tracer` is
-the parser that makes resolving those names possible: it now feeds both the
-TEST and the CODE layers of `requirements/trace_chain.yaml`, via the generated
-inventories `obj/analysis/test_inventory.json` and
-`obj/analysis/code_inventory.json`. The tool itself still knows nothing about
-requirements — it reports what the sources say and `reqs` interprets it.
-
 ## Usage
 
 ```bash
@@ -43,7 +20,7 @@ Options beyond the ones
 provides (`-P`, `-X`, `-U`, `-C`, `-k`, positional file names, `--help`):
 
 | Switch | Effect |
-|---|---|
+| --- | --- |
 | `-o`, `--output FILE` | Write the JSON to `FILE` instead of standard output |
 | `--compact` | One line instead of an indented document |
 | `--specs-only` | Report only package specs, skipping bodies |
@@ -51,11 +28,11 @@ provides (`-P`, `-X`, `-U`, `-C`, `-k`, positional file names, `--help`):
 
 The document shape is described in [`json_schema.md`](json_schema.md).
 
-`--base-dir` is for a *generated* project: the GNATtest harness project
-`obj/<profile>/gnattest/harness/test_traffic_light.gpr` names the skeleton
-directories under `tests/` as source dirs from four levels down, so without it
-every test body is reported by its absolute name. Point it at the repository root
-and the names stay the repo-relative ones the rest of the toolchain prints.
+`--base-dir` is useful for a *generated* project such as the GNATtest
+harness project which names the skeleton directories under `tests/` as source
+dirs from several levels down, so without it every test body is reported by
+its absolute name. Point it at the repository root and the names stay the
+repo-relative ones the rest of the toolchain prints.
 
 Run it inside the Alire environment, which is what puts the crate's
 dependencies (`aunit`, for the harness project) on `GPR_PROJECT_PATH`:
@@ -67,59 +44,11 @@ alr exec -P -- ./engine/ada_tracer/bin/ada_tracer -U     # -P inserts the crate'
 From the repository root:
 
 ```bash
-make build-tracer    # build only
+make build-tracer    # build the `ada_tracer` binary
 make code-inventory  # build if needed, then run against traffic_light.gpr
 make test-inventory  # ...and against the generated GNATtest harness project
 make inventories     # both, which is what `make trace-check` / `make trace` need
 ```
-
-## Building
-
-The crate declares `libadalang` as an Alire dependency, so the portable route
-is plain `alr build` from this directory. Two things to know:
-
-* **It builds Libadalang from source** — ~23 MB of generated Ada, so budget a
-  one-off 10–25 minutes. Later builds are cached.
-* **It needs an Alire index.** The repository's own `install/alire/settings/`
-  has none configured (the root crate has no dependencies, so it never needed
-  one). Build with your ambient Alire settings, not through
-  `ALIRE_SETTINGS_DIR=install/...`.
-
-### Against an already-installed Libadalang
-
-Much faster where one exists. `make build-tracer` picks this route for every
-setup but `community` (it switches on `$(SETUP)`, the marker the `setup-*` targets
-write), calling `gprbuild` directly rather than `alr build`; `ada_tracer.gpr`
-imports `libadalang` by name, so the same project file serves both routes and
-finding the library is left to `GPR_PROJECT_PATH`.
-
-In an AdaCore `wave` sandbox:
-
-```bash
-W=$PWD/../../wave/x86_64-linux
-export GPR_PROJECT_PATH=$(printf '%s:' \
-  $W/{libadalang,langkit_support,gnatcoll-core,libgpr2_bare,libgpr,xmlada}_ide_stable/install/share/gpr \
-  $W/gnatcoll-bindings-{gmp,iconv}_ide_stable/install/share/gpr \
-  $W/vss-extra/install/share/gpr)
-
-make build-tracer LAL_BIN_DIR=$W/gnat_ide_stable/install/bin
-```
-
-`LAL_BIN_DIR` matters: the prebuilt libraries are only usable with the
-compiler that produced them. Building against them with a different GNAT fails
-at bind time with *"compiled with different GNAT versions"*. Point
-`LAL_BIN_DIR` at the bin directory of the matching compiler and the Makefile
-puts it in front of `PATH` for the tracer build alone, leaving the rest of the
-repository on its usual toolchain.
-
-`build-tracer` is not wired into `build-native`, `check` or `test`, but it is no
-longer opt-in either: `make trace-check` depends on `inventories`, which depends
-on `build-tracer`, and `pro:x86_64-linux` runs `make trace-check` on every merge
-request. That job therefore pays for a Libadalang build — in practice a link
-against the anod-installed one, which is why the 10–25 minute figure above does
-not apply there. It is a deliberate trade: the alternative is a committed
-inventory, and one gone stale reports "every test traced" while the tests have
-moved.
 
 ## How comments are associated
 
@@ -169,7 +98,7 @@ output instead of rejecting them.
 engine/ada_tracer/
 ├── alire.toml
 ├── ada_tracer.gpr
-├── json_schema.md               # the emitted document, field by field
+├── json_schema.md               # the schema of the emitted document
 └── src/
     ├── ada_tracer.ads           # shared vocabulary
     ├── ada_tracer-model.ads/adb # the result, with no Libadalang in it
@@ -182,27 +111,3 @@ engine/ada_tracer/
 
 Only syntactic Libadalang properties are used, and every one is guarded, so a
 project whose dependencies do not all resolve is still reported on.
-
-## Scope
-
-The unit of output is the **package**, with two documented exceptions, both
-there because a requirement may name what they hold:
-
-* types, subtypes, objects and exceptions are reported per package, in
-  `entities`;
-* a subprogram that is a compilation unit of its own and so belongs to no
-  package (`main.adb`'s `Main`, `state_machine_loop.ads`) is reported in the
-  root-level `library_subprograms`.
-
-Between them, 49 of the 50 LLR `implemented_by:` refs resolve. The
-fiftieth — `Conflicts.Crosswalk_Conflicts` — resolves to nothing because
-`src/core/conflicts.ads` declares no such thing, which is the finding the
-exercise was for. It is tracked by
-#62, and is why
-the CI gate (`make trace-check`) leaves the CODE layer out for now while `make
-trace` still shows it.
-
-What is still out of scope: names are **not resolved**. Matching an
-`implemented_by:` ref is textual, against `qualified_name`; renamings and
-use-clauses are not followed. That is adequate for the refs at hand and is what
-keeps the tool working on a project whose dependencies do not all resolve.

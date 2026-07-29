@@ -244,34 +244,19 @@ REQS_ENGINE := $(CURDIR)/engine/requirements
 REQS_DIR    := $(CURDIR)/requirements
 TRACE_CHAIN := $(REQS_DIR)/trace_chain.yaml
 
-# The requirements-only portion of the chain. The TEST and CODE layers are read
-# out of generated inventories, so they cost an Ada toolchain and a Libadalang
-# build; these three cost nothing but `uv`, which is what lets `validate-reqs`
-# (and the cheap `validate-requirements` CI job, and the hlr/llr sub-agents whose
-# oracle it is) keep checking CONOPS->HLR->LLR traceability.
-REQ_LAYERS  := CONOPS,HLR,LLR
-
-# What the CI gate checks: the above plus TEST, i.e. every `--@covers` tag
-# resolves and no test routine is untagged.
-#
-# CODE is deliberately absent. `llr_3_conflicts.6` names
-# `Conflicts.Crosswalk_Conflicts`, which `src/core/conflicts.ads` does not
-# declare -- a real, pre-existing gap, tracked by
-# issue #62. `make trace`
-# shows it; gating on it would only make the pipeline red for a defect this
-# change did not introduce. Add CODE here the moment #62 closes.
-GATE_LAYERS := CONOPS,HLR,LLR,TEST
+# The requirements-only portion of the traceability chain.
+REQUIREMENT_LAYERS  := CONOPS,HLR,LLR
 
 # Check the requirement files for structural validity, EARS syntax, and
 # traceability within the requirements layers.
 validate-reqs:
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(REQ_LAYERS) --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
 
 # The traceability gate CI runs: diagnostics only, exit status is the verdict.
 trace-check: inventories
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(GATE_LAYERS) --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(TRACE_CHAIN)"
 
 # Show the traceability tables for development (coverage + upward trace per
 # pair), over the whole chain -- including the CODE gap `trace-check` excludes.
@@ -289,19 +274,7 @@ test-reqs-engine:
 TRACER_DIR := $(CURDIR)/engine/ada_tracer
 TRACER     := $(TRACER_DIR)/bin/ada_tracer
 
-# Prebuilt Libadalang libraries are only usable with the compiler that produced
-# them; building against them with a different GNAT fails at bind time with
-# "compiled with different GNAT versions". Set LAL_BIN_DIR to the bin directory
-# of the matching compiler and it goes in front of PATH for the tracer build
-# alone, leaving the rest of the repository on its usual toolchain:
-#   make build-tracer LAL_BIN_DIR=$W/gnat_ide_stable/install/bin
-LAL_BIN_DIR ?=
-
-# .ONESHELL is in force, so this export reaches the build command below.
 build-tracer:
-ifneq ($(LAL_BIN_DIR),)
-	export PATH="$(LAL_BIN_DIR):$$PATH"
-endif
 ifeq ($(SETUP),community)
 	cd $(TRACER_DIR) && alr -n build
 else
