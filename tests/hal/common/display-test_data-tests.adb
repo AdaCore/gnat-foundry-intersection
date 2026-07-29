@@ -149,8 +149,15 @@ package body Display.Test_Data.Tests is
       end Render;
 
       procedure Check_Line (Line : String; Number : Positive) is
-         pragma Unreferenced (Number);
       begin
+         --  Past the frame, only the erase-below tail Show ends with.
+         if Number > Frame_Height then
+            Assert
+              (Line = ESC & "[J",
+               "the frame should be followed only by the erase-below tail");
+            return;
+         end if;
+
          --  Every GREEN paint in the frame must be the probe's single GREEN
          --  lamp: the northbound through arrow.
          for I in Line'First .. Line'Last - Green_On'Length + 1 loop
@@ -252,8 +259,9 @@ package body Display.Test_Data.Tests is
       Run_Captured (Render'Access, Check_Line'Access, Count);
 
       Assert
-        (Count = Frame_Height,
-         "Show should render the whole intersection frame");
+        (Count = Frame_Height + 1,
+         "Show should render the whole intersection frame followed by "
+         & "the erase-below tail");
 
       Assert
         (Green_Found > 0, "Show should paint at least one GREEN character");

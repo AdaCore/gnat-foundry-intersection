@@ -129,7 +129,7 @@ endif
 # identically-named binary under bin/, so `alr run` finds two candidates and
 # bails.) Reads commands on stdin, emits diagnostics on stdout; until Ctrl-C.
 run-native: build-native
-	./bin/traffic_light
+	(stty -echo ; ./bin/traffic_light)
 
 # Run the firmware under QEMU (xilinx-zynq-a9). UART0 (diagnostics) is on your
 # terminal; UART1 (wire-protocol commands) is served on 127.0.0.1:$(QEMU_UART1)

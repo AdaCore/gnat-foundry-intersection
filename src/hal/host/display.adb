@@ -206,6 +206,7 @@ package body Display is
          Put (CSI ("K"));
          New_Line;
       end loop;
+      Put (CSI ("J"));
    end Show;
 
    procedure Diag_Write_Line (S : String) is
