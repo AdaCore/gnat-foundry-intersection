@@ -61,6 +61,24 @@ is
    --  geometric conflict matrix: any pair not known compatible is held to
    --  conflict, so the hlr_0_safety.2 postcondition it feeds can only be
    --  stronger, never weaker.
+   --
+   --  The symmetric relation in full, transcribed from the
+   --  `llr_3_conflicts` algorithm_aspects table -- `·` a compatible pair,
+   --  `X` a conflicting one:
+   --
+   --                NT ST ET WT NL SL EL WL
+   --      N_THRU     ·  ·  X  X  ·  X  X  X
+   --      S_THRU     ·  ·  X  X  X  ·  X  X
+   --      E_THRU     X  X  ·  ·  X  X  ·  X
+   --      W_THRU     X  X  ·  ·  X  X  X  ·
+   --      N_LEFT     ·  X  X  X  ·  X  X  X
+   --      S_LEFT     X  ·  X  X  X  ·  X  X
+   --      E_LEFT     X  X  ·  X  X  X  ·  X
+   --      W_LEFT     X  X  X  ·  X  X  X  ·
+   --
+   --  The N_LEFT/S_LEFT cell is the conservatism above by example: the two
+   --  opposing protected lefts never share an output row, so they are held to
+   --  conflict even though a fuller geometric analysis might permit them.
    --  @param A One movement
    --  @param B The other movement
    --  @return True when the two movements may be released together
