@@ -1,0 +1,1709 @@
+{
+  "assumptions": [
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 12,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 5,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 15,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 5,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 2,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 4,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 15,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 5,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 2,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 4,
+          "predicate": "CLAIM_AORTE"
+        }
+      ],
+      "claim": {
+        "arg": 8,
+        "predicate": "CLAIM_POST"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 15,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 5,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 2,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 4,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 15,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 5,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 2,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 4,
+          "predicate": "CLAIM_AORTE"
+        }
+      ],
+      "claim": {
+        "arg": 8,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 9,
+        "predicate": "CLAIM_POST"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 9,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 4,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 4,
+          "predicate": "CLAIM_AORTE"
+        }
+      ],
+      "claim": {
+        "arg": 1,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 2,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 13,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 10,
+          "predicate": "CLAIM_EFFECTS"
+        }
+      ],
+      "claim": {
+        "arg": 14,
+        "predicate": "CLAIM_EFFECTS"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 8,
+          "predicate": "CLAIM_POST"
+        },
+        {
+          "arg": 16,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 17,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 15,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 11,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 14,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 8,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 7,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 1,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 16,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 17,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 15,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 11,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 14,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 8,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 7,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 1,
+          "predicate": "CLAIM_AORTE"
+        }
+      ],
+      "claim": {
+        "arg": 3,
+        "predicate": "CLAIM_POST"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 4,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 8,
+          "predicate": "CLAIM_POST"
+        },
+        {
+          "arg": 16,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 17,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 15,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 11,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 14,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 8,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 7,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 1,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 16,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 17,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 15,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 11,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 14,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 8,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 7,
+          "predicate": "CLAIM_AORTE"
+        },
+        {
+          "arg": 1,
+          "predicate": "CLAIM_AORTE"
+        }
+      ],
+      "claim": {
+        "arg": 3,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 6,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 9,
+          "predicate": "CLAIM_EFFECTS"
+        }
+      ],
+      "claim": {
+        "arg": 13,
+        "predicate": "CLAIM_EFFECTS"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 7,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 10,
+        "predicate": "CLAIM_AORTE"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 7,
+          "predicate": "CLAIM_EFFECTS"
+        }
+      ],
+      "claim": {
+        "arg": 11,
+        "predicate": "CLAIM_EFFECTS"
+      }
+    },
+    {
+      "assumptions": [
+        {
+          "arg": 7,
+          "predicate": "CLAIM_EFFECTS"
+        },
+        {
+          "arg": 7,
+          "predicate": "CLAIM_AORTE"
+        }
+      ],
+      "claim": {
+        "arg": 11,
+        "predicate": "CLAIM_AORTE"
+      }
+    }
+  ],
+  "entities": {
+    " 1": {
+      "name": "Controller.Through_Face",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.adb",
+          "line": 98
+        }
+      ]
+    },
+    " 10": {
+      "name": "Controller.Fixed_Duration",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.adb",
+          "line": 138
+        }
+      ]
+    },
+    " 11": {
+      "name": "Controller.Advance_Ped",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "controller.adb",
+          "line": 376
+        }
+      ]
+    },
+    " 12": {
+      "name": "Controller",
+      "sloc": [
+        {
+          "column": 9,
+          "file": "controller.ads",
+          "line": 60
+        }
+      ]
+    },
+    " 13": {
+      "name": "Controller.Enter_Both",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "controller.adb",
+          "line": 231
+        }
+      ]
+    },
+    " 14": {
+      "name": "Controller.Advance_Vehicle",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "controller.adb",
+          "line": 246
+        }
+      ]
+    },
+    " 15": {
+      "name": "Conflicts.Safe_Faces",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 79
+        }
+      ]
+    },
+    " 16": {
+      "name": "Conflicts.Adjacent_Through",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 108
+        }
+      ]
+    },
+    " 17": {
+      "name": "Conflicts.Next_Conflicting_Through",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 94
+        }
+      ]
+    },
+    " 2": {
+      "name": "Controller.Request_Of",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.adb",
+          "line": 115
+        }
+      ]
+    },
+    " 3": {
+      "name": "Controller.Step",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "controller.ads",
+          "line": 101
+        }
+      ]
+    },
+    " 4": {
+      "name": "Controller.Vehicle_Face_Outputs",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.adb",
+          "line": 32
+        }
+      ]
+    },
+    " 5": {
+      "name": "Controller.Head_Of",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.adb",
+          "line": 104
+        }
+      ]
+    },
+    " 6": {
+      "name": "Controller.Initialize",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "controller.ads",
+          "line": 83
+        }
+      ]
+    },
+    " 7": {
+      "name": "Controller.Running_Ped",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.adb",
+          "line": 131
+        }
+      ]
+    },
+    " 8": {
+      "name": "Controller.Project_Outputs",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.ads",
+          "line": 91
+        }
+      ]
+    },
+    " 9": {
+      "name": "Controller.Both_Duration",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "controller.adb",
+          "line": 168
+        }
+      ]
+    }
+  },
+  "flow": [
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 1,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 98,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Through_Face\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 0,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 2,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 115,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Request_Of\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 1,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 7,
+      "entity": 3,
+      "file": "controller.ads",
+      "how_proved": "flow",
+      "line": 104,
+      "message": {
+        "text": "initialization of \"Outputs\" proved"
+      },
+      "msg_id": 2,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 7,
+      "entity": 3,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 434,
+      "message": {
+        "text": "initialization of \"Rose\" proved"
+      },
+      "msg_id": 3,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 4,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 32,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Vehicle_Face_Outputs\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 4,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 5,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 104,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Head_Of\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 5,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 26,
+      "entity": 6,
+      "file": "controller.ads",
+      "how_proved": "flow",
+      "line": 83,
+      "message": {
+        "text": "initialization of \"State\" proved"
+      },
+      "msg_id": 6,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 7,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 131,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Running_Ped\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 7,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 7,
+      "entity": 8,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 193,
+      "message": {
+        "text": "initialization of \"Heads\" proved"
+      },
+      "msg_id": 8,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 7,
+      "entity": 8,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 194,
+      "message": {
+        "text": "initialization of \"Requests\" proved"
+      },
+      "msg_id": 9,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 8,
+      "file": "controller.ads",
+      "how_proved": "flow",
+      "line": 91,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Project_Outputs\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 10,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 9,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 168,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Both_Duration\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 11,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 10,
+      "file": "controller.adb",
+      "how_proved": "flow",
+      "line": 138,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Fixed_Duration\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 12,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    }
+  ],
+  "pragma_assume": [
+  ],
+  "progress": "PROGRESS_PROOF",
+  "proof": [
+    {
+      "check_col": 17,
+      "check_file": "controller.ads",
+      "check_line": 93,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "Trivial": {
+              "result": "Valid",
+              "steps": 2,
+              "time": 0
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 3879,
+              "time": 1.24364000000000E+00
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 17,
+      "entity": 8,
+      "file": "controller.ads",
+      "how_proved": "prover",
+      "line": 93,
+      "message": {
+        "text": "postcondition proved (CVC5: 1 VC in max 1.2 seconds and 3879 steps; Trivial: 1 VC in max 0.0 seconds and 2 steps)"
+      },
+      "msg_id": 13,
+      "rule": "VC_POSTCONDITION",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 1,
+          "max_steps": 3879,
+          "max_time": 1.24364399909973E+00
+        },
+        "Trivial": {
+          "count": 1,
+          "max_steps": 2,
+          "max_time": 0.00000000000000E+00
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 45,
+      "check_file": "controller.adb",
+      "check_line": 487,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 92,
+              "time": 5.42780000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 3.51150000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 45,
+      "entity": 3,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 487,
+      "message": {
+        "text": "range check proved (CVC5: 2 VC in max 0.1 seconds and 92 steps)"
+      },
+      "msg_id": 14,
+      "rule": "VC_RANGE_CHECK",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 2,
+          "max_steps": 92,
+          "max_time": 5.42780011892319E-02
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 16,
+      "check_file": "controller.adb",
+      "check_line": 492,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 434,
+              "time": 8.45320000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 399,
+              "time": 7.62540000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 356,
+              "time": 7.87760000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 300,
+              "time": 7.15100000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 16,
+      "entity": 3,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 492,
+      "message": {
+        "text": "precondition proved (CVC5: 4 VC in max 0.1 seconds and 434 steps)"
+      },
+      "msg_id": 15,
+      "rule": "VC_PRECONDITION",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 4,
+          "max_steps": 434,
+          "max_time": 8.45320001244545E-02
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 59,
+      "check_file": "controller.adb",
+      "check_line": 494,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 658,
+              "time": 1.00481000000000E-01
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 436,
+              "time": 9.08250000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 619,
+              "time": 1.10888000000000E-01
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 401,
+              "time": 8.09880000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 580,
+              "time": 8.98790000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 358,
+              "time": 7.65630000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 534,
+              "time": 9.72660000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 302,
+              "time": 7.03810000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 59,
+      "entity": 3,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 494,
+      "message": {
+        "text": "range check proved (CVC5: 8 VC in max 0.1 seconds and 658 steps)"
+      },
+      "msg_id": 16,
+      "rule": "VC_RANGE_CHECK",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 8,
+          "max_steps": 658,
+          "max_time": 1.10887996852398E-01
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 17,
+      "check_file": "controller.ads",
+      "check_line": 105,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "Trivial": {
+              "result": "Valid",
+              "steps": 2,
+              "time": 0
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 2864,
+              "time": 5.32580000000000E-01
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 17,
+      "entity": 3,
+      "file": "controller.ads",
+      "how_proved": "prover",
+      "line": 105,
+      "message": {
+        "text": "postcondition proved (CVC5: 1 VC in max 0.5 seconds and 2864 steps; Trivial: 1 VC in max 0.0 seconds and 2 steps)"
+      },
+      "msg_id": 17,
+      "rule": "VC_POSTCONDITION",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 1,
+          "max_steps": 2864,
+          "max_time": 5.32580018043518E-01
+        },
+        "Trivial": {
+          "count": 1,
+          "max_steps": 2,
+          "max_time": 0.00000000000000E+00
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 8,
+      "check_file": "controller.adb",
+      "check_line": 171,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 1.49030000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 9.91800000000000E-03
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 8,
+      "entity": 9,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 171,
+      "message": {
+        "text": "overflow check proved (CVC5: 2 VC in max 0.0 seconds and 1 step)"
+      },
+      "msg_id": 18,
+      "rule": "VC_OVERFLOW_CHECK",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 2,
+          "max_steps": 1,
+          "max_time": 1.49029996246099E-02
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 8,
+      "check_file": "controller.adb",
+      "check_line": 174,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 9.28700000000000E-03
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 1.15350000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 8,
+      "entity": 9,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 174,
+      "message": {
+        "text": "overflow check proved (CVC5: 2 VC in max 0.0 seconds and 1 step)"
+      },
+      "msg_id": 19,
+      "rule": "VC_OVERFLOW_CHECK",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 2,
+          "max_steps": 1,
+          "max_time": 1.15350000560284E-02
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 8,
+      "check_file": "controller.adb",
+      "check_line": 174,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 1.15590000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 1.09530000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 8,
+      "entity": 9,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 174,
+      "message": {
+        "text": "range check proved (CVC5: 2 VC in max 0.0 seconds and 1 step)"
+      },
+      "msg_id": 20,
+      "rule": "VC_RANGE_CHECK",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 2,
+          "max_steps": 1,
+          "max_time": 1.15590002387762E-02
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 8,
+      "check_file": "controller.adb",
+      "check_line": 183,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 1.53250000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 1.23090000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 8,
+      "entity": 9,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 183,
+      "message": {
+        "text": "postcondition proved (CVC5: 2 VC in max 0.0 seconds and 1 step)"
+      },
+      "msg_id": 21,
+      "rule": "VC_POSTCONDITION",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 2,
+          "max_steps": 1,
+          "max_time": 1.53249995782971E-02
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_col": 50,
+      "check_file": "controller.adb",
+      "check_line": 381,
+      "check_tree": [
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 9.15300000000000E-03
+            }
+          },
+          "transformations": {
+          }
+        },
+        {
+          "proof_attempts": {
+            "CVC5": {
+              "result": "Valid",
+              "steps": 1,
+              "time": 1.38490000000000E-02
+            }
+          },
+          "transformations": {
+          }
+        }
+      ],
+      "col": 50,
+      "entity": 11,
+      "file": "controller.adb",
+      "how_proved": "prover",
+      "line": 381,
+      "message": {
+        "text": "range check proved (CVC5: 2 VC in max 0.0 seconds and 1 step)"
+      },
+      "msg_id": 22,
+      "rule": "VC_RANGE_CHECK",
+      "severity": "info",
+      "stats": {
+        "CVC5": {
+          "count": 2,
+          "max_steps": 1,
+          "max_time": 1.38490004464984E-02
+        }
+      },
+      "unproved_status": {
+        "status": "unknown"
+      }
+    }
+  ],
+  "skip_flow_proof": [
+  ],
+  "skip_proof": [
+  ],
+  "spark": {
+    " 1": "all",
+    " 10": "all",
+    " 11": "all",
+    " 12": "all",
+    " 13": "all",
+    " 14": "all",
+    " 2": "all",
+    " 3": "all",
+    " 4": "all",
+    " 5": "all",
+    " 6": "all",
+    " 7": "all",
+    " 8": "all",
+    " 9": "all"
+  },
+  "stop_reason": "STOP_REASON_NONE",
+  "timings": {
+    " 1": {
+      "gnat2why.vc_generation": 3.26999987009913E-04
+    },
+    " 10": {
+      "gnat2why.vc_generation": 7.20000025467016E-05
+    },
+    " 11": {
+      "gnat2why.vc_generation": 2.86099989898503E-03,
+      "gnatwhy3.init": 3.64737004041672E-01,
+      "gnatwhy3.register_vcs": 1.26940002664924E-02,
+      "gnatwhy3.run_vcs": 6.00000021222513E-06,
+      "gnatwhy3.save_session": 3.23399901390076E-03,
+      "gnatwhy3.schedule_vcs": 1.68360006064177E-02,
+      "gnatwhy3.transformations.counterexamples_dependent_intros": 3.90900019556284E-03,
+      "gnatwhy3.transformations.detect_polymorphism": 1.67998994584195E-04,
+      "gnatwhy3.transformations.discriminate_if_poly": 1.99900000552589E-06,
+      "gnatwhy3.transformations.eliminate_algebraic_if_poly": 3.45000007655472E-04,
+      "gnatwhy3.transformations.eliminate_builtin": 2.30300007387996E-03,
+      "gnatwhy3.transformations.eliminate_definition_conditionally": 3.02000000374392E-04,
+      "gnatwhy3.transformations.eliminate_epsilon": 2.78999010333791E-04,
+      "gnatwhy3.transformations.eliminate_gnatprove_guard_epsilon": 2.30000005103648E-04,
+      "gnatwhy3.transformations.eliminate_inductive": 4.72000014269724E-04,
+      "gnatwhy3.transformations.eliminate_literal": 3.20999010000378E-04,
+      "gnatwhy3.transformations.eliminate_projections_sums": 4.50999010354280E-04,
+      "gnatwhy3.transformations.encoding_smt_if_poly": 9.99000008050643E-07,
+      "gnatwhy3.transformations.inline_trivial": 8.79099871963263E-03,
+      "gnatwhy3.transformations.remove_unused": 1.81100005283952E-03,
+      "gnatwhy3.transformations.simplify_formula": 2.39999004406855E-04,
+      "gnatwhy3.transformations.split_goal_wp_conj": 8.81600007414818E-03
+    },
+    " 2": {
+      "gnat2why.vc_generation": 4.19999996665865E-05
+    },
+    " 3": {
+      "gnat2why.vc_generation": 8.55249986052513E-02,
+      "gnatwhy3.init": 8.26786994934082E-01,
+      "gnatwhy3.register_vcs": 1.93618905544281E+00,
+      "gnatwhy3.run_vcs": 8.09990015113726E-05,
+      "gnatwhy3.save_session": 1.19456999003887E-01,
+      "gnatwhy3.schedule_vcs": 3.08310002088547E-01,
+      "gnatwhy3.transformations.counterexamples_dependent_intros": 9.46799963712692E-02,
+      "gnatwhy3.transformations.detect_polymorphism": 1.64219997823238E-02,
+      "gnatwhy3.transformations.discriminate_if_poly": 2.09989993891213E-05,
+      "gnatwhy3.transformations.eliminate_algebraic_if_poly": 3.42390015721321E-02,
+      "gnatwhy3.transformations.eliminate_builtin": 2.47750002890825E-02,
+      "gnatwhy3.transformations.eliminate_definition_conditionally": 1.96029990911484E-02,
+      "gnatwhy3.transformations.eliminate_epsilon": 3.04620005190372E-02,
+      "gnatwhy3.transformations.eliminate_gnatprove_guard_epsilon": 3.23849990963936E-02,
+      "gnatwhy3.transformations.eliminate_inductive": 1.89040005207062E-02,
+      "gnatwhy3.transformations.eliminate_literal": 3.50620001554489E-02,
+      "gnatwhy3.transformations.eliminate_projections_sums": 2.21989993005991E-02,
+      "gnatwhy3.transformations.encoding_smt_if_poly": 1.20000004244503E-05,
+      "gnatwhy3.transformations.inline_trivial": 3.19489002227783E-01,
+      "gnatwhy3.transformations.remove_unused": 1.30199998617172E-01,
+      "gnatwhy3.transformations.simplify_formula": 4.18459996581078E-02,
+      "gnatwhy3.transformations.split_goal_wp_conj": 1.33236694335938E+00
+    },
+    " 4": {
+      "gnat2why.vc_generation": 1.34170994162560E-01
+    },
+    " 5": {
+      "gnat2why.vc_generation": 5.90000017837156E-05
+    },
+    " 6": {
+      "gnat2why.vc_generation": 1.24599998816848E-02
+    },
+    " 7": {
+      "gnat2why.vc_generation": 4.40000003436580E-05
+    },
+    " 8": {
+      "gnat2why.vc_generation": 1.29299995023757E-03,
+      "gnatwhy3.init": 5.85964977741241E-01,
+      "gnatwhy3.register_vcs": 5.27269989252090E-02,
+      "gnatwhy3.run_vcs": 1.29990003188141E-05,
+      "gnatwhy3.save_session": 2.07090005278587E-02,
+      "gnatwhy3.schedule_vcs": 8.24299976229668E-02,
+      "gnatwhy3.transformations.counterexamples_dependent_intros": 1.87929999083281E-02,
+      "gnatwhy3.transformations.detect_polymorphism": 9.80000011622906E-04,
+      "gnatwhy3.transformations.discriminate_if_poly": 1.99900000552589E-06,
+      "gnatwhy3.transformations.eliminate_algebraic_if_poly": 2.55399895831943E-03,
+      "gnatwhy3.transformations.eliminate_builtin": 1.13140000030398E-02,
+      "gnatwhy3.transformations.eliminate_definition_conditionally": 1.90100003965199E-03,
+      "gnatwhy3.transformations.eliminate_epsilon": 2.16199900023639E-03,
+      "gnatwhy3.transformations.eliminate_gnatprove_guard_epsilon": 2.45000002905726E-03,
+      "gnatwhy3.transformations.eliminate_inductive": 1.53699901420623E-03,
+      "gnatwhy3.transformations.eliminate_literal": 3.41299897991121E-03,
+      "gnatwhy3.transformations.eliminate_projections_sums": 2.42700008675456E-03,
+      "gnatwhy3.transformations.encoding_smt_if_poly": 9.99000008050643E-07,
+      "gnatwhy3.transformations.inline_trivial": 1.92889980971813E-02,
+      "gnatwhy3.transformations.remove_unused": 7.73600023239851E-03,
+      "gnatwhy3.transformations.simplify_formula": 2.88999895565212E-03,
+      "gnatwhy3.transformations.split_goal_wp_conj": 3.02740000188351E-02
+    },
+    " 9": {
+      "gnat2why.vc_generation": 9.79999967967160E-05,
+      "gnatwhy3.init": 3.26191008090973E-01,
+      "gnatwhy3.register_vcs": 2.66700005158782E-03,
+      "gnatwhy3.run_vcs": 3.99900000047637E-06,
+      "gnatwhy3.save_session": 2.68599903210998E-03,
+      "gnatwhy3.schedule_vcs": 7.41000007838011E-03,
+      "gnatwhy3.transformations.counterexamples_dependent_intros": 5.28000004123896E-04,
+      "gnatwhy3.transformations.detect_polymorphism": 1.16000002890360E-04,
+      "gnatwhy3.transformations.discriminate_if_poly": 4.99899988426478E-06,
+      "gnatwhy3.transformations.eliminate_algebraic_if_poly": 1.84998993063346E-04,
+      "gnatwhy3.transformations.eliminate_builtin": 4.18000010540709E-04,
+      "gnatwhy3.transformations.eliminate_definition_conditionally": 1.19999000162352E-04,
+      "gnatwhy3.transformations.eliminate_epsilon": 2.68000003416091E-04,
+      "gnatwhy3.transformations.eliminate_gnatprove_guard_epsilon": 1.50000007124618E-04,
+      "gnatwhy3.transformations.eliminate_inductive": 1.00999001006130E-04,
+      "gnatwhy3.transformations.eliminate_literal": 6.68998982291669E-04,
+      "gnatwhy3.transformations.eliminate_projections_sums": 3.99999000364915E-04,
+      "gnatwhy3.transformations.encoding_smt_if_poly": 3.00000010611257E-06,
+      "gnatwhy3.transformations.inline_trivial": 6.12499890848994E-03,
+      "gnatwhy3.transformations.remove_unused": 1.35300005786121E-03,
+      "gnatwhy3.transformations.simplify_formula": 1.72000000020489E-04,
+      "gnatwhy3.transformations.split_goal_wp_conj": 1.16300000809133E-03
+    },
+    "global": {
+      "flow analysis": 1.77960004657507E-02,
+      "globals (advanced)": 1.83399999514222E-03,
+      "globals (basic)": 1.57199997920543E-03,
+      "init_why_sections": 9.36000025831163E-04,
+      "marking": 2.78600002638996E-03,
+      "properties (advanced)": 1.14000002213288E-04,
+      "translation of standard": 1.54099997598678E-03
+    }
+  },
+  "warn_error": [
+    {
+      "check_tree": {
+      },
+      "col": 8,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 171,
+      "message": {
+        "text": "possible reassociation due to missing parentheses [operator-reassociation]"
+      },
+      "rule": "operator-reassociation",
+      "severity": "warning",
+      "suppressed": "",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 26,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 208,
+      "message": {
+        "text": "unrolling loop [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 25,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 452,
+      "message": {
+        "text": "unrolling loop [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 26,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 461,
+      "message": {
+        "text": "unrolling loop [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 26,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 489,
+      "message": {
+        "text": "unrolling loop [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 25,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 502,
+      "message": {
+        "text": "unrolling loop [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 25,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 509,
+      "message": {
+        "text": "unrolling loop [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 26,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 518,
+      "message": {
+        "text": "unrolling loop [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 14,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 231,
+      "message": {
+        "arguments": [
+          "Enter_Both"
+        ],
+        "text": "local subprogram {0} only analyzed in the context of calls [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 14,
+      "file": "controller.adb",
+      "how_proved": "trivial",
+      "line": 246,
+      "message": {
+        "arguments": [
+          "Advance_Vehicle"
+        ],
+        "text": "local subprogram {0} only analyzed in the context of calls [info-unrolling-inlining]"
+      },
+      "rule": "error",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    }
+  ]
+}

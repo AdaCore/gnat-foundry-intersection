@@ -20,7 +20,14 @@ make test           # Run the testsuite
 make prove          # Run the prover
 
 make all-coverage   # Generate a coverage report
+
+make prove-report all-coverage coverage-report-xml report  # Verification report
 ```
+
+The verification report (proof + coverage + review obligations) renders to
+`reports/report/html/`; its generator lives in `engine/report/`. The
+`all-coverage` step matters: `coverage-report-xml` reads whatever traces are
+on disk, so skipping it reports stale test executions.
 
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same

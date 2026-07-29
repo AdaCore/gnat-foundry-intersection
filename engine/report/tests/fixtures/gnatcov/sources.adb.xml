@@ -1,0 +1,988 @@
+<?xml version="1.0" ?>
+<source file="/workspace/traffic-light-controller/src/hal/host/sources.adb" coverage_level="stmt+mcdc">
+ <scope_metric scope_name="Sources" scope_line="24">
+  <metric kind="total_lines_of_relevance" count="20"/>
+  <metric kind="fully_covered" count="19" ratio="95"/>
+  <metric kind="partially_covered" count="0" ratio="0"/>
+  <metric kind="not_covered" count="0" ratio="0"/>
+  <metric kind="undetermined_coverage" count="0" ratio="0"/>
+  <metric kind="exempted_no_violation" count="0" ratio="0"/>
+  <metric kind="exempted" count="1" ratio="5"/>
+  <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+  <metric kind="disabled_coverage" count="0" ratio="0"/>
+  <obligation_stats kind="Stmt">
+   <metric kind="total_obligations_of_relevance" count="17"/>
+   <metric kind="fully_covered" count="16" ratio="94"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="1" ratio="6"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="Decision">
+   <metric kind="total_obligations_of_relevance" count="1"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="1" ratio="100"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="MCDC">
+   <metric kind="total_obligations_of_relevance" count="1"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="1" ratio="100"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <scope_metric scope_name="Decode" scope_line="33">
+   <metric kind="total_lines_of_relevance" count="10"/>
+   <metric kind="fully_covered" count="10" ratio="100"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <obligation_stats kind="Stmt">
+    <metric kind="total_obligations_of_relevance" count="10"/>
+    <metric kind="fully_covered" count="10" ratio="100"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Decision">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="MCDC">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+  </scope_metric>
+
+  <scope_metric scope_name="Sample" scope_line="65">
+   <metric kind="total_lines_of_relevance" count="10"/>
+   <metric kind="fully_covered" count="9" ratio="90"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="1" ratio="10"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <obligation_stats kind="Stmt">
+    <metric kind="total_obligations_of_relevance" count="7"/>
+    <metric kind="fully_covered" count="6" ratio="86"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="1" ratio="14"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Decision">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="0" ratio="0"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="1" ratio="100"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="MCDC">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="0" ratio="0"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="1" ratio="100"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+  </scope_metric>
+
+ </scope_metric>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="1" src="--  Sources body -- host profile. Keyboard simulation of the sensor surface:"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="2" src="--  each Sample call drains whatever the operator has typed since the previous"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="3" src="--  poll and folds those keypresses into one Sensors_State snapshot."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="4" src="--"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="5" src="--  Key map (the specification, no other magic literals):"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="6" src="--    &apos;1&apos; &apos;2&apos; &apos;3&apos; &apos;4&apos; -- pedestrian request, crosswalk North_Side /"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="7" src="--                       South_Side / East_Side / West_Side -&gt; Pressed"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="8" src="--    &apos;n&apos; &apos;s&apos; &apos;e&apos; &apos;w&apos; -- left-turn detector, approach North / South / East /"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="9" src="--                       West -&gt; Vehicle_Present"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="10" src="--  Unrecognized keys are ignored; the fault-detection line has no key and"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="11" src="--  stays Not_Asserted."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="12" src="--"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="13" src="--  The drain is a non-blocking, coalescing pass: keys not seen this poll read"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="14" src="--  inactive (Released / No_Vehicle), and repeated presses of the same key"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="15" src="--  within one poll collapse to a single active reading (the set is"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="16" src="--  idempotent). See Sample for the two termination paths."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="17" src="--"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="18" src="--  This is the host simulation only; the UART/target edge-capture realization"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="19" src="--  of the producer lives under the qemu_zynq7000 profile."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="20" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="21" src="with Ada.IO_Exceptions;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="22" src="with Ada.Text_IO;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="23" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="24" src="package body Sources is"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="25" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="26" src="   procedure Decode (Key : Character; Value : in out States.Sensors_State);"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="27" src="   --  Fold one keypress into the snapshot being built. Recognized keys set"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="28" src="   --  their signal active (idempotent); unrecognized keys leave Value"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="29" src="   --  unchanged."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="30" src="   --  @param Key The character drained from the input queue"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="31" src="   --  @param Value The snapshot being accumulated this poll"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="32" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="33" src="   procedure Decode (Key : Character; Value : in out States.Sensors_State) is"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="34" src="   begin"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="35" src="      case Key is"/>
+  </src>
+
+  <statement id="251" text="case Key" coverage="+">
+   <src>
+    <line num="35" column_begin="7" column_end="14" src="      case Key"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="36" src="         when &apos;1&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="37" src="            Value.Buttons (States.North_Side) := States.Pressed;"/>
+  </src>
+
+  <statement id="252" text="Value.But..." coverage="+">
+   <src>
+    <line num="37" column_begin="13" column_end="64" src="            Value.Buttons (States.North_Side) := States.Pressed;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="38" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="39" src="         when &apos;2&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="40" src="            Value.Buttons (States.South_Side) := States.Pressed;"/>
+  </src>
+
+  <statement id="253" text="Value.But..." coverage="+">
+   <src>
+    <line num="40" column_begin="13" column_end="64" src="            Value.Buttons (States.South_Side) := States.Pressed;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="41" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="42" src="         when &apos;3&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="43" src="            Value.Buttons (States.East_Side) := States.Pressed;"/>
+  </src>
+
+  <statement id="254" text="Value.But..." coverage="+">
+   <src>
+    <line num="43" column_begin="13" column_end="63" src="            Value.Buttons (States.East_Side) := States.Pressed;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="44" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="45" src="         when &apos;4&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="46" src="            Value.Buttons (States.West_Side) := States.Pressed;"/>
+  </src>
+
+  <statement id="255" text="Value.But..." coverage="+">
+   <src>
+    <line num="46" column_begin="13" column_end="63" src="            Value.Buttons (States.West_Side) := States.Pressed;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="47" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="48" src="         when &apos;n&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="49" src="            Value.Left_Turns (States.North) := States.Vehicle_Present;"/>
+  </src>
+
+  <statement id="256" text="Value.Lef..." coverage="+">
+   <src>
+    <line num="49" column_begin="13" column_end="70" src="            Value.Left_Turns (States.North) := States.Vehicle_Present;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="50" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="51" src="         when &apos;s&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="52" src="            Value.Left_Turns (States.South) := States.Vehicle_Present;"/>
+  </src>
+
+  <statement id="257" text="Value.Lef..." coverage="+">
+   <src>
+    <line num="52" column_begin="13" column_end="70" src="            Value.Left_Turns (States.South) := States.Vehicle_Present;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="53" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="54" src="         when &apos;e&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="55" src="            Value.Left_Turns (States.East) := States.Vehicle_Present;"/>
+  </src>
+
+  <statement id="258" text="Value.Lef..." coverage="+">
+   <src>
+    <line num="55" column_begin="13" column_end="69" src="            Value.Left_Turns (States.East) := States.Vehicle_Present;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="56" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="57" src="         when &apos;w&apos;    =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="58" src="            Value.Left_Turns (States.West) := States.Vehicle_Present;"/>
+  </src>
+
+  <statement id="259" text="Value.Lef..." coverage="+">
+   <src>
+    <line num="58" column_begin="13" column_end="69" src="            Value.Left_Turns (States.West) := States.Vehicle_Present;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="59" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="60" src="         when others =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="61" src="            null;"/>
+  </src>
+
+  <statement id="260" text="null;" coverage="+">
+   <src>
+    <line num="61" column_begin="13" column_end="17" src="            null;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="62" src="      end case;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="63" src="   end Decode;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="64" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="65" src="   procedure Sample (Value : out States.Sensors_State) is"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="66" src="      Item      : Character;"/>
+  </src>
+
+  <statement id="261" text="Item     ..." coverage="+">
+   <src>
+    <line num="66" column_begin="7" column_end="28" src="      Item      : Character;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="67" src="      Available : Boolean;"/>
+  </src>
+
+  <statement id="262" text="Available..." coverage="+">
+   <src>
+    <line num="67" column_begin="7" column_end="26" src="      Available : Boolean;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="68" src="   begin"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="69" src="      --  Start all-quiet; keys not seen this poll read inactive."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="70" src="      Value :="/>
+  </src>
+
+  <statement id="263" text="Value :=" coverage="+">
+   <src>
+    <line num="70" column_begin="7" src="      Value :="/>
+    <line num="71" src="        (Buttons    =&gt; (others =&gt; States.Released),"/>
+    <line num="72" src="         Left_Turns =&gt; (others =&gt; States.No_Vehicle),"/>
+    <line num="73" column_end="44" src="         Fault      =&gt; States.Not_Asserted);"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="71" src="        (Buttons    =&gt; (others =&gt; States.Released),"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="72" src="         Left_Turns =&gt; (others =&gt; States.No_Vehicle),"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="73" src="         Fault      =&gt; States.Not_Asserted);"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="74" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="75" src="      loop"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="76" src="         Ada.Text_IO.Get_Immediate (Item, Available);"/>
+  </src>
+
+  <statement id="264" text="Ada.Text_..." coverage="+">
+   <src>
+    <line num="76" column_begin="10" column_end="53" src="         Ada.Text_IO.Get_Immediate (Item, Available);"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="77" src="         pragma"/>
+  </src>
+
+  <statement id="265" text="pragma" coverage=".">
+   <src>
+    <line num="77" column_begin="10" src="         pragma"/>
+    <line num="78" src="           Annotate"/>
+    <line num="79" src="             (Xcov,"/>
+    <line num="80" src="              Exempt_On,"/>
+    <line num="81" src="              &quot;live-tty only: under file/pipe-redirected input &quot;"/>
+    <line num="82" src="              &amp; &quot;Get_Immediate returns Available =&gt; True until EOF, then &quot;"/>
+    <line num="83" src="              &amp; &quot;raises End_Error, so &apos;not Available&apos; is never True in &quot;"/>
+    <line num="84" src="              &amp; &quot;automated tests; this exit is the interactive-terminal &quot;"/>
+    <line num="85" src="              &amp; &quot;empty-queue path (see Get_Immediate file-vs-tty semantics &quot;"/>
+    <line num="86" column_end="43" src="              &amp; &quot;in the header comment).&quot;);"/>
+   </src>
+
+  </statement>
+
+  <message kind="notice" message="Exempted region justification: &quot;live-tty only: under file/pipe-redirected input Get_Immediate returns Available =&gt; True until EOF, then raises End_Error, so &apos;not Available&apos; is never True in automated tests; this exit is the interactive-terminal empty-queue path (see Get_Immediate file-vs-tty semantics in the header comment).&quot;"/>
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="78" src="           Annotate"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="79" src="             (Xcov,"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="80" src="              Exempt_On,"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="81" src="              &quot;live-tty only: under file/pipe-redirected input &quot;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="82" src="              &amp; &quot;Get_Immediate returns Available =&gt; True until EOF, then &quot;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="83" src="              &amp; &quot;raises End_Error, so &apos;not Available&apos; is never True in &quot;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="84" src="              &amp; &quot;automated tests; this exit is the interactive-terminal &quot;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="85" src="              &amp; &quot;empty-queue path (see Get_Immediate file-vs-tty semantics &quot;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="86" src="              &amp; &quot;in the header comment).&quot;);"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="87" src="         exit when not Available;   --  live-tty: input queue empty"/>
+  </src>
+
+  <statement id="266" text="exit when..." coverage="+">
+   <src>
+    <line num="87" column_begin="10" column_end="33" src="         exit when not Available;"/>
+   </src>
+
+  </statement>
+
+  <decision id="267" text="Available" coverage="-">
+   <src>
+    <line num="87" column_begin="24" column_end="32" src="                       Available"/>
+   </src>
+
+   <condition id="269" text="Available" coverage=".">
+    <src>
+     <line num="87" column_begin="24" column_end="32" src="                       Available"/>
+    </src>
+
+   </condition>
+
+  </decision>
+
+  <message kind="violation" SCO="SCO #267: DECISION" message="outcome TRUE never exercised"/>
+ </src_mapping>
+
+ <src_mapping coverage="*">
+  <src>
+   <line num="88" src="         pragma Annotate (Xcov, Exempt_Off);"/>
+  </src>
+
+  <statement id="270" text="pragma An..." coverage=".">
+   <src>
+    <line num="88" column_begin="10" column_end="44" src="         pragma Annotate (Xcov, Exempt_Off);"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="89" src="         Decode (Item, Value);"/>
+  </src>
+
+  <statement id="271" text="Decode (I..." coverage="+">
+   <src>
+    <line num="89" column_begin="10" column_end="30" src="         Decode (Item, Value);"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="90" src="      end loop;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="91" src="   exception"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="92" src="      when Ada.IO_Exceptions.End_Error =&gt;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="93" src="         --  Input stream drained / closed: the accumulated snapshot stands."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="94" src="         null;"/>
+  </src>
+
+  <statement id="272" text="null;" coverage="+">
+   <src>
+    <line num="94" column_begin="10" column_end="14" src="         null;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="95" src="   end Sample;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="96" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="97" src="end Sources;"/>
+  </src>
+
+ </src_mapping>
+
+</source>
+

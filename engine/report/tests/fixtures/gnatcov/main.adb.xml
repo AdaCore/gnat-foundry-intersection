@@ -1,0 +1,451 @@
+<?xml version="1.0" ?>
+<source file="/workspace/traffic-light-controller/src/app/main.adb" coverage_level="stmt+mcdc">
+ <scope_metric scope_name="Main" scope_line="13">
+  <metric kind="total_lines_of_relevance" count="10"/>
+  <metric kind="fully_covered" count="0" ratio="0"/>
+  <metric kind="partially_covered" count="0" ratio="0"/>
+  <metric kind="not_covered" count="10" ratio="100"/>
+  <metric kind="undetermined_coverage" count="0" ratio="0"/>
+  <metric kind="exempted_no_violation" count="0" ratio="0"/>
+  <metric kind="exempted" count="0" ratio="0"/>
+  <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+  <metric kind="disabled_coverage" count="0" ratio="0"/>
+  <obligation_stats kind="Stmt">
+   <metric kind="total_obligations_of_relevance" count="6"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="6" ratio="100"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="Decision">
+   <metric kind="total_obligations_of_relevance" count="0"/>
+   <metric kind="fully_covered" count="0"/>
+   <metric kind="partially_covered" count="0"/>
+   <metric kind="not_covered" count="0"/>
+   <metric kind="undetermined_coverage" count="0"/>
+   <metric kind="exempted_no_violation" count="0"/>
+   <metric kind="exempted" count="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0"/>
+   <metric kind="disabled_coverage" count="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="MCDC">
+   <metric kind="total_obligations_of_relevance" count="0"/>
+   <metric kind="fully_covered" count="0"/>
+   <metric kind="partially_covered" count="0"/>
+   <metric kind="not_covered" count="0"/>
+   <metric kind="undetermined_coverage" count="0"/>
+   <metric kind="exempted_no_violation" count="0"/>
+   <metric kind="exempted" count="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0"/>
+   <metric kind="disabled_coverage" count="0"/>
+  </obligation_stats>
+
+  <scope_metric scope_name="Source_Wire" scope_line="15">
+   <metric kind="total_lines_of_relevance" count="1"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="1" ratio="100"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <obligation_stats kind="Stmt">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="0" ratio="0"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="1" ratio="100"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Decision">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="MCDC">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+  </scope_metric>
+
+  <scope_metric scope_name="Display_Wire" scope_line="16">
+   <metric kind="total_lines_of_relevance" count="1"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="1" ratio="100"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <obligation_stats kind="Stmt">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="0" ratio="0"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="1" ratio="100"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Decision">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="MCDC">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+  </scope_metric>
+
+  <scope_metric scope_name="Run" scope_line="20">
+   <metric kind="total_lines_of_relevance" count="5"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="5" ratio="100"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <obligation_stats kind="Stmt">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="0" ratio="0"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="1" ratio="100"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Decision">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="MCDC">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+  </scope_metric>
+
+ </scope_metric>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="1" src="--  Application entry point. Initialises the display, wires the two data buses"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="2" src="--  to the HAL (source bus &lt;- Sources.Sample, display bus -&gt; Display.Show),"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="3" src="--  instantiates the generic core loop against those wires plus the HAL timing"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="4" src="--  service, and runs it forever. All wiring is local -- no globals"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="5" src="--  (design/architecture.md sections &quot;The core loop&quot; and &quot;Code conventions&quot;)."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="6" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="7" src="with Timings;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="8" src="with Sources;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="9" src="with Display;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="10" src="with Buses;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="11" src="with State_Machine_Loop;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="12" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="13" src="procedure Main is"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="14" src="   --  Wire the buses: each instantiation binds one bus end to its HAL side."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="15" src="   package Source_Wire is new Buses.Source_Bus (Bus_Write =&gt; Sources.Sample);"/>
+  </src>
+
+  <statement id="276" text="package S..." coverage="-">
+   <src>
+    <line num="15" column_begin="4" column_end="77" src="   package Source_Wire is new Buses.Source_Bus (Bus_Write =&gt; Sources.Sample);"/>
+   </src>
+
+  </statement>
+
+  <message kind="violation" SCO="SCO #276: STATEMENT" message="not executed"/>
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="16" src="   package Display_Wire is new Buses.Display_Bus (Bus_Read =&gt; Display.Show);"/>
+  </src>
+
+  <statement id="277" text="package D..." coverage="-">
+   <src>
+    <line num="16" column_begin="4" column_end="76" src="   package Display_Wire is new Buses.Display_Bus (Bus_Read =&gt; Display.Show);"/>
+   </src>
+
+  </statement>
+
+  <message kind="violation" SCO="SCO #277: STATEMENT" message="not executed"/>
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="17" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="18" src="   --  Instantiate the generic core loop against the consumer side of the"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="19" src="   --  source bus, the producer side of the display bus, and the HAL delay."/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="20" src="   procedure Run is new"/>
+  </src>
+
+  <statement id="278" text="procedure..." coverage="-">
+   <src>
+    <line num="20" column_begin="4" src="   procedure Run is new"/>
+    <line num="21" src="     State_Machine_Loop"/>
+    <line num="22" src="       (Delay_For     =&gt; Timings.Delay_For,"/>
+    <line num="23" src="        Read_Sources  =&gt; Source_Wire.Bus_Read,"/>
+    <line num="24" column_end="49" src="        Write_Display =&gt; Display_Wire.Bus_Write);"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="21" src="     State_Machine_Loop"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="22" src="       (Delay_For     =&gt; Timings.Delay_For,"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="23" src="        Read_Sources  =&gt; Source_Wire.Bus_Read,"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="24" src="        Write_Display =&gt; Display_Wire.Bus_Write);"/>
+  </src>
+
+  <message kind="violation" SCO="SCO #278: STATEMENT" message="not executed"/>
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="25" src="begin"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="26" src="   Display.Initialize;"/>
+  </src>
+
+  <statement id="279" text="Display.I..." coverage="-">
+   <src>
+    <line num="26" column_begin="4" column_end="22" src="   Display.Initialize;"/>
+   </src>
+
+  </statement>
+
+  <message kind="violation" SCO="SCO #279: STATEMENT" message="not executed"/>
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="27" src="   Display.Diag_Write_Line (&quot;startup&quot;);"/>
+  </src>
+
+  <statement id="280" text="Display.D..." coverage="-">
+   <src>
+    <line num="27" column_begin="4" column_end="39" src="   Display.Diag_Write_Line (&quot;startup&quot;);"/>
+   </src>
+
+  </statement>
+
+  <message kind="violation" SCO="SCO #280: STATEMENT" message="not executed"/>
+ </src_mapping>
+
+ <src_mapping coverage="-">
+  <src>
+   <line num="28" src="   Run;  --  No_Return: drives the four-stage loop forever."/>
+  </src>
+
+  <statement id="281" text="Run;" coverage="-">
+   <src>
+    <line num="28" column_begin="4" column_end="7" src="   Run;"/>
+   </src>
+
+  </statement>
+
+  <message kind="violation" SCO="SCO #281: STATEMENT" message="not executed"/>
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="29" src="end Main;"/>
+  </src>
+
+ </src_mapping>
+
+</source>
+

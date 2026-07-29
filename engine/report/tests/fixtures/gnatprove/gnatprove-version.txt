@@ -1,0 +1,5 @@
+FSF 16.1.0
+Why3 for gnatprove version 1.8.2+git
+/workspace/traffic-light-controller/install/alire/prefix/libexec/spark/bin/alt-ergo: Alt-Ergo version 2.6.1
+/workspace/traffic-light-controller/install/alire/prefix/libexec/spark/bin/cvc5: This is cvc5 version 1.3.2 [git 86cecd8 on branch HEAD]
+/workspace/traffic-light-controller/install/alire/prefix/libexec/spark/bin/z3: Z3 version 4.15.4 - 64 bit

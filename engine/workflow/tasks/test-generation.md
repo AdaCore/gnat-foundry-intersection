@@ -23,7 +23,7 @@ in meaningful test bodies, so the suite builds and passes.
 
 ## Procedure
 
-1. Regenerate the harness: `make generate-tests-pro`.
+1. Regenerate the harness: `make generate-tests`.
 2. Fill in the test bodies for the new/changed subprograms (in the editable
    regions) — assert the behavior the LLRs specify.
 3. Trace every routine to its requirement: put a `--@covers` tag as the first
@@ -47,7 +47,7 @@ in meaningful test bodies, so the suite builds and passes.
 ## Oracle
 
 ```bash
-make generate-tests-pro && make build-native && make test-pro
+make generate-tests && make build-native && make test
 ```
 
 **Done when all succeed** — the harness regenerates, the app builds, and the

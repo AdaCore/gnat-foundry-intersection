@@ -1,0 +1,162 @@
+date               : 2026-07-29T16:05:50Z
+gnatprove version  : FSF 16.1.0
+host               : Linux 64 bits
+command line       : gnatprove -P traffic_light.gpr -U -f --level=2 --report=statistics --assumptions --output-header
+ Proof_Switches attribute:
+
+
+=========================
+Summary of SPARK analysis
+=========================
+
+---------------------------------------------------------------------------------------------------
+SPARK Analysis results        Total        Flow                      Provers   Justified   Unproved
+---------------------------------------------------------------------------------------------------
+Data Dependencies                 .           .                            .           .          .
+Flow Dependencies                 .           .                            .           .          .
+Initialization                    9           9                            .           .          .
+Non-Aliasing                      .           .                            .           .          .
+Run-time Checks                   6           .                     6 (CVC5)           .          .
+Assertions                        .           .                            .           .          .
+Functional Contracts              4           .    4 (CVC5 80%, Trivial 20%)           .          .
+LSP Verification                  .           .                            .           .          .
+Termination                      15          15                            .           .          .
+Concurrency                       .           .                            .           .          .
+---------------------------------------------------------------------------------------------------
+Total                            34    24 (71%)                     10 (29%)           .          .
+
+
+max steps used for successful proof: 3879
+
+============================
+Most difficult proved checks
+============================
+
+controller.ads:93:17: postcondition proved in max 1 seconds
+controller.ads:105:17: postcondition proved in max 1 seconds
+
+========================
+Detailed analysis report
+========================
+
+Analyzed 11 units
+in unit buses, 1 subprograms and packages out of 1 analyzed
+  Buses at buses.ads:14 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+in unit conflicts, 6 subprograms and packages out of 6 analyzed
+  Conflicts at conflicts.ads:28 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Conflicts.Adjacent_Through at conflicts.ads:108 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Conflicts.Compatible at conflicts.ads:38 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Conflicts.Conflicts at conflicts.ads:71 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Conflicts.Next_Conflicting_Through at conflicts.ads:94 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Conflicts.Safe_Faces at conflicts.ads:79 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+in unit controller, 14 subprograms and packages out of 14 analyzed
+  Controller at controller.ads:60 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller fully established
+  Controller.Advance_Ped at controller.adb:376 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+effects on parameters and Global variables of Controller.Advance_Ped depends on
+  effects on parameters and Global variables of Controller.Running_Ped
+absence of run-time errors of Controller.Advance_Ped depends on
+  effects on parameters and Global variables of Controller.Running_Ped
+  Controller.Advance_Vehicle at controller.adb:246 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+effects on parameters and Global variables of Controller.Advance_Vehicle depends on
+  effects on parameters and Global variables of Controller.Both_Duration
+  effects on parameters and Global variables of Controller.Fixed_Duration
+  Controller.Both_Duration at controller.adb:168 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+the postcondition of Controller.Both_Duration fully established
+absence of run-time errors of Controller.Both_Duration fully established
+  Controller.Enter_Both at controller.adb:231 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+effects on parameters and Global variables of Controller.Enter_Both depends on
+  effects on parameters and Global variables of Controller.Both_Duration
+  Controller.Fixed_Duration at controller.adb:138 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller.Fixed_Duration fully established
+  Controller.Head_Of at controller.adb:104 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller.Head_Of fully established
+  Controller.Initialize at controller.ads:83 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller.Initialize fully established
+  Controller.Project_Outputs at controller.ads:91 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+the postcondition of Controller.Project_Outputs depends on
+  effects on parameters and Global variables of Conflicts.Safe_Faces
+  effects on parameters and Global variables of Controller.Head_Of
+  effects on parameters and Global variables of Controller.Request_Of
+  effects on parameters and Global variables of Controller.Vehicle_Face_Outputs
+  absence of run-time errors of Conflicts.Safe_Faces
+absence of run-time errors of Controller.Project_Outputs depends on
+  effects on parameters and Global variables of Conflicts.Safe_Faces
+  effects on parameters and Global variables of Controller.Head_Of
+  effects on parameters and Global variables of Controller.Request_Of
+  effects on parameters and Global variables of Controller.Vehicle_Face_Outputs
+  absence of run-time errors of Conflicts.Safe_Faces
+  Controller.Request_Of at controller.adb:115 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller.Request_Of fully established
+  Controller.Running_Ped at controller.adb:131 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller.Running_Ped fully established
+  Controller.Step at controller.ads:101 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+the postcondition of Controller.Step depends on
+  effects on parameters and Global variables of Conflicts.Adjacent_Through
+  effects on parameters and Global variables of Conflicts.Next_Conflicting_Through
+  effects on parameters and Global variables of Conflicts.Safe_Faces
+  effects on parameters and Global variables of Controller.Both_Duration
+  effects on parameters and Global variables of Controller.Fixed_Duration
+  effects on parameters and Global variables of Controller.Head_Of
+  effects on parameters and Global variables of Controller.Project_Outputs
+  effects on parameters and Global variables of Controller.Request_Of
+  effects on parameters and Global variables of Controller.Running_Ped
+  effects on parameters and Global variables of Controller.Through_Face
+  effects on parameters and Global variables of Controller.Vehicle_Face_Outputs
+  absence of run-time errors of Conflicts.Adjacent_Through
+  absence of run-time errors of Conflicts.Next_Conflicting_Through
+  absence of run-time errors of Conflicts.Safe_Faces
+  absence of run-time errors of Controller.Advance_Vehicle
+absence of run-time errors of Controller.Step depends on
+  effects on parameters and Global variables of Conflicts.Adjacent_Through
+  effects on parameters and Global variables of Conflicts.Next_Conflicting_Through
+  effects on parameters and Global variables of Conflicts.Safe_Faces
+  effects on parameters and Global variables of Controller.Both_Duration
+  effects on parameters and Global variables of Controller.Fixed_Duration
+  effects on parameters and Global variables of Controller.Head_Of
+  effects on parameters and Global variables of Controller.Project_Outputs
+  effects on parameters and Global variables of Controller.Request_Of
+  effects on parameters and Global variables of Controller.Running_Ped
+  effects on parameters and Global variables of Controller.Through_Face
+  effects on parameters and Global variables of Controller.Vehicle_Face_Outputs
+  absence of run-time errors of Conflicts.Adjacent_Through
+  absence of run-time errors of Conflicts.Next_Conflicting_Through
+  absence of run-time errors of Conflicts.Safe_Faces
+  absence of run-time errors of Controller.Advance_Vehicle
+  Controller.Through_Face at controller.adb:98 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller.Through_Face depends on
+  effects on parameters and Global variables of Controller.Vehicle_Face_Outputs
+  Controller.Vehicle_Face_Outputs at controller.adb:32 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+absence of run-time errors of Controller.Vehicle_Face_Outputs fully established
+in unit display, 0 subprograms and packages out of 8 analyzed
+  Display.CSI at display.adb:20 skipped; SPARK_Mode => Off
+  Display.Diag_Write_Line at display.ads:24 skipped; SPARK_Mode => Off
+  Display.Face_SGR at display.adb:131 skipped; SPARK_Mode => Off
+  Display.Head_SGR at display.adb:141 skipped; SPARK_Mode => Off
+  Display.Initialize at display.ads:9 skipped; SPARK_Mode => Off
+  Display.Request_SGR at display.adb:151 skipped; SPARK_Mode => Off
+  Display.SGR_Of at display.adb:159 skipped; SPARK_Mode => Off
+  Display.Show at display.ads:12 skipped; SPARK_Mode => Off
+in unit main, 0 subprograms and packages out of 1 analyzed
+  Main at main.adb:13 skipped; SPARK_Mode => Off
+in unit sources, 0 subprograms and packages out of 2 analyzed
+  Sources.Decode at sources.adb:26 skipped; SPARK_Mode => Off
+  Sources.Sample at sources.ads:9 skipped; SPARK_Mode => Off
+in unit state_machine_loop, 0 subprograms and packages out of 0 analyzed
+flow analysis and proof skipped for this unit (generic unit is not analyzed)
+in unit state_machine_loop_proof, 6 subprograms and packages out of 6 analyzed
+  State_Machine_Loop_Proof at state_machine_loop_proof.ads:14 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  State_Machine_Loop_Proof.Rungp1365 at state_machine_loop_proof.ads:34 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  State_Machine_Loop_Proof.Rungp1365.Run at state_machine_loop_proof.ads:34 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  State_Machine_Loop_Proof.Stub_Delay_For at state_machine_loop_proof.ads:22 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+effects on parameters and Global variables of State_Machine_Loop_Proof.Stub_Delay_For fully established
+  State_Machine_Loop_Proof.Stub_Read_Sources at state_machine_loop_proof.ads:26 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  State_Machine_Loop_Proof.Stub_Write_Display at state_machine_loop_proof.ads:30 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+effects on parameters and Global variables of State_Machine_Loop_Proof.Stub_Write_Display fully established
+in unit states, 3 subprograms and packages out of 3 analyzed
+  States at states.ads:9 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  States.Face_Of at states.ads:230 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  States.Is_Go at states.ads:246 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+in unit timings, 0 subprograms and packages out of 1 analyzed
+  Timings.Delay_For at timings.ads:9 skipped; SPARK_Mode => Off
+in unit timings-tick_config__1000, 0 subprograms and packages out of 0 analyzed
