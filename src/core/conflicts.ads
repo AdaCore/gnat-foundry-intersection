@@ -133,4 +133,39 @@ is
    --  @param C The crosswalk whose adjacent through is wanted
    --  @return The approach whose through movement is parallel to that crosswalk
 
+   function Crosswalk_Conflicts
+     (C : States.Crosswalk; M : States.Movement) return Boolean
+   is (case C is
+         when States.NS_North =>
+           M not in States.N_Thru | States.S_Thru | States.N_Left,
+         when States.NS_South =>
+           M not in States.N_Thru | States.S_Thru | States.S_Left,
+         when States.EW_East  =>
+           M not in States.E_Thru | States.W_Thru | States.E_Left,
+         when States.EW_West  =>
+           M not in States.E_Thru | States.W_Thru | States.W_Left);
+   --  The crosswalk conflict relation (`hlr_0_safety.3` / CONOPS §3.9): a
+   --  movement conflicts with a crosswalk unless it is one of the two through
+   --  movements of the crosswalk's parallel axis, or the protected left of
+   --  `Adjacent_Through (C)` -- the left that turns away from the crosswalk
+   --  rather than sweeping across it. Each case arm above is one row of the
+   --  `llr_3_conflicts` algorithm_aspects table (`·` non-conflicting,
+   --  `X` conflicting):
+   --
+   --                N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
+   --      NS_NORTH    ·      ·      X      X      ·      X      X      X
+   --      NS_SOUTH    ·      ·      X      X      X      ·      X      X
+   --      EW_EAST     X      X      ·      ·      X      X      ·      X
+   --      EW_WEST     X      X      ·      ·      X      X      X      ·
+   --
+   --  This is the binding hlr_0_safety.1 and hlr_3_timing.10 quantify over
+   --  ("hold every conflicting movement RED while the crosswalk is served").
+   --  Nothing reads it at run time: that invariant is discharged statically by
+   --  the margin inequalities (llr_1_states.27/.28) over the sequencer
+   --  schedule, so this enumeration is a proof / audit entity -- what makes
+   --  those margins' completeness checkable against the geometry.
+   --  @param C The crosswalk being served
+   --  @param M The movement to test against it
+   --  @return True when the movement conflicts with that crosswalk
+
 end Conflicts;

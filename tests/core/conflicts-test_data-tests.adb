@@ -91,7 +91,7 @@ package body Conflicts.Test_Data.Tests is
    procedure Test_Conflicts_3327f5 (Gnattest_T : in out Test) renames Test_Conflicts;
 --  id:2.2/3327f57d603b4c68/Conflicts/1/0/
    procedure Test_Conflicts (Gnattest_T : in out Test) is
-   --  conflicts.ads:62:4:Conflicts
+   --  conflicts.ads:86:4:Conflicts
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -112,7 +112,7 @@ package body Conflicts.Test_Data.Tests is
    procedure Test_Safe_Faces_d90a65 (Gnattest_T : in out Test) renames Test_Safe_Faces;
 --  id:2.2/d90a65c788a3dbb4/Safe_Faces/1/0/
    procedure Test_Safe_Faces (Gnattest_T : in out Test) is
-   --  conflicts.ads:70:4:Safe_Faces
+   --  conflicts.ads:94:4:Safe_Faces
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -154,7 +154,7 @@ package body Conflicts.Test_Data.Tests is
    procedure Test_Next_Conflicting_Through_b37cc2 (Gnattest_T : in out Test) renames Test_Next_Conflicting_Through;
 --  id:2.2/b37cc2483d3dfff3/Next_Conflicting_Through/1/0/
    procedure Test_Next_Conflicting_Through (Gnattest_T : in out Test) is
-   --  conflicts.ads:85:4:Next_Conflicting_Through
+   --  conflicts.ads:109:4:Next_Conflicting_Through
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -190,7 +190,7 @@ package body Conflicts.Test_Data.Tests is
    procedure Test_Adjacent_Through_4df54a (Gnattest_T : in out Test) renames Test_Adjacent_Through;
 --  id:2.2/4df54af56a927601/Adjacent_Through/1/0/
    procedure Test_Adjacent_Through (Gnattest_T : in out Test) is
-   --  conflicts.ads:99:4:Adjacent_Through
+   --  conflicts.ads:123:4:Adjacent_Through
 --  end read only
 
       pragma Unreferenced (Gnattest_T);
@@ -203,6 +203,64 @@ package body Conflicts.Test_Data.Tests is
 
 --  begin read only
    end Test_Adjacent_Through;
+--  end read only
+
+
+--  begin read only
+   procedure Test_Crosswalk_Conflicts (Gnattest_T : in out Test);
+   procedure Test_Crosswalk_Conflicts_740c67 (Gnattest_T : in out Test) renames Test_Crosswalk_Conflicts;
+--  id:2.2/740c67ad5c5dd0af/Crosswalk_Conflicts/1/0/
+   procedure Test_Crosswalk_Conflicts (Gnattest_T : in out Test) is
+   --  conflicts.ads:136:4:Crosswalk_Conflicts
+--  end read only
+
+      pragma Unreferenced (Gnattest_T);
+
+      use all type States.Crosswalk;
+
+      type Movement_Row is array (States.Movement) of Boolean;
+      type Crosswalk_Table is array (States.Crosswalk) of Movement_Row;
+
+      --  The llr_3_conflicts.6 table transcribed cell by cell from its
+      --  algorithm_aspects rendering rather than from the expression under
+      --  test, so a mis-edited case arm shows up here. True is a conflicting
+      --  cell (`X`), False a non-conflicting one (`·`); the columns are in
+      --  States.Movement order:
+      --
+      --            N_THRU S_THRU E_THRU W_THRU N_LEFT S_LEFT E_LEFT W_LEFT
+      --  NS_NORTH    ·      ·      X      X      ·      X      X      X
+      --  NS_SOUTH    ·      ·      X      X      X      ·      X      X
+      --  EW_EAST     X      X      ·      ·      X      X      ·      X
+      --  EW_WEST     X      X      ·      ·      X      X      X      ·
+      Expected : constant Crosswalk_Table :=
+        (NS_North =>
+           (False, False, True, True, False, True, True, True),
+         NS_South =>
+           (False, False, True, True, True, False, True, True),
+         EW_East =>
+           (True, True, False, False, True, True, False, True),
+         EW_West =>
+           (True, True, False, False, True, True, True, False));
+
+   begin
+
+      for C in States.Crosswalk loop
+         for M in States.Movement loop
+            Assert
+              (Crosswalk_Conflicts (C, M) = Expected (C) (M),
+               "Crosswalk_Conflicts ("
+               & States.Crosswalk'Image (C)
+               & ", "
+               & States.Movement'Image (M)
+               & ") = "
+               & Boolean'Image (Crosswalk_Conflicts (C, M))
+               & " but llr_3_conflicts.6 requires "
+               & Boolean'Image (Expected (C) (M)));
+         end loop;
+      end loop;
+
+--  begin read only
+   end Test_Crosswalk_Conflicts;
 --  end read only
 
 --  begin read only
