@@ -166,11 +166,10 @@ is
    --  The postcondition captures `hlr_3_timing.12` (never below T_BOTH_MIN) and
    --  proves the subtraction cannot underflow, given the valued durations.
    function Both_Duration (Lead_Ran, Lag : Boolean) return States.Duration_Ms
-   is (States.T_Axis
-       - States.T_Barrier
-       - (if Lead_Ran
-          then States.T_Lead + States.T_Yellow + States.T_Redclear
-          else 0)
+   is (((States.T_Axis - States.T_Barrier)
+        - (if Lead_Ran
+           then States.T_Lead + States.T_Yellow + States.T_Redclear
+           else 0))
        - (if Lag
           then
             States.T_Yellow
