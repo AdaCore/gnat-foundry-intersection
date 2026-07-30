@@ -17,7 +17,7 @@
 --  to the application it analyses.
 
 with "libadalang";
-with "gnatcoll";
+with "gnatcoll_core";
 with "gnatcoll_projects";
 
 project Ada_Tracer is

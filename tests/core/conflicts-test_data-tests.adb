@@ -240,6 +240,8 @@ package body Conflicts.Test_Data.Tests is
    --  conflicts.ads:142:4:Crosswalk_Conflicts
 --  end read only
 
+      --@covers llr_3_conflicts.6
+
       pragma Unreferenced (Gnattest_T);
 
       use all type States.Crosswalk;
