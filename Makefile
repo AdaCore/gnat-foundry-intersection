@@ -10,7 +10,7 @@ SHELL := bash
         validate-reqs trace trace-check test-reqs-engine \
         build-tracer \
         code-inventory test-inventory inventories \
-        report test-report-engine \
+        report report-pdf test-report-engine \
         setup-community setup-pro reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
         coverage-test all-coverage \
@@ -356,6 +356,12 @@ REPORT_OUT    := $(CURDIR)/reports/report
 report:
 	$(UV) --directory "$(REPORT_ENGINE)" run vreport generate \
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)"
+
+# Same as `report`, plus a PDF rendering (rst2pdf — pure Python, no TeX
+# toolchain needed) at reports/report/pdf/verification-report.pdf.
+report-pdf:
+	$(UV) --directory "$(REPORT_ENGINE)" run vreport generate \
+	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf
 
 # Run the report engine's own test suite.
 test-report-engine:

@@ -14,6 +14,7 @@ dependencies = [
     "sphinx>=8.1",
     "myst-parser>=4",
     "furo>=2024.8",
+    "rst2pdf>=0.102",
 ]
 
 [project.scripts]
@@ -35,6 +36,11 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=vreport --cov-report=term-missing"
+filterwarnings = [
+    # rst2pdf's internals still use deprecated docutils APIs; not ours to fix.
+    "ignore:nodes.Node.traverse:DeprecationWarning",
+    "ignore:nodes.Text:DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["vreport"]

@@ -20,7 +20,11 @@ or, from the repository root, `make report`. Inputs (produced first):
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
-downstream tooling), `src/` (generated MyST sources), `html/` (the report).
+downstream tooling), `src/` (generated MyST sources), `html/` (the report),
+and with `--pdf` (or `make report-pdf`) a `pdf/verification-report.pdf`
+rendering built by rst2pdf — pure Python, no TeX toolchain required. The
+strict `-W -n` HTML build remains the correctness oracle; the PDF is a
+convenience rendering of the same sources.
 
 ## Architecture
 

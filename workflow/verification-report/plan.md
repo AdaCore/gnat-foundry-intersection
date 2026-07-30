@@ -177,4 +177,8 @@ Small Makefile/CI/doc fixes that everything else consumes.
 
 - Whether to add a small test-results section (AUnit runner output is text
   only; pass/fail counts are scrapeable) — SWVR precedent says yes, cheap.
-- PDF output (`latexpdf`) if ever needed — deliberately out of scope now.
+- PDF output: done (2026-07-30) via rst2pdf (`make report-pdf` /
+  `vreport generate --pdf`) — a pure-Python Sphinx builder, chosen because
+  neither TeX nor weasyprint's system libraries are available here or
+  assumable in CI. The PDF is a convenience rendering; the strict HTML build
+  stays the oracle.

@@ -8,6 +8,7 @@ reference to a missing target fails the build.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from vreport.model import (
@@ -85,6 +86,18 @@ def _obligation_admonition(ob: Obligation) -> str:
 def _cov_cell(covered: int, total: int) -> str:
     """Render a covered/total table cell, dash when nothing applies."""
     return f"{covered}/{total}" if total else "—"
+
+
+def _strip_tool_paths(text: str | None) -> str | None:
+    """
+    Reduce absolute tool paths in version output to basenames.
+
+    The prover paths in `gnatprove --version` describe this machine's install
+    layout, not the toolchain identity — and they overflow the PDF frame.
+    """
+    if text is None:
+        return None
+    return "\n".join(re.sub(r"^/\S*/", "", line) for line in text.splitlines())
 
 
 def _emit_index(ev: Evidence, obligations: list[Obligation]) -> str:
@@ -182,7 +195,7 @@ def _emit_provenance(ev: Evidence) -> str:
         (t.program, t.date, f"`{t.filename.rsplit('/', 1)[-1]}`") for t in ev.coverage.traces
     ]
 
-    gnatprove_version = _code(ev.proof.version_text or "version not recorded")
+    gnatprove_version = _code(_strip_tool_paths(ev.proof.version_text) or "version not recorded")
     gnatcov_version = _code(ev.coverage.version_text or "version not recorded")
 
     forced = header is not None and header.forced

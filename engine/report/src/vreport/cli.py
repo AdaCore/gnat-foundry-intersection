@@ -15,7 +15,7 @@ from typing import NoReturn
 
 import typer
 
-from vreport.build import build_html, write_sphinx_sources
+from vreport.build import build_html, build_pdf, write_sphinx_sources
 from vreport.emit import emit_pages
 from vreport.gnatcov import collect_coverage
 from vreport.gnatprove import collect_proof
@@ -42,6 +42,7 @@ _COVERAGE_DIR = typer.Option(
 )
 _TITLE = typer.Option(None, "--title", help="Report title (default derives from ROOT).")
 _HTML = typer.Option(True, "--html/--no-html", help="Also build the HTML report.")
+_PDF = typer.Option(False, "--pdf/--no-pdf", help="Also build a PDF rendering (rst2pdf).")
 
 
 def _fail(message: str, hint: str | None = None) -> NoReturn:
@@ -60,6 +61,7 @@ def generate(
     coverage_dir: Path | None = _COVERAGE_DIR,
     title: str | None = _TITLE,
     html: bool = _HTML,
+    pdf: bool = _PDF,
 ) -> None:
     """Collect the tool evidence under ROOT and render the report into OUT."""
     root = root.resolve()
@@ -99,6 +101,12 @@ def generate(
         if rc != 0:
             _fail("sphinx build failed (see warnings above)")
         typer.echo(f"html:     {out / 'html' / 'index.html'}")
+
+    if pdf:
+        rc = build_pdf(out / "src", out / "pdf")
+        if rc != 0:
+            _fail("sphinx pdf build failed (see warnings above)")
+        typer.echo(f"pdf:      {out / 'pdf' / 'verification-report.pdf'}")
 
     review = sum(1 for o in obligations if o.status is ObligationStatus.review)
     typer.echo(f"obligations: {review} of {len(obligations)} need human review")

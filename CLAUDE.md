@@ -25,7 +25,9 @@ make prove-report all-coverage coverage-report-xml report  # Verification report
 ```
 
 The verification report (proof + coverage + review obligations) renders to
-`reports/report/html/`; its generator lives in `engine/report/`. The
+`reports/report/html/`; `make report-pdf` also renders it to
+`reports/report/pdf/verification-report.pdf` (rst2pdf, no TeX needed). The
+generator lives in `engine/report/`. The
 `all-coverage` step matters: `coverage-report-xml` reads whatever traces are
 on disk, so skipping it reports stale test executions.
 
