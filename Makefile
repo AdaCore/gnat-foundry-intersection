@@ -350,16 +350,20 @@ inventories: code-inventory test-inventory
 REPORT_ENGINE := $(CURDIR)/engine/report
 REPORT_OUT    := $(CURDIR)/reports/report
 
-# Generate the verification report (proof + coverage + review obligations)
-# from the artifacts left by `prove-report` and `coverage-report-xml`; errors
-# out with a hint if either input is missing.
-report:
+# Regenerate the evidence, then the verification report (proof + coverage +
+# review obligations). The prerequisites guarantee the report never describes
+# stale artifacts: `prove-report` is a clean, forced (-f) gnatprove run, and
+# `all-coverage` re-runs the tests before `coverage-report-xml` reads the
+# traces.
+REPORT_EVIDENCE := prove-report all-coverage coverage-report-xml
+
+report: $(REPORT_EVIDENCE)
 	$(UV) --directory "$(REPORT_ENGINE)" run vreport generate \
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)"
 
 # Same as `report`, plus a PDF rendering (rst2pdf — pure Python, no TeX
 # toolchain needed) at reports/report/pdf/verification-report.pdf.
-report-pdf:
+report-pdf: $(REPORT_EVIDENCE)
 	$(UV) --directory "$(REPORT_ENGINE)" run vreport generate \
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf
 

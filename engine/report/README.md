@@ -11,7 +11,9 @@ Everything else in the report is supporting evidence for that checklist.
 vreport generate --root <repo> --out <repo>/reports/report
 ```
 
-or, from the repository root, `make report`. Inputs (produced first):
+or, from the repository root, `make report`, whose prerequisites regenerate
+the tool inputs so the report never describes stale artifacts. Inputs (when
+invoking `vreport` directly, produce them first):
 
 | Input | Producer | Contents |
 |---|---|---|

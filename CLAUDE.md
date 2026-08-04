@@ -21,15 +21,15 @@ make prove          # Run the prover
 
 make all-coverage   # Generate a coverage report
 
-make prove-report all-coverage coverage-report-xml report  # Verification report
+make report         # Generate the verification report
 ```
 
 The verification report (proof + coverage + review obligations) renders to
 `reports/report/html/`; `make report-pdf` also renders it to
 `reports/report/pdf/verification-report.pdf` (rst2pdf, no TeX needed). The
-generator lives in `engine/report/`. The
-`all-coverage` step matters: `coverage-report-xml` reads whatever traces are
-on disk, so skipping it reports stale test executions.
+generator lives in `engine/report/`. `report` regenerates its evidence first
+(`prove-report all-coverage coverage-report-xml`), so it never reports stale
+proof runs or test executions.
 
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same
