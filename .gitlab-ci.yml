@@ -80,6 +80,12 @@ check:
     - anod install gnatformat --qualifier=stable
     - eval $(anod printenv gnatformat --qualifier=stable)
 
+    # Resolve Python dependencies from the default index (pypi.org) rather
+    # than the internal registry, which lacks part of the report engine's
+    # closure. This is why the job needs the internet-access service.
+    - unset PIP_INDEX_URL PIP_EXTRA_INDEX_URL UV_INDEX_URL UV_EXTRA_INDEX_URL
+        UV_DEFAULT_INDEX UV_INDEX
+
     # Run the checks
     - make check
 
