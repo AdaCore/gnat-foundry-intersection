@@ -311,31 +311,51 @@ def _coverage_obligations(ev: Evidence, b: _Builder) -> None:
 
 def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
     """Obligations derived from the requirements chain (partial, see plan)."""
+    # An empty list means "verified clean" only if a requirements tree was
+    # actually read — empty-because-absent must not render as OK.
+    missing = not ev.traceability.sources_found
+    missing_detail = (
+        "No requirements tree was found under the project root, so nothing can "
+        "be claimed here: check `--root`, or restore `requirements/`."
+    )
+
     waivers = ev.traceability.waivers
     b.add(
-        f"Trace waivers: {len(waivers)}" if waivers else "Trace waivers: none",
+        "Trace waivers: no requirements tree found"
+        if missing
+        else f"Trace waivers: {len(waivers)}"
+        if waivers
+        else "Trace waivers: none",
         "traceability-waivers",
         (
-            "These CONOPS leaves are deliberately not realized by any HLR. Review each "
-            "reason and confirm the waiver is still appropriate."
+            missing_detail
+            if missing
+            else "These CONOPS leaves are deliberately not realized by any HLR. Review "
+            "each reason and confirm the waiver is still appropriate."
             if waivers
             else "Every CONOPS leaf is covered by the HLRs."
         ),
-        review=bool(waivers),
+        review=missing or bool(waivers),
         items=[f"CONOPS §{w.leaf} — {w.reason}" for w in waivers],
     )
 
     derived = ev.traceability.derived
     b.add(
-        f"Derived requirements: {len(derived)}" if derived else "Derived requirements: none",
+        "Derived requirements: no requirements tree found"
+        if missing
+        else f"Derived requirements: {len(derived)}"
+        if derived
+        else "Derived requirements: none",
         "traceability-derived",
         (
-            "Derived requirements have no CONOPS parent; they exist on the strength of "
-            "their rationale alone. Review each one."
+            missing_detail
+            if missing
+            else "Derived requirements have no CONOPS parent; they exist on the strength "
+            "of their rationale alone. Review each one."
             if derived
             else "Every HLR statement traces to the CONOPS."
         ),
-        review=bool(derived),
+        review=missing or bool(derived),
         items=[f"{d.ident} — {d.text}" for d in derived],
     )
 

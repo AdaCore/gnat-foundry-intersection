@@ -186,6 +186,20 @@ def test_statuses_on_clean_evidence() -> None:
     assert by_anchor["provenance-invocations"].status is ObligationStatus.review
 
 
+def test_missing_requirements_tree_forces_review() -> None:
+    """An absent requirements tree is absence of evidence, never a green tick."""
+    ev = Evidence(
+        proof=ProofEvidence(),
+        coverage=CoverageEvidence(level="stmt"),
+        traceability=TraceabilityEvidence(),
+        git=GitInfo(commit="abc", branch="main", dirty=False),
+    )
+    by_anchor = _by_anchor(build_obligations(ev))
+    for anchor in ("traceability-waivers", "traceability-derived"):
+        assert by_anchor[anchor].status is ObligationStatus.review, anchor
+        assert "no requirements tree found" in by_anchor[anchor].title
+
+
 def test_dirty_tree_is_flagged() -> None:
     """A dirty working tree (or no git at all) becomes a review item."""
     dirty = Evidence(
