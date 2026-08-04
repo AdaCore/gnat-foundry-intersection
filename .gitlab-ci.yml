@@ -67,6 +67,13 @@ check:
   stage: validate
   extends:
     - .uv
+  # Overrides the .uv services to add internet access: the report engine's
+  # dependencies (sphinx, furo, rst2pdf, ...) are not all in the internal
+  # registry.
+  services:
+    - image:e3-py313
+    - cpu:1
+    - security_group:GitLabRunnerTasksExecPrivilegedSG
   script:
     # Install `alr` and `gnatformat` with `anod`
     - !reference [.pro, before_script]
