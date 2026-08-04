@@ -2,8 +2,12 @@
 Level-agnostic traceability.
 
 A trace *chain* is an ordered list of :class:`Layer`s, top (most abstract) to
-bottom -- e.g. CONOPS -> HLR -> LLR -> code/test. The engine runs the same
-checks over every adjacent pair (upper -> lower), in both directions:
+bottom -- e.g. CONOPS -> HLR -> LLR -> code/test. Each layer traces to its
+``parent``, which defaults to the entry above it, so the list reads as a chain
+but is really a tree: both TEST and CODE hang off LLR, because a test cites the
+LLR it verifies and an LLR cites the code that implements it -- neither has
+anything to say about the other. The engine runs the same checks over every
+(parent, child) pair, in both directions:
 
   E-TRACE-DANGLING         : a lower node's up-ref resolves to no upper node.
   E-TRACE-UNTRACED         : a lower node has no upward trace and is not derived
@@ -15,10 +19,39 @@ checks over every adjacent pair (upper -> lower), in both directions:
   E-TRACE-WAIVER-UNKNOWN   : a waiver naming a node that is not in its layer.
   W-TRACE-WAIVER-REDUNDANT : a waiver naming a node the layer below covers.
 
+  E-TRACE-PARENT           : a layer names a ``parent`` that is not in the chain.
+  E-TRACE-EMPTY            : a layer yielded fewer nodes than its ``min_nodes``.
+  E-TRACE-LAYER            : ``--layers`` named a layer that is not in the chain.
+  E-INVENTORY-*            : the code inventory a layer reads is missing, stale
+                             or malformed (see :mod:`reqs.code_inventory`).
+
 Nothing here is CONOPS- or HLR-specific. A :class:`Layer` says how to enumerate
-its nodes (``kind``: ``markdown-leaves`` or ``requirement-yaml``) and, for any
-layer that traces upward, how to extract a parent-node id from each ref
-(``id_pattern``, one capture group).
+its nodes (``kind``: ``markdown-leaves``, ``requirement-yaml``, ``ada-tests`` or
+``ada-entities``) and, for any layer that traces upward, how to extract a
+parent-node id from each ref (``id_pattern``, one capture group, matched against
+the *whole* ref: a pattern that matched only a prefix would accept
+``llr_3_conflicts.1typo`` as ``llr_3_conflicts.1``).
+
+A layer may also declare ``min_nodes``: the fewest nodes it can plausibly yield.
+Without it an enumeration that silently comes back empty -- the wrong generated
+project, a source directory that moved, a routine filter that no longer matches
+-- reads as "every node traced" rather than as the build failure it is. That is
+harmless for a layer whose nodes are the files it is pointed at (a missing
+directory is already reported), and load-bearing for one read out of a generated
+inventory, which is why the TEST and CODE layers set it.
+
+One layer kind traces the other way. Code cites nothing -- it is the LLR that
+names what implements it -- so a layer may set ``refs_point_down``, and the
+engine then reads the refs from the *parent's* nodes (an LLR's
+``implemented_by``) and resolves them against this layer's. The checks keep their
+meaning under the flip: a ref that resolves to nothing is still E-TRACE-DANGLING,
+reported against whichever node wrote it, which is now the parent.
+
+A layer may set ``partial_coverage`` when it covers the layer above only in part
+by design -- e.g. tests, since many requirements are discharged by proof rather
+than test. The upper layer's uncovered nodes are then shown (table) but never
+flagged, even under ``--complete``; the upward checks (dangling/untraced) still
+apply, so every test must still declare what it verifies.
 
 A node is "accounted for" (not reported UNCOVERED) when the layer below covers
 it OR a waiver excuses it with a reason. A waiver is a reviewed decision that
@@ -47,15 +80,23 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from reqs import code_inventory
+from reqs.ada_tests import TestSet
+from reqs.code_entities import CodeSet
 from reqs.conops import ConopsSet
 from reqs.core import Diagnostic
 from reqs.requirement_set import RequirementSet
 
 if TYPE_CHECKING:
     import os
+    from collections.abc import Iterable
+
+    from reqs.core import SubKey
 
 MARKDOWN_LEAVES = "markdown-leaves"
 REQUIREMENT_YAML = "requirement-yaml"
+ADA_TESTS = "ada-tests"
+ADA_ENTITIES = "ada-entities"
 
 
 @dataclass
@@ -67,6 +108,23 @@ class Layer:
     path: Path
     id_pattern: str | None = None  # regex; group(1) extracts a parent-node id from an up-ref
     waivers: Path | None = None  # nodes here intentionally left uncovered by the layer below
+    # The layer this one traces to; None means "the entry above me in the file".
+    parent: str | None = None
+    # This layer covers the one above it only partially *by design* -- the rest
+    # is accounted for elsewhere (e.g. LLRs discharged by proof rather than
+    # test). Its parent's uncovered nodes are reported (table) but never flagged,
+    # even under --complete; the upward checks (dangling / untraced) still apply.
+    partial_coverage: bool = False
+    # The refs linking this layer to its parent are written in the *parent* and
+    # point down into this one, rather than the other way round. Set for the CODE
+    # layer: an entity does not cite the requirement it realizes, the requirement
+    # cites it (`implemented_by`).
+    refs_point_down: bool = False
+    # The fewest nodes this layer can plausibly hold. A layer read out of a
+    # generated inventory can come back valid but empty -- wrong project, moved
+    # sources -- and an empty lower layer has no untraced nodes to report, so the
+    # gate would pass. 0 disables the check.
+    min_nodes: int = 0
 
 
 def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
@@ -81,15 +139,44 @@ def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
             path=base / item["path"],
             id_pattern=item.get("id_pattern"),
             waivers=(base / item["waivers"]) if item.get("waivers") else None,
+            parent=item.get("parent"),
+            partial_coverage=bool(item.get("partial_coverage", False)),
+            refs_point_down=bool(item.get("refs_point_down", False)),
+            min_nodes=int(item.get("min_nodes", 0)),
         )
         for item in data.get("layers", [])
     ]
 
 
+def select_layers(
+    layers: list[Layer], names: Iterable[str], chain: Path
+) -> tuple[list[Layer], list[Diagnostic]]:
+    """
+    Restrict a chain to the named layers, keeping the file's order.
+
+    A caller that cannot afford every layer -- ``make validate-reqs`` runs with no
+    Ada toolchain, so the inventory-backed layers are out of its reach -- asks for
+    the portion it can check rather than dropping the check altogether. Only pairs
+    *wholly* inside the selection are then checked; a layer whose parent is left
+    out is reported as E-TRACE-PARENT, since silently checking nothing is the
+    failure mode this exists to avoid. An unknown name is E-TRACE-LAYER rather
+    than a silently smaller chain, for the same reason.
+    """
+    wanted = list(names)
+    known = {layer.name for layer in layers}
+    diags = [
+        Diagnostic("error", "E-TRACE-LAYER", f"no layer named {name!r} in this chain", chain)
+        for name in wanted
+        if name not in known
+    ]
+    return [layer for layer in layers if layer.name in wanted], diags
+
+
 @dataclass
 class _Loaded:
     layer: Layer
-    reqset: RequirementSet | ConopsSet  # the layer's nodes: coverage targets, up-refs, locations
+    # nodes: coverage targets, up-refs, locations
+    reqset: RequirementSet | ConopsSet | TestSet | CodeSet
     waived: dict[str, str]  # node id -> reason
     waiver_file: Path | None
 
@@ -100,8 +187,20 @@ class _Pair:
     lower: _Loaded
     coverage: dict[str, list[str]] = field(default_factory=dict)  # upper id -> covering lower ids
     resolved: dict[str, list[str]] = field(default_factory=dict)  # lower id -> resolved upper ids
-    dangling: dict[str, list[str]] = field(default_factory=dict)  # lower id -> unresolvable refs
+    # Node id -> refs that resolve to nothing. Keyed by whichever layer *wrote*
+    # the refs: the lower one normally, the upper one when they point down.
+    dangling: dict[str, list[str]] = field(default_factory=dict)
     untraced: list[str] = field(default_factory=list)
+
+    @property
+    def refs_point_down(self) -> bool:
+        """Whether the refs linking the pair are written in its upper layer."""
+        return self.lower.layer.refs_point_down
+
+    @property
+    def ref_owner(self) -> _Loaded:
+        """The layer whose nodes wrote the refs, and so where a gap is reported."""
+        return self.upper if self.refs_point_down else self.lower
 
 
 class TraceChecker:
@@ -112,26 +211,36 @@ class TraceChecker:
         self.complete = complete
 
     def check(self) -> list[Diagnostic]:
-        """Check every adjacent pair of the chain; return any diagnostics."""
+        """Check every (parent, child) pair of the chain; return any diagnostics."""
         diags: list[Diagnostic] = []
         loaded = [self._load(layer, diags) for layer in self.layers]
+        pairs = _pairs(loaded, diags)
         if any(d.level == "error" for d in diags):
             return diags  # corpus isn't valid; traceability over it is meaningless
-        for upper, lower in pairwise(loaded):
+        for upper, lower in pairs:
             diags.extend(self._diagnostics(_analyze(upper, lower)))
         return diags
 
     def print_tables(self, console: Console | None = None) -> None:
-        """Print the coverage / upward-trace tables for every adjacent pair."""
+        """Print the coverage / upward-trace tables for every (parent, child) pair."""
         console = console or Console(width=_terminal_width())
         loaded = [self._load(layer, []) for layer in self.layers]
-        for upper, lower in pairwise(loaded):
+        for upper, lower in _pairs(loaded, []):
             for table in _pair_tables(_analyze(upper, lower)):
                 console.print(table)
 
     # -- loading -------------------------------------------------------------
 
     def _load(self, layer: Layer, diags: list[Diagnostic]) -> _Loaded:
+        before = len(diags)
+        loaded = self._load_nodes(layer, diags)
+        # Only when the layer loaded cleanly: an inventory that failed to read is
+        # already reported, and "it is also empty" adds nothing but noise.
+        if len(diags) == before:
+            diags.extend(self._min_nodes_diagnostics(loaded))
+        return loaded
+
+    def _load_nodes(self, layer: Layer, diags: list[Diagnostic]) -> _Loaded:
         waived = self._load_waivers(layer, diags)
         if layer.kind == MARKDOWN_LEAVES:
             return _Loaded(layer, ConopsSet.load(layer.path), waived, layer.waivers)
@@ -139,10 +248,40 @@ class TraceChecker:
             reqset, load_diags = RequirementSet.load([layer.path])
             diags.extend(load_diags)
             return _Loaded(layer, reqset, waived, layer.waivers)
+        if layer.kind in (ADA_TESTS, ADA_ENTITIES):
+            inventory, load_diags = code_inventory.load(layer.path)
+            diags.extend(load_diags)
+            if layer.kind == ADA_TESTS:
+                testset, test_diags = TestSet.from_inventory(inventory, layer.path)
+                diags.extend(test_diags)
+                return _Loaded(layer, testset, waived, layer.waivers)
+            return _Loaded(
+                layer, CodeSet.from_inventory(inventory, layer.path), waived, layer.waivers
+            )
         diags.append(
             Diagnostic("error", "E-TRACE-KIND", f"unknown layer kind {layer.kind!r}", layer.path)
         )
         return _Loaded(layer, RequirementSet(()), waived, layer.waivers)
+
+    @staticmethod
+    def _min_nodes_diagnostics(loaded: _Loaded) -> list[Diagnostic]:
+        """Report a layer that came back smaller than it can plausibly be."""
+        layer = loaded.layer
+        if layer.min_nodes <= 0:
+            return []
+        found = sum(1 for _nid, _node in loaded.reqset.all_statements())
+        if found >= layer.min_nodes:
+            return []
+        return [
+            Diagnostic(
+                "error",
+                "E-TRACE-EMPTY",
+                f"{layer.name} layer yielded {found} node(s), expected at least "
+                f"{layer.min_nodes}; the layer was enumerated from the wrong place, or "
+                f"min_nodes needs lowering deliberately",
+                layer.path,
+            )
+        ]
 
     def _load_waivers(self, layer: Layer, diags: list[Diagnostic]) -> dict[str, str]:
         if layer.waivers is None:
@@ -169,13 +308,18 @@ class TraceChecker:
     def _diagnostics(self, pair: _Pair) -> list[Diagnostic]:
         up, lo = pair.upper.layer.name, pair.lower.layer.name
         out: list[Diagnostic] = []
+        # A dangling ref is reported where it is written, and against the layer it
+        # failed to reach -- which the flip exchanges.
+        owner, target = (up, lo) if pair.refs_point_down else (lo, up)
+        sub_key: SubKey = "down_ref" if pair.refs_point_down else "up_ref"
+        direction = "down-ref" if pair.refs_point_down else "up-ref"
         for nid, refs in pair.dangling.items():
-            file, line, loc = pair.lower.reqset.loc_of(nid, sub_key="up_ref")
+            file, line, loc = pair.ref_owner.reqset.loc_of(nid, sub_key=sub_key)
             out.extend(
                 Diagnostic(
                     "error",
                     "E-TRACE-DANGLING",
-                    f"{lo} {nid!r} up-ref {ref!r} resolves to no {up} node",
+                    f"{owner} {nid!r} {direction} {ref!r} resolves to no {target} node",
                     file,
                     line=line,
                     path=loc,
@@ -194,10 +338,16 @@ class TraceChecker:
                     path=loc,
                 )
             )
-        out.extend(self._coverage_diagnostics(pair))
+        out.extend(self._uncovered_diagnostics(pair))
+        out.extend(self._waiver_diagnostics(pair))
         return out
 
-    def _coverage_diagnostics(self, pair: _Pair) -> list[Diagnostic]:
+    def _uncovered_diagnostics(self, pair: _Pair) -> list[Diagnostic]:
+        # A partial-coverage lower layer covers its parent only in part by
+        # design (the rest is discharged elsewhere), so uncovered parent nodes
+        # are shown in the table but never flagged -- not even under --complete.
+        if pair.lower.layer.partial_coverage:
+            return []
         out: list[Diagnostic] = []
         up, lo = pair.upper.layer.name, pair.lower.layer.name
         hint = "" if self.complete else " (use --complete to require coverage)"
@@ -214,6 +364,13 @@ class TraceChecker:
                     line=line,
                 )
             )
+        return out
+
+    @staticmethod
+    def _waiver_diagnostics(pair: _Pair) -> list[Diagnostic]:
+        """Lint the upper layer's waiver file: unknown nodes, redundant entries."""
+        out: list[Diagnostic] = []
+        up = pair.upper.layer.name
         waiver_file = pair.upper.waiver_file
         if waiver_file is not None:
             for nid in pair.upper.waived:
@@ -239,14 +396,49 @@ class TraceChecker:
         return out
 
 
+def _pairs(loaded: list[_Loaded], diags: list[Diagnostic]) -> list[tuple[_Loaded, _Loaded]]:
+    """
+    Pair every layer but the first with the layer it traces to.
+
+    A layer's ``parent`` defaults to the entry above it, so a chain written as a
+    flat list behaves exactly as it reads; naming a parent explicitly is what lets
+    two layers hang off the same one.
+    """
+    by_name = {item.layer.name: item for item in loaded}
+    out: list[tuple[_Loaded, _Loaded]] = []
+    for above, item in pairwise(loaded):
+        named = item.layer.parent
+        if named is None:
+            out.append((above, item))
+        elif named in by_name:
+            out.append((by_name[named], item))
+        else:
+            diags.append(
+                Diagnostic(
+                    "error",
+                    "E-TRACE-PARENT",
+                    f"layer {item.layer.name!r} names parent {named!r}, "
+                    f"which is not a layer of this chain",
+                    item.layer.path,
+                )
+            )
+    return out
+
+
 def _analyze(upper: _Loaded, lower: _Loaded) -> _Pair:
-    """Resolve the lower layer's up-refs against the upper layer's nodes."""
+    """Resolve the refs linking a pair, in whichever direction they run."""
+    if lower.layer.refs_point_down:
+        return _analyze_downward(upper, lower)
+
     pair = _Pair(upper, lower)
     pattern = re.compile(lower.layer.id_pattern) if lower.layer.id_pattern else None
     for nid, statement in lower.reqset.all_statements():
         matched = False
         for ref in statement.up_refs or []:
-            m = pattern.match(ref) if pattern else None
+            # `fullmatch`, not `match`: with a prefix match, `llr_3_conflicts.1typo`
+            # would resolve to `llr_3_conflicts.1` and pass, so a fat-fingered tag
+            # would silently trace to the wrong requirement instead of dangling.
+            m = pattern.fullmatch(ref) if pattern else None
             if m is None:
                 continue  # ref does not target this layer -> out of scope
             matched = True
@@ -258,6 +450,30 @@ def _analyze(upper: _Loaded, lower: _Loaded) -> _Pair:
                 pair.dangling.setdefault(nid, []).append(ref)
         if not (statement.is_derived or matched):
             pair.untraced.append(nid)
+    return pair
+
+
+def _analyze_downward(upper: _Loaded, lower: _Loaded) -> _Pair:
+    """
+    Resolve the upper layer's down-refs against the lower layer's nodes.
+
+    The mirror image of :func:`_analyze`: the refs are written in the upper layer
+    (an LLR's ``implemented_by``), so it is the upper node that can dangle. There
+    is no ``untraced`` counterpart -- "this node cites nothing" is a question
+    about the *upper* layer's own completeness, which its schema check already
+    owns, and the coverage table shows it either way.
+    """
+    pair = _Pair(upper, lower)
+    for nid, statement in upper.reqset.all_statements():
+        for ref in statement.down_refs or []:
+            # Resolve through the canonical spelling: Ada is case-insensitive, so
+            # a ref must land on the one node it names rather than invent another.
+            child = lower.reqset.canonical(ref) if isinstance(lower.reqset, CodeSet) else None
+            if child is None:
+                pair.dangling.setdefault(nid, []).append(ref)
+            else:
+                pair.coverage.setdefault(nid, []).append(child)
+                pair.resolved.setdefault(child, []).append(nid)
     return pair
 
 
@@ -275,7 +491,9 @@ def _severity_style(status: str) -> str:
     """Map a row's status to a rich style: red for real gaps, yellow for waived/derived."""
     if status in ("UNCOVERED", "UNTRACED", "DANGLING"):
         return "red bold"
-    if status in ("WAIVED", "DERIVED"):
+    # Expected-and-accounted-for, not a gap: waived, derived, or a layer that
+    # covers the one above it only in part by design.
+    if status in ("WAIVED", "DERIVED", "UNTESTED", "UNIMPLEMENTED", "UNREQUIRED"):
         return "yellow"
     return "green"
 
@@ -289,6 +507,9 @@ def _new_table(title: str, id_header: str, detail_header: str) -> Table:
 
 
 def _pair_tables(pair: _Pair) -> list[Table]:
+    if pair.refs_point_down:
+        return _downward_tables(pair)
+
     up, lo = pair.upper.layer.name, pair.lower.layer.name
 
     coverage = _new_table(f"{up} → {lo}  (coverage)", up, f"Covered by ({lo})")
@@ -297,6 +518,10 @@ def _pair_tables(pair: _Pair) -> list[Table]:
             status, detail = "OK", ", ".join(pair.coverage[nid])
         elif nid in pair.upper.waived:
             status, detail = "WAIVED", pair.upper.waived[nid] or "(waived)"
+        elif pair.lower.layer.partial_coverage:
+            # Uncovered here is expected (verified elsewhere, e.g. by proof),
+            # not a gap: mark it UNTESTED rather than UNCOVERED.
+            status, detail = "UNTESTED", "—"
         else:
             status, detail = "UNCOVERED", "—"
         coverage.add_row(nid, status, detail, style=_severity_style(status))
@@ -313,6 +538,38 @@ def _pair_tables(pair: _Pair) -> list[Table]:
             status, detail = "UNTRACED", "—"
         upward.add_row(nid, status, detail, style=_severity_style(status))
     return [coverage, upward]
+
+
+def _downward_tables(pair: _Pair) -> list[Table]:
+    """
+    Build the two tables of a pair whose refs run downward (LLR -> CODE).
+
+    Same two directions as :func:`_pair_tables`, read the other way: the upper
+    node is the one that can dangle, and a lower node no upper node names is
+    expected rather than a gap -- most of the code realizes no requirement
+    directly.
+    """
+    up, lo = pair.upper.layer.name, pair.lower.layer.name
+
+    implementation = _new_table(f"{up} → {lo}  (implementation)", up, f"Implemented by ({lo})")
+    for nid, _statement in pair.upper.reqset.all_statements():
+        if nid in pair.dangling:
+            status, detail = "DANGLING", ", ".join(pair.dangling[nid])
+        elif nid in pair.coverage:
+            status, detail = "OK", ", ".join(pair.coverage[nid])
+        else:
+            status, detail = "UNIMPLEMENTED", "—"
+        implementation.add_row(nid, status, detail, style=_severity_style(status))
+
+    required = _new_table(f"{lo} → {up}  (required by)", lo, f"Required by ({up})")
+    for nid, _statement in pair.lower.reqset.all_statements():
+        if nid in pair.resolved:
+            status, detail = "OK", ", ".join(pair.resolved[nid])
+        else:
+            # Code no requirement names: a helper, the HAL, a test fixture.
+            status, detail = "UNREQUIRED", "—"
+        required.add_row(nid, status, detail, style=_severity_style(status))
+    return [implementation, required]
 
 
 def check_trace(layers: list[Layer], *, complete: bool = False) -> list[Diagnostic]:

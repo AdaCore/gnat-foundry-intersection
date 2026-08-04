@@ -37,6 +37,8 @@ package body States.Test_Data.Tests is
    --  states.ads:230:4:Face_Of
 --  end read only
 
+      --@covers llr_1_states.19
+
       pragma Unreferenced (Gnattest_T);
 
    begin
@@ -56,6 +58,8 @@ package body States.Test_Data.Tests is
    procedure Test_Is_Go (Gnattest_T : in out Test) is
    --  states.ads:246:4:Is_Go
 --  end read only
+
+      --@covers llr_1_states.20
 
       pragma Unreferenced (Gnattest_T);
 

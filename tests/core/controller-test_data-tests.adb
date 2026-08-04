@@ -37,6 +37,8 @@ package body Controller.Test_Data.Tests is
    --  controller.ads:83:4:Initialize
 --  end read only
 
+      --@covers llr_4_controller.2 llr_4_controller.3 llr_4_controller.4 llr_4_controller.5
+
       pragma Unreferenced (Gnattest_T);
 
       use States;
@@ -91,6 +93,9 @@ package body Controller.Test_Data.Tests is
    procedure Test_Project_Outputs (Gnattest_T : in out Test) is
    --  controller.ads:91:4:Project_Outputs
 --  end read only
+
+      --@covers llr_4_controller.6 llr_4_controller.7 llr_4_controller.8 llr_4_controller.9
+      --@covers llr_4_controller.10 llr_4_controller.11 llr_4_controller.12
 
       pragma Unreferenced (Gnattest_T);
 
@@ -220,6 +225,14 @@ package body Controller.Test_Data.Tests is
    procedure Test_Step (Gnattest_T : in out Test) is
    --  controller.ads:101:4:Step
 --  end read only
+
+      --@covers llr_4_controller.13 llr_4_controller.14 llr_4_controller.15 llr_4_controller.16
+      --@covers llr_4_controller.17 llr_4_controller.18 llr_4_controller.19 llr_4_controller.20
+      --@covers llr_4_controller.21 llr_4_controller.22
+      --@covers llr_4_controller_2_left_demand.1 llr_4_controller_2_left_demand.2
+      --@covers llr_4_controller_2_left_demand.3
+      --@covers llr_4_controller_3_pedestrian.10 llr_4_controller_3_pedestrian.11
+      --@covers llr_4_controller_3_pedestrian.12
 
       pragma Unreferenced (Gnattest_T);
 

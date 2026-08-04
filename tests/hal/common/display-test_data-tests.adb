@@ -81,6 +81,8 @@ package body Display.Test_Data.Tests is
    --  display.ads:9:4:Initialize
 --  end read only
 
+      --@covers none: display bring-up is out of requirement scope (llr_6_hal show assumption)
+
       pragma Unreferenced (Gnattest_T);
 
       Count : Natural;
@@ -117,6 +119,8 @@ package body Display.Test_Data.Tests is
    procedure Test_Show (Gnattest_T : in out Test) is
    --  display.ads:12:4:Show
 --  end read only
+
+      --@covers none: display rendering is out of requirement scope (llr_6_hal show assumption)
 
       pragma Unreferenced (Gnattest_T);
 
@@ -364,6 +368,8 @@ package body Display.Test_Data.Tests is
    procedure Test_Diag_Write_Line (Gnattest_T : in out Test) is
    --  display.ads:24:4:Diag_Write_Line
 --  end read only
+
+      --@covers none: diagnostic line output is out of requirement scope (llr_6_hal)
 
       pragma Unreferenced (Gnattest_T);
 

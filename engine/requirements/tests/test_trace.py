@@ -23,9 +23,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from inventory_fixture import gnattest_routine, package, subprogram, write_inventory
 from typer.testing import CliRunner
 
-from reqs.checks.trace import Layer, _severity_style, check_trace, load_chain, render_tables
+from reqs.checks.trace import (
+    Layer,
+    _severity_style,
+    check_trace,
+    load_chain,
+    render_tables,
+    select_layers,
+)
 from reqs.cli import app
 from reqs.conops import ConopsSet
 
@@ -110,6 +118,71 @@ def hlr_layer(hlr_dir: Path, waivers: Path | None = None) -> Layer:
 def llr_layer(llr_dir: Path) -> Layer:
     """Make an LLR layer whose up-refs are HLR statement IDs."""
     return Layer("LLR", "requirement-yaml", llr_dir, id_pattern=r"(.+\.\d+)")
+
+
+def make_test_layer(inventory: Path, *, partial: bool = False, min_nodes: int = 0) -> Layer:
+    """Make a TEST layer whose up-refs are LLR statement IDs."""
+    return Layer(
+        "TEST",
+        "ada-tests",
+        inventory,
+        id_pattern=r"(.+\.\d+)",
+        partial_coverage=partial,
+        min_nodes=min_nodes,
+    )
+
+
+def make_code_layer(inventory: Path, *, parent: str = "LLR") -> Layer:
+    """
+    Make a CODE layer: the LLR names the code, so its refs point *down*.
+
+    It is `partial_coverage` for the same reason the TEST layer is -- most of the
+    code realizes no requirement directly -- and `parent` is explicit because
+    both TEST and CODE hang off the LLR layer, not off each other.
+    """
+    return Layer(
+        "CODE",
+        "ada-entities",
+        inventory,
+        parent=parent,
+        partial_coverage=True,
+        refs_point_down=True,
+    )
+
+
+def write_tests(tmp_path: Path, unit: str, routines: dict[str, list[str]]) -> Path:
+    """Write a test inventory with the given routines; routines[name] are `--@covers` payloads."""
+    file = f"src/tests/{unit}-test_data-tests.adb"
+    return write_inventory(
+        tmp_path / "test_inventory.json",
+        packages=[
+            package(
+                f"{unit.capitalize()}.Test_Data.Tests",
+                subprograms=[
+                    gnattest_routine(name, file, line=10 + 10 * i, covers=covers)
+                    for i, (name, covers) in enumerate(routines.items())
+                ],
+            )
+        ],
+    )
+
+
+def llr_test_chain(
+    tmp_path: Path,
+    llr_statements: Sequence[Sequence[str]],
+    routines: dict[str, list[str]],
+    *,
+    partial: bool = False,
+    min_nodes: int = 0,
+) -> list[Layer]:
+    """Build a minimal LLR -> TEST chain: LLR statements above, one test unit below."""
+    llr_dir = tmp_path / "llr"
+    llr_dir.mkdir(exist_ok=True)
+    write_req(llr_dir, "llr_x.yaml", "parent_req", llr_statements)
+    return [
+        llr_layer(llr_dir),
+        make_test_layer(write_tests(tmp_path, "u", routines), partial=partial, min_nodes=min_nodes),
+    ]
 
 
 def summarize(diags: Sequence[Diagnostic]) -> list[tuple[str, str, str]]:
@@ -397,3 +470,437 @@ def test_cli_format_table_renders(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "CONOPS" in result.output
     assert "hlr_x.1" in result.output
+
+
+# --- generalization: the same engine does LLR -> TEST (ada-tests kind) ------
+
+TWO_LLRS = [["hlr_x.1"], ["hlr_x.2"]]  # yields llr_x.1, llr_x.2
+
+
+def test_test_covering_a_real_llr_traces_clean(tmp_path: Path) -> None:
+    """A test whose `--@covers` names a real LLR resolves upward with no diagnostic."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"], "Test_B": ["llr_x.2"]})
+    assert check_trace(chain) == []
+
+
+def test_covers_unknown_llr_is_dangling(tmp_path: Path) -> None:
+    """A `--@covers` id that resolves to no LLR is a dangling-ref error."""
+    # Both LLRs are covered, so only the bad ref surfaces (no incidental UNCOVERED).
+    chain = llr_test_chain(
+        tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1", "llr_x.2"], "Test_B": ["llr_x.1", "llr_x.99"]}
+    )
+    assert summarize(check_trace(chain)) == [
+        ("E-TRACE-DANGLING", "error", "TEST 'u.Test_B' up-ref 'llr_x.99' resolves to no LLR node")
+    ]
+
+
+def test_untagged_test_is_untraced(tmp_path: Path) -> None:
+    """A test routine with no `--@covers` tag traces nowhere: a hard UNTRACED error."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1", "llr_x.2"], "Test_B": []})
+    assert summarize(check_trace(chain)) == [
+        ("E-TRACE-UNTRACED", "error", "TEST 'u.Test_B' traces to no LLR node and is not derived")
+    ]
+
+
+def test_none_tagged_test_is_derived_not_untraced(tmp_path: Path) -> None:
+    """A `--@covers none` test is accounted for (derived), not UNTRACED."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.1", "llr_x.2"], "Test_Boundary": ["none: out of requirement scope"]},
+    )
+    assert check_trace(chain) == []
+
+
+def test_partial_coverage_suppresses_uncovered_even_under_complete(tmp_path: Path) -> None:
+    """A partial-coverage TEST layer never flags an untested LLR, even under --complete."""
+    # llr_x.2 has no test, but tests cover LLRs only in part by design (proof covers the rest).
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=True)
+    assert check_trace(chain, complete=True) == []
+
+
+def test_uncovered_llr_errors_under_complete_without_partial(tmp_path: Path) -> None:
+    """Without partial_coverage the same untested LLR is a normal UNCOVERED error."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=False)
+    assert summarize(check_trace(chain, complete=True)) == [
+        ("E-TRACE-UNCOVERED", "error", "LLR node 'llr_x.2' is covered by no TEST and no waiver")
+    ]
+
+
+def test_partial_coverage_table_marks_untested_not_uncovered(tmp_path: Path) -> None:
+    """The coverage table shows an untested LLR as UNTESTED (neutral), not UNCOVERED (red)."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=True)
+    out = render_tables(chain, width=100)
+    assert "UNTESTED" in out
+    assert "UNCOVERED" not in out
+    assert "u.Test_A" in out  # the covering test appears in the upward-trace table
+
+
+def test_load_chain_reads_partial_coverage(tmp_path: Path) -> None:
+    """`partial_coverage: true` on a layer is parsed from the chain config."""
+    (tmp_path / "llr").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "trace_chain.yaml").write_text(
+        "layers:\n"
+        "  - {name: LLR, kind: requirement-yaml, path: llr, id_pattern: '(.+\\.\\d+)'}\n"
+        "  - {name: TEST, kind: ada-tests, path: tests, id_pattern: '(.+\\.\\d+)',"
+        " partial_coverage: true}\n",
+        encoding="utf-8",
+    )
+    layers = load_chain(tmp_path / "trace_chain.yaml")
+    assert [layer.name for layer in layers] == ["LLR", "TEST"]
+    assert layers[1].kind == "ada-tests"
+    assert layers[1].partial_coverage is True
+    assert layers[0].partial_coverage is False  # default
+
+
+# -- the CODE layer: refs that point down -------------------------------------
+#
+# Every other layer cites its parent. Code cites nothing: it is the LLR that says
+# what implements it, via `implemented_by`. So the CODE layer sets
+# `refs_point_down`, the engine reads the refs from the LLR, and an
+# `implemented_by` naming something the code does not declare is the dangling
+# case -- reported against the LLR that wrote it.
+
+
+def write_llr_with_code_refs(
+    tmp_path: Path, statements: Sequence[tuple[Sequence[str], Sequence[str]]]
+) -> Path:
+    """Write an LLR file whose statements carry both `parent_req` and `implemented_by`."""
+    llr_dir = tmp_path / "llr"
+    llr_dir.mkdir(exist_ok=True)
+    lines = ["description:"]
+    for i, (parents, implementers) in enumerate(statements, start=1):
+        lines.append(f"  {i}:")
+        lines.append(f"    text: The system shall do thing {i}.")
+        lines.append("    parent_req:")
+        lines.extend(f"      - {r}" for r in parents)
+        if implementers:
+            lines.append("    implemented_by:")
+            lines.extend(f"      - {r}" for r in implementers)
+    (llr_dir / "llr_x.yaml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return llr_dir
+
+
+def write_code(tmp_path: Path, *names: str) -> Path:
+    """Write a code inventory declaring the given qualified names as subprograms."""
+    return write_inventory(
+        tmp_path / "code_inventory.json",
+        packages=[
+            package(
+                "Conflicts",
+                subprograms=[
+                    subprogram(
+                        name.rsplit(".", 1)[-1],
+                        qualified_name=name,
+                        declared_in="spec",
+                        file="src/core/conflicts.ads",
+                        line=10 + 10 * i,
+                    )
+                    for i, name in enumerate(names)
+                ],
+            )
+        ],
+    )
+
+
+def llr_code_chain(
+    tmp_path: Path,
+    statements: Sequence[tuple[Sequence[str], Sequence[str]]],
+    declared: Sequence[str],
+) -> list[Layer]:
+    """Build a minimal LLR -> CODE chain."""
+    return [
+        llr_layer(write_llr_with_code_refs(tmp_path, statements)),
+        make_code_layer(write_code(tmp_path, *declared)),
+    ]
+
+
+def test_implemented_by_resolving_to_code_is_ok(tmp_path: Path) -> None:
+    """An `implemented_by` naming a declared entity is clean."""
+    chain = llr_code_chain(
+        tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])], ["Conflicts.Compatible"]
+    )
+    assert summarize(check_trace(chain, complete=True)) == []
+
+
+def test_implemented_by_naming_absent_code_is_dangling(tmp_path: Path) -> None:
+    """The point of the layer: a ref to code that does not exist is an error."""
+    chain = llr_code_chain(
+        tmp_path,
+        [(["hlr_a.1"], ["Conflicts.Crosswalk_Conflicts"])],
+        ["Conflicts.Compatible"],
+    )
+    assert summarize(check_trace(chain)) == [
+        (
+            "E-TRACE-DANGLING",
+            "error",
+            "LLR 'llr_x.1' down-ref 'Conflicts.Crosswalk_Conflicts' resolves to no CODE node",
+        )
+    ]
+
+
+def test_dangling_down_ref_is_located_at_the_implemented_by_key(tmp_path: Path) -> None:
+    """The diagnostic points at the LLR that wrote the ref, not at the code."""
+    chain = llr_code_chain(tmp_path, [(["hlr_a.1"], ["Conflicts.Nope"])], [])
+    diag = check_trace(chain)[0]
+    assert diag.file.name == "llr_x.yaml"
+    assert diag.path == ("description", "1", "implemented_by")
+    assert diag.line is not None
+
+
+def test_implemented_by_matching_is_case_insensitive(tmp_path: Path) -> None:
+    """Ada is case-insensitive, so a differently spelled ref still resolves."""
+    chain = llr_code_chain(
+        tmp_path, [(["hlr_a.1"], ["conflicts.COMPATIBLE"])], ["Conflicts.Compatible"]
+    )
+    assert summarize(check_trace(chain, complete=True)) == []
+
+
+def test_code_no_requirement_names_is_not_an_error(tmp_path: Path) -> None:
+    """Most of the code realizes no requirement directly; that is not a gap."""
+    chain = llr_code_chain(
+        tmp_path,
+        [(["hlr_a.1"], ["Conflicts.Compatible"])],
+        ["Conflicts.Compatible", "Conflicts.Helper"],
+    )
+    assert summarize(check_trace(chain, complete=True)) == []
+
+
+def test_downward_tables_report_both_directions(tmp_path: Path) -> None:
+    """The tables show what implements each LLR, and which code no LLR names."""
+    chain = llr_code_chain(
+        tmp_path,
+        [(["hlr_a.1"], ["Conflicts.Compatible"]), (["hlr_a.2"], ["Conflicts.Nope"])],
+        ["Conflicts.Compatible", "Conflicts.Helper"],
+    )
+    out = render_tables(chain, width=140)
+    assert "LLR → CODE  (implementation)" in out
+    assert "CODE → LLR  (required by)" in out
+    assert "DANGLING" in out  # llr_x.2 names something absent
+    assert "UNREQUIRED" in out  # Conflicts.Helper is named by no LLR
+
+
+def test_llr_naming_no_code_is_reported_but_not_an_error(tmp_path: Path) -> None:
+    """An LLR with no `implemented_by` shows as UNIMPLEMENTED, never a failure."""
+    chain = llr_code_chain(tmp_path, [(["hlr_a.1"], [])], ["Conflicts.Compatible"])
+    assert summarize(check_trace(chain, complete=True)) == []
+    assert "UNIMPLEMENTED" in render_tables(chain, width=140)
+
+
+def test_missing_inventory_fails_the_check(tmp_path: Path) -> None:
+    """A missing inventory is reported, not silently degraded to 'nothing traced'."""
+    chain = [
+        llr_layer(write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])),
+        make_code_layer(tmp_path / "absent.json"),
+    ]
+    assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-IO"]
+
+
+# -- the chain is a tree: a layer traces to its named parent -------------------
+
+
+def test_two_layers_can_share_a_parent(tmp_path: Path) -> None:
+    """TEST and CODE both hang off LLR; neither says anything about the other."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])
+    chain = [
+        llr_layer(llr_dir),
+        make_test_layer(write_tests(tmp_path, "u", {"Test_A": ["llr_x.1"]}), partial=True),
+        make_code_layer(write_code(tmp_path, "Conflicts.Compatible"), parent="LLR"),
+    ]
+    assert summarize(check_trace(chain, complete=True)) == []
+    out = render_tables(chain, width=140)
+    assert "LLR → TEST" in out
+    assert "LLR → CODE" in out
+    assert "TEST → CODE" not in out  # the two are siblings, not a chain
+
+
+def test_unknown_parent_is_reported(tmp_path: Path) -> None:
+    """A layer naming a parent that is not in the chain is E-TRACE-PARENT."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])
+    chain = [
+        llr_layer(llr_dir),
+        make_code_layer(write_code(tmp_path, "Conflicts.Compatible"), parent="NOSUCH"),
+    ]
+    assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-TRACE-PARENT"]
+
+
+def test_load_chain_reads_parent_and_refs_point_down(tmp_path: Path) -> None:
+    """`parent`, `refs_point_down` and `min_nodes` are parsed from the chain config."""
+    (tmp_path / "llr").mkdir()
+    (tmp_path / "trace_chain.yaml").write_text(
+        "layers:\n"
+        "  - {name: LLR, kind: requirement-yaml, path: llr, id_pattern: '(.+\\.\\d+)'}\n"
+        "  - {name: TEST, kind: ada-tests, path: test_inventory.json,"
+        " id_pattern: '(.+\\.\\d+)', partial_coverage: true, min_nodes: 15}\n"
+        "  - {name: CODE, kind: ada-entities, path: code_inventory.json, parent: LLR,"
+        " partial_coverage: true, refs_point_down: true}\n",
+        encoding="utf-8",
+    )
+    layers = load_chain(tmp_path / "trace_chain.yaml")
+    assert [layer.name for layer in layers] == ["LLR", "TEST", "CODE"]
+    assert layers[2].parent == "LLR"
+    assert layers[2].refs_point_down is True
+    assert layers[1].parent is None  # defaults to the layer above
+    assert layers[1].refs_point_down is False
+    assert layers[1].min_nodes == 15
+    assert layers[0].min_nodes == 0  # default: no floor
+
+
+# -- an empty layer must not read as "everything traced" -----------------------
+#
+# The TEST layer is `partial_coverage`, so an untested LLR is never flagged, and a
+# layer with no nodes has no untraced nodes to flag either. Between them, an
+# inventory that came back valid but empty -- wrong generated project, moved
+# sources, a routine filter that stopped matching -- would pass the gate silently.
+# `min_nodes` is what makes that a build failure instead.
+
+
+def test_empty_test_layer_below_min_nodes_is_an_error(tmp_path: Path) -> None:
+    """An inventory with no test routines fails the layer's `min_nodes` floor."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {}, partial=True, min_nodes=1)
+    assert summarize(check_trace(chain, complete=True)) == [
+        (
+            "E-TRACE-EMPTY",
+            "error",
+            "TEST layer yielded 0 node(s), expected at least 1; the layer was enumerated "
+            "from the wrong place, or min_nodes needs lowering deliberately",
+        )
+    ]
+
+
+def test_short_test_layer_below_min_nodes_is_an_error(tmp_path: Path) -> None:
+    """A floor above zero also catches a partially-enumerated inventory."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=True, min_nodes=2)
+    assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-TRACE-EMPTY"]
+
+
+def test_test_layer_at_or_above_min_nodes_is_clean(tmp_path: Path) -> None:
+    """Meeting the floor draws no diagnostic; exceeding it is fine too."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.1"], "Test_B": ["llr_x.2"]},
+        partial=True,
+        min_nodes=2,
+    )
+    assert check_trace(chain, complete=True) == []
+
+
+def test_min_nodes_is_silent_when_the_layer_failed_to_load(tmp_path: Path) -> None:
+    """A missing inventory is reported once, as E-IO; 'and it is empty' adds nothing."""
+    chain = [
+        llr_layer(write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])),
+        make_test_layer(tmp_path / "absent.json", partial=True, min_nodes=15),
+    ]
+    assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-IO"]
+
+
+# -- ids must match the pattern whole -----------------------------------------
+
+
+def test_covers_id_with_trailing_garbage_does_not_resolve(tmp_path: Path) -> None:
+    """`llr_x.1typo` must not be accepted as `llr_x.1`: the pattern matches whole refs."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1typo"]}, partial=True)
+    # The malformed id resolves to nothing, so the routine traces nowhere at all --
+    # what must *not* happen is it quietly covering llr_x.1.
+    assert summarize(check_trace(chain)) == [
+        ("E-TRACE-UNTRACED", "error", "TEST 'u.Test_A' traces to no LLR node and is not derived")
+    ]
+    assert "u.Test_A" not in render_tables(chain, width=100).split("upward trace")[0]
+
+
+def test_parent_req_with_trailing_garbage_does_not_resolve(tmp_path: Path) -> None:
+    """Same for a requirement layer: `hlr_x.1 (partly)` is not `hlr_x.1`."""
+    conops = write_conops(tmp_path)
+    hlr_dir, llr_dir = tmp_path / "hlr", tmp_path / "llr"
+    hlr_dir.mkdir()
+    llr_dir.mkdir()
+    write_req(hlr_dir, "hlr_x.yaml", "source", COVERING)
+    write_req(llr_dir, "llr_y.yaml", "parent_req", [["hlr_x.1 (partly)"]])
+    chain = [
+        conops_layer(conops, waivers=write_waivers(tmp_path, "w.yaml", [("1.1", "ok")])),
+        hlr_layer(
+            hlr_dir,
+            waivers=write_waivers(
+                tmp_path,
+                "hw.yaml",
+                [("hlr_x.1", "no LLR"), ("hlr_x.2", "no LLR"), ("hlr_x.3", "no LLR")],
+            ),
+        ),
+        llr_layer(llr_dir),
+    ]
+    assert summarize(check_trace(chain)) == [
+        ("E-TRACE-UNTRACED", "error", "LLR 'llr_y.1' traces to no HLR node and is not derived")
+    ]
+
+
+# -- layer subsets ------------------------------------------------------------
+#
+# The inventory-backed layers cost an Ada toolchain, which `make validate-reqs`
+# and the cheap CI job do not have. Selecting a subset lets them keep checking the
+# layers they *can* reach instead of checking nothing.
+
+
+def test_select_layers_keeps_the_named_layers_in_file_order(tmp_path: Path) -> None:
+    """A subset keeps the chain's own order, whatever order the names come in."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=True)
+    selected, diags = select_layers(chain, ["TEST", "LLR"], tmp_path / "trace_chain.yaml")
+    assert [layer.name for layer in selected] == ["LLR", "TEST"]
+    assert diags == []
+
+
+def test_select_layers_rejects_an_unknown_name(tmp_path: Path) -> None:
+    """A typo'd layer name is an error, not a silently smaller chain."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=True)
+    _selected, diags = select_layers(chain, ["LLR", "TESTS"], tmp_path / "trace_chain.yaml")
+    assert summarize(diags) == [("E-TRACE-LAYER", "error", "no layer named 'TESTS' in this chain")]
+
+
+def test_cli_layers_skips_the_layer_left_out(tmp_path: Path) -> None:
+    """`--layers` omitting TEST passes even though the TEST inventory is missing."""
+    chain = write_chain_file(tmp_path, [("1.1", "ok")])
+    chain.write_text(
+        chain.read_text(encoding="utf-8") + "  - {name: TEST, kind: ada-tests, path: absent.json,"
+        " id_pattern: '(.+\\.\\d+)', partial_coverage: true}\n",
+        encoding="utf-8",
+    )
+    # With TEST in the chain the missing inventory fails the run...
+    assert runner.invoke(app, ["trace", "--chain", str(chain), "--complete"]).exit_code != 0
+    # ...and without it the requirements-only portion is checked on its own.
+    result = runner.invoke(
+        app, ["trace", "--chain", str(chain), "--complete", "--layers", "CONOPS,HLR"]
+    )
+    assert result.exit_code == 0, result.output
+
+
+def test_cli_layers_reports_an_unknown_layer(tmp_path: Path) -> None:
+    """`--layers NOSUCH` fails with E-TRACE-LAYER rather than checking nothing."""
+    chain = write_chain_file(tmp_path, [("1.1", "ok")])
+    result = runner.invoke(
+        app, ["trace", "--chain", str(chain), "--complete", "--layers", "CONOPS,NOSUCH"]
+    )
+    assert result.exit_code != 0
+    assert "E-TRACE-LAYER" in result.output
+
+
+def test_cli_layers_orphaning_a_parent_is_reported(tmp_path: Path) -> None:
+    """Selecting a layer without its parent is E-TRACE-PARENT, not a silent skip."""
+    (tmp_path / "llr").mkdir()
+    write_req(tmp_path / "llr", "llr_x.yaml", "parent_req", [["hlr_a.1"]])
+    write_inventory(tmp_path / "code_inventory.json")
+    chain = tmp_path / "trace_chain.yaml"
+    chain.write_text(
+        "layers:\n"
+        "  - {name: LLR, kind: requirement-yaml, path: llr, id_pattern: '(.+\\.\\d+)'}\n"
+        "  - {name: TEST, kind: ada-tests, path: test_inventory.json,"
+        " id_pattern: '(.+\\.\\d+)', partial_coverage: true}\n"
+        "  - {name: CODE, kind: ada-entities, path: code_inventory.json, parent: LLR,"
+        " partial_coverage: true, refs_point_down: true}\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(
+        app, ["trace", "--chain", str(chain), "--complete", "--layers", "TEST,CODE"]
+    )
+    assert result.exit_code != 0
+    assert "E-TRACE-PARENT" in result.output

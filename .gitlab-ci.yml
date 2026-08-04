@@ -82,6 +82,10 @@ check:
      - .x86_64-linux-pro
      - .default_rules
   before_script:
+    # Install uv
+    - pip install uv
+    - unset VIRTUAL_ENV
+
     # Deploy a sandbox
     - anod init wave
     - export ANOD_DEFAULT_SANDBOX_DIR=$(pwd)/wave
@@ -106,17 +110,22 @@ pro:x86_64-linux:
   extends: .pro
   script:
     # Install stable specs
-    - for spec in gnat gnatformat spark2014 gnatcov gnattest ; do
+    - for spec in gnat gnatformat spark2014 gnatcov gnattest langkit_support libadalang ; do
         anod install $spec --qualifier=stable ;
         eval $(anod printenv $spec --qualifier=stable) ;
       done
+    - anod install libgpr2 --qualifier=bare,stable
+    - eval $(anod printenv libgpr2 --qualifier=bare,stable)
 
-    # Sanity check
-    - gnat --version
-    - gnatprove --version
+    # We're using the pro version
+    # commented out for now: we're setting up with anod, see above.
+    # - make setup-pro
 
     # Build
     - make build-native
+
+    # Check traceability
+    - make trace-check
 
     # Test (test w/ non-instrumented harness build)
     - make test

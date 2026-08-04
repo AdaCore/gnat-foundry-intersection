@@ -40,6 +40,8 @@ package body Timings.Test_Data.Tests is
    --  timings.ads:9:4:Delay_For
 --  end read only
 
+      --@covers llr_6_hal.1
+
       pragma Unreferenced (Gnattest_T);
 
       use type Ada.Calendar.Time;

@@ -4,6 +4,7 @@
     reqs validate schema [PATHS...]            # schema + structural rules
     reqs validate ears   [PATHS...]            # EARS grammar
     reqs trace --chain FILE [--format table]   # traceability across the chain
+    reqs trace --chain FILE --layers A,B       # ...over a subset of its layers
 
 With no PATHS, a validate command targets the default requirement set (the
 curated examples for now). Future top-level commands (e.g. `reqs report`) attach
@@ -19,8 +20,8 @@ import typer
 
 from reqs.checks.ears import EarsChecker
 from reqs.checks.schema import RequirementChecker
-from reqs.checks.trace import REQUIREMENT_YAML, TraceChecker, load_chain
-from reqs.core import report
+from reqs.checks.trace import REQUIREMENT_YAML, TraceChecker, load_chain, select_layers
+from reqs.core import Diagnostic, report
 
 
 class OutputFormat(StrEnum):
@@ -42,6 +43,14 @@ _FORMAT = typer.Option(
 )
 _TRACE_COMPLETE = typer.Option(
     False, "--complete", help="Treat an uncovered upper-layer node as an error (the CI gate)."
+)
+_TRACE_LAYERS = typer.Option(
+    None,
+    "--layers",
+    help=(
+        "Comma-separated layer names to restrict the chain to (default: all). "
+        "Only pairs wholly inside the selection are checked."
+    ),
 )
 
 
@@ -74,17 +83,24 @@ def validate_ears(
 def trace(
     chain: Path = _CHAIN,
     complete: bool = _TRACE_COMPLETE,
+    layers_option: str | None = _TRACE_LAYERS,
     output: OutputFormat = _FORMAT,
     quiet: bool = _QUIET,
 ) -> None:
     """Check traceability across the chain: dangling/untraced refs and uncovered nodes."""
     layers = load_chain(chain)
+    select_diags: list[Diagnostic] = []
+    if layers_option is not None:
+        names = [name.strip() for name in layers_option.split(",") if name.strip()]
+        layers, select_diags = select_layers(layers, names, chain)
+    req_paths = [layer.path for layer in layers if layer.kind == REQUIREMENT_YAML]
+    if select_diags:
+        raise typer.Exit(report(select_diags, req_paths, quiet=quiet))
     checker = TraceChecker(layers, complete=complete)
     diags = checker.check()
     if output is OutputFormat.table:
         checker.print_tables()
         raise typer.Exit(1 if any(d.level == "error" for d in diags) else 0)
-    req_paths = [layer.path for layer in layers if layer.kind == REQUIREMENT_YAML]
     raise typer.Exit(report(diags, req_paths, quiet=quiet))
 
 

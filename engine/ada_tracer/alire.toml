@@ -1,0 +1,17 @@
+name = "ada_tracer"
+description = "Libadalang-based extractor: Ada packages/subprograms/doc -> JSON"
+version = "0.1.0-dev"
+authors = ["AdaCore"]
+maintainers = ["AdaCore <support@adacore.com>"]
+licenses = "Apache-2.0 WITH LLVM-exception"
+tags = ["ada", "libadalang", "static-analysis", "json", "tooling"]
+
+# Deliberately *not* pinned to the root `traffic_light` crate: the tool is
+# app-agnostic and takes the project to analyse on the command line. It is also
+# kept out of the repo's `install/`-scoped Alire settings (which carry no
+# index) - build it with plain `alr` from this directory. See README.md.
+executables = ["ada_tracer"]
+project-files = ["ada_tracer.gpr"]
+
+[[depends-on]]
+libadalang = "*"

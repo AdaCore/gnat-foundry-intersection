@@ -44,6 +44,10 @@ class _BaseStatement(_Model):
     """One atomic shall-statement, carrying its own trace refs."""
 
     up_ref_key: ClassVar[str]  # name of the subclass's up-ref field
+    # Name of the subclass's *down*-ref field, if it has one. A statement that
+    # names what realizes it traces downward as well as upward, and the trace
+    # engine resolves those refs against the layer below (see reqs.checks.trace).
+    down_ref_key: ClassVar[str | None] = None
 
     text: NonEmptyStr
 
@@ -51,6 +55,11 @@ class _BaseStatement(_Model):
     @abstractmethod
     def up_refs(self) -> list[str] | None:
         """The statement's upward trace refs; None when derived (HLR only)."""
+
+    @property
+    def down_refs(self) -> list[str] | None:
+        """The statement's downward trace refs; None when the level has none."""
+        return None
 
     @property
     def is_derived(self) -> bool:
@@ -95,6 +104,7 @@ class LlrStatement(_BaseStatement):
     """An LLR statement."""
 
     up_ref_key: ClassVar[str] = "parent_req"
+    down_ref_key: ClassVar[str | None] = "implemented_by"
 
     parent_req: RefList
     implemented_by: RefList | None = None
@@ -103,6 +113,11 @@ class LlrStatement(_BaseStatement):
     def up_refs(self) -> list[str]:
         """The statement's `parent_req` refs."""
         return self.parent_req
+
+    @property
+    def down_refs(self) -> list[str] | None:
+        """The fully qualified Ada names said to implement the statement."""
+        return self.implemented_by
 
 
 class _BaseDocument(_Model):

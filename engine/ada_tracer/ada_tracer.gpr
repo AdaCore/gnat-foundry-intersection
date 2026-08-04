@@ -1,0 +1,50 @@
+--  `ada_tracer`: a Libadalang-based extractor emitting a JSON inventory of the
+--  packages, subprograms and documentation comments of an Ada project.
+--
+--  This project deliberately imports `libadalang` by name rather than going
+--  through an Alire-generated config project, so that it builds two ways with
+--  no edits:
+--
+--    * `alr build` from this directory - Alire resolves the `libadalang` crate
+--      and puts its project on GPR_PROJECT_PATH (the portable route), or
+--    * `gprbuild -P ada_tracer.gpr` with GPR_PROJECT_PATH pointing at an
+--      already-installed Libadalang (the route `make build-tracer` takes when
+--      one is found on the toolchain).
+--
+--  It does not import `src/shared.gpr` from the repository root: that project
+--  is the traffic-light application's native/target switch hub and would drag
+--  in its BUILD_KIND external. The tracer is a host tool with no relationship
+--  to the application it analyses.
+
+with "libadalang";
+with "gnatcoll_core";
+with "gnatcoll_projects";
+
+project Ada_Tracer is
+
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Exec_Dir use "bin";
+   for Create_Missing_Dirs use "True";
+   for Main use ("ada_tracer-main.adb");
+
+   package Builder is
+      for Executable ("ada_tracer-main.adb") use "ada_tracer";
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-g",
+         "-O1",
+         "-gnatwa",     --  All optional warnings
+         "-gnatw.X",    --  ... except the "no exception propagation" one
+         "-gnata",      --  Enable assertions and contracts
+         "-gnatyy",     --  Default style checks
+         "-gnat2022");
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es");  --  Symbolic tracebacks
+   end Binder;
+
+end Ada_Tracer;
