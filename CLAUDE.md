@@ -15,6 +15,8 @@ The aim of this repository is to demonstrate how the engine can work on the *app
 Essential commands:
 
 ```bash
+make help           # List every target, by section
+
 make build-native   # Build the native app
 make test           # Run the testsuite
 make prove          # Run the prover
