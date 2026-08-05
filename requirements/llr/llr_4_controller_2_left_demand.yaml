@@ -21,6 +21,9 @@ description:
       - hlr_5_vehicle_1_left_demand.3
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_2_left_demand_tests.adb:Test_01_Detector_Arms_Idle_Approach
 
   2:
     text: |-

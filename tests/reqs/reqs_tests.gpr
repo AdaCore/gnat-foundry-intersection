@@ -1,0 +1,23 @@
+--  Requirements-based tests (#51).
+--
+--  Hand-written AUnit fixtures, one package per LLR file, one test routine
+--  per LLR statement. Folded into the generated AUnit harness via
+--  `gnattest --additional-tests=` (see the Makefile's `generate-tests`), so
+--  these run in the same `make test` and are instrumented by the same
+--  `make all-coverage` as the generated skeletons under tests/core, tests/types
+--  and tests/hal.
+--
+--  Unlike those skeletons, nothing here is generated: the file layout mirrors
+--  requirements/llr/, not the code's package structure, and each routine names
+--  the statement it verifies in both its identifier and its `--@covers` tag.
+
+with "aunit";
+with "../../traffic_light.gpr";
+
+project Reqs_Tests is
+
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Languages use ("Ada");
+
+end Reqs_Tests;

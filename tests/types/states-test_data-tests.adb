@@ -37,14 +37,15 @@ package body States.Test_Data.Tests is
    --  states.ads:230:4:Face_Of
 --  end read only
 
-      --@covers llr_1_states.19
+      --@covers none: no-op placeholder. This skeleton asserted nothing while
+      --  claiming llr_1_states.19; the requirement is verified in
+      --  tests/reqs/ instead (#51).
 
       pragma Unreferenced (Gnattest_T);
 
    begin
 
-      AUnit.Assertions.Assert
-        (Gnattest_Generated.Default_Assert_Value, "Test not implemented.");
+      null;
 
 --  begin read only
    end Test_Face_Of;
@@ -59,14 +60,15 @@ package body States.Test_Data.Tests is
    --  states.ads:246:4:Is_Go
 --  end read only
 
-      --@covers llr_1_states.20
+      --@covers none: no-op placeholder. This skeleton asserted nothing while
+      --  claiming llr_1_states.20; the requirement is verified in
+      --  tests/reqs/ instead (#51).
 
       pragma Unreferenced (Gnattest_T);
 
    begin
 
-      AUnit.Assertions.Assert
-        (Gnattest_Generated.Default_Assert_Value, "Test not implemented.");
+      null;
 
 --  begin read only
    end Test_Is_Go;

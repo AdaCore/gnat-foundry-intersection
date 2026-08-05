@@ -46,6 +46,9 @@ description:
       - hlr_0_safety.2
     implemented_by:
       - Conflicts.Safe_Faces
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_03_Safe_Faces_Holds_Exactly_When_No_Conflicting_Pair_Is_Go
 
   # ---- geometry bindings ----
   4:

@@ -242,13 +242,26 @@ check-python-report:
 # context: AUnit ships with GNAT Pro, and gnattest/gprbuild resolve on PATH.
 HARNESS := obj/development/gnattest/harness
 
+# The requirements-based tests (#51): hand-written AUnit fixtures under
+# tests/reqs/, one package per LLR file. `--additional-tests` folds them into
+# the same generated harness as the skeletons, so they share `make test` and
+# the `make all-coverage` instrumentation.
+REQS_TESTS := $(CURDIR)/tests/reqs/reqs_tests.gpr
+
+# `--skeleton-default=fail` makes an unimplemented skeleton fail rather than
+# pass: the generated "Test not implemented" assertion reads
+# `Gnattest_Generated.Default_Assert_Value`, and defaulting that to True let
+# three empty skeletons sit green while claiming requirements (#51).
+GNATTEST_FLAGS := --exit-status=on --skeleton-default=fail \
+	--additional-tests=$(REQS_TESTS)
+
 # Generate/refresh GNATtest skeletons.
 generate-tests: generate-config
 ifeq ($(SETUP),community)
 	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
-	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr --exit-status=on
+	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr $(GNATTEST_FLAGS)
 else
-	$(ALR) exec -P -- gnattest --exit-status=on
+	$(ALR) exec -P -- gnattest $(GNATTEST_FLAGS)
 endif
 
 test: generate-tests

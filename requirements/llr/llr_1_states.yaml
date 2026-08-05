@@ -357,6 +357,9 @@ description:
       - hlr_3_timing.11
     implemented_by:
       - States.T_Sample
+    # verified_by:
+    #   - means: compiler_check
+    #     by: src/types/states.ads:346-387
 
 algorithm_aspects: |-
   The margin inequalities (27, 28) are the static discharge of the

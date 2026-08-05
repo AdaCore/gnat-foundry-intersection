@@ -42,6 +42,12 @@ description:
       - hlr_5_vehicle.24
     implemented_by:
       - Controller.Advance_Vehicle
+    # verified_by:
+    #   - means: analysis
+    #     by: "PLACEHOLDER (#101): LKQL rule asserting that no assignment whose
+    #       target is a State.Vehicle component appears outside the body of
+    #       Controller.Advance_Vehicle. Not written yet, so this statement is
+    #       currently unverified."
 
   2:
     text: |-
@@ -92,6 +98,9 @@ description:
       - hlr_5_vehicle.5
     implemented_by:
       - Controller.Vehicle_Face_Outputs
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_06_NS_Both_Through_Faces
 
   7:
     text: |-
@@ -296,6 +305,9 @@ description:
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
+    # verified_by:
+    #   - means: test
+    #     by: "BLOCKED (#63): the code decides the lag at both-through entry, so the commit interval is T_AXIS - T_BARRIER - T_YELLOW, not the reserved full lag block this statement requires. No test can pass until #63 lands."
 
   27:
     text: |-
