@@ -218,16 +218,17 @@ check-shell:
 
 # Format Python sources.
 format-python:
-	$(UV) --directory "$(REQS_ENGINE)" run --locked ruff format
+	$(UV) --directory "$(REQS_ENGINE)" run ruff format
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff format
 
 # Lint, type-check and verify formatting of Python, split per engine for CI.
 check-python: check-python-reqs check-python-report
 
+# No --locked for reqs: its lock pins a registry the CI runners don't use.
 check-python-reqs:
-	$(UV) --directory "$(REQS_ENGINE)" run --locked ruff check
-	$(UV) --directory "$(REQS_ENGINE)" run --locked mypy
-	$(UV) --directory "$(REQS_ENGINE)" run --locked ruff format --check
+	$(UV) --directory "$(REQS_ENGINE)" run ruff check
+	$(UV) --directory "$(REQS_ENGINE)" run mypy
+	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
 
 check-python-report:
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff check
@@ -272,22 +273,22 @@ REQUIREMENT_LAYERS  := CONOPS,HLR,LLR
 # Check the requirement files for structural validity, EARS syntax, and
 # traceability within the requirements layers.
 validate-reqs:
-	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
-	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
-	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
 
 # The traceability gate CI runs: diagnostics only, exit status is the verdict.
 trace-check: inventories
-	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs trace --complete --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(TRACE_CHAIN)"
 
 # Show the traceability tables for development (coverage + upward trace per
 # pair), over the whole chain -- including the CODE gap `trace-check` excludes.
 trace: inventories
-	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs trace --complete --format table --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format table --chain "$(TRACE_CHAIN)"
 
 # Run the validation engine's own test suite.
 test-reqs-engine:
-	$(UV) --directory "$(REQS_ENGINE)" run --locked pytest
+	$(UV) --directory "$(REQS_ENGINE)" run pytest
 
 # ----------------------------------------------------------------------------
 # Code inventory (engine/ada_tracer)
