@@ -1,0 +1,1 @@
+gnatcov coverage --level=stmt+mcdc --annotate=xml --output-dir /workspace/traffic-light-controller/reports/coverage/xml /workspace/traffic-light-controller/obj/gnatcov-traces/

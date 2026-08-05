@@ -18,7 +18,7 @@ invoking `vreport` directly, produce them first):
 | Input | Producer | Contents |
 |---|---|---|
 | `obj/development/gnatprove/` | `make prove-report` | per-unit `*.spark` JSON, `gnatprove.out` (with `--output-header`/`--assumptions`), `gnatprove.sarif`, `gnatprove-version.txt` |
-| `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt` |
+| `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt`, `gnatcov-command.txt` (the recorded invocation) |
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
@@ -61,10 +61,26 @@ evidence links.
 - The coverage-violation classification matches proved-check locations by
   source-file **basename**, per file (not per line); two files with the same
   basename in different directories would be conflated.
+- Parsed messages are reconciled with the metric counters from the same
+  report: coverage gaps or exemptions that appear only in the counters (e.g.
+  undetermined coverage, or a drifted message format) render as review items
+  rather than a green "none". Likewise a missing `gnatprove.sarif` flags the
+  warnings item (falling back to the `.spark` `warn_error` records), and a
+  unit whose `.spark` records an early analysis stop is flagged as
+  incomplete.
+- Evidence-carried free text (justifications, waiver reasons, tool messages)
+  is escaped before interpolation into the MyST sources, so it cannot break
+  the report structure or plant cross-references that fail the strict build.
 - The `.spark` format is documented as internal and may change with the SPARK
   release (SPARK UG "Looking at Machine-Parsable GNATprove Output"); the
   parsers here are written against FSF 16.1.0 and validated by fixtures.
 - gnatprove's `--assumptions` listing is documented as partial (only
   assumptions on called subprograms are reported); the report says so.
+- The traceability items report only what the requirements tree *records*
+  (waivers, `derived:` flags); that the CONOPS → HLR → LLR chain actually
+  holds is `make validate-reqs`'s verdict, which `make report` runs as a
+  prerequisite — invoking `vreport` directly skips that gate. Each source is
+  tracked separately: a missing `trace_waivers.yaml` or `requirements/hlr/`
+  renders as a review item, never as a green "none".
 - Requirement-level traceability rendering is partial pending the trace-chain
   work (`workflow/verification-report/plan.md`, phase 4).

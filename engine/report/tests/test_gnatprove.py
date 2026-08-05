@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -122,6 +123,7 @@ def test_claims(proof: ProofEvidence) -> None:
 
 def test_sarif(proof: ProofEvidence) -> None:
     """SARIF supplies the invocation record and (suppressed) warnings."""
+    assert proof.sarif_found
     assert proof.invocation is not None
     assert proof.invocation.exit_code == 0
     assert proof.invocation.pass_results == 1
@@ -132,6 +134,66 @@ def test_sarif(proof: ProofEvidence) -> None:
     assert warning.suppressed
     assert warning.location is not None
     assert warning.location.file == "controller.adb"
+
+
+def test_sarif_absent_falls_back_to_spark_warnings(tmp_path: Path) -> None:
+    """Without SARIF, warnings come from .spark warn_error, and the gap is flagged."""
+    (tmp_path / "unit.spark").write_text(
+        json.dumps(
+            {
+                "spark": {},
+                "entities": {},
+                "flow": [],
+                "proof": [],
+                "warn_error": [
+                    {
+                        "file": "unit.adb",
+                        "line": 4,
+                        "col": 8,
+                        "rule": "operator-reassociation",
+                        "severity": "warning",
+                        "suppressed": "",
+                        "message": {"text": "possible reassociation"},
+                    },
+                    {
+                        "file": "unit.adb",
+                        "line": 9,
+                        "col": 1,
+                        "rule": "imprecise-address",
+                        "severity": "warning",
+                        "message": {"text": "imprecisely supported address"},
+                    },
+                    {
+                        "file": "unit.adb",
+                        "line": 12,
+                        "col": 1,
+                        "rule": "error",
+                        "severity": "info",
+                        "message": {"text": "unrolling loop"},
+                    },
+                ],
+            }
+        )
+    )
+    proof = collect_proof(tmp_path)
+    assert not proof.sarif_found
+    assert proof.invocation is None
+    assert [w.rule for w in proof.warnings] == ["operator-reassociation", "imprecise-address"]
+    # Suppression is marked by the key's presence, even with an empty reason.
+    assert proof.warnings[0].suppressed
+    assert not proof.warnings[1].suppressed
+    assert proof.warnings[0].location is not None
+    assert proof.warnings[0].location.line == 4
+
+
+def test_analysis_completion_records(proof: ProofEvidence) -> None:
+    """Each unit carries its progress/stop_reason; an early stop is incomplete."""
+    assert len(proof.analyses) == len(proof.units)
+    incomplete = proof.incomplete_analyses
+    assert [a.unit for a in incomplete] == ["synthetic"]
+    assert incomplete[0].stop_reason == "STOP_REASON_CHECK_MODE"
+    controller = next(a for a in proof.analyses if a.unit == "controller")
+    assert controller.complete
 
 
 def test_instance_analysis_locations(proof: ProofEvidence) -> None:

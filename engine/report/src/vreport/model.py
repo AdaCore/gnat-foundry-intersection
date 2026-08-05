@@ -157,6 +157,19 @@ class ToolWarning(Frozen):
     suppressed: bool = False
 
 
+class UnitAnalysis(Frozen):
+    """Completion record of one unit's analysis (.spark progress/stop_reason)."""
+
+    unit: str
+    progress: str | None = None
+    stop_reason: str | None = None
+
+    @property
+    def complete(self) -> bool:
+        """Whether the analysis reached the proof phase's end (unknown counts as incomplete)."""
+        return self.stop_reason == "STOP_REASON_NONE" and self.progress == "PROGRESS_PROOF"
+
+
 class GnatproveHeader(Frozen):
     """The `--output-header` block of gnatprove.out."""
 
@@ -188,14 +201,21 @@ class ProofEvidence(Frozen):
     header: GnatproveHeader | None = None
     version_text: str | None = None
     invocation: SarifInvocation | None = None
+    sarif_found: bool = False
     summary_text: str | None = None  # verbatim summary table from gnatprove.out
     units: list[str] = Field(default_factory=list)
+    analyses: list[UnitAnalysis] = Field(default_factory=list)
     checks: list[ProofCheck] = Field(default_factory=list)
     assumes: list[PragmaAssume] = Field(default_factory=list)
     skips: list[SkipAnnotation] = Field(default_factory=list)
     spark_modes: list[SparkModeEntry] = Field(default_factory=list)
     claims: list[AssumptionClaim] = Field(default_factory=list)
     warnings: list[ToolWarning] = Field(default_factory=list)
+
+    @property
+    def incomplete_analyses(self) -> list[UnitAnalysis]:
+        """Unit analyses that did not run to the end of the proof phase."""
+        return [a for a in self.analyses if not a.complete]
 
     @property
     def unproved_checks(self) -> list[ProofCheck]:
@@ -314,6 +334,7 @@ class CoverageEvidence(Frozen):
 
     level: str
     version_text: str | None = None
+    command_text: str | None = None  # the recorded `gnatcov coverage` invocation
     traces: list[TraceInfo] = Field(default_factory=list)
     counts: dict[str, int] = Field(default_factory=dict)  # global line-level metrics
     obligations: list[ObligationStats] = Field(default_factory=list)
@@ -350,11 +371,12 @@ class DerivedRequirement(Frozen):
 
 
 class TraceabilityEvidence(Frozen):
-    """The requirement-chain facts the report currently covers."""
+    """The requirement-chain facts the report currently covers, tracked per source."""
 
     waivers: list[Waiver] = Field(default_factory=list)
     derived: list[DerivedRequirement] = Field(default_factory=list)
-    sources_found: bool = False
+    waivers_found: bool = False
+    hlr_found: bool = False
 
 
 # --- Provenance / top level --------------------------------------------------

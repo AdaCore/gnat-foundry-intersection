@@ -23,6 +23,12 @@ def test_level_and_version(coverage: CoverageEvidence) -> None:
     assert coverage.version_text == "GNATcoverage FSF 26.2"
 
 
+def test_command_record(coverage: CoverageEvidence) -> None:
+    """The recorded gnatcov invocation is collected for the provenance page."""
+    assert coverage.command_text is not None
+    assert coverage.command_text.startswith("gnatcov coverage --level=stmt+mcdc")
+
+
 def test_traces(coverage: CoverageEvidence) -> None:
     """trace.xml identifies the test execution that produced the data."""
     assert len(coverage.traces) == 1

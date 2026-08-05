@@ -6,6 +6,7 @@ SHELL := bash
 .PHONY: printenv generate-config build-native build-target run-native run-target \
         prove prove-report \
         format format-ada format-python check check-ada check-shell check-python \
+        check-python-reqs check-python-report \
         generate-tests test \
         validate-reqs trace trace-check test-reqs-engine \
         build-tracer \
@@ -217,17 +218,21 @@ check-shell:
 
 # Format Python sources.
 format-python:
-	$(UV) --directory "$(REQS_ENGINE)" run ruff format
-	$(UV) --directory "$(REPORT_ENGINE)" run ruff format
+	$(UV) --directory "$(REQS_ENGINE)" run --locked ruff format
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff format
 
-# Lint, type-check and verify formatting of Python.
-check-python:
-	$(UV) --directory "$(REQS_ENGINE)" run ruff check
-	$(UV) --directory "$(REQS_ENGINE)" run mypy
-	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
-	$(UV) --directory "$(REPORT_ENGINE)" run ruff check
-	$(UV) --directory "$(REPORT_ENGINE)" run mypy
-	$(UV) --directory "$(REPORT_ENGINE)" run ruff format --check
+# Lint, type-check and verify formatting of Python, split per engine for CI.
+check-python: check-python-reqs check-python-report
+
+check-python-reqs:
+	$(UV) --directory "$(REQS_ENGINE)" run --locked ruff check
+	$(UV) --directory "$(REQS_ENGINE)" run --locked mypy
+	$(UV) --directory "$(REQS_ENGINE)" run --locked ruff format --check
+
+check-python-report:
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff check
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked mypy
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff format --check
 
 # Build and run the AUnit harness.
 #
@@ -267,22 +272,22 @@ REQUIREMENT_LAYERS  := CONOPS,HLR,LLR
 # Check the requirement files for structural validity, EARS syntax, and
 # traceability within the requirements layers.
 validate-reqs:
-	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
-	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
+	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
 
 # The traceability gate CI runs: diagnostics only, exit status is the verdict.
 trace-check: inventories
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs trace --complete --chain "$(TRACE_CHAIN)"
 
 # Show the traceability tables for development (coverage + upward trace per
 # pair), over the whole chain -- including the CODE gap `trace-check` excludes.
 trace: inventories
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format table --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run --locked reqs trace --complete --format table --chain "$(TRACE_CHAIN)"
 
 # Run the validation engine's own test suite.
 test-reqs-engine:
-	$(UV) --directory "$(REQS_ENGINE)" run pytest
+	$(UV) --directory "$(REQS_ENGINE)" run --locked pytest
 
 # ----------------------------------------------------------------------------
 # Code inventory (engine/ada_tracer)
@@ -352,24 +357,24 @@ REPORT_OUT    := $(CURDIR)/reports/report
 
 # Regenerate the evidence, then the verification report (proof + coverage +
 # review obligations). The prerequisites guarantee the report never describes
-# stale artifacts: `prove-report` is a clean, forced (-f) gnatprove run, and
-# `all-coverage` re-runs the tests before `coverage-report-xml` reads the
-# traces.
-REPORT_EVIDENCE := prove-report all-coverage coverage-report-xml
+# stale artifacts: `validate-reqs` gates the traceability claims,
+# `prove-report` is a clean, forced (-f) gnatprove run, and `all-coverage`
+# re-runs the tests before `coverage-report-xml` reads the traces.
+REPORT_EVIDENCE := validate-reqs prove-report all-coverage coverage-report-xml
 
 report: $(REPORT_EVIDENCE)
-	$(UV) --directory "$(REPORT_ENGINE)" run vreport generate \
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)"
 
 # Same as `report`, plus a PDF rendering (rst2pdf — pure Python, no TeX
 # toolchain needed) at reports/report/pdf/verification-report.pdf.
 report-pdf: $(REPORT_EVIDENCE)
-	$(UV) --directory "$(REPORT_ENGINE)" run vreport generate \
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf
 
 # Run the report engine's own test suite.
 test-report-engine:
-	$(UV) --directory "$(REPORT_ENGINE)" run pytest
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked pytest
 
 # ----------------------------------------------------------------------------
 # Setup: provision all developer tooling locally under install/. Pick one:
@@ -506,13 +511,13 @@ coverage-report-text: $(COVERAGE_REPORTS)
 # Parsed by `make report`. Like the other coverage-report-* targets, this
 # consumes whatever traces are under $(GNATCOV_TRACES) — run `coverage-test`
 # (or `all-coverage`) first for fresh ones.
+# The exact command is recorded next to the XML, only after a zero exit.
+GNATCOV_XML_CMD = gnatcov coverage --level=stmt+mcdc --annotate=xml \
+    --output-dir $(COVERAGE_REPORTS)/xml $(GNATCOV_TRACES)/
 coverage-report-xml: $(COVERAGE_REPORTS)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
-	$(ALR) exec -P2 -- gnatcov coverage \
-	    --level=stmt+mcdc \
-		--annotate=xml \
-		--output-dir $(COVERAGE_REPORTS)/xml \
-		$(GNATCOV_TRACES)/
+	$(ALR) exec -P2 -- $(GNATCOV_XML_CMD)
+	echo "$(GNATCOV_XML_CMD)" > $(COVERAGE_REPORTS)/xml/gnatcov-command.txt
 	$(ALR) exec -- gnatcov --version > $(COVERAGE_REPORTS)/xml/gnatcov-version.txt
 
 # "quiet" all-in-one coverage, for use by agents: create a

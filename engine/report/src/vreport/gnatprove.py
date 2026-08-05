@@ -28,6 +28,7 @@ from vreport.model import (
     Sloc,
     SparkModeEntry,
     ToolWarning,
+    UnitAnalysis,
 )
 from vreport.provenance import read_optional
 
@@ -147,6 +148,25 @@ def _assumption_ref(
     )
 
 
+def _spark_warnings(raw: Any, unit: str) -> list[ToolWarning]:
+    """Parse a .spark ``warn_error`` array (the no-SARIF warning fallback), skipping info notes."""
+    out: list[ToolWarning] = []
+    for entry in raw or []:
+        if not isinstance(entry, dict) or str(entry.get("severity")) not in ("warning", "error"):
+            continue
+        message = entry.get("message")
+        out.append(
+            ToolWarning(
+                rule=str(entry.get("rule", "?")),
+                message=str(message.get("text", "")) if isinstance(message, dict) else "",
+                location=_sloc(entry, unit),
+                # Key presence marks suppression, even with an empty reason.
+                suppressed="suppressed" in entry,
+            )
+        )
+    return out
+
+
 def _parse_out(text: str) -> tuple[GnatproveHeader | None, str | None]:
     """Parse gnatprove.out: the --output-header block and the summary table."""
     lines = text.splitlines()
@@ -233,17 +253,27 @@ def collect_proof(proof_dir: Path) -> ProofEvidence:
         raise MissingArtifactsError(proof_dir, "*.spark files")
 
     units: list[str] = []
+    analyses: list[UnitAnalysis] = []
     checks: list[ProofCheck] = []
     assumes: list[PragmaAssume] = []
     skips: list[SkipAnnotation] = []
     spark_modes: list[SparkModeEntry] = []
     claims: list[AssumptionClaim] = []
+    fallback_warnings: list[ToolWarning] = []
 
     for path in spark_files:
         unit = path.stem
         units.append(unit)
         data = _parse_json(path)
         entities = _entities(data)
+        analyses.append(
+            UnitAnalysis(
+                unit=unit,
+                progress=str(data["progress"]) if "progress" in data else None,
+                stop_reason=str(data["stop_reason"]) if "stop_reason" in data else None,
+            )
+        )
+        fallback_warnings.extend(_spark_warnings(data.get("warn_error"), unit))
         for kind in ("flow", "proof"):
             checks.extend(_check(entry, unit, kind, entities) for entry in data.get(kind) or [])
         assumes.extend(
@@ -273,14 +303,18 @@ def collect_proof(proof_dir: Path) -> ProofEvidence:
     out_text = read_optional(proof_dir / "gnatprove.out")
     header, summary = _parse_out(out_text) if out_text else (None, None)
     sarif_path = proof_dir / "gnatprove.sarif"
-    invocation, warnings = _parse_sarif(sarif_path) if sarif_path.is_file() else (None, [])
+    sarif_found = sarif_path.is_file()
+    # No SARIF: fall back to .spark warnings rather than reporting a clean "none".
+    invocation, warnings = _parse_sarif(sarif_path) if sarif_found else (None, fallback_warnings)
 
     return ProofEvidence(
         header=header,
         version_text=read_optional(proof_dir / "gnatprove-version.txt"),
         invocation=invocation,
+        sarif_found=sarif_found,
         summary_text=summary,
         units=units,
+        analyses=analyses,
         checks=checks,
         assumes=assumes,
         skips=skips,

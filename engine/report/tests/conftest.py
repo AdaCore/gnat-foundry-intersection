@@ -48,6 +48,7 @@ def evidence(proof: ProofEvidence, coverage: CoverageEvidence) -> Evidence:
         traceability=TraceabilityEvidence(
             waivers=[Waiver(leaf="1.1", reason="Physical site assumption.")],
             derived=[DerivedRequirement(ident="hlr_3_timing.8", text="Derived text.")],
-            sources_found=True,
+            waivers_found=True,
+            hlr_found=True,
         ),
     )

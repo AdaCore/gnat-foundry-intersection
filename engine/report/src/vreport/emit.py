@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from vreport.mdtext import inline
 from vreport.model import (
     EXEMPTED,
     EXEMPTED_NO_VIOLATION,
@@ -72,11 +73,16 @@ def _admonition(title: str, body: str, *, kind: str) -> str:
     return f":::{{admonition}} {title}\n:class: {kind}\n\n{body}\n:::"
 
 
+def _flat(text: str) -> str:
+    """Collapse newlines: fences and list items break at line starts."""
+    return text.replace("\n", " ")
+
+
 def _obligation_admonition(ob: Obligation) -> str:
     """Render one review obligation as an admonition with its evidence link."""
-    parts = [ob.detail]
+    parts = [_flat(ob.detail)]
     if ob.items:
-        parts.append("\n".join(f"- {item}" for item in ob.items))
+        parts.append("\n".join(f"- {_flat(item)}" for item in ob.items))
     parts.append(f"Evidence: {{ref}}`{ob.anchor}`")
     kind = "tip" if ob.status is ObligationStatus.ok else "warning"
     prefix = "OK" if ob.status is ObligationStatus.ok else "Review"
@@ -208,6 +214,16 @@ def _emit_provenance(ev: Evidence) -> str:
         "regenerate with `make prove-report`."
     )
 
+    # `make coverage-report-xml` records the command only after a zero exit.
+    cov_block = (
+        _code(ev.coverage.command_text)
+        + "\n\n(The command file is written only after a zero exit status.)"
+        if ev.coverage.command_text
+        else "**Warning:** no gnatcov invocation record (`gnatcov-command.txt`) was "
+        "found — the coverage XML cannot be tied to a command line; regenerate "
+        "with `make coverage-report-xml`."
+    )
+
     return f"""{_target("provenance")}
 
 # Provenance
@@ -242,7 +258,11 @@ gnatcov:
 
 {_table_or(("Field", "Value"), prove_rows, "No gnatprove header was recorded.")}
 
-gnatcov analyzed at level `{ev.coverage.level}` from these test executions:
+gnatcov analyzed at level `{ev.coverage.level}`, invoked as:
+
+{cov_block}
+
+from these test executions:
 
 {_table_or(("Program", "Date", "Trace"), trace_rows, "No trace information was recorded.")}
 """
@@ -252,11 +272,16 @@ def _emit_proof(ev: Evidence) -> str:
     """Render the gnatprove evidence page."""
     p = ev.proof
 
+    incomplete_rows: list[Sequence[str]] = [
+        (a.unit, f"`{a.progress or 'unrecorded'}`", f"`{a.stop_reason or 'unrecorded'}`")
+        for a in p.incomplete_analyses
+    ]
     unproved_rows: list[Sequence[str]] = [
-        (f"`{c.location}`", c.rule, c.entity or "", c.message or "") for c in p.unproved_checks
+        (f"`{c.location}`", c.rule, c.entity or "", inline(c.message or ""))
+        for c in p.unproved_checks
     ]
     justified_rows: list[Sequence[str]] = [
-        (f"`{c.location}`", c.rule, c.entity or "", c.justification or "")
+        (f"`{c.location}`", c.rule, c.entity or "", inline(c.justification or ""))
         for c in p.justified_checks
     ]
     assume_rows: list[Sequence[str]] = [(f"`{a.location}`", a.entity or a.unit) for a in p.assumes]
@@ -265,7 +290,7 @@ def _emit_proof(ev: Evidence) -> str:
         (
             f"`{w.location}`" if w.location else "—",
             w.rule,
-            w.message,
+            inline(w.message),
             "yes" if w.suppressed else "no",
         )
         for w in p.warnings
@@ -309,6 +334,23 @@ def _emit_proof(ev: Evidence) -> str:
         "`make prove-report` (see {ref}`provenance-invocations`)."
     )
 
+    completeness_block = (
+        _table(("Unit", "Progress", "Stop reason"), incomplete_rows)
+        if incomplete_rows
+        else f"All {len(p.analyses)} unit analyses ran to the end of the proof phase."
+        if p.analyses
+        else "The `.spark` artifacts carry no completion records."
+    )
+
+    warnings_note = (
+        ""
+        if p.sarif_found
+        else "\n\n**Warning:** `gnatprove.sarif` was not recorded — the list below "
+        "is recovered from the per-unit `.spark` artifacts; suppression detail "
+        "may be incomplete and the exit code is lost. Regenerate with "
+        "`make prove-report`."
+    )
+
     return f"""{_target("proof")}
 
 # Proof
@@ -316,6 +358,15 @@ def _emit_proof(ev: Evidence) -> str:
 gnatprove analyzed {len(p.units)} units toward the project's Silver target
 (absence of run-time errors); the contracts written in the code are proved by
 the same analysis (see the summary table). {run_note}
+
+{_target("proof-completeness")}
+
+## Analysis completeness
+
+Units whose recorded analysis stopped early list only part of their checks;
+every table below is qualified by this one.
+
+{completeness_block}
 
 {_target("proof-summary")}
 
@@ -359,7 +410,7 @@ Facts injected into the proof context without proof:
 ## Tool warnings
 
 Warnings from the run, including tag-suppressed ones (a suppressed warning is
-a human decision that the condition is benign):
+a human decision that the condition is benign):{warnings_note}
 
 {_table_or(("Location", "Rule", "Message", "Suppressed"), warning_rows, "None.")}
 
@@ -462,7 +513,7 @@ def _emit_coverage(ev: Evidence) -> str:
         (
             f"`{v.location}`",
             v.obligation_kind,
-            v.message,
+            inline(v.message),
             str(classify_violation(v, ev.proof)),
             f"`{v.source_text}`" if v.source_text else "",
         )
@@ -471,11 +522,13 @@ def _emit_coverage(ev: Evidence) -> str:
 
     exemption_blocks: list[str] = []
     for e in c.exemptions:
-        lines = [f"**`{e.file}:{e.line}`**", "", f"> {_esc(e.justification)}"]
+        lines = [f"**`{e.file}:{e.line}`**", "", f"> {inline(e.justification)}"]
         if e.masked:
             lines.append("")
             lines.append("Masked violations:")
-            lines.extend(f"- `{v.location}` — {v.obligation_kind} {v.message}" for v in e.masked)
+            lines.extend(
+                f"- `{v.location}` — {v.obligation_kind} {inline(v.message)}" for v in e.masked
+            )
         exemption_blocks.append("\n".join(lines))
     exemptions_body = "\n\n".join(exemption_blocks) if exemption_blocks else "None."
 
@@ -543,11 +596,23 @@ obligations on the index page for how to read it.
 def _emit_traceability(ev: Evidence) -> str:
     """Render the (currently partial) requirements-chain page."""
     t = ev.traceability
-    waiver_rows: list[Sequence[str]] = [(f"§{w.leaf}", w.reason) for w in t.waivers]
-    derived_rows: list[Sequence[str]] = [(f"`{d.ident}`", d.text) for d in t.derived]
-    missing = (
-        "" if t.sources_found else "\n\nNo requirements tree was found under the project root.\n"
-    )
+    waiver_rows: list[Sequence[str]] = [(f"§{inline(w.leaf)}", inline(w.reason)) for w in t.waivers]
+    derived_rows: list[Sequence[str]] = [(f"`{d.ident}`", inline(d.text)) for d in t.derived]
+    absent = [
+        note
+        for note, is_absent in (
+            (
+                "`requirements/trace_waivers.yaml` was not found — waiver status is unknown.",
+                not t.waivers_found,
+            ),
+            (
+                "`requirements/hlr/` was not found — derived-requirement status is unknown.",
+                not t.hlr_found,
+            ),
+        )
+        if is_absent
+    ]
+    missing = "".join(f"\n\n**{note}**" for note in absent) + ("\n" if absent else "")
 
     status = _admonition(
         "Partial",

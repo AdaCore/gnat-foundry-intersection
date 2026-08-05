@@ -222,6 +222,7 @@ def collect_coverage(xml_dir: Path, root: Path) -> CoverageEvidence:
     return CoverageEvidence(
         level=report.get("coverage_level", "?"),
         version_text=read_optional(xml_dir / "gnatcov-version.txt"),
+        command_text=read_optional(xml_dir / "gnatcov-command.txt"),
         traces=traces,
         counts=_counts(summary),
         obligations=_obligations(summary),

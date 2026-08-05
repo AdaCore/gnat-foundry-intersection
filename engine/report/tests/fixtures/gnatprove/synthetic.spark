@@ -55,7 +55,7 @@
     }
   ],
   "timings": {},
-  "progress": "all proved",
-  "stop_reason": "none",
+  "progress": "PROGRESS_PROOF",
+  "stop_reason": "STOP_REASON_CHECK_MODE",
   "warn_error": false
 }

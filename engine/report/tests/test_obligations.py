@@ -3,19 +3,27 @@
 from __future__ import annotations
 
 from vreport.model import (
+    EXEMPTED,
+    FULLY_COVERED,
+    NOT_COVERED,
+    TOTAL_OBLIGATIONS,
+    UNDETERMINED,
     AssumptionClaim,
     AssumptionRef,
     CoverageEvidence,
     CoverageViolation,
     Evidence,
     GitInfo,
+    GnatproveHeader,
     Obligation,
+    ObligationStats,
     ObligationStatus,
     ProofCheck,
     ProofEvidence,
     Sloc,
     SparkModeEntry,
     TraceabilityEvidence,
+    UnitAnalysis,
 )
 from vreport.obligations import (
     ViolationClass,
@@ -38,6 +46,25 @@ def _violation(file: str) -> CoverageViolation:
 
 def _by_anchor(obligations: list[Obligation]) -> dict[str, Obligation]:
     return {o.anchor: o for o in obligations}
+
+
+_COMPLETE = UnitAnalysis(unit="pkg", progress="PROGRESS_PROOF", stop_reason="STOP_REASON_NONE")
+
+
+def _evidence(
+    proof: ProofEvidence | None = None,
+    coverage: CoverageEvidence | None = None,
+    traceability: TraceabilityEvidence | None = None,
+) -> Evidence:
+    """Synthetic evidence with clean defaults, overridable per aspect."""
+    return Evidence(
+        proof=proof if proof is not None else ProofEvidence(),
+        coverage=coverage if coverage is not None else CoverageEvidence(level="stmt"),
+        traceability=traceability
+        if traceability is not None
+        else TraceabilityEvidence(waivers_found=True, hlr_found=True),
+        git=GitInfo(commit="abc", branch="main", dirty=False),
+    )
 
 
 def test_classification(proof: ProofEvidence) -> None:
@@ -132,6 +159,7 @@ def test_statuses_on_fixture_evidence(evidence: Evidence) -> None:
     """The fixture evidence (with synthetic findings) marks the right items."""
     by_anchor = _by_anchor(build_obligations(evidence))
     expect_review = {
+        "proof-completeness",  # synthetic.spark records an early stop
         "proof-unproved",
         "proof-justified",
         "proof-assumes",
@@ -156,14 +184,10 @@ def test_statuses_on_fixture_evidence(evidence: Evidence) -> None:
 
 def test_statuses_on_clean_evidence() -> None:
     """Empty findings collapse to OK; the always-human items stay review."""
-    clean = Evidence(
-        proof=ProofEvidence(),
-        coverage=CoverageEvidence(level="stmt"),
-        traceability=TraceabilityEvidence(sources_found=True),
-        git=GitInfo(commit="abc", branch="main", dirty=False),
-    )
+    clean = _evidence(proof=ProofEvidence(sarif_found=True, analyses=[_COMPLETE]))
     by_anchor = _by_anchor(build_obligations(clean))
     machine_ok = {
+        "proof-completeness",
         "proof-unproved",
         "proof-justified",
         "proof-assumes",
@@ -188,16 +212,130 @@ def test_statuses_on_clean_evidence() -> None:
 
 def test_missing_requirements_tree_forces_review() -> None:
     """An absent requirements tree is absence of evidence, never a green tick."""
-    ev = Evidence(
-        proof=ProofEvidence(),
-        coverage=CoverageEvidence(level="stmt"),
-        traceability=TraceabilityEvidence(),
-        git=GitInfo(commit="abc", branch="main", dirty=False),
-    )
-    by_anchor = _by_anchor(build_obligations(ev))
+    by_anchor = _by_anchor(build_obligations(_evidence(traceability=TraceabilityEvidence())))
     for anchor in ("traceability-waivers", "traceability-derived"):
         assert by_anchor[anchor].status is ObligationStatus.review, anchor
-        assert "no requirements tree found" in by_anchor[anchor].title
+        assert "not found" in by_anchor[anchor].title
+
+
+def test_each_traceability_source_forces_its_own_review() -> None:
+    """A single missing source flips only its own obligation to review."""
+    no_waivers = _evidence(traceability=TraceabilityEvidence(hlr_found=True))
+    by_anchor = _by_anchor(build_obligations(no_waivers))
+    assert by_anchor["traceability-waivers"].status is ObligationStatus.review
+    assert "not found" in by_anchor["traceability-waivers"].title
+    assert by_anchor["traceability-derived"].status is ObligationStatus.ok
+
+    no_hlr = _evidence(traceability=TraceabilityEvidence(waivers_found=True))
+    by_anchor = _by_anchor(build_obligations(no_hlr))
+    assert by_anchor["traceability-waivers"].status is ObligationStatus.ok
+    assert by_anchor["traceability-derived"].status is ObligationStatus.review
+    assert "not found" in by_anchor["traceability-derived"].title
+
+
+def test_missing_sarif_forces_warning_review() -> None:
+    """No gnatprove.sarif means the warning record is unverifiable, never OK."""
+    ob = _by_anchor(build_obligations(_evidence()))["proof-warnings"]
+    assert ob.status is ObligationStatus.review
+    assert "SARIF record not found" in ob.title
+
+
+def test_incomplete_or_unrecorded_analyses_force_review() -> None:
+    """An early-stopped unit — or no completion records at all — is flagged."""
+    stopped = ProofEvidence(
+        analyses=[_COMPLETE, UnitAnalysis(unit="cut", progress="PROGRESS_FLOW")],
+    )
+    ob = _by_anchor(build_obligations(_evidence(proof=stopped)))["proof-completeness"]
+    assert ob.status is ObligationStatus.review
+    assert ob.title == "Incomplete unit analyses: 1"
+    assert any("cut" in item for item in ob.items)
+
+    ob = _by_anchor(build_obligations(_evidence()))["proof-completeness"]
+    assert ob.status is ObligationStatus.review
+    assert "not recorded" in ob.title
+
+
+def test_undetermined_coverage_is_not_green() -> None:
+    """Undetermined obligations produce no violation messages but never render OK."""
+    coverage = CoverageEvidence(
+        level="stmt+mcdc",
+        obligations=[
+            ObligationStats(
+                kind="Stmt",
+                counts={TOTAL_OBLIGATIONS: 100, FULLY_COVERED: 60, UNDETERMINED: 40},
+            )
+        ],
+    )
+    ob = _by_anchor(build_obligations(_evidence(coverage=coverage)))["coverage-violations"]
+    assert ob.status is ObligationStatus.review
+    assert "40 undetermined" in ob.title
+
+
+def test_coverage_counter_mismatch_is_not_green() -> None:
+    """Counters reporting gaps that no parsed message explains flip to review."""
+    coverage = CoverageEvidence(
+        level="stmt+mcdc",
+        obligations=[
+            ObligationStats(
+                kind="Stmt",
+                counts={TOTAL_OBLIGATIONS: 10, FULLY_COVERED: 5, NOT_COVERED: 5},
+            )
+        ],
+    )
+    ob = _by_anchor(build_obligations(_evidence(coverage=coverage)))["coverage-violations"]
+    assert ob.status is ObligationStatus.review
+    assert "disagree" in ob.title
+
+
+def test_unparsed_exemptions_are_not_green() -> None:
+    """Exempted counters with no parsed exemption region flip to review."""
+    coverage = CoverageEvidence(
+        level="stmt+mcdc",
+        obligations=[
+            ObligationStats(
+                kind="Stmt",
+                counts={TOTAL_OBLIGATIONS: 10, FULLY_COVERED: 10, EXEMPTED: 2},
+            )
+        ],
+    )
+    ob = _by_anchor(build_obligations(_evidence(coverage=coverage)))["coverage-exemptions"]
+    assert ob.status is ObligationStatus.review
+    assert "disagree" in ob.title
+
+
+def test_open_claims_unresolved_entities_do_not_discharge() -> None:
+    """A claim whose entity failed to resolve discharges nothing."""
+    proof = ProofEvidence(
+        claims=[
+            AssumptionClaim(
+                unit="a",
+                claim=AssumptionRef(predicate="CLAIM_AORTE", entity=None),
+                assumptions=[],
+            ),
+            AssumptionClaim(
+                unit="b",
+                claim=AssumptionRef(predicate="CLAIM_AORTE", entity=None),
+                assumptions=[AssumptionRef(predicate="CLAIM_AORTE", entity=None)],
+            ),
+        ],
+    )
+    assert len(open_claims(proof)) == 1
+
+
+def test_missing_gnatcov_command_forces_provenance_review() -> None:
+    """A forced proof run alone is not enough: the gnatcov command must be recorded."""
+    header = GnatproveHeader(command_line="gnatprove -P p.gpr -U -f")
+    proof = ProofEvidence(header=header, sarif_found=True, analyses=[_COMPLETE])
+    ob = _by_anchor(build_obligations(_evidence(proof=proof)))["provenance-invocations"]
+    assert ob.status is ObligationStatus.review
+    assert "gnatcov-command.txt" in ob.detail
+
+    with_command = _evidence(
+        proof=proof,
+        coverage=CoverageEvidence(level="stmt", command_text="gnatcov coverage ..."),
+    )
+    ob = _by_anchor(build_obligations(with_command))["provenance-invocations"]
+    assert ob.status is ObligationStatus.ok
 
 
 def test_dirty_tree_is_flagged() -> None:

@@ -13,7 +13,14 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from vreport.model import CheckStatus, Obligation, ObligationStatus
+from vreport.mdtext import inline
+from vreport.model import (
+    PARTIALLY_COVERED,
+    UNDETERMINED,
+    CheckStatus,
+    Obligation,
+    ObligationStatus,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -84,7 +91,7 @@ def open_claims(proof: ProofEvidence) -> list[tuple[AssumptionClaim, list[Assump
     same fully-qualified name (overload collisions), and with no unproved or
     justified check attributed to it. Anything less stays residual.
     """
-    proved = {(c.claim.predicate, c.claim.entity) for c in proof.claims}
+    proved = {(c.claim.predicate, c.claim.entity) for c in proof.claims if c.claim.entity}
     tainted = {c.entity for c in proof.checks if c.status is not CheckStatus.proved and c.entity}
     non_all = {m.entity for m in proof.spark_modes if m.mode != "all"}
     clean = {m.entity for m in proof.spark_modes if m.mode == "all"} - non_all - tainted
@@ -138,6 +145,37 @@ class _Builder:
 
 def _proof_obligations(ev: Evidence, b: _Builder) -> None:
     """Obligations derived from the gnatprove evidence."""
+    # Completeness first: an early stop qualifies every "none" below.
+    incomplete = ev.proof.incomplete_analyses
+    no_records = not ev.proof.analyses
+    b.add(
+        "Unit analyses: completion not recorded"
+        if no_records
+        else f"Incomplete unit analyses: {len(incomplete)}"
+        if incomplete
+        else "Incomplete unit analyses: none",
+        "proof-completeness",
+        (
+            "The `.spark` artifacts carry no completion records, so nothing can be "
+            "claimed about whether each unit's analysis ran to the end — "
+            "regenerate with `make prove-report`."
+            if no_records
+            else "gnatprove recorded an early stop (or an unrecognized progress "
+            "marker) for these units: their artifacts may cover only part of the "
+            "code, so every count below is qualified by this. Regenerate with "
+            "`make prove-report`."
+            if incomplete
+            else "Every unit's `.spark` artifact records an analysis that ran to "
+            "the end of the proof phase."
+        ),
+        review=no_records or bool(incomplete),
+        items=[
+            f"{a.unit} — progress `{a.progress or 'unrecorded'}`, "
+            f"stop reason `{a.stop_reason or 'unrecorded'}`"
+            for a in incomplete
+        ],
+    )
+
     unproved = ev.proof.unproved_checks
     b.add(
         f"Unproved checks: {len(unproved)}" if unproved else "Unproved checks: none",
@@ -149,7 +187,7 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
             else "Every check gnatprove attempted was discharged."
         ),
         review=bool(unproved),
-        items=[f"`{c.location}` — {c.rule}: {c.message or ''}" for c in unproved],
+        items=[f"`{c.location}` — {c.rule}: {inline(c.message or '')}" for c in unproved],
     )
 
     justified = ev.proof.justified_checks
@@ -164,7 +202,7 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
             "the proof stands without manual overrides."
         ),
         review=bool(justified),
-        items=[f"`{c.location}` — {c.rule}: {c.justification or ''}" for c in justified],
+        items=[f"`{c.location}` — {c.rule}: {inline(c.justification or '')}" for c in justified],
     )
 
     assumes = ev.proof.assumes
@@ -196,21 +234,33 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
     )
 
     warnings = ev.proof.warnings
+    sarif_missing = not ev.proof.sarif_found
     b.add(
-        f"Tool warnings: {len(warnings)}" if warnings else "Tool warnings: none",
+        f"Tool warnings: {len(warnings)}, SARIF record not found"
+        if sarif_missing
+        else f"Tool warnings: {len(warnings)}"
+        if warnings
+        else "Tool warnings: none",
         "proof-warnings",
         (
-            "gnatprove warnings can flag violations of the tool's own soundness "
+            "`gnatprove.sarif` was not recorded, so the warning record is "
+            "incomplete: the invocation's exit code is lost and suppression "
+            "detail is unreliable. The warnings below are recovered from the "
+            "per-unit `.spark` artifacts — regenerate with `make prove-report` "
+            "for the full record."
+            if sarif_missing
+            else "gnatprove warnings can flag violations of the tool's own soundness "
             "assumptions; suppressed warnings in particular are human claims and "
             "need review."
             if warnings
             else "gnatprove emitted no warnings."
         ),
-        review=bool(warnings),
+        review=sarif_missing or bool(warnings),
         items=[
-            f"`{w.location}` — {w.rule}: {w.message}" + (" *(suppressed)*" if w.suppressed else "")
+            f"`{w.location}` — {w.rule}: {inline(w.message)}"
+            + (" *(suppressed)*" if w.suppressed else "")
             if w.location
-            else f"{w.rule}: {w.message}"
+            else f"{w.rule}: {inline(w.message)}"
             for w in warnings
         ],
     )
@@ -269,9 +319,27 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
 
 def _coverage_obligations(ev: Evidence, b: _Builder) -> None:
     """Obligations derived from the gnatcov evidence."""
+    # Counter-reported gaps that no parsed message explains must not render green.
     violations = ev.coverage.non_exempted_violations
+    stats = ev.coverage.obligations
+    counted_gaps = sum(o.not_covered + o.counts.get(PARTIALLY_COVERED, 0) for o in stats)
+    undetermined = sum(o.counts.get(UNDETERMINED, 0) for o in stats)
+    unexplained = counted_gaps if not violations else 0
+    undetermined_note = (
+        f" gnatcov also counts {undetermined} obligations with *undetermined* "
+        "coverage; these produce no violation messages and are not itemized "
+        "below — see the coverage summary."
+        if undetermined
+        else ""
+    )
     b.add(
-        f"Uncovered code: {len(violations)} violations" if violations else "Uncovered code: none",
+        f"Uncovered code: {len(violations)} violations"
+        if violations
+        else "Uncovered code: counters disagree with messages"
+        if unexplained
+        else f"Uncovered code: {undetermined} undetermined obligations"
+        if undetermined
+        else "Uncovered code: none",
         "coverage-violations",
         (
             "Non-exempted coverage violations, cross-referenced against where proved "
@@ -282,81 +350,107 @@ def _coverage_obligations(ev: Evidence, b: _Builder) -> None:
             "and none failed (for generics, via instance analysis) — confirm the "
             "uncovered lines fall within the proven subprograms; *no proof evidence* "
             "means no proved check is located in this file — such code is neither "
-            "proven nor executed and needs a test, removal, or an exemption."
+            "proven nor executed and needs a test, removal, or an exemption." + undetermined_note
             if violations
-            else f"The test suite covers every non-exempted obligation at `{ev.coverage.level}`."
+            else f"The obligation counters report {unexplained} obligations not "
+            "fully covered, yet no violation message was parsed — the message "
+            "format may have drifted past this parser. Treat the coverage claim "
+            "as unverified and inspect the gnatcov summary." + undetermined_note
+            if unexplained
+            else "No coverage violations, but gnatcov could not determine the "
+            f"coverage of {undetermined} obligations; undetermined obligations "
+            "produce no violation messages, so they appear only in the summary "
+            "counters. Investigate before trusting the coverage result."
+            if undetermined
+            else f"The test suite covers every non-exempted obligation at "
+            f"`{ev.coverage.level}`; the obligation counters agree (no uncovered, "
+            "partially covered, or undetermined obligations)."
         ),
-        review=bool(violations),
+        review=bool(violations) or bool(unexplained) or bool(undetermined),
         items=[
-            f"`{v.location}` — {v.obligation_kind} {v.message} — "
+            f"`{v.location}` — {v.obligation_kind} {inline(v.message)} — "
             f"*{classify_violation(v, ev.proof)}*"
             for v in violations
         ],
     )
 
+    # Exemption notices are matched by a fixed prefix; drift must not hide them.
     exemptions = ev.coverage.exemptions
+    counted_exempted = sum(o.exempted for o in stats)
+    unparsed_exempted = counted_exempted if not exemptions else 0
     b.add(
-        f"Coverage exemptions: {len(exemptions)}" if exemptions else "Coverage exemptions: none",
+        f"Coverage exemptions: {len(exemptions)}"
+        if exemptions
+        else "Coverage exemptions: counters disagree with messages"
+        if unparsed_exempted
+        else "Coverage exemptions: none",
         "coverage-exemptions",
         (
             "An exempted region replaces coverage with an argument. Review each "
             "justification and confirm it still holds for the current code."
             if exemptions
-            else "No coverage obligation is exempted."
+            else f"The obligation counters report {unparsed_exempted} exempted "
+            "obligations, yet no exempted region was parsed — the exemption-notice "
+            "format may have drifted past this parser, leaving the masked "
+            "violations and their justifications invisible to this report. "
+            "Inspect the gnatcov XML."
+            if unparsed_exempted
+            else "No coverage obligation is exempted; the obligation counters agree."
         ),
-        review=bool(exemptions),
-        items=[f"`{e.file}:{e.line}` — {e.justification}" for e in exemptions],
+        review=bool(exemptions) or bool(unparsed_exempted),
+        items=[f"`{e.file}:{e.line}` — {inline(e.justification)}" for e in exemptions],
     )
 
 
 def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
     """Obligations derived from the requirements chain (partial, see plan)."""
-    # An empty list means "verified clean" only if a requirements tree was
-    # actually read — empty-because-absent must not render as OK.
-    missing = not ev.traceability.sources_found
-    missing_detail = (
-        "No requirements tree was found under the project root, so nothing can "
-        "be claimed here: check `--root`, or restore `requirements/`."
-    )
-
+    # Empty-because-absent must not render as OK; each source vouches only for itself.
     waivers = ev.traceability.waivers
+    waivers_missing = not ev.traceability.waivers_found
     b.add(
-        "Trace waivers: no requirements tree found"
-        if missing
+        "Trace waivers: waiver record not found"
+        if waivers_missing
         else f"Trace waivers: {len(waivers)}"
         if waivers
         else "Trace waivers: none",
         "traceability-waivers",
         (
-            missing_detail
-            if missing
+            "`requirements/trace_waivers.yaml` was not found, so nothing can be "
+            "claimed about waived CONOPS leaves: check `--root`, or restore the file."
+            if waivers_missing
             else "These CONOPS leaves are deliberately not realized by any HLR. Review "
             "each reason and confirm the waiver is still appropriate."
             if waivers
-            else "Every CONOPS leaf is covered by the HLRs."
+            else "No CONOPS leaf is waived from HLR coverage. (That the HLRs cover "
+            "every non-waived leaf is checked by `make validate-reqs`, a "
+            "prerequisite of `make report` — this report does not re-verify it.)"
         ),
-        review=missing or bool(waivers),
-        items=[f"CONOPS §{w.leaf} — {w.reason}" for w in waivers],
+        review=waivers_missing or bool(waivers),
+        items=[f"CONOPS §{inline(w.leaf)} — {inline(w.reason)}" for w in waivers],
     )
 
     derived = ev.traceability.derived
+    hlr_missing = not ev.traceability.hlr_found
     b.add(
-        "Derived requirements: no requirements tree found"
-        if missing
+        "Derived requirements: HLR tree not found"
+        if hlr_missing
         else f"Derived requirements: {len(derived)}"
         if derived
         else "Derived requirements: none",
         "traceability-derived",
         (
-            missing_detail
-            if missing
+            "`requirements/hlr/` was not found, so nothing can be claimed about "
+            "derived requirements: check `--root`, or restore the tree."
+            if hlr_missing
             else "Derived requirements have no CONOPS parent; they exist on the strength "
             "of their rationale alone. Review each one."
             if derived
-            else "Every HLR statement traces to the CONOPS."
+            else "No HLR statement is marked `derived`. (That every non-derived "
+            "statement traces to the CONOPS is checked by `make validate-reqs`, a "
+            "prerequisite of `make report` — this report does not re-verify it.)"
         ),
-        review=missing or bool(derived),
-        items=[f"{d.ident} — {d.text}" for d in derived],
+        review=hlr_missing or bool(derived),
+        items=[f"{inline(d.ident)} — {inline(d.text)}" for d in derived],
     )
 
     b.add(
@@ -402,12 +496,22 @@ def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
     """Obligations about the evidence itself: run consistency, tools, sources."""
     header = ev.proof.header
     forced = header is not None and header.forced
-    prove_date = (header.date if header else None) or "unknown"
-    trace_dates = "; ".join(f"{t.program} at {t.date}" for t in ev.coverage.traces) or "unknown"
+    prove_date = inline((header.date if header else None) or "unknown")
+    trace_dates = (
+        inline("; ".join(f"{t.program} at {t.date}" for t in ev.coverage.traces)) or "unknown"
+    )
+    cov_note = (
+        " The gnatcov invocation that produced the coverage XML is recorded in "
+        "the provenance section."
+        if ev.coverage.command_text
+        else " **No gnatcov invocation record (`gnatcov-command.txt`) was found**, "
+        "so the coverage XML cannot be tied to a command line — regenerate with "
+        "`make coverage-report-xml`."
+    )
     b.add(
-        "Proof artifacts from a single forced run"
-        if forced
-        else "Proof-run provenance not verified",
+        "Tool invocations recorded (single forced proof run)"
+        if forced and ev.coverage.command_text
+        else "Tool-invocation provenance incomplete",
         "provenance-invocations",
         (
             f"The recorded gnatprove command line includes `-f`, so every unit's "
@@ -420,8 +524,9 @@ def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
             f"lacks `-f`: per-unit artifacts may be stale carry-overs from earlier, "
             f"differently-configured runs. Regenerate with `make prove-report`. "
             f"Coverage traces: {trace_dates}."
-        ),
-        review=not forced,
+        )
+        + cov_note,
+        review=not forced or ev.coverage.command_text is None,
     )
 
     b.add(

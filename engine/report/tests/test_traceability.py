@@ -40,7 +40,8 @@ def test_collect_traceability(tmp_path: Path) -> None:
     (reqs / "hlr" / "hlr_3_timing.yaml").write_text(_HLR)
 
     trace = collect_traceability(tmp_path)
-    assert trace.sources_found
+    assert trace.waivers_found
+    assert trace.hlr_found
     assert [w.leaf for w in trace.waivers] == ["1.1", "5.2"]
     assert trace.waivers[1].reason == "Explicit exclusion; negative scope."
     assert len(trace.derived) == 1
@@ -51,9 +52,27 @@ def test_collect_traceability(tmp_path: Path) -> None:
 def test_collect_traceability_absent(tmp_path: Path) -> None:
     """No requirements tree is reported as such, not invented."""
     trace = collect_traceability(tmp_path)
-    assert not trace.sources_found
+    assert not trace.waivers_found
+    assert not trace.hlr_found
     assert trace.waivers == []
     assert trace.derived == []
+
+
+def test_collect_traceability_sources_tracked_separately(tmp_path: Path) -> None:
+    """One source's presence must not vouch for the other's."""
+    reqs = tmp_path / "requirements"
+    (reqs / "hlr").mkdir(parents=True)
+    (reqs / "hlr" / "hlr_3_timing.yaml").write_text(_HLR)
+    trace = collect_traceability(tmp_path)
+    assert not trace.waivers_found
+    assert trace.hlr_found
+
+    (reqs / "trace_waivers.yaml").write_text(_WAIVERS)
+    (reqs / "hlr" / "hlr_3_timing.yaml").unlink()
+    (reqs / "hlr").rmdir()
+    trace = collect_traceability(tmp_path)
+    assert trace.waivers_found
+    assert not trace.hlr_found
 
 
 def _git(cwd: Path, *args: str) -> None:

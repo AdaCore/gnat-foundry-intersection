@@ -28,8 +28,9 @@ The verification report (proof + coverage + review obligations) renders to
 `reports/report/html/`; `make report-pdf` also renders it to
 `reports/report/pdf/verification-report.pdf` (rst2pdf, no TeX needed). The
 generator lives in `engine/report/`. `report` regenerates its evidence first
-(`prove-report all-coverage coverage-report-xml`), so it never reports stale
-proof runs or test executions.
+(`validate-reqs prove-report all-coverage coverage-report-xml`), so it never
+reports stale proof runs or test executions, and its traceability claims are
+gated on the requirements chain actually validating.
 
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same

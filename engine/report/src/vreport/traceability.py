@@ -39,11 +39,10 @@ def collect_traceability(root: Path) -> TraceabilityEvidence:
     """Gather waivers and derived requirements from the requirements tree."""
     waivers: list[Waiver] = []
     derived: list[DerivedRequirement] = []
-    found = False
 
     waivers_path = root / "requirements" / "trace_waivers.yaml"
-    if waivers_path.is_file():
-        found = True
+    waivers_found = waivers_path.is_file()
+    if waivers_found:
         data = _load_yaml(waivers_path)
         waivers = [
             Waiver(leaf=str(w.get("leaf", "?")), reason=str(w.get("reason", "")).strip())
@@ -51,8 +50,8 @@ def collect_traceability(root: Path) -> TraceabilityEvidence:
         ]
 
     hlr_dir = root / "requirements" / "hlr"
-    if hlr_dir.is_dir():
-        found = True
+    hlr_found = hlr_dir.is_dir()
+    if hlr_found:
         for path in sorted(hlr_dir.glob("*.yaml")):
             doc = _load_yaml(path)
             description = doc.get("description")
@@ -66,4 +65,6 @@ def collect_traceability(root: Path) -> TraceabilityEvidence:
                 if isinstance(val, dict) and val.get("derived")
             )
 
-    return TraceabilityEvidence(waivers=waivers, derived=derived, sources_found=found)
+    return TraceabilityEvidence(
+        waivers=waivers, derived=derived, waivers_found=waivers_found, hlr_found=hlr_found
+    )
