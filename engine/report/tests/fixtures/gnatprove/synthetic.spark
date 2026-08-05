@@ -1,0 +1,61 @@
+{
+  "spark": { " 1": "all", " 2": "spec", " 3": "no" },
+  "entities": {
+    " 1": { "name": "Synth.Proven", "sloc": [ { "file": "synth.adb", "line": 10, "column": 4 } ] },
+    " 2": { "name": "Synth.Spec_Only", "sloc": [ { "file": "synth.ads", "line": 20, "column": 4 } ] },
+    " 3": { "name": "Synth.Off", "sloc": [ { "file": "synth.adb", "line": 30, "column": 4 } ] },
+    " 4": { "name": "External.Helper", "sloc": [ { "file": "external.ads", "line": 5, "column": 4 } ] }
+  },
+  "flow": [
+    {
+      "file": "synth.adb", "line": 12, "col": 7,
+      "rule": "UNINITIALIZED", "severity": "high", "entity": 1,
+      "how_proved": "flow", "msg_id": 1, "check_tree": {},
+      "message": { "text": "\"X\" might not be initialized" },
+      "unproved_status": { "status": "unknown" }
+    }
+  ],
+  "proof": [
+    {
+      "file": "synth.adb", "line": 14, "col": 9,
+      "check_file": "synth.adb", "check_line": 14, "check_col": 9,
+      "rule": "VC_RANGE_CHECK", "severity": "info", "entity": 1,
+      "how_proved": "prover", "msg_id": 2,
+      "message": { "text": "range check proved" },
+      "stats": { "CVC5": { "count": 1, "max_steps": 42, "max_time": 0.1 } }
+    },
+    {
+      "file": "synth.adb", "line": 16, "col": 11,
+      "check_file": "synth.adb", "check_line": 16, "check_col": 11,
+      "rule": "VC_OVERFLOW_CHECK", "severity": "medium", "entity": 1,
+      "how_proved": "prover", "msg_id": 3,
+      "message": { "text": "overflow check might fail" },
+      "unproved_status": { "status": "unknown" }
+    },
+    {
+      "file": "synth.adb", "line": 18, "col": 5,
+      "check_file": "synth.adb", "check_line": 18, "check_col": 5,
+      "rule": "VC_ASSERT", "severity": "medium", "entity": 1,
+      "how_proved": "prover", "msg_id": 4,
+      "message": { "text": "assertion might fail" },
+      "suppressed": "reviewed: cannot fail because the queue is bounded"
+    }
+  ],
+  "pragma_assume": [
+    { "file": "synth.adb", "line": 40, "col": 7, "entity": 3 }
+  ],
+  "skip_proof": [
+    { "file": "synth.adb", "line": 30, "col": 4, "name": "Synth.Off" }
+  ],
+  "skip_flow_proof": [],
+  "assumptions": [
+    {
+      "claim": { "predicate": "CLAIM_POST", "arg": 1 },
+      "assumptions": [ { "predicate": "CLAIM_AORTE", "arg": 4 } ]
+    }
+  ],
+  "timings": {},
+  "progress": "PROGRESS_PROOF",
+  "stop_reason": "STOP_REASON_CHECK_MODE",
+  "warn_error": false
+}

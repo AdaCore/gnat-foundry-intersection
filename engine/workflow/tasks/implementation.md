@@ -33,7 +33,7 @@ so the app builds, lints clean, and the existing test suite stays green.
 ## Oracle
 
 ```bash
-make check && make build-native && make test-pro
+make check && make build-native && make test
 ```
 
 **Done when all three succeed** — lint clean, native build succeeds, and the

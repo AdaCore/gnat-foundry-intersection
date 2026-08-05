@@ -4,16 +4,19 @@ SHELL := bash
 
 .DEFAULT_GOAL := build-native
 .PHONY: printenv generate-config build-native build-target run-native run-target \
-        prove \
+        prove prove-report \
         format format-ada format-python check check-ada check-shell check-python \
+        check-python-reqs check-python-report \
         generate-tests test \
         validate-reqs trace trace-check test-reqs-engine \
         build-tracer \
         code-inventory test-inventory inventories \
+        report report-pdf test-report-engine \
         setup-community setup-pro reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
         coverage-test all-coverage \
-        coverage-report-cobertura coverage-report-html coverage-report-text
+        coverage-report-cobertura coverage-report-html coverage-report-text \
+        coverage-report-xml
 
 # TCP port for QEMU's UART1 (wire-protocol command channel).
 QEMU_UART1 ?= 5556
@@ -148,6 +151,17 @@ run-target: build-target
 prove:
 	$(ALR) exec -P -- gnatprove -U --level=2 --report=statistics --checks-as-errors=on
 
+# Proof run for report generation (`make report`): a clean, forced re-analysis
+# so every unit's artifacts come from this one run under one switch set, plus
+# proof assumptions and a provenance header. Unlike `prove` (the gate), unproved
+# checks do not fail this target — the report records them.
+GNATPROVE_ARTIFACTS := obj/development/gnatprove
+prove-report:
+	$(ALR) exec -P -- gnatprove --clean
+	$(ALR) exec -P -- gnatprove -U -f --level=2 --report=statistics \
+	    --assumptions --output-header
+	$(ALR) exec -- gnatprove --version > $(GNATPROVE_ARTIFACTS)/gnatprove-version.txt
+
 # Format / check aggregators.
 format: format-ada format-python
 check: check-ada check-shell check-python
@@ -205,12 +219,21 @@ check-shell:
 # Format Python sources.
 format-python:
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff format
 
-# Lint, type-check and verify formatting of Python.
-check-python:
+# Lint, type-check and verify formatting of Python, split per engine for CI.
+check-python: check-python-reqs check-python-report
+
+# No --locked for reqs: its lock pins a registry the CI runners don't use.
+check-python-reqs:
 	$(UV) --directory "$(REQS_ENGINE)" run ruff check
 	$(UV) --directory "$(REQS_ENGINE)" run mypy
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
+
+check-python-report:
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff check
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked mypy
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff format --check
 
 # Build and run the AUnit harness.
 #
@@ -325,6 +348,34 @@ test-inventory: build-tracer generate-tests
 	  -o "$(TEST_INVENTORY)"
 
 inventories: code-inventory test-inventory
+
+# ----------------------------------------------------------------------------
+# Verification report
+# ----------------------------------------------------------------------------
+
+REPORT_ENGINE := $(CURDIR)/engine/report
+REPORT_OUT    := $(CURDIR)/reports/report
+
+# Regenerate the evidence, then the verification report (proof + coverage +
+# review obligations). The prerequisites guarantee the report never describes
+# stale artifacts: `validate-reqs` gates the traceability claims,
+# `prove-report` is a clean, forced (-f) gnatprove run, and `all-coverage`
+# re-runs the tests before `coverage-report-xml` reads the traces.
+REPORT_EVIDENCE := validate-reqs prove-report all-coverage coverage-report-xml
+
+report: $(REPORT_EVIDENCE)
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
+	    --root "$(CURDIR)" --out "$(REPORT_OUT)"
+
+# Same as `report`, plus a PDF rendering (rst2pdf — pure Python, no TeX
+# toolchain needed) at reports/report/pdf/verification-report.pdf.
+report-pdf: $(REPORT_EVIDENCE)
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
+	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf
+
+# Run the report engine's own test suite.
+test-report-engine:
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked pytest
 
 # ----------------------------------------------------------------------------
 # Setup: provision all developer tooling locally under install/. Pick one:
@@ -455,6 +506,20 @@ coverage-report-text: $(COVERAGE_REPORTS)
 		--annotate=report \
 		-o $(COVERAGE_REPORTS)/report.txt \
 		$(GNATCOV_TRACES)/
+
+# Generate the machine-readable XML coverage report (full fidelity: per-
+# obligation stmt/decision/MC/DC, per-scope metrics, exemption justifications).
+# Parsed by `make report`. Like the other coverage-report-* targets, this
+# consumes whatever traces are under $(GNATCOV_TRACES) — run `coverage-test`
+# (or `all-coverage`) first for fresh ones.
+# The exact command is recorded next to the XML, only after a zero exit.
+GNATCOV_XML_CMD = gnatcov coverage --level=stmt+mcdc --annotate=xml \
+    --output-dir $(COVERAGE_REPORTS)/xml $(GNATCOV_TRACES)/
+coverage-report-xml: $(COVERAGE_REPORTS)
+	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
+	$(ALR) exec -P2 -- $(GNATCOV_XML_CMD)
+	echo "$(GNATCOV_XML_CMD)" > $(COVERAGE_REPORTS)/xml/gnatcov-command.txt
+	$(ALR) exec -- gnatcov --version > $(COVERAGE_REPORTS)/xml/gnatcov-version.txt
 
 # "quiet" all-in-one coverage, for use by agents: create a
 # coverage report and print only the errors, if any.

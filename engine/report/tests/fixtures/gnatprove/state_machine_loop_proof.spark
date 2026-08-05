@@ -1,0 +1,199 @@
+{
+  "assumptions": [
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 5,
+        "predicate": "CLAIM_EFFECTS"
+      }
+    },
+    {
+      "assumptions": [
+      ],
+      "claim": {
+        "arg": 4,
+        "predicate": "CLAIM_EFFECTS"
+      }
+    }
+  ],
+  "entities": {
+    " 1": {
+      "name": "State_Machine_Loop_Proof.Stub_Read_Sources",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "state_machine_loop_proof.ads",
+          "line": 26
+        }
+      ]
+    },
+    " 2": {
+      "name": "State_Machine_Loop_Proof.Rungp1365.Run",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "state_machine_loop_proof.ads",
+          "line": 34
+        }
+      ]
+    },
+    " 3": {
+      "name": "State_Machine_Loop_Proof",
+      "sloc": [
+        {
+          "column": 9,
+          "file": "state_machine_loop_proof.ads",
+          "line": 14
+        }
+      ]
+    },
+    " 4": {
+      "name": "State_Machine_Loop_Proof.Stub_Delay_For",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "state_machine_loop_proof.ads",
+          "line": 22
+        }
+      ]
+    },
+    " 5": {
+      "name": "State_Machine_Loop_Proof.Stub_Write_Display",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "state_machine_loop_proof.ads",
+          "line": 30
+        }
+      ]
+    },
+    " 6": {
+      "name": "State_Machine_Loop_Proof.Rungp1365",
+      "sloc": [
+        {
+          "column": 4,
+          "file": "state_machine_loop_proof.ads",
+          "line": 34
+        }
+      ]
+    }
+  },
+  "flow": [
+    {
+      "check_tree": {
+      },
+      "col": 33,
+      "entity": 1,
+      "file": "state_machine_loop_proof.ads",
+      "how_proved": "flow",
+      "line": 26,
+      "message": {
+        "text": "initialization of \"Sensors\" proved"
+      },
+      "msg_id": 0,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 4,
+      "entity": 2,
+      "file": "state_machine_loop.adb",
+      "how_proved": "flow",
+      "line": 20,
+      "message": {
+        "text": "initialization of \"State\" proved, in instantiation at state_machine_loop_proof.ads:34"
+      },
+      "msg_id": 1,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 4,
+      "entity": 2,
+      "file": "state_machine_loop.adb",
+      "how_proved": "flow",
+      "line": 21,
+      "message": {
+        "text": "initialization of \"Sensors\" proved, in instantiation at state_machine_loop_proof.ads:34"
+      },
+      "msg_id": 2,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 4,
+      "entity": 2,
+      "file": "state_machine_loop.adb",
+      "how_proved": "flow",
+      "line": 22,
+      "message": {
+        "text": "initialization of \"Outputs\" proved, in instantiation at state_machine_loop_proof.ads:34"
+      },
+      "msg_id": 3,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    }
+  ],
+  "pragma_assume": [
+  ],
+  "progress": "PROGRESS_PROOF",
+  "proof": [
+  ],
+  "skip_flow_proof": [
+  ],
+  "skip_proof": [
+  ],
+  "spark": {
+    " 1": "all",
+    " 2": "all",
+    " 3": "all",
+    " 4": "all",
+    " 5": "all",
+    " 6": "all"
+  },
+  "stop_reason": "STOP_REASON_NONE",
+  "timings": {
+    " 1": {
+      "gnat2why.vc_generation": 3.31999995978549E-04
+    },
+    " 2": {
+      "gnat2why.vc_generation": 6.45999971311539E-04
+    },
+    " 4": {
+      "gnat2why.vc_generation": 4.85600018873811E-03
+    },
+    " 5": {
+      "gnat2why.vc_generation": 1.16000002890360E-04
+    },
+    "global": {
+      "flow analysis": 2.55899992771447E-03,
+      "globals (advanced)": 3.03400005213916E-03,
+      "globals (basic)": 2.60600005276501E-03,
+      "init_why_sections": 4.33000008342788E-04,
+      "marking": 3.21700004860759E-03,
+      "properties (advanced)": 1.17000003228895E-04,
+      "translation of standard": 1.67599995620549E-03
+    }
+  },
+  "warn_error": [
+  ]
+}

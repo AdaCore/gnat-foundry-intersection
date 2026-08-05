@@ -1,0 +1,159 @@
+<?xml version="1.0" ?>
+<document xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="gnatcov-xml-report.xsd">
+ <coverage_report coverage_level="stmt+mcdc">
+  <coverage_info>
+   <xi:include parse="xml" href="trace.xml"/>
+  </coverage_info>
+
+  <coverage_summary>
+   <metric kind="total_lines_of_relevance" count="540"/>
+   <metric kind="fully_covered" count="508" ratio="94"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="31" ratio="6"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="1" ratio="1"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <obligation_stats kind="Stmt">
+    <metric kind="total_obligations_of_relevance" count="227"/>
+    <metric kind="fully_covered" count="206" ratio="91"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="20" ratio="9"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="1" ratio="1"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Decision">
+    <metric kind="total_obligations_of_relevance" count="26"/>
+    <metric kind="fully_covered" count="25" ratio="96"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="1" ratio="4"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="MCDC">
+    <metric kind="total_obligations_of_relevance" count="46"/>
+    <metric kind="fully_covered" count="45" ratio="98"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="1" ratio="2"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <file name="/workspace/traffic-light-controller/src/app/main.adb">
+    <metric kind="total_lines_of_relevance" count="10"/>
+    <metric kind="fully_covered" count="0" ratio="0"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="10" ratio="100"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <obligation_stats kind="Stmt">
+     <metric kind="total_obligations_of_relevance" count="6"/>
+     <metric kind="fully_covered" count="0" ratio="0"/>
+     <metric kind="partially_covered" count="0" ratio="0"/>
+     <metric kind="not_covered" count="6" ratio="100"/>
+     <metric kind="undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="exempted_no_violation" count="0" ratio="0"/>
+     <metric kind="exempted" count="0" ratio="0"/>
+     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
+    </obligation_stats>
+
+    <obligation_stats kind="Decision">
+     <metric kind="total_obligations_of_relevance" count="0"/>
+     <metric kind="fully_covered" count="0"/>
+     <metric kind="partially_covered" count="0"/>
+     <metric kind="not_covered" count="0"/>
+     <metric kind="undetermined_coverage" count="0"/>
+     <metric kind="exempted_no_violation" count="0"/>
+     <metric kind="exempted" count="0"/>
+     <metric kind="exempted_undetermined_coverage" count="0"/>
+     <metric kind="disabled_coverage" count="0"/>
+    </obligation_stats>
+
+    <obligation_stats kind="MCDC">
+     <metric kind="total_obligations_of_relevance" count="0"/>
+     <metric kind="fully_covered" count="0"/>
+     <metric kind="partially_covered" count="0"/>
+     <metric kind="not_covered" count="0"/>
+     <metric kind="undetermined_coverage" count="0"/>
+     <metric kind="exempted_no_violation" count="0"/>
+     <metric kind="exempted" count="0"/>
+     <metric kind="exempted_undetermined_coverage" count="0"/>
+     <metric kind="disabled_coverage" count="0"/>
+    </obligation_stats>
+
+   </file>
+
+   <file name="/workspace/traffic-light-controller/src/hal/host/sources.adb">
+    <metric kind="total_lines_of_relevance" count="20"/>
+    <metric kind="fully_covered" count="19" ratio="95"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="1" ratio="5"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <obligation_stats kind="Stmt">
+     <metric kind="total_obligations_of_relevance" count="17"/>
+     <metric kind="fully_covered" count="16" ratio="94"/>
+     <metric kind="partially_covered" count="0" ratio="0"/>
+     <metric kind="not_covered" count="0" ratio="0"/>
+     <metric kind="undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="exempted_no_violation" count="1" ratio="6"/>
+     <metric kind="exempted" count="0" ratio="0"/>
+     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
+    </obligation_stats>
+
+    <obligation_stats kind="Decision">
+     <metric kind="total_obligations_of_relevance" count="1"/>
+     <metric kind="fully_covered" count="0" ratio="0"/>
+     <metric kind="partially_covered" count="0" ratio="0"/>
+     <metric kind="not_covered" count="0" ratio="0"/>
+     <metric kind="undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="exempted_no_violation" count="0" ratio="0"/>
+     <metric kind="exempted" count="1" ratio="100"/>
+     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
+    </obligation_stats>
+
+    <obligation_stats kind="MCDC">
+     <metric kind="total_obligations_of_relevance" count="1"/>
+     <metric kind="fully_covered" count="0" ratio="0"/>
+     <metric kind="partially_covered" count="0" ratio="0"/>
+     <metric kind="not_covered" count="0" ratio="0"/>
+     <metric kind="undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="exempted_no_violation" count="0" ratio="0"/>
+     <metric kind="exempted" count="1" ratio="100"/>
+     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
+    </obligation_stats>
+
+   </file>
+
+  </coverage_summary>
+
+  <sources>
+   <xi:include parse="xml" href="main.adb.xml"/>
+   <xi:include parse="xml" href="sources.adb.xml"/>
+  </sources>
+
+ </coverage_report>
+
+</document>

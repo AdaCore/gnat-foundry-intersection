@@ -62,7 +62,7 @@ validate-requirements:
     - make test-reqs-engine
     - make validate-reqs
 
-# Lint, type-check and check formatting.
+# Lint, type-check and check formatting (the report engine has its own job).
 check:
   stage: validate
   extends:
@@ -74,7 +74,24 @@ check:
     - eval $(anod printenv gnatformat --qualifier=stable)
 
     # Run the checks
-    - make check
+    - make check-ada check-shell check-python-reqs
+
+# Check and test the report engine; its deps are only on pypi.org (which its uv.lock pins).
+check-report:
+  stage: validate
+  extends:
+    - .uv
+  services:
+    - image:e3-py313
+    - cpu:1
+    - security_group:GitLabRunnerTasksExecPrivilegedSG
+  script:
+    # The env vars outrank the runner image's system-level uv configuration.
+    - unset PIP_INDEX_URL PIP_EXTRA_INDEX_URL UV_INDEX_URL UV_EXTRA_INDEX_URL
+        UV_INDEX
+    - export UV_DEFAULT_INDEX="https://pypi.org/simple"
+    - make check-python-report
+    - make test-report-engine
 
 .pro:
   stage: build

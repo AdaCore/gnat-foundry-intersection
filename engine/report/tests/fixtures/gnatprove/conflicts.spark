@@ -1,0 +1,204 @@
+{
+  "assumptions": [
+  ],
+  "entities": {
+    " 1": {
+      "name": "Conflicts.Compatible",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 38
+        }
+      ]
+    },
+    " 2": {
+      "name": "Conflicts.Conflicts",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 71
+        }
+      ]
+    },
+    " 3": {
+      "name": "Conflicts.Adjacent_Through",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 108
+        }
+      ]
+    },
+    " 4": {
+      "name": "Conflicts.Next_Conflicting_Through",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 94
+        }
+      ]
+    },
+    " 5": {
+      "name": "Conflicts.Safe_Faces",
+      "sloc": [
+        {
+          "column": 13,
+          "file": "conflicts.ads",
+          "line": 79
+        }
+      ]
+    },
+    " 6": {
+      "name": "Conflicts",
+      "sloc": [
+        {
+          "column": 9,
+          "file": "conflicts.ads",
+          "line": 28
+        }
+      ]
+    }
+  },
+  "flow": [
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 1,
+      "file": "conflicts.ads",
+      "how_proved": "flow",
+      "line": 38,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Compatible\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 0,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 2,
+      "file": "conflicts.ads",
+      "how_proved": "flow",
+      "line": 71,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Conflicts\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 1,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 3,
+      "file": "conflicts.ads",
+      "how_proved": "flow",
+      "line": 108,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Adjacent_Through\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 2,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 4,
+      "file": "conflicts.ads",
+      "how_proved": "flow",
+      "line": 94,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Next_Conflicting_Through\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 3,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 13,
+      "entity": 5,
+      "file": "conflicts.ads",
+      "how_proved": "flow",
+      "line": 79,
+      "message": {
+        "text": "implicit aspect Always_Terminates on \"Safe_Faces\" has been proved, subprogram will terminate"
+      },
+      "msg_id": 4,
+      "rule": "SUBPROGRAM_TERMINATION",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    }
+  ],
+  "pragma_assume": [
+  ],
+  "progress": "PROGRESS_PROOF",
+  "proof": [
+  ],
+  "skip_flow_proof": [
+  ],
+  "skip_proof": [
+  ],
+  "spark": {
+    " 1": "all",
+    " 2": "all",
+    " 3": "all",
+    " 4": "all",
+    " 5": "all",
+    " 6": "all"
+  },
+  "stop_reason": "STOP_REASON_NONE",
+  "timings": {
+    " 1": {
+      "gnat2why.vc_generation": 2.45300005190074E-03
+    },
+    " 2": {
+      "gnat2why.vc_generation": 4.50000006821938E-05
+    },
+    " 3": {
+      "gnat2why.vc_generation": 2.99999992421363E-05
+    },
+    " 4": {
+      "gnat2why.vc_generation": 3.89999986509793E-05
+    },
+    " 5": {
+      "gnat2why.vc_generation": 3.37000004947186E-04
+    },
+    "global": {
+      "flow analysis": 1.76100002136081E-03,
+      "globals (advanced)": 1.38499995227903E-03,
+      "globals (basic)": 8.97000019904226E-04,
+      "init_why_sections": 3.90000001061708E-04,
+      "marking": 1.50200002826750E-03,
+      "properties (advanced)": 5.19999994139653E-05,
+      "translation of standard": 1.62100000306964E-03
+    }
+  },
+  "warn_error": [
+  ]
+}

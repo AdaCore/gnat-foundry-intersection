@@ -27,7 +27,7 @@ GNATcov report (stmt + MCDC) shows no uncovered lines.
 ## Oracle
 
 ```bash
-make all-coverage-pro
+make all-coverage
 ```
 
 This instruments, builds, runs the harness under GNATcov, and greps the report
