@@ -99,9 +99,9 @@ endif
 # Sections come from the `##@ <name>` banners below, target descriptions from
 # a trailing `## <text>` on the target's own line.
 help: ## List the public targets, by section
-	@awk 'BEGIN { FS = ":.*##" } \
+	@awk 'BEGIN { FS = ":[^#]*##" } \
 	     /^##@/ { printf "\n%s\n", substr($$0, 5); next } \
-	     /^[a-zA-Z0-9_.-]+:.*##/ { printf "  %-26s%s\n", $$1, $$2 }' \
+	     /^[a-zA-Z0-9_.-]+:.*##/ { printf "  %-26s  %s\n", $$1, $$2 }' \
 	     $(MAKEFILE_LIST)
 
 printenv: ## Print the tool and dependency environment as shell exports
@@ -114,8 +114,11 @@ endif
 	  if [ -v "$$var" ]; then echo "export $$var=\"$${!var}\""; fi
 	done
 
-clean: ## Remove build products and outputs (obj/, reports/)
-	rm -rf obj reports
+# Build products and outputs only. The provisioned toolchain (install/, see
+# reset-hard) and Alire's resolved dependencies are left alone.
+clean: ## Remove every build product and output
+	rm -rf bin obj lib reports $(COVERAGE_LOG) \
+	    tests/obj $(TRACER_DIR)/bin $(TRACER_DIR)/obj
 
 # ----------------------------------------------------------------------------
 ##@ Build and run

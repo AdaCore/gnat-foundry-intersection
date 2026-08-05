@@ -16,6 +16,9 @@ Early scaffold.
 ## Quick start
 
 ```bash
+# List the public targets, by section
+make help
+
 # One-time: provision the toolchain locally under install/
 # The build/test/prove targets auto-detect whichever you ran
 make setup-community  # community tools, fetched via Alire (needs internet)
