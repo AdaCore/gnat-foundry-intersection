@@ -1,6 +1,7 @@
 # Code conventions
 
-Follow these conventions when writing Ada/SPARK code.
+Follow these conventions when working with artifacts in this project. Note that
+most code-centric sections are aimed at Ada/SPARK.
 
 ## Naming conventions
 
@@ -28,6 +29,22 @@ Use gnatdoc tags to document entities:
 * `@param Param_Name description` for subprogram parameters
 * `@return description` for function return value
 
+## Commentary conventions
+
+These conventions govern *commentary* — prose about an artifact — and not the artifact's own
+content: a `rationale` field in a requirement, for instance, is content, and is out of scope.
+
+Across all artifacts, seek to be concise.
+
+The artifacts (code, scripts, Makefile, etc.) should stand alone as much as possible.
+Commentary across all artifacts should not teach the language or the tools.
+Explain what, when necessary; don't explain why: in general, decisions and their rationale
+belong in commit messages or merge requests.
+
+Commentary should exist in one place only, where it is most relevant.
+E.g., architecture commentary in `architecture.md`; script commentary in the script; code
+commentary in the code.
+
 ## Type system
 
 Leverage the Ada typing system: introduce narrow types as needed. Introduce new types to avoid
@@ -37,7 +54,8 @@ danger of introducing arithmetic operations involving types that are not meant t
 
 It is possible for code to be commented out (for instance, code deferred for future implementation,
 or code that can be activated for debug purposes). The reason for commenting code out should be
-explained in a comment.
+explained in a comment. This is an intentional deviation from the prohibition against explaining why,
+because commented code needs that explanation to be understood in situ.
 
 ## Elaboration code
 

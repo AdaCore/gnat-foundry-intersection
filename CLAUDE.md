@@ -78,6 +78,10 @@ its format is in `engine/workflow/README.md`.
 
 Unless specifically asked, do not look at git branches other than the one you're on.
 
+## When editing any artifact
+
+- Read the section on commentary conventions in code conventions: `design/code_conventions.md`
+
 ## When editing code
 
 - Read the code architecture: `design/architecture.md`
