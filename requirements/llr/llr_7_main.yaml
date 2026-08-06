@@ -17,6 +17,17 @@ description:
       - hlr_4_signals.6
     implemented_by:
       - Main
+    # verified_by:
+    #   - means: test
+    #     by: "PLACEHOLDER (#17): system-level. Generic instantiation is
+    #       compile-checked for the formal *profile*, not for the identity of
+    #       the actual -- `new Buses.Source_Bus (Producer => Sources.Sample)`
+    #       compiles just as happily with any other matching procedure -- so
+    #       no witness in the unit under test can establish this. What the
+    #       statement is really about is behavioural (every input signal
+    #       reaches the controller from the HAL sources), and that is
+    #       observable end to end once the system-level tests exist.
+    #       Currently unverified."
 
   2:
     text: |-
@@ -28,6 +39,10 @@ description:
       - hlr_4_signals.3
     implemented_by:
       - Main
+    # verified_by:
+    #   - means: test
+    #     by: "PLACEHOLDER (#17): system-level, for the reason given under
+    #       statement 1. Currently unverified."
 
   3:
     text: |-
@@ -38,6 +53,10 @@ description:
       - hlr_1_modes.2
     implemented_by:
       - Main
+    # verified_by:
+    #   - means: test
+    #     by: "PLACEHOLDER (#17): system-level, for the reason given under
+    #       statement 1. Currently unverified."
 
   4:
     text: |-

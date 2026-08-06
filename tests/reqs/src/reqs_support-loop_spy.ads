@@ -79,6 +79,15 @@ package Reqs_Support.Loop_Spy is
    --  How many events the last Run recorded -- three per iteration.
    --  @return The number of events in the trace
 
+   function Left_By_Escape return Boolean;
+   --  Whether the last Run left the loop by propagating Escape rather than by
+   --  the loop returning to its caller. State_Machine_Loop is No_Return with
+   --  no termination path (llr_5_core_loop.3), so the escape is the only way
+   --  out; a run that ended any other way found one the requirement forbids.
+   --  Run absorbs the exception, so without this a test cannot tell the two
+   --  endings apart.
+   --  @return True when the last run ended by propagating Escape
+
    function Nth (N : Event_Index) return Event
    with Pre => N <= Count;
    --  The Nth event of the last run's trace, in call order.

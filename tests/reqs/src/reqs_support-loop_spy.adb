@@ -28,6 +28,12 @@ package body Reqs_Support.Loop_Spy is
    Wanted : Natural := 0;
    Done   : Natural := 0;
 
+   Escaped : Boolean := False;
+   --  Set by Run's handler, so it distinguishes the loop being escaped from
+   --  the loop returning. Nothing is assigned *after* the call to Drive: a
+   --  statement there would be unreachable code, and leaving it out is what
+   --  makes False mean "the loop returned" (llr_5_core_loop.3).
+
    procedure Record_Event (E : Event);
 
    procedure Spy_Delay_For (Ms : States.Duration_Ms);
@@ -112,6 +118,7 @@ package body Reqs_Support.Loop_Spy is
       Done := 0;
       Wanted := Iterations;
       Script := Inputs;
+      Escaped := False;
 
       Drive;
 
@@ -119,10 +126,12 @@ package body Reqs_Support.Loop_Spy is
 
    exception
       when Escape =>
-         null;
+         Escaped := True;
    end Run;
 
    function Count return Natural is (Logged);
+
+   function Left_By_Escape return Boolean is (Escaped);
 
    function Nth (N : Event_Index) return Event is (Trace (N));
 

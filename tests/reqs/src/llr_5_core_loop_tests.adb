@@ -332,6 +332,58 @@ package body Llr_5_Core_Loop_Tests is
    end Test_02_Iteration_Runs_The_Four_Stages_In_Order;
 
    ------------------------------------------------------------------------
+   --  Statement .3 -- No_Return, with no termination path
+   ------------------------------------------------------------------------
+
+   procedure Test_03_Loop_Never_Returns_To_Its_Caller (T : in out Test) is
+      --@covers llr_5_core_loop.3
+
+      pragma Unreferenced (T);
+
+      Iterations : constant := 4;
+   begin
+
+      --  This routine carries one third of .3, and it is worth being precise
+      --  about which third.
+      --
+      --  * `No_Return` ON THE DECLARATION (src/core/state_machine_loop.ads:31)
+      --    is a legality rule, not a comment: RM 6.5.1 forbids a return
+      --    statement in the body of such a procedure, so no explicit
+      --    termination path can even be written. The compiler is the check,
+      --    and it runs on every build.
+      --
+      --  * THE IMPLICIT RETURN at the end of the body is what is left, and
+      --    the unit is in SPARK (state_machine_loop_proof instantiates it so
+      --    `make prove` actually analyses the generic), so GNATprove
+      --    discharges the obligation that the end is unreachable.
+      --
+      --  * WHAT NEITHER OF THOSE OBSERVES is the loop actually running: both
+      --    are satisfied by a body that raises on its first statement. So the
+      --    routine drives real iterations and then asks how the loop was
+      --    left. Over a bounded run that is necessarily weaker than the
+      --    proof -- it shows no termination path was taken in four
+      --    iterations, not that none exists -- but it is the half that fails
+      --    if the loop stops iterating, which is the failure the requirement
+      --    is really about.
+
+      Spy.Run (Iterations => Iterations);
+
+      Assert
+        (Spy.Left_By_Escape,
+         "State_Machine_Loop must have no termination path, so the only way"
+         & " out of it is the exception the spy raises from Delay_For -- but"
+         & " the loop returned to its caller instead");
+
+      Assert
+        (Spy.Count = 3 * Iterations,
+         "the loop must keep iterating until it is escaped, so"
+         & Integer'Image (Iterations)
+         & " iterations must leave three events each, but the trace holds"
+         & Integer'Image (Spy.Count));
+
+   end Test_03_Loop_Never_Returns_To_Its_Caller;
+
+   ------------------------------------------------------------------------
    --  Statement .4 -- the sources are read at least once every T_SAMPLE
    ------------------------------------------------------------------------
 
