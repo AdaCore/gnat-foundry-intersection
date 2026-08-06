@@ -35,7 +35,8 @@ products_installed() {
   [ -x "$PRO_DIR/gnatpro/bin/gnat" ] \
     || [ -x "$PRO_DIR/arm-elf/bin/arm-eabi-gnat" ] \
     || [ -x "$PRO_DIR/spark/bin/gnatprove" ] \
-    || [ -x "$PRO_DIR/gnatdas/bin/gnatcov" ]
+    || [ -x "$PRO_DIR/gnatdas/bin/gnatcov" ] \
+    || [ -f "$PRO_DIR/libadalang/share/gpr/libadalang.gpr" ]
 }
 
 # Echo the mode: $PRO_TOOLS if forced; else 'install' when downloads are
@@ -61,24 +62,39 @@ select_mode() {
   fi
 }
 
-# Check every tool external mode needs is on PATH, and report where.
+# Check every tool/library external mode needs is on PATH/GPR_PROJECT_PATH, and
+# report where.
 use_external_tools() {
   header "Pro tools from the environment"
+
+  local missing_msg_tail="
+Run from an environment that provides the pro tools, or stage the GNAT
+Tracker downloads under
+$PRO_DOWNLOADS
+and re-run 'make setup-pro' to install them locally."
 
   local cmd missing=()
   for cmd in "${EXTERNAL_TOOLS[@]}"; do
     command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
   done
   if [ ${#missing[@]} -ne 0 ]; then
-    fatal "PRO_TOOLS=external, but not found on PATH: ${missing[*]}.
-Run from an environment that provides the pro tools, or stage the GNAT
-Tracker downloads under
-$PRO_DOWNLOADS
-and re-run 'make setup-pro' to install them locally."
+    fatal "PRO_TOOLS=external, but not found on PATH: ${missing[*]}.$missing_msg_tail"
   fi
   for cmd in "${EXTERNAL_TOOLS[@]}"; do
     detail "$(printf '%-14s' "$cmd") $(command -v "$cmd")"
   done
+
+  local dir found=
+  while IFS= read -r -d: dir; do
+    if [ -n "$dir" ] && [ -f "$dir/libadalang.gpr" ]; then
+      found=$dir
+      break
+    fi
+  done <<<"${GPR_PROJECT_PATH:-}:"
+  if [ -z "$found" ]; then
+    fatal "PRO_TOOLS=external, but no libadalang.gpr on GPR_PROJECT_PATH.$missing_msg_tail"
+  fi
+  detail "$(printf '%-14s' libadalang) $found/libadalang.gpr"
 }
 
 # GNAT Tracker downloads may be zipfiles wrapping the product tarball
@@ -107,20 +123,30 @@ extract_tarball_from_zip() {
   return 1
 }
 
+# True if the marker file $1 proves its product installed: an executable for
+# the toolchains, a readable project file for the library products.
+marker_present() {
+  case "$1" in
+    *.gpr) [ -f "$1" ] ;;
+    *) [ -x "$1" ] ;;
+  esac
+}
+
 # Install one pro product from its GNAT Tracker download into its own prefix
 # under $PRO_DIR, using the bundled `doinstall` script in unattended mode.
 #
 #   $1  shell glob matching the tarball in $PRO_DOWNLOADS (staged directly or
 #       wrapped in a staged zipfile)
 #   $2  prefix sub-directory under $PRO_DIR (also the PATH entry)
-#   $3  marker binary (relative to the prefix) proving a successful install
+#   $3  marker file (relative to the prefix) proving a successful install: a
+#       binary for the toolchains, a project file for the library products
 #   $4  human-readable label
 install_product() {
   local glob=$1 subdir=$2 marker=$3 label=$4
   header "$label"
 
   local prefix="$PRO_DIR/$subdir"
-  if [ -x "$prefix/$marker" ]; then
+  if marker_present "$prefix/$marker"; then
     detail "Already installed ($prefix/$marker); skipping."
     return 0
   fi
@@ -140,10 +166,10 @@ install_product() {
 $PRO_DOWNLOADS
 (the directory has just been created for you).
 Log in to GNAT Tracker and download the x86_64-linux packages for GNAT Pro
-for Ada (native and arm-elf), SPARK Pro and GNAT DAS, as either the product
-tarballs or the zipfiles wrapping them. Copy them into the directory above,
-then re-run 'make setup-pro'. Alternatively, re-run it from an environment
-that already has the pro tools on PATH to use them directly."
+for Ada (native and arm-elf), SPARK Pro, GNAT DAS and Libadalang, as either
+the product tarballs or the zipfiles wrapping them. Copy them into the
+directory above, then re-run 'make setup-pro'. Alternatively, re-run it from
+an environment that already has the pro tools on PATH to use them directly."
   fi
   detail "Tarball:  $tarball"
 
@@ -161,15 +187,17 @@ that already has the pro tools on PATH to use them directly."
     tail -n 40 "$log" >&2 || true
     fatal "doinstall failed for $label (full log: $log)."
   fi
-  # Verify the marker binary landed: doinstall exiting 0 without it must
+  # Verify the marker file landed: doinstall exiting 0 without it must
   # still read as a failure.
-  if [ ! -x "$prefix/$marker" ]; then
+  if ! marker_present "$prefix/$marker"; then
     fatal "doinstall for $label succeeded but $prefix/$marker is missing
 (full log: $log)."
   fi
   rm -rf "$tmp"
-  local version
-  version=$("$prefix/$marker" --version 2>/dev/null | head -1 || true)
+  local version=
+  if [ -x "$prefix/$marker" ]; then
+    version=$("$prefix/$marker" --version 2>/dev/null | head -1 || true)
+  fi
   detail "Installed: ${version:-(ok)}"
 }
 
@@ -183,6 +211,8 @@ install_pro_products() {
     'SPARK Pro (gnatprove)'
   install_product 'gnatdas-*-x86_64-linux-bin.tar.gz' gnatdas bin/gnatcov \
     'GNAT DAS (gnatcov, gnattest)'
+  install_product 'libadalang-*-x86_64-linux-bin.tar.gz' libadalang \
+    share/gpr/libadalang.gpr 'Libadalang'
 }
 
 # Deliberately leave alr unconfigured: no index, no toolchain selection.
@@ -219,10 +249,15 @@ print_summary() {
   detail "GNAT Pro (arm-elf) $PRO_DIR/arm-elf"
   detail "SPARK Pro          $PRO_DIR/spark"
   detail "GNAT DAS           $PRO_DIR/gnatdas"
+  detail "Libadalang         $PRO_DIR/libadalang"
   printf '\n'
   detail "The Makefile detects this install automatically. To run the tools"
   detail "from your shell, add to your profile:"
   detail "  export PATH=\"$LOCAL_BIN:$PRO_DIR/gnatpro/bin:$PRO_DIR/arm-elf/bin:$PRO_DIR/spark/bin:$PRO_DIR/gnatdas/bin:\$PATH\""
+  local lal_libs="$PRO_DIR/libadalang/lib:$PRO_DIR/libadalang/lib64"
+  detail "  export GPR_PROJECT_PATH=\"$PRO_DIR/libadalang/share/gpr:\$GPR_PROJECT_PATH\""
+  detail "  export LIBRARY_PATH=\"$lal_libs:\$LIBRARY_PATH\""
+  detail "  export LD_LIBRARY_PATH=\"$lal_libs:\$LD_LIBRARY_PATH\""
   detail "  export ALIRE_SETTINGS_DIR=\"$ALIRE_SETTINGS_DIR\""
 }
 

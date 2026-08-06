@@ -45,12 +45,13 @@ make build-target
 downloads staged under `pro-downloads/` (created on first run). Log in and
 download the x86_64 Linux packages for:
 
-| Product                    | Expected download                             |
-| -------------------------- | --------------------------------------------- |
-| GNAT Pro for Ada (native)  | `gnatpro-<version>-x86_64-linux-bin.tar.gz`   |
-| GNAT Pro for Ada (arm-elf) | `gnatpro-<version>-arm-elf-*-bin.tar.gz`      |
-| SPARK Pro                  | `spark-pro-<version>-x86_64-linux-bin.tar.gz` |
-| GNAT DAS                   | `gnatdas-<version>-x86_64-linux-bin.tar.gz`   |
+| Product                    | Expected download                              |
+| -------------------------- | ---------------------------------------------- |
+| GNAT Pro for Ada (native)  | `gnatpro-<version>-x86_64-linux-bin.tar.gz`    |
+| GNAT Pro for Ada (arm-elf) | `gnatpro-<version>-arm-elf-*-bin.tar.gz`       |
+| SPARK Pro                  | `spark-pro-<version>-x86_64-linux-bin.tar.gz`  |
+| GNAT DAS                   | `gnatdas-<version>-x86_64-linux-bin.tar.gz`    |
+| Libadalang                 | `libadalang-<version>-x86_64-linux-bin.tar.gz` |
 
 Copy either the product tarballs themselves or the zipfiles into
 `pro-downloads/`; `make setup-pro` will pick the newest version if several are

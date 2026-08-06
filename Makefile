@@ -50,6 +50,7 @@ ALIRE_SETTINGS_DIR ?= $(INSTALL_DIR)/alire/settings
 PRO_DIR       := $(INSTALL_DIR)/pro
 PRO_DOWNLOADS ?= $(CURDIR)/pro-downloads
 PRO_BINS      := $(PRO_DIR)/gnatpro/bin:$(PRO_DIR)/arm-elf/bin:$(PRO_DIR)/spark/bin:$(PRO_DIR)/gnatdas/bin
+PRO_LAL_LIBS  := $(PRO_DIR)/libadalang/lib:$(PRO_DIR)/libadalang/lib64
 
 # Force the setup-pro source: make setup-pro PRO_TOOLS=install (staged
 # downloads) or PRO_TOOLS=external (tools on PATH); empty auto-detects.
@@ -74,6 +75,9 @@ SYSTEM_PATH := $(PATH)
 # For SETUP=external, only a locally-installed uv/alr is added.
 ifeq ($(SETUP),pro)
 export PATH := $(LOCAL_BIN):$(PRO_BINS):$(PATH)
+export GPR_PROJECT_PATH := $(PRO_DIR)/libadalang/share/gpr$(if $(GPR_PROJECT_PATH),:$(GPR_PROJECT_PATH))
+export LIBRARY_PATH := $(PRO_LAL_LIBS)$(if $(LIBRARY_PATH),:$(LIBRARY_PATH))
+export LD_LIBRARY_PATH := $(PRO_LAL_LIBS)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH))
 else ifeq ($(SETUP),community)
 export PATH := $(LOCAL_BIN):$(ALIRE_PREFIX)/bin:$(PATH)
 else ifeq ($(SETUP),external)
@@ -106,11 +110,12 @@ help: ## List the public targets, by section
 
 printenv: ## Print the tool and dependency environment as shell exports
 	@$(ALR) printenv
-ifneq (,$(filter pro external,$(SETUP)))
-	# `alr printenv` only prints `PATH` when alr manages the toolchain
-	echo "export PATH=\"$$PATH\""
-endif
-	for var in ALIRE_SETTINGS_DIR UV_CACHE_DIR UV_TOOL_DIR UV_TOOL_BIN_DIR UV_PYTHON_INSTALL_DIR; do
+	# `alr printenv` always prints `GPR_PROJECT_PATH`, but only prints `PATH`
+	# and `[LD_]LIBRARY_PATH` when the toolchain is `alr`-managed.
+	for var in \
+	  $(if $(filter pro external,$(SETUP)),PATH LIBRARY_PATH LD_LIBRARY_PATH) \
+	  ALIRE_SETTINGS_DIR UV_CACHE_DIR UV_TOOL_DIR UV_TOOL_BIN_DIR UV_PYTHON_INSTALL_DIR;
+	do
 	  if [ -v "$$var" ]; then echo "export $$var=\"$${!var}\""; fi
 	done
 
@@ -407,7 +412,7 @@ setup-community: ## One-shot: uv, Alire, the community toolchains and tools
 
 # From the staged tarballs or from PATH ($(PRO_TOOLS)). alr is left
 # unconfigured: the pro tools resolve on PATH.
-setup-pro: ## One-shot: GNAT Pro (native + arm-elf), SPARK Pro and GNAT DAS
+setup-pro: ## One-shot: GNAT Pro (native + arm-elf), SPARK Pro, GNAT DAS and Libadalang
 	@$(SETUP_ENV) \
 	    PRO_DIR='$(PRO_DIR)' \
 	    PRO_DOWNLOADS='$(PRO_DOWNLOADS)' \
