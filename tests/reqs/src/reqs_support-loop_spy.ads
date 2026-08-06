@@ -34,7 +34,8 @@ package Reqs_Support.Loop_Spy is
 
    subtype Event_Index is Positive range 1 .. Max_Events;
 
-   type Loop_Stage is (Read_Sources_Stage, Write_Display_Stage, Delay_For_Stage);
+   type Loop_Stage is
+     (Read_Sources_Stage, Write_Display_Stage, Delay_For_Stage);
    --  The three stages of an iteration that cross the generic's boundary and
    --  are therefore observable. Controller.Step, the second of the four stages
    --  llr_5_core_loop.2 names, is called directly by the loop and leaves no
@@ -81,7 +82,7 @@ package Reqs_Support.Loop_Spy is
    function Nth (N : Event_Index) return Event
    with Pre => N <= Count;
    --  The Nth event of the last run's trace, in call order.
-   --  @param N Which event, counting from the first call of the first iteration
+   --  @param N Which event, counting from the first call of iteration one
    --  @return That event
 
 end Reqs_Support.Loop_Spy;

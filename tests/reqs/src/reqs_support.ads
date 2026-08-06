@@ -138,7 +138,7 @@ package Reqs_Support is
    --
    --  The two differ only in whether the axis slot already spent a leading
    --  left: entering both-through straight off the barrier, nothing has run
-   --  yet; entering it from the lead's red clearance, the whole lead block has.
+   --  yet; entering it from the lead's red clearance, the lead block has.
    --  Both reserve a full lagging-left block, which is the substance of #63 --
    --  the code reserves only the closing yellow, so all four statements that
    --  name these intervals fail today.

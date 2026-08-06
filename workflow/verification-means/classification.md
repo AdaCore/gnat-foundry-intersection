@@ -75,6 +75,19 @@ None implemented. Per #100, annotate and mark uncovered.
 
 `#103` would add a third (`Both_Duration >= T_BOTH_MIN`).
 
+**These two are the statements whose evidence can evaporate unnoticed.** Both
+were reworded away from *"shall carry the postcondition ..."* — a claim about
+source text — to the behaviour, which is the right shape for a requirement but
+changes what a regression looks like. Deleting the `Post` aspect at
+`controller.ads:93` no longer falsifies the statement: `Project_Outputs` would
+still *return* a `Safe_Faces` display, being total and literal per state. All
+that would break is the recorded means pointing at a contract that is no longer
+there — and since `verified_by` is a comment no tool reads, in silence. On the
+repository's headline safety property, with two of the three proof statements in
+the set. The general fix belongs to #100: a `means: proof` block whose cited
+contract is absent should fail validation, which would serve #103's third
+contract too.
+
 ---
 
 ## Notes

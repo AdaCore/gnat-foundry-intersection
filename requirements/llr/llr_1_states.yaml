@@ -246,11 +246,11 @@ description:
       - hlr_0_safety.2
     implemented_by:
       - States.Is_Go
-
-  # ---- durations: representation ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_1_states_tests.adb:Test_20_Is_Go_Holds_Exactly_For_Green_And_Yellow
+
+  # ---- durations: representation ----
   21:
     text: |-
       The States package shall define the type Duration_Ms as the integer range

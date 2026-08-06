@@ -157,7 +157,8 @@ package body Llr_5_Core_Loop_Tests is
    --  Statement .1 -- Initialize, once, before the first iteration
    ------------------------------------------------------------------------
 
-   procedure Test_01_Initialize_Once_Before_First_Iteration (T : in out Test) is
+   procedure Test_01_Initialize_Once_Before_First_Iteration (T : in out Test)
+   is
       --@covers llr_5_core_loop.1
 
       pragma Unreferenced (T);
@@ -189,8 +190,8 @@ package body Llr_5_Core_Loop_Tests is
       --    of that dwell (llr_4_controller.17), so within T_BARRIER the
       --    barrier's exit fires (llr_4_controller.18) and the faces change to
       --    the row of the state .26 sends the barrier to. A second Initialize
-      --    on any iteration would reload the dwell, and the exit would never be
-      --    reached at all -- so observing it refutes re-initialization.
+      --    on any iteration would reload the dwell, and the exit would never
+      --    be reached at all -- so observing it refutes re-initialization.
       --
       --  What this routine deliberately does NOT pin down is *which* iteration
       --  carries the change: that is the phase of Step's emit relative to its

@@ -70,11 +70,11 @@ description:
       - hlr_6_pedestrian.14
     implemented_by:
       - Controller.Head_Of
-
-  # ---- Moore outputs: the request indicator ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_05_Buffer_Heads_Are_Dont_Walk
+
+  # ---- Moore outputs: the request indicator ----
   6:
     text: |-
       While State.Ped (C) is NO_PEDESTRIAN_REQUEST, Request_Of shall return
@@ -120,11 +120,11 @@ description:
       - hlr_6_pedestrian.16
     implemented_by:
       - Controller.Request_Of
-
-  # ---- input arming (Step, before outputs are emitted) ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_09_Latched_Indicator_Is_Request_Pending
+
+  # ---- input arming (Step, before outputs are emitted) ----
   10:
     text: |-
       While State.Ped (C) is NO_PEDESTRIAN_REQUEST for a crosswalk C, when Step
@@ -147,11 +147,11 @@ description:
       - hlr_6_pedestrian.15
     implemented_by:
       - Controller.Step
-
-  # ---- the service edge (Step, after the sequencer advances) ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_11_Press_Latches_Buffer_Interval
+
+  # ---- the service edge (Step, after the sequencer advances) ----
   12:
     text: |-
       While State.Ped (C) is PENDING_PEDESTRIAN_REQUEST for a crosswalk C, when
@@ -162,11 +162,11 @@ description:
       - hlr_6_pedestrian.8
     implemented_by:
       - Controller.Step
-
-  # ---- timed transitions (Advance_Ped) ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_12_Adjacent_Green_Rise_Serves_Pending
+
+  # ---- timed transitions (Advance_Ped) ----
   13:
     text: |-
       While State.Ped (C) is WALK_INTERVAL, when its dwell (T_WALK) elapses,
@@ -215,11 +215,11 @@ description:
       - hlr_6_pedestrian.18
     implemented_by:
       - Controller.Advance_Ped
-
-  # ---- timer discipline ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_16_Latched_Buffer_Elapses_To_Pending
+
+  # ---- timer discipline ----
   17:
     text: |-
       The controller shall treat State.Ped_Timer (C) as running exactly while

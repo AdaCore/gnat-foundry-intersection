@@ -6,8 +6,9 @@
 --  All three testable statements are observed through Reqs_Support.Loop_Spy,
 --  which instantiates State_Machine_Loop against recording formals and escapes
 --  the No_Return loop by exception -- see that package for why the loop is
---  observable at all. Statement .3 (No_Return, no termination path) is not here:
---  it constrains the declaration, not the values, and is classified as analysis.
+--  observable at all. Statement .3 (No_Return, no termination path) is not
+--  here: it constrains the declaration, not the values, and is classified as
+--  analysis.
 
 with AUnit.Test_Fixtures;
 

@@ -45,12 +45,19 @@ project Traffic_Light is
 
    --  GNATtest configuration. Skeleton bodies land under <root>/tests/;
    --  Tests_Root must be absolute, as gnattest resolves a relative one against
-   --  the object dir of the project *owning* each unit. Unimplemented skeletons
-   --  pass by default so the harness stays green; `make generate-tests`
+   --  the object dir of the project *owning* each unit. `make generate-tests`
    --  regenerates them after a src/ surface change.
+   --
+   --  An unimplemented skeleton FAILS: a generated body that asserts nothing
+   --  while claiming a requirement is the exact failure #51 was raised over, so
+   --  it must be loud rather than green. This attribute agrees with the
+   --  `--skeleton-default=fail` the Makefile passes; the switch wins where they
+   --  disagree (the generated `Default_Assert_Value` in the harness's
+   --  gnattest_generated.ads records which way it went), but they are kept in
+   --  step so dropping the switch cannot silently restore the old behaviour.
    package Gnattest is
       for Tests_Root        use Project'Project_Dir & "tests";
-      for Skeletons_Default use "pass";
+      for Skeletons_Default use "fail";
    end Gnattest;
 
 end Traffic_Light;

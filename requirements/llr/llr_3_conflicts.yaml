@@ -38,11 +38,11 @@ description:
       - hlr_0_safety.2
     implemented_by:
       - Conflicts.Conflicts
-
-  # ---- the safety predicate ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_02_Conflicts_Is_The_Complement_Of_Compatible
+
+  # ---- the safety predicate ----
   3:
     text: |-
       The Conflicts package shall define the function Safe_Faces returning TRUE
@@ -83,11 +83,11 @@ description:
       - hlr_3_timing.10
     implemented_by:
       - Conflicts.Adjacent_Through
-
-  # ---- the crosswalk conflict relation ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_05_Adjacent_Through_Maps_Every_Crosswalk
+
+  # ---- the crosswalk conflict relation ----
   6:
     text: |-
       The Conflicts package shall define the function Crosswalk_Conflicts

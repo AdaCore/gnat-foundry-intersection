@@ -168,7 +168,7 @@ check: check-ada check-shell check-python
 
 # Remove build products and outputs
 clean:
-	rm -rf obj reports
+	rm -rf obj reports tests/reqs/obj
 
 # Reformat all Ada sources of the three projects in place (gnatformat).
 # With pro tools (pro/external), run gnatformat directly: `alr` would fetch

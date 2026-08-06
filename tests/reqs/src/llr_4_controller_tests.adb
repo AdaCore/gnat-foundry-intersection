@@ -1341,4 +1341,3 @@ package body Llr_4_Controller_Tests is
    end Test_22_Boundary_Demand_Served_At_This_Onset;
 
 end Llr_4_Controller_Tests;
-

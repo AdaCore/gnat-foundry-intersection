@@ -100,11 +100,11 @@ description:
       - hlr_6_pedestrian.2
     implemented_by:
       - Controller.Initialize
-
-  # ---- output projection ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_05_Initialize_Clears_Every_Crosswalk
+
+  # ---- output projection ----
   6:
     text: |-
       While State.Mode is FAULT, Project_Outputs shall return FLASHING_RED for
@@ -225,11 +225,11 @@ description:
       - hlr_1_modes.4
     implemented_by:
       - Controller.Step
-
-  # ---- Step: advance and emit ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_15_Fault_Step_Changes_Nothing
+
+  # ---- Step: advance and emit ----
   16:
     text: |-
       While State.Mode is NORMAL_OPERATION, Step shall set Outputs to

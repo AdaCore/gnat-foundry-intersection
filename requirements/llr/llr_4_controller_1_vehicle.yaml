@@ -58,11 +58,11 @@ description:
       - hlr_3_timing.11
     implemented_by:
       - Controller.Advance_Vehicle
-
-  # ---- Moore output rows, NS axis (all unlisted faces RED) ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_02_Vehicle_Held_While_Dwell_Remains
+
+  # ---- Moore output rows, NS axis (all unlisted faces RED) ----
   3:
     text: |-
       While State.Vehicle is N_LEAD, Vehicle_Face_Outputs shall return GREEN
@@ -197,11 +197,11 @@ description:
       - hlr_5_vehicle.11
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-
-  # ---- Moore output rows, EW axis (the exact mirror) ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_13_NS_Barrier_Allred_Faces
+
+  # ---- Moore output rows, EW axis (the exact mirror) ----
   14:
     text: |-
       While State.Vehicle is E_LEAD, Vehicle_Face_Outputs shall return GREEN
@@ -336,11 +336,11 @@ description:
       - hlr_5_vehicle.34
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-
-  # ---- transitions, NS axis ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_24_EW_Barrier_Allred_Faces
+
+  # ---- transitions, NS axis ----
   25:
     text: |-
       While State.Vehicle is EW_BARRIER_ALLRED and State.Left (NORTH) is
@@ -529,11 +529,11 @@ description:
       - hlr_5_vehicle.23
     implemented_by:
       - Controller.Advance_Vehicle
-
-  # ---- transitions, EW axis (the exact mirror) ----
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_37_NS_Both_Drop_Yellow_To_NS_Barrier_Allred_On_Dwell_Elapse
+
+  # ---- transitions, EW axis (the exact mirror) ----
   38:
     text: |-
       While State.Vehicle is NS_BARRIER_ALLRED and State.Left (EAST) is
