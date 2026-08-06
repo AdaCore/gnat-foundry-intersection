@@ -25,6 +25,9 @@ description:
       - hlr_0_safety.2
     implemented_by:
       - Conflicts.Compatible
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_01_Compatible_Holds_For_Exactly_The_Listed_Pairs
 
   2:
     text: |-
@@ -37,6 +40,9 @@ description:
       - Conflicts.Conflicts
 
   # ---- the safety predicate ----
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_02_Conflicts_Is_The_Complement_Of_Compatible
   3:
     text: |-
       The Conflicts package shall define the function Safe_Faces returning TRUE
@@ -61,6 +67,9 @@ description:
       - hlr_5_vehicle_1_left_demand.4
     implemented_by:
       - Conflicts.Next_Conflicting_Through
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_04_Next_Conflicting_Through_Maps_Every_Approach
 
   5:
     text: |-
@@ -76,6 +85,9 @@ description:
       - Conflicts.Adjacent_Through
 
   # ---- the crosswalk conflict relation ----
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_05_Adjacent_Through_Maps_Every_Crosswalk
   6:
     text: |-
       The Conflicts package shall define the function Crosswalk_Conflicts
@@ -91,6 +103,9 @@ description:
       - hlr_3_timing.10
     implemented_by:
       - Conflicts.Crosswalk_Conflicts
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_06_Crosswalk_Conflicts_Exempts_Exactly_The_Listed_Pairs
 
 algorithm_aspects: |-
   Compatible (statement 1) is the following symmetric matrix over the eight

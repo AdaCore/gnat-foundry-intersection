@@ -47,6 +47,28 @@ layers:
     # test traced". The floor is the number of routines the harness holds today
     # (15, across the six `*-test_data-tests.adb` files); raise it as tests are
     # added, and lower it only deliberately.
+    #
+    # IT DOES NOT COVER THE REQUIREMENTS-BASED TESTS, and so did not move when
+    # #51 added 98 of them. Two things stand in the way, both to be fixed before
+    # this floor becomes 113:
+    #
+    #   1. `test-inventory` runs `ada_tracer` on the harness project without
+    #      `-U`, and without `-U` the tracer reads the root project's own sources
+    #      alone. The generated harness project's `Source_Dirs` are
+    #      tests/core, tests/hal/common, tests/types and its own `common` --
+    #      tests/reqs/ arrives through an *imported* project
+    #      (`--additional-tests=tests/reqs/reqs_tests.gpr`), so none of its
+    #      routines or `--@covers` tags reach this inventory. Plain `-U` is not
+    #      the fix: it would pull the application into a layer that requires
+    #      every node to carry a `--@covers` tag.
+    #   2. `engine/ada_tracer` does not build against this compiler
+    #      (`gpr2-log.ads:137:09: completion of nonlimited type cannot be
+    #      limited`), so neither inventory can be regenerated and `make
+    #      trace-check` cannot run at all.
+    #
+    # Until both are addressed, the `--@covers` tags on the 98 routines under
+    # tests/reqs/ are conventions no tool enforces. Raising this floor now would
+    # only convert that into a failure with a misleading cause.
     min_nodes: 15
   - name: CODE
     kind: ada-entities

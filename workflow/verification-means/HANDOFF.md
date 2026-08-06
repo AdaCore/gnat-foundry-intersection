@@ -3,33 +3,59 @@
 Read `classification.md` first: it holds the per-statement verification-means
 assignment and the counts this document assumes.
 
-## What is already done
+## Where this stands
 
-**Classification.** All 143 LLR statements assigned a means. 106 test, 24
-analysis, 11 compiler check, 2 proof.
+**#51's test-writing is complete.** Every LLR statement classified `test` that
+can be written has a routine: 98 of them, across nine packages under
+`tests/reqs/`, one package per LLR file and one routine per statement.
 
-**Attribution cleaned.** The three monolithic routines
-(`Test_Initialize`, `Test_Project_Outputs`, `Test_Step` in
-`tests/core/controller-test_data-tests.adb`) no longer claim any requirement —
-they are `--@covers none:` and stay in the suite purely as regression coverage
-until the per-requirement tests replace them. Three skeletons that asserted
-nothing while claiming requirements are now explicit `null;` no-ops.
-`--skeleton-default=fail` is on, so a future empty skeleton fails loudly.
+    make test    114 tests run: 107 passed; 7 failed
+    make prove   clean, 0 unproved checks, no pragma Assume
+    coverage     10 statement violations, down from 20
 
-**Test project.** `tests/reqs/`, folded into the generated harness by
-`gnattest --additional-tests` (see `GNATTEST_FLAGS` in the Makefile). One
-package per LLR file, one routine per statement.
+The seven failures are deliberate and are the point of the exercise — see
+"The seven red tests". Nothing else is red.
 
-**Six exemplars, all green.**
+| Package | Statements covered |
+| --- | ---: |
+| `llr_4_controller_1_vehicle_tests` | 43 (`.2`, rows `.3-.24`, transitions `.25-.50`) |
+| `llr_4_controller_tests` | 19 (`.2-.11`, `.13-.20`, `.22`) |
+| `llr_4_controller_3_pedestrian_tests` | 17 (`.1-.17`) |
+| `llr_3_conflicts_tests` | 6 |
+| `llr_2_buses_tests` | 4 |
+| `llr_4_controller_2_left_demand_tests` | 3 |
+| `llr_5_core_loop_tests` | 3 |
+| `llr_1_states_tests` | 2 |
+| `llr_6_hal_tests` | 1 |
 
-| Means | Statement | Evidence |
-| --- | --- | --- |
-| proof | `llr_4_controller.12`, `.21` | `src/core/controller.ads:93`, `:105` |
-| compiler check | `llr_1_states.31` | `src/types/states.ads:346-387` |
-| analysis | `llr_4_controller_1_vehicle.1` | annotation only; no LKQL yet |
-| test, exhaustive | `llr_3_conflicts.3` | `llr_3_conflicts_tests.adb` |
-| test, tabular | `llr_4_controller_1_vehicle.6` | `llr_4_controller_1_vehicle_tests.adb` |
-| test, timed | `llr_4_controller_1_vehicle.27` | same file |
+The arithmetic: 106 statements classified `test`, less the 2 system-level ones
+that belong to #17 (`llr_7_main.4`, `.5`), less the 6 that name sequencer states
+which do not exist, is 98.
+
+**Shared infrastructure** lives in `Reqs_Support` and its child `Loop_Spy`:
+the vehicle Moore table (`Expected_Faces`), the pedestrian output table
+(`Expected_Ped`), the two both-through commit intervals as the arithmetic the
+requirements write, the `Vehicle_State` / `Pedestrian_State` constructors, the
+`Quiet` snapshot, and the core-loop spy.
+
+**The core loop is testable now.** `State_Machine_Loop` is `No_Return`, so
+`Reqs_Support.Loop_Spy` instantiates it against recording formals and leaves it
+the only way a `No_Return` procedure can be left: the spy `Delay_For` raises
+after the requested number of iterations. Because the delay is the last of the
+four stages, an escaped run ends on an iteration boundary with every stage of
+the final iteration recorded. The run leaves a trace — stage order, the snapshot
+each read delivered, the outputs each write received, the period each delay was
+asked for — and `llr_5_core_loop.1`, `.2` and `.4` are each a property of that
+trace. This closed the 8 uncovered statements in `state_machine_loop.adb`.
+
+`llr_5_core_loop.1` needs a note: `Controller.Initialize` is not a formal of the
+generic, so no spy can count its calls. It is checked through two consequences
+that together admit only one call, and only before the first iteration — the
+first iteration's outputs are the power-on projection, and the barrier's dwell is
+allowed to elapse (a second `Initialize` would reload it forever). The routine
+deliberately does not pin down *which* iteration carries the change, because
+that is the emit/advance phase that `llr_4_controller.16` governs; pinning it
+would make one defect fail two requirements.
 
 ## Conventions to follow — these are the review criteria
 
@@ -68,67 +94,116 @@ package per LLR file, one routine per statement.
    row is asserted by its own routine, so a wrong row fails one requirement.
    Every row carries its `.<n>` statement number.
 
-8. **Annotate the requirement.** Add the commented `verified_by` block to the
-   LLR statement (see any exemplar). Commented-out valid YAML — `sed 's/^# //'`
-   migrates it when the schema lands under #100. Do **not** add a real
-   `verified_by:` key: the schema rejects unknown keys and #100 is another
-   person's work item.
+   Transitions are the exception: their expected values are literal in each
+   routine, as `Test_27` does. A table indexed by statement could not be
+   complete (four statements name states that do not exist) and a transition's
+   target is shared by no other statement, so the table would buy nothing.
 
-## The remaining work
+8. **Annotate the requirement.** Every covered statement now carries a
+   commented `verified_by` block naming the routine. Still commented-out valid
+   YAML — `sed 's/^# //'` migrates it when the schema lands under #100. The
+   seven failing statements carry a `status:` field explaining the divergence;
+   #100's schema should accommodate it.
 
-**100 tests to write** (98 unit, 2 system-level). Distribution by file is in
-`classification.md`. `llr_4_controller_1_vehicle` is 49 of them — 21 more
-tabular rows at ~3 lines each, and 26 timed transitions at two cases each.
+9. **Assert state, not outputs, unless the statement is about outputs.**
+   `Controller.Step` emits before it advances (see the `.16` finding), so a
+   routine that reads a state claim off the emitted display fails for someone
+   else's defect. Every batch followed this and said so per routine.
 
-**Ten of the 100 are blocked by #63** and must not be attempted:
-`llr_4_controller_1_vehicle.7`, `.18`, `.31`, `.32`, `.44`, `.45` name
-sequencer states that do not exist, and `.26`, `.29`, `.39`, `.42` would fail
-(`.26` wants a 22 000 ms commit interval; the code produces 34 000 ms).
-Annotate them `BLOCKED (#63)` as `.26` already is, and skip.
+## The seven red tests
 
-**Two are system-level** (`llr_7_main.4`, `.5`) and belong to #17, not here.
+Six are #63 — the code deliberately lags the requirements on the both-through
+scheme. All six pass their non-firing case and fail only the firing assertion.
 
-**`llr_5_core_loop.1`, `.2`, `.4` need a technique that does not exist yet:**
-`State_Machine_Loop` is `No_Return`, so a test must instantiate it with a spy
-`Delay_For` that escapes the loop by exception after N iterations. Worth
-solving once, in `Reqs_Support`, before farming the rest out — it is the only
-statement group whose test shape is unsettled, and it closes the 8 uncovered
-statements in `state_machine_loop.adb`.
+| Statement | Requirement | Code |
+| --- | --- | --- |
+| `.26` / `.39` | commit interval reserves a full lag block: 22 000 ms | 34 000 ms |
+| `.29` / `.42` | same, after a lead ran: 10 000 ms | 22 000 ms |
+| `.30` / `.43` | lagging demand read live at the commit boundary | flag latched on both-through entry, so the no-demand branch is taken |
 
-## Suggested fan-out
+The seventh is **new, not #63, and not yet tracked by any issue**:
 
-The work parallelises by LLR file, since each maps to one test package with no
-shared state beyond `Reqs_Support`. Sensible units of work:
+**`llr_4_controller.16` — `Step` emits its outputs a sampling period early.**
+The statement (and the file's `context`, twice: "then emits the resulting
+state") requires `Outputs` to be the projection of the state left by this step's
+arming *and* timed transition. `controller.adb` sets `Outputs` at stage 3 and
+advances at stage 4, never recomputing, so every Moore output appears one
+`T_SAMPLE` after the state change that produced it. `controller.ads`'s own
+comment for `Step` documents the code's order, so the divergence is between two
+deliberate descriptions, not an accident of implementation.
 
-| Batch | Statements | Notes |
-| --- | ---: | --- |
-| `llr_4_controller_1_vehicle` rows `.3-.24` | 21 | mechanical; table already transcribed |
-| `llr_4_controller_1_vehicle` transitions `.25-.50` | 22 | minus the 4 blocked; two cases each |
-| `llr_4_controller` `.2-.11`, `.13-.20`, `.22` | 19 | `Initialize`, `Project_Outputs`, `Step` frame |
-| `llr_4_controller_3_pedestrian` `.1-.17` | 17 | 9 tabular, 8 behavioural |
-| `llr_3_conflicts` `.1`, `.2`, `.4`, `.5`, `.6` | 5 | port from the existing skeletons |
-| `llr_2_buses` `.1-.4` | 4 | needs spy producer/consumer |
-| `llr_5_core_loop` `.1`, `.2`, `.4` | 3 | do this one first, see above |
-| `llr_1_states` `.19`, `.20`; `llr_6_hal.1` | 3 | port from skeletons |
+It is a phase convention, not a timing error: a state is still emitted exactly
+`dwell / T_SAMPLE` times under either order, and the lag is uniform across the
+vehicle and pedestrian machines, so nothing is internally inconsistent. But it
+contradicts the statement as written, and someone has to decide which of the two
+moves — the requirement or the code. `Test_16`'s other two groups (sampling
+steps, input arming) pass, so the failure localises to the transition phase
+alone.
 
-Anything touching `Reqs_Support` should be serialised — parallel edits to one
-shared table will conflict. Transcribe a batch's table rows into
-`Reqs_Support` up front, then fan out the assertion routines.
+## What is left
 
-## Finishing pass
+**Not testable as written — 6 statements, all #63.**
+`llr_4_controller_1_vehicle.7`, `.18` (output rows), `.31`, `.44` (transitions
+*to* a HOLD state) and `.32`, `.45` (transitions *from* one) name
+`NS_BOTH_THROUGH_HOLD` / `EW_BOTH_THROUGH_HOLD`, and
+`States.Vehicle_Sequencer_State` has 20 literals with neither. There is no
+compilable Ada rendering — nothing to park in and nothing to assert. Each gap is
+marked where it falls in `Expected_Faces`, in the test `.ads` declaration lists,
+and in the `.adb` bodies. These become writable the day #63 lands.
 
-1. `make test` — every routine green.
-2. `make all-coverage` — must not have regressed from the 20 statement
-   violations recorded at the start (all in `main.adb`, `state_machine_loop*`,
-   `buses.adb`). Closing `llr_2_buses` and `llr_5_core_loop` should *reduce*
-   that number.
-3. Retire the monolith: delete each scenario from `Test_Step` as its
-   replacement lands, confirming coverage holds. Done when the three routines
-   are empty.
-4. Raise `min_nodes` in `requirements/trace_chain.yaml:59` (currently 15) to
-   the new routine count.
-5. `make trace-check` — **currently impossible**: `engine/ada_tracer` will not
-   build here (libadalang/GPR2 against this compiler,
-   `gpr2-log.ads:137:09: error: completion of nonlimited type cannot be
-   limited`). Until that is fixed the `--@covers` tags are not mechanically
-   checked by anything. Treat as a blocker to raise, not to work around.
+**System-level — 2 statements.** `llr_7_main.4`, `.5` (startup ordering) belong
+to #17.
+
+**Other means — 35 statements.** 24 analysis (LKQL, #100/#101) and 11 compiler
+check, of which only `llr_1_states.31` is done. `.27-.29` (the duration
+inequalities) are flagged in `classification.md` as safety-relevant and
+unchecked; they are the most valuable of that group.
+
+**The monolith stays.** `Test_Initialize`, `Test_Project_Outputs` and `Test_Step`
+in `tests/core/controller-test_data-tests.adb` claim no requirements
+(`--@covers none:`) and remain as unattributed regression coverage. Retiring
+them scenario-by-scenario, confirming coverage holds at each step, is a separate
+pass — deliberately not done here.
+
+## Tooling blockers, in priority order
+
+1. **`make all-coverage` and `make report` now abort.** `coverage-test`
+   propagates the suite's exit status, and the suite is red by design while the
+   seven statements above diverge. The traces are still produced, so the numbers
+   are obtainable with `make coverage-report-text` after the failing
+   `coverage-test` step, which is how the 10-violation figure above was
+   measured. Whoever owns the report pipeline has to decide how a
+   deliberately-failing requirements-based test should be represented — this is
+   the first real instance of the question.
+
+2. **The `--@covers` tags are enforced by nothing**, for two independent
+   reasons, both recorded in `requirements/trace_chain.yaml` beside
+   `min_nodes`:
+   - `engine/ada_tracer` will not build against this compiler
+     (`gpr2-log.ads:137:09: completion of nonlimited type cannot be limited`),
+     so no inventory can be regenerated and `make trace-check` cannot run.
+   - Even fixed, `test-inventory` runs the tracer without `-U` on the harness
+     project, and the tracer then reads only that project's own sources. The
+     generated harness's `Source_Dirs` are `tests/core`, `tests/hal/common`,
+     `tests/types` and its own `common`; `tests/reqs/` arrives as an *imported*
+     project via `--additional-tests`, so all 98 routines are invisible to the
+     TEST layer. Plain `-U` is not the fix — it would pull the application into
+     a layer that requires every node to carry a `--@covers` tag.
+
+   `min_nodes` therefore stays at 15 and should become 113 once both are fixed.
+   Raising it now would only produce a failure with a misleading cause.
+
+3. **`make check` fails at `HEAD`, independently of #51.** `check-ada` reports
+   `conflicts.ads`, `sources.adb` and `states.ads` "not correctly formatted"
+   with the community gnatformat (26.0.0) provisioned here, on an unmodified
+   `src/`. Pro tools are x86_64-only and this host is aarch64, so the
+   disagreement cannot be settled locally. `make format` was **not** committed
+   for those three files.
+
+4. **`make format` covers no test sources at all.** `tests/tests.gpr` declares
+   `for Source_Dirs use ()`, so neither the generated skeletons nor
+   `tests/reqs/` are ever formatted or format-checked. The new files are
+   hand-formatted to the project's rules (3-space indent, 79 columns, two
+   spaces after `--`). Adding `tests/reqs/reqs_tests.gpr` to `format-ada` and
+   `check-format` needs a gnatformat that can see `aunit`, which is why it was
+   not done here.

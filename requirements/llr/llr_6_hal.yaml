@@ -39,3 +39,6 @@ description:
       - hlr_3_timing.11
     implemented_by:
       - Timings.Delay_For
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_6_hal_tests.adb:Test_01_Delay_For_Returns_After_The_Logical_Span

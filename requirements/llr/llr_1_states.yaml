@@ -234,6 +234,9 @@ description:
       - hlr_4_signals.1
     implemented_by:
       - States.Face_Of
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_19_Face_Of_Reads_The_Movements_Own_Face
 
   20:
     text: |-
@@ -245,6 +248,9 @@ description:
       - States.Is_Go
 
   # ---- durations: representation ----
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_20_Is_Go_Holds_Exactly_For_Green_And_Yellow
   21:
     text: |-
       The States package shall define the type Duration_Ms as the integer range

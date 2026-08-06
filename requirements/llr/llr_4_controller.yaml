@@ -64,6 +64,9 @@ description:
       - hlr_1_modes.2
     implemented_by:
       - Controller.Initialize
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_02_Initialize_Sets_Normal_Operation
 
   3:
     text: |-
@@ -73,6 +76,9 @@ description:
       - hlr_5_vehicle.47
     implemented_by:
       - Controller.Initialize
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_03_Initialize_Sets_Barrier_And_Dwell
 
   4:
     text: |-
@@ -82,6 +88,9 @@ description:
       - hlr_5_vehicle_1_left_demand.2
     implemented_by:
       - Controller.Initialize
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_04_Initialize_Clears_Every_Left_Demand
 
   5:
     text: |-
@@ -93,6 +102,9 @@ description:
       - Controller.Initialize
 
   # ---- output projection ----
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_05_Initialize_Clears_Every_Crosswalk
   6:
     text: |-
       While State.Mode is FAULT, Project_Outputs shall return FLASHING_RED for
@@ -101,6 +113,9 @@ description:
       - hlr_2_fault.1
     implemented_by:
       - Controller.Project_Outputs
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_06_Fault_Projects_Flashing_Red_Faces
 
   7:
     text: |-
@@ -110,6 +125,9 @@ description:
       - hlr_2_fault.2
     implemented_by:
       - Controller.Project_Outputs
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_07_Fault_Projects_Dark_Pedestrian_Heads
 
   8:
     text: |-
@@ -119,6 +137,9 @@ description:
       - hlr_2_fault.3
     implemented_by:
       - Controller.Project_Outputs
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_08_Fault_Projects_No_Request_Indicators
 
   9:
     text: |-
@@ -129,6 +150,9 @@ description:
       - hlr_4_signals.1
     implemented_by:
       - Controller.Project_Outputs
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_09_Normal_Projects_Vehicle_Faces
 
   10:
     text: |-
@@ -139,6 +163,9 @@ description:
       - hlr_4_signals.2
     implemented_by:
       - Controller.Project_Outputs
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_10_Normal_Projects_Pedestrian_Heads
 
   11:
     text: |-
@@ -149,6 +176,9 @@ description:
       - hlr_4_signals.3
     implemented_by:
       - Controller.Project_Outputs
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_11_Normal_Projects_Request_Indicators
 
   12:
     text: |-
@@ -171,6 +201,9 @@ description:
       - hlr_1_modes.3
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_13_Asserted_Fault_Enters_Fault_Mode
 
   14:
     text: |-
@@ -180,6 +213,9 @@ description:
       - hlr_1_modes.4
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_14_Fault_Step_Emits_The_Projection
 
   15:
     text: |-
@@ -191,6 +227,9 @@ description:
       - Controller.Step
 
   # ---- Step: advance and emit ----
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_15_Fault_Step_Changes_Nothing
   16:
     text: |-
       While State.Mode is NORMAL_OPERATION, Step shall set Outputs to
@@ -203,6 +242,21 @@ description:
       - hlr_4_signals.3
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_16_Outputs_Project_The_Resulting_State
+    #     status: "FAILING: this statement -- and the context section twice over
+    #       ('then emits the resulting state') -- requires Outputs to be the
+    #       projection of the state left by this step's arming AND timed
+    #       transition. Controller.Step emits before it advances the timers and
+    #       never recomputes, so every Moore output appears one T_SAMPLE after the
+    #       state change that produced it. Dwell durations are unaffected (a state
+    #       is still emitted exactly dwell/T_SAMPLE times) and the lag is uniform
+    #       across the machines, so this is a phase convention, not a timing
+    #       error -- but it contradicts the statement as written. Not #63; found
+    #       writing this test and not yet tracked by an issue. The test's other
+    #       two groups (sampling steps, input arming) pass, so the failure
+    #       localises to the transition phase alone."
 
   17:
     text: |-
@@ -215,6 +269,9 @@ description:
       - hlr_3_timing.13
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_17_Step_Advances_Every_Running_Timer
 
   18:
     text: |-
@@ -227,6 +284,9 @@ description:
       - hlr_3_timing.11
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_18_Transition_Fires_On_Its_Boundary_Step
 
   19:
     text: |-
@@ -238,6 +298,9 @@ description:
       - hlr_5_vehicle_1_left_demand.4
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_19_Green_Edge_Clears_Left_Demand
 
   20:
     text: |-
@@ -249,6 +312,9 @@ description:
       - hlr_6_pedestrian.8
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_20_Green_Edge_Serves_Pedestrian_Request
 
   21:
     text: |-
@@ -275,6 +341,9 @@ description:
       - hlr_5_vehicle_1_left_demand.4
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_22_Boundary_Demand_Served_At_This_Onset
 
 algorithm_aspects: |-
   The running timers are well-defined because State.Veh_Timer always runs in

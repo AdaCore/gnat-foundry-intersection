@@ -19,6 +19,9 @@ description:
       - hlr_1_modes.2
     implemented_by:
       - State_Machine_Loop
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_5_core_loop_tests.adb:Test_01_Initialize_Once_Before_First_Iteration
 
   2:
     text: |-
@@ -35,6 +38,9 @@ description:
       - hlr_4_signals.6
     implemented_by:
       - State_Machine_Loop
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_5_core_loop_tests.adb:Test_02_Iteration_Runs_The_Four_Stages_In_Order
 
   3:
     text: |-
@@ -54,6 +60,9 @@ description:
       - hlr_3_timing.13
     implemented_by:
       - State_Machine_Loop
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_5_core_loop_tests.adb:Test_04_Sources_Read_Once_Per_Sampling_Period
 
 algorithm_aspects: |-
   The four-stage order realizes the fixed-cadence sampled contract

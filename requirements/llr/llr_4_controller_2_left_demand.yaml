@@ -34,6 +34,9 @@ description:
       - hlr_5_vehicle_1_left_demand.3
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_2_left_demand_tests.adb:Test_02_Pending_Approach_Ignores_Its_Detector
 
   3:
     text: |-
@@ -45,6 +48,9 @@ description:
       - hlr_5_vehicle_1_left_demand.4
     implemented_by:
       - Controller.Step
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_2_left_demand_tests.adb:Test_03_Conflicting_Through_Green_Edge_Clears_Pending_Demand
 
 algorithm_aspects: |-
   The arming is level-triggered and guarded by the machine's own state

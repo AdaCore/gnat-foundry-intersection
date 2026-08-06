@@ -31,6 +31,9 @@ description:
       - hlr_4_signals.6
     implemented_by:
       - Buses.Source_Bus.Bus_Read
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_2_buses_tests.adb:Test_01_Bus_Read_Obtains_Whole_Snapshot_From_Producer
 
   2:
     text: |-
@@ -45,6 +48,9 @@ description:
       - hlr_4_signals.6
     implemented_by:
       - Buses.Source_Bus.Bus_Read
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_2_buses_tests.adb:Test_02_Each_Signal_Reported_At_The_Level_Supplied
 
   3:
     text: |-
@@ -57,6 +63,9 @@ description:
       - hlr_4_signals.6
     implemented_by:
       - Buses.Source_Bus.Bus_Read
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_2_buses_tests.adb:Test_03_Bus_Retains_No_Level_Between_Reads
 
   4:
     text: |-
@@ -68,3 +77,6 @@ description:
       - hlr_4_signals.3
     implemented_by:
       - Buses.Display_Bus.Bus_Write
+    # verified_by:
+    #   - means: test
+    #     by: tests/reqs/src/llr_2_buses_tests.adb:Test_04_Bus_Write_Delivers_Before_Returning
