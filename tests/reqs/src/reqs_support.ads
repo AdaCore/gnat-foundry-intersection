@@ -22,8 +22,13 @@ with States;
 package Reqs_Support is
 
    use all type States.Approach;
+   use all type States.Pedestrian_Head;
+   use all type States.Pedestrian_State;
+   use all type States.Request_Indicator;
    use all type States.Vehicle_Face;
    use all type States.Vehicle_Sequencer_State;
+
+   use type States.Duration_Ms;
 
    --  ---------------------------------------------------------------------
    --  Vehicle face rows (llr_4_controller_1_vehicle.3-.24)
@@ -119,6 +124,77 @@ package Reqs_Support is
    --  in this table.
 
    --  ---------------------------------------------------------------------
+   --  Both-through commit intervals (llr_4_controller_1_vehicle.26, .29,
+   --  .39, .42)
+   --  ---------------------------------------------------------------------
+
+   --  The one dwell the requirements give as an expression rather than a
+   --  constant, and the only expected value in this file shared by more than
+   --  one statement's routine -- so it is transcribed once, here, in the form
+   --  the statement writes it: as the arithmetic over the named durations, NOT
+   --  as the millisecond total it happens to come to. A reviewer compares an
+   --  expression against an expression; a number would have to be recomputed
+   --  to be checked, and a wrong number reads as plausible.
+   --
+   --  The two differ only in whether the axis slot already spent a leading
+   --  left: entering both-through straight off the barrier, nothing has run
+   --  yet; entering it from the lead's red clearance, the whole lead block has.
+   --  Both reserve a full lagging-left block, which is the substance of #63 --
+   --  the code reserves only the closing yellow, so all four statements that
+   --  name these intervals fail today.
+
+   Commit_After_Barrier : constant States.Duration_Ms :=
+     States.T_Axis
+     - States.T_Barrier
+     - (States.T_Yellow + States.T_Redclear + States.T_Lag + States.T_Yellow);
+   --  .26 and .39: the commit interval when no lead ran.
+
+   Commit_After_Lead : constant States.Duration_Ms :=
+     States.T_Axis
+     - States.T_Barrier
+     - (States.T_Lead + States.T_Yellow + States.T_Redclear)
+     - (States.T_Yellow + States.T_Redclear + States.T_Lag + States.T_Yellow);
+   --  .29 and .42: the commit interval after a leading left ran.
+
+   --  ---------------------------------------------------------------------
+   --  Pedestrian output rows (llr_4_controller_3_pedestrian.1-.9)
+   --  ---------------------------------------------------------------------
+
+   type Ped_Row is record
+      Head    : States.Pedestrian_Head;
+      Request : States.Request_Indicator;
+   end record;
+   --  The two output signals a crosswalk's state drives: its head (Head_Of,
+   --  statements .1-.5) and its request indicator (Request_Of, .6-.9). Held as
+   --  one row per state because both are Moore outputs of the same state, so a
+   --  reviewer reads a state's whole output in one place -- but each column is
+   --  asserted by the routine of the statement that gives it.
+
+   type Ped_Table is array (States.Pedestrian_State) of Ped_Row;
+
+   --  One row per pedestrian state, transcribed from
+   --  llr_4_controller_3_pedestrian.1-.9. Named associations and no `others`
+   --  choice, for the same reason as Expected_Faces: a new pedestrian state
+   --  fails the build until its two outputs are transcribed.
+   --
+   --  Each row carries the two statements it came from. Note that .5 and .8
+   --  each speak for more than one state -- so those statements' routines
+   --  assert every state they name, and a row is never asserted by no routine.
+   Expected_Ped : constant Ped_Table :=
+     (No_Pedestrian_Request      =>  --  .1 DONT_WALK, .6 NO_REQUEST
+        (Head => Dont_Walk, Request => No_Request),
+      Pending_Pedestrian_Request =>  --  .2 DONT_WALK, .7 REQUEST_PENDING
+        (Head => Dont_Walk, Request => Request_Pending),
+      Walk_Interval              =>  --  .3 WALK, .8 NO_REQUEST
+        (Head => Walk, Request => No_Request),
+      Change_Interval            =>  --  .4 FLASH_DONT_WALK, .8 NO_REQUEST
+        (Head => Flash_Dont_Walk, Request => No_Request),
+      Buffer_Interval            =>  --  .5 DONT_WALK, .8 NO_REQUEST
+        (Head => Dont_Walk, Request => No_Request),
+      Buffer_Interval_Latched    =>  --  .5 DONT_WALK, .9 REQUEST_PENDING
+        (Head => Dont_Walk, Request => Request_Pending));
+
+   --  ---------------------------------------------------------------------
    --  State constructors
    --  ---------------------------------------------------------------------
 
@@ -134,5 +210,17 @@ package Reqs_Support is
       return Controller.Controller_State;
    --  A NORMAL_OPERATION state parked in sequencer state V with Remaining of
    --  its dwell left and every other machine idle.
+
+   function Pedestrian_State
+     (C         : States.Crosswalk;
+      P         : States.Pedestrian_State;
+      Remaining : States.Duration_Ms := 0)
+      return Controller.Controller_State;
+   --  A NORMAL_OPERATION state with crosswalk C in pedestrian state P and
+   --  Remaining of its dwell left, every other crosswalk idle, and the vehicle
+   --  sequencer parked mid-dwell in EW_BARRIER_ALLRED -- a state whose every
+   --  face is RED (llr_4_controller_1_vehicle.24), so no through face can rise
+   --  to GREEN during a step and key a service edge onto the crosswalk under
+   --  test. What the test observes is then the pedestrian behaviour alone.
 
 end Reqs_Support;
