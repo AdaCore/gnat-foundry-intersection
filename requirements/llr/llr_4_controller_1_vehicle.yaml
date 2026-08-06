@@ -43,11 +43,30 @@ description:
     implemented_by:
       - Controller.Advance_Vehicle
     # verified_by:
-    #   - means: analysis
-    #     by: "PLACEHOLDER (#101): LKQL rule asserting that no assignment whose
-    #       target is a State.Vehicle component appears outside the body of
-    #       Controller.Advance_Vehicle. Not written yet, so this statement is
-    #       currently unverified."
+    #   - means: proof
+    #     by: src/core/controller.ads:108-118
+    #     status: "The frame half of the statement, and the stronger reading of
+    #       it: Step holds State.Vehicle on every branch that does not call
+    #       Advance_Vehicle, quantified over every state and timer value. What
+    #       it does not say is that the assignment textually lives in
+    #       Advance_Vehicle -- which is not true as written anyway, since
+    #       Advance_Vehicle delegates the both-through entries to its local
+    #       helper Enter_Both (src/core/controller.adb:230-240)."
+    #   - means: proof
+    #     by: src/core/controller.adb:375-390
+    #     status: "The other subprogram that mutates the state in place,
+    #       Advance_Ped, is shown not to move the sequencer -- including on the
+    #       steps where Step is permitted to move it and so cannot say who
+    #       did."
+    #   - means: test
+    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb
+    #     status: "The 'admits exactly the transitions of 25-50' half is the
+    #       routines of .25-.50 taken together: each names the successor of one
+    #       sequencer state, the case is exhaustive without an `others` choice,
+    #       and the successor is a function of state and guards, so the set of
+    #       admitted transitions is pinned by the set of routines. Six of them
+    #       cannot be written and four fail (#63), so this half is as complete
+    #       as that file is and no more."
 
   2:
     text: |-
@@ -61,6 +80,12 @@ description:
     # verified_by:
     #   - means: test
     #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_02_Vehicle_Held_While_Dwell_Remains
+    #   - means: proof
+    #     by: src/core/controller.ads:108-118
+    #     status: "Step's frame contract is this statement, universally
+    #       quantified: with more than one sampling period of dwell left the
+    #       sequencer is held, whatever the state and whatever the inputs. The
+    #       test samples the timer values it picks; the contract does not."
 
   # ---- Moore output rows, NS axis (all unlisted faces RED) ----
   3:
