@@ -7,11 +7,14 @@ licenses = "Apache-2.0 WITH LLVM-exception"
 tags = ["ada", "libadalang", "static-analysis", "json", "tooling"]
 
 # Deliberately *not* pinned to the root `traffic_light` crate: the tool is
-# app-agnostic and takes the project to analyse on the command line. It is also
-# kept out of the repo's `install/`-scoped Alire settings (which carry no
-# index) - build it with plain `alr` from this directory. See README.md.
+# app-agnostic and takes the project to analyse on the command line. See
+# README.md.
 executables = ["ada_tracer"]
 project-files = ["ada_tracer.gpr"]
 
 [[depends-on]]
-libadalang = "*"
+# `libadalang < 26` do not declare their incompatibility with `gnat >= 16`, so
+# some solutions would fail to build.
+libadalang = ">=26"
+# Host-only; don't fall back to the cross-compiler when the default is incompatible.
+gnat_native = "*"
