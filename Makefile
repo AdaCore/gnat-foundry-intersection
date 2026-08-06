@@ -3,7 +3,8 @@ SHELL := bash
 .ONESHELL:
 
 .DEFAULT_GOAL := build-native
-.PHONY: printenv generate-config build-native build-target run-native run-target \
+.PHONY: help printenv clean generate-config build-native build-target \
+        run-native run-target \
         prove prove-report \
         format format-ada format-python check check-ada check-shell check-python \
         check-python-reqs check-python-report \
@@ -91,8 +92,19 @@ export UV_TOOL_BIN_DIR       := $(LOCAL_BIN)
 export UV_PYTHON_INSTALL_DIR := $(UV_DATA_DIR)/python
 endif
 
-# Print environment for tools/dependencies
-printenv:
+# ----------------------------------------------------------------------------
+##@ General
+# ----------------------------------------------------------------------------
+
+# Sections come from the `##@ <name>` banners below, target descriptions from
+# a trailing `## <text>` on the target's own line.
+help: ## List the public targets, by section
+	@awk 'BEGIN { FS = ":[^#]*##" } \
+	     /^##@/ { printf "\n%s\n", substr($$0, 5); next } \
+	     /^[a-zA-Z0-9_.-]+:.*##/ { printf "  %-26s  %s\n", $$1, $$2 }' \
+	     $(MAKEFILE_LIST)
+
+printenv: ## Print the tool and dependency environment as shell exports
 	@$(ALR) printenv
 ifneq (,$(filter pro external,$(SETUP)))
 	# `alr printenv` only prints `PATH` when alr manages the toolchain
@@ -102,27 +114,29 @@ endif
 	  if [ -v "$$var" ]; then echo "export $$var=\"$${!var}\""; fi
 	done
 
+# Build products and outputs only. The provisioned toolchain (install/, see
+# reset-hard) and Alire's resolved dependencies are left alone.
+clean: ## Remove every build product and output
+	rm -rf bin obj lib reports $(COVERAGE_LOG) \
+	    tests/obj $(TRACER_DIR)/bin $(TRACER_DIR)/obj
+
 # ----------------------------------------------------------------------------
-# Build / run / prove / format
+##@ Build and run
 # ----------------------------------------------------------------------------
 
-# Explicitly generate the `config/` directory for the `traffic_light` crate.
-generate-config:
+generate-config: ## Generate the `traffic_light` crate's config/ directory
 	$(ALR) build --stop-after=generation
 
-# Host build (native crate, stub HAL) -> bin/traffic_light.
-build-native:
+build-native: ## Host build (native crate, stub HAL) -> bin/traffic_light
 	$(ALR) build
 
-# QEMU build (sibling crate) -> bin/target/traffic_light.
-#
 # We have to generate the root `config/` directory explicitly because the
 # `traffic_light` crate is not in the Alire closure (but its config is in the
 # GPR closure).
 #
 # Only community builds via `alr` (its gnat_arm_elf dep provides the cross
 # compiler); otherwise gprbuild runs directly with the arm-elf tools on PATH.
-build-target: generate-config
+build-target: generate-config ## QEMU build (sibling crate) -> bin/target/traffic_light
 ifeq ($(SETUP),community)
 	cd traffic_light_qemu && $(ALR) build -- -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 else
@@ -130,52 +144,53 @@ else
 	    -XBUILD_KIND=target -XTICK_PERIOD_US=$(TICK_PERIOD_US)
 endif
 
-# Run the host executable. (Not `alr run`: the QEMU crate emits an
-# identically-named binary under bin/, so `alr run` finds two candidates and
-# bails.) Reads commands on stdin, emits diagnostics on stdout; until Ctrl-C.
-run-native: build-native
+# Not `alr run`: the QEMU crate emits an identically-named binary under bin/,
+# so `alr run` finds two candidates and bails. Reads commands on stdin, emits
+# diagnostics on stdout; until Ctrl-C.
+run-native: build-native ## Run the host executable
 	(stty -echo ; ./bin/traffic_light)
 
-# Run the firmware under QEMU (xilinx-zynq-a9). UART0 (diagnostics) is on your
-# terminal; UART1 (wire-protocol commands) is served on 127.0.0.1:$(QEMU_UART1)
-# for an optional client. Quit QEMU with Ctrl-A x. Needs qemu-system-arm.
-run-target: build-target
+# UART0 (diagnostics) is on your terminal; UART1 (wire-protocol commands) is
+# served on 127.0.0.1:$(QEMU_UART1) for an optional client. Quit QEMU with
+# Ctrl-A x. Needs qemu-system-arm.
+run-target: build-target ## Run the firmware under QEMU (xilinx-zynq-a9)
 	qemu-system-arm -M xilinx-zynq-a9 -m 1G -nographic \
 	  -serial mon:stdio \
 	  -serial tcp:127.0.0.1:$(QEMU_UART1),server,nowait \
 	  -kernel bin/target/traffic_light
 
-# SPARK proofs (silver level: absence of run-time errors) across the default
-# project. Only SPARK_Mode units are analyzed; the rest are skipped.
-# gnatprove resolves via the local prefix (on PATH) under `alr exec`.
-prove:
+# ----------------------------------------------------------------------------
+##@ Proof
+# ----------------------------------------------------------------------------
+
+# Only SPARK_Mode units are analyzed; the rest are skipped. gnatprove resolves
+# via the local prefix (on PATH) under `alr exec`.
+prove: ## SPARK proofs (silver level) across the default project
 	$(ALR) exec -P -- gnatprove -U --level=2 --report=statistics --checks-as-errors=on
 
-# Proof run for report generation (`make report`): a clean, forced re-analysis
-# so every unit's artifacts come from this one run under one switch set, plus
-# proof assumptions and a provenance header. Unlike `prove` (the gate), unproved
-# checks do not fail this target — the report records them.
+# A clean, forced re-analysis so every unit's artifacts come from this one run
+# under one switch set, plus proof assumptions and a provenance header. Unlike
+# `prove` (the gate), unproved checks do not fail this target — the report
+# records them.
 GNATPROVE_ARTIFACTS := obj/development/gnatprove
-prove-report:
+prove-report: ## Proof run feeding `make report`
 	$(ALR) exec -P -- gnatprove --clean
 	$(ALR) exec -P -- gnatprove -U -f --level=2 --report=statistics \
 	    --assumptions --output-header
 	$(ALR) exec -- gnatprove --version > $(GNATPROVE_ARTIFACTS)/gnatprove-version.txt
 
-# Format / check aggregators.
-format: format-ada format-python
-check: check-ada check-shell check-python
+# ----------------------------------------------------------------------------
+##@ Format and check
+# ----------------------------------------------------------------------------
 
-# Remove build products and outputs
-clean:
-	rm -rf obj reports
+format: format-ada format-python ## Reformat all sources (Ada and Python)
+check: check-ada check-shell check-python ## Verify formatting and lint (Ada, shell, Python)
 
-# Reformat all Ada sources of the three projects in place (gnatformat).
 # With pro tools (pro/external), run gnatformat directly: `alr` would fetch
 # the community gnat_arm_elf/aunit crates for the nested crates instead.
 # Otherwise alr provides those crates (community) or resolves them from the
 # configured index (the SETUP=none CI check job).
-format-ada: generate-config
+format-ada: generate-config ## Reformat all Ada sources in place (gnatformat)
 ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light.gpr -U --charset utf-8
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
@@ -189,9 +204,8 @@ else
 	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8
 endif
 
-# Verify formatting without editing; exits non-zero if any file would change.
 # Same split as `format-ada` above.
-check-ada: generate-config
+check-ada: generate-config ## Verify Ada formatting; non-zero if any file would change
 ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light.gpr -U --charset utf-8 --check
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
@@ -212,38 +226,37 @@ endif
 	#   eng/ide/gnatdoc#191
 	# $(ALR) exec -P -- gnatdoc --warnings --style trailing
 
-# Lint shell scripts with shellcheck.
-check-shell:
+check-shell: ## Lint the shell scripts (shellcheck)
 	find scripts -type f -exec $(UV) tool run --from shellcheck-py shellcheck {} +
 
-# Format Python sources.
-format-python:
+format-python: ## Format the Python sources (ruff)
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff format
 
-# Lint, type-check and verify formatting of Python, split per engine for CI.
-check-python: check-python-reqs check-python-report
+# Split per engine for CI.
+check-python: check-python-reqs check-python-report ## Lint, type-check and format-check Python
 
 # No --locked for reqs: its lock pins a registry the CI runners don't use.
-check-python-reqs:
+check-python-reqs: ## Python checks for engine/requirements
 	$(UV) --directory "$(REQS_ENGINE)" run ruff check
 	$(UV) --directory "$(REQS_ENGINE)" run mypy
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format --check
 
-check-python-report:
+check-python-report: ## Python checks for engine/report
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff check
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked mypy
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked ruff format --check
 
-# Build and run the AUnit harness.
-#
+# ----------------------------------------------------------------------------
+##@ Test
+# ----------------------------------------------------------------------------
+
 # When `SETUP=community`, run in the context of the `tests/` nested crate,
 # which provides AUnit through `alr`. Otherwise run in the root crate
 # context: AUnit ships with GNAT Pro, and gnattest/gprbuild resolve on PATH.
 HARNESS := obj/development/gnattest/harness
 
-# Generate/refresh GNATtest skeletons.
-generate-tests: generate-config
+generate-tests: generate-config ## Generate/refresh the GNATtest skeletons
 ifeq ($(SETUP),community)
 	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
 	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr --exit-status=on
@@ -251,7 +264,7 @@ else
 	$(ALR) exec -P -- gnattest --exit-status=on
 endif
 
-test: generate-tests
+test: generate-tests ## Build and run the AUnit harness
 ifeq ($(SETUP),community)
 	$(ALR) -C tests exec -- gprbuild -q -P ../$(HARNESS)/test_driver.gpr
 else
@@ -260,7 +273,7 @@ endif
 	$(HARNESS)/test_runner
 
 # ----------------------------------------------------------------------------
-# Requirements validation
+##@ Requirements and traceability
 # ----------------------------------------------------------------------------
 
 REQS_ENGINE := $(CURDIR)/engine/requirements
@@ -270,34 +283,30 @@ TRACE_CHAIN := $(REQS_DIR)/trace_chain.yaml
 # The requirements-only portion of the traceability chain.
 REQUIREMENT_LAYERS  := CONOPS,HLR,LLR
 
-# Check the requirement files for structural validity, EARS syntax, and
-# traceability within the requirements layers.
-validate-reqs:
+validate-reqs: ## Check the requirement files (structure, EARS, requirements-layer trace)
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
 
-# The traceability gate CI runs: diagnostics only, exit status is the verdict.
-trace-check: inventories
+trace-check: inventories ## The traceability gate CI runs: exit status is the verdict
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(TRACE_CHAIN)"
 
-# Show the traceability tables for development (coverage + upward trace per
-# pair), over the whole chain -- including the CODE gap `trace-check` excludes.
-trace: inventories
+# Coverage + upward trace per pair, over the whole chain -- including the CODE
+# gap `trace-check` excludes.
+trace: inventories ## Show the traceability tables for development
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format table --chain "$(TRACE_CHAIN)"
 
-# Run the validation engine's own test suite.
-test-reqs-engine:
+test-reqs-engine: ## Run the validation engine's own test suite
 	$(UV) --directory "$(REQS_ENGINE)" run pytest
 
 # ----------------------------------------------------------------------------
-# Code inventory (engine/ada_tracer)
+##@ Code inventory (engine/ada_tracer)
 # ----------------------------------------------------------------------------
 
 TRACER_DIR := $(CURDIR)/engine/ada_tracer
 TRACER     := $(TRACER_DIR)/bin/ada_tracer
 
-build-tracer:
+build-tracer: ## Build the Ada tracer
 ifeq ($(SETUP),community)
 	cd $(TRACER_DIR) && alr -n build
 else
@@ -322,7 +331,7 @@ TEST_INVENTORY := $(INVENTORY_DIR)/test_inventory.json
 
 # `generate-config`, because traffic_light.gpr imports config/traffic_light_config.gpr
 # and the tracer loads the project like any other tool would.
-code-inventory: build-tracer generate-config
+code-inventory: build-tracer generate-config ## Generate the CODE-layer inventory
 	mkdir -p "$(INVENTORY_DIR)"
 	$(TRACER_RUN) -U -o "$(CODE_INVENTORY)"
 
@@ -342,43 +351,42 @@ endif
 
 # --base-dir keeps the reported file names
 # relative to the repository root rather than to the harness directory.
-test-inventory: build-tracer generate-tests
+test-inventory: build-tracer generate-tests ## Generate the TEST-layer inventory
 	mkdir -p "$(INVENTORY_DIR)" "$(CURDIR)/$(HARNESS)/test_obj"
 	$(TEST_TRACER_RUN) -P "$(CURDIR)/$(HARNESS_PROJECT)" --base-dir "$(CURDIR)" \
 	  -o "$(TEST_INVENTORY)"
 
-inventories: code-inventory test-inventory
+inventories: code-inventory test-inventory ## Generate both inventories
 
 # ----------------------------------------------------------------------------
-# Verification report
+##@ Verification report
 # ----------------------------------------------------------------------------
 
 REPORT_ENGINE := $(CURDIR)/engine/report
 REPORT_OUT    := $(CURDIR)/reports/report
 
-# Regenerate the evidence, then the verification report (proof + coverage +
-# review obligations). The prerequisites guarantee the report never describes
-# stale artifacts: `validate-reqs` gates the traceability claims,
-# `prove-report` is a clean, forced (-f) gnatprove run, and `all-coverage`
-# re-runs the tests before `coverage-report-xml` reads the traces.
+# The prerequisites guarantee the report never describes stale artifacts:
+# `validate-reqs` gates the traceability claims, `prove-report` is a clean,
+# forced (-f) gnatprove run, and `all-coverage` re-runs the tests before
+# `coverage-report-xml` reads the traces.
 REPORT_EVIDENCE := validate-reqs prove-report all-coverage coverage-report-xml
 
-report: $(REPORT_EVIDENCE)
+report: $(REPORT_EVIDENCE) ## Regenerate the evidence, then the verification report
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)"
 
-# Same as `report`, plus a PDF rendering (rst2pdf — pure Python, no TeX
-# toolchain needed) at reports/report/pdf/verification-report.pdf.
-report-pdf: $(REPORT_EVIDENCE)
+# rst2pdf -- pure Python, no TeX toolchain needed.
+report-pdf: $(REPORT_EVIDENCE) ## Same as `report`, plus a PDF rendering
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf
 
-# Run the report engine's own test suite.
-test-report-engine:
+test-report-engine: ## Run the report engine's own test suite
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked pytest
 
 # ----------------------------------------------------------------------------
-# Setup: provision all developer tooling locally under install/. Pick one:
+##@ Setup
+#
+# Provision all developer tooling locally under install/. Pick one:
 #   setup-community: community tools, fetched via Alire (needs internet).
 #   setup-pro:       pro tools, from GNAT Tracker downloads staged under
 #                    $(PRO_DOWNLOADS), or from PATH if already provided.
@@ -392,37 +400,30 @@ SETUP_ENV := PATH='$(SYSTEM_PATH)' \
     ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS_DIR)' \
     SETUP_MARKER='$(SETUP_MARKER)'
 
-# One-shot: uv, Alire, the community GNAT toolchains, and
-# gnattest/gnatcov/gnatformat/gnatprove.
-setup-community:
+setup-community: ## One-shot: uv, Alire, the community toolchains and tools
 	@$(SETUP_ENV) \
 	    ALIRE_PREFIX='$(ALIRE_PREFIX)' \
 	    scripts/setup/community.sh
 
-# One-shot: GNAT Pro (native + arm-elf), SPARK Pro and GNAT DAS, from the
-# staged tarballs or from PATH ($(PRO_TOOLS)). alr is left unconfigured:
-# the pro tools resolve on PATH.
-setup-pro:
+# From the staged tarballs or from PATH ($(PRO_TOOLS)). alr is left
+# unconfigured: the pro tools resolve on PATH.
+setup-pro: ## One-shot: GNAT Pro (native + arm-elf), SPARK Pro and GNAT DAS
 	@$(SETUP_ENV) \
 	    PRO_DIR='$(PRO_DIR)' \
 	    PRO_DOWNLOADS='$(PRO_DOWNLOADS)' \
 	    PRO_TOOLS='$(PRO_TOOLS)' \
 	    scripts/setup/pro.sh
 
-# ----------------------------------------------------------------------------
-# Reset: remove everything the setup-* targets installed.
-# ----------------------------------------------------------------------------
-
-# Remove install/ entirely. Staged pro downloads ($(PRO_DOWNLOADS)), sources
-# and build artifacts (bin/, obj/) are untouched.
-reset-hard:
+# Staged pro downloads ($(PRO_DOWNLOADS)), sources and build artifacts (bin/,
+# obj/) are untouched.
+reset-hard: ## Remove install/ entirely -- everything the setup-* targets installed
 	@echo "Removing locally-installed setup tooling at $(INSTALL_DIR) ..."
 	rm -rf "$(INSTALL_DIR)"
 	echo "Done. Staged tarballs, sources and build artifacts left untouched."
 
-####################
-# Coverage support #
-####################
+# ----------------------------------------------------------------------------
+##@ Coverage
+# ----------------------------------------------------------------------------
 
 # Where the traces will be emitted
 GNATCOV_TRACES := $$(pwd)/obj/gnatcov-traces
@@ -436,28 +437,34 @@ COVERAGE_REPORTS := $$(pwd)/reports/coverage
 $(COVERAGE_REPORTS):
 	mkdir -p $(COVERAGE_REPORTS)
 
-# Provision the local gnatcov RTS (named alias for the file rule below).
-coverage-rts: $(GNATCOV_RTS)
+# "quiet" all-in-one coverage, for use by agents. Only NON-exempted violations
+# count as errors.
+COVERAGE_LOG := coverage.log
+all-coverage: ## Instrument, build, test, and print the coverage violations only
+	@make coverage-instrumentation coverage-build coverage-test > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
+	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
+	@awk '/^== 3\. EXEMPTED REGIONS ==/ {exit} {print}' $(COVERAGE_REPORTS)/report.txt \
+		| grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' || true
+
+# Named alias for the file rule below.
+coverage-rts: $(GNATCOV_RTS) ## Provision the local gnatcov RTS
 
 # Local gnatcov RTS
 $(GNATCOV_RTS):
 	$(ALR) exec -- gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
 
-# Create the instrumented sources
-coverage-instrumentation: $(GNATCOV_RTS)
+coverage-instrumentation: $(GNATCOV_RTS) ## Create the instrumented sources
 	$(ALR) exec -P2 -- gnatcov instrument \
 		--level=stmt+mcdc \
 	    --runtime-project $(GNATCOV_RTS)
 
-# Build the intrumented sources
-coverage-build:
+coverage-build: ## Build the instrumented sources
 	$(ALR) build -- -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 
-# Instrument, build and run the tests for coverage. Same community/other
-# split as `test` above.
-coverage-test: generate-tests
+# Same community/other split as `test` above.
+coverage-test: generate-tests ## Instrument, build and run the tests for coverage
 	rm -rf $(GNATCOV_TRACES)
 	mkdir -p $(GNATCOV_TRACES)
 ifeq ($(SETUP),community)
@@ -480,8 +487,7 @@ endif
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	    $(HARNESS)/test_runner
 
-# Generate a cobertura coverage report (XML) from the traces.
-coverage-report-cobertura: $(COVERAGE_REPORTS)
+coverage-report-cobertura: $(COVERAGE_REPORTS) ## Coverage report: cobertura XML
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
@@ -489,8 +495,7 @@ coverage-report-cobertura: $(COVERAGE_REPORTS)
 		--output-dir $(COVERAGE_REPORTS)/cobertura \
 		$(GNATCOV_TRACES)/
 
-# Generate the coverage HTML report (not available with community gnatcov)
-coverage-report-html: $(COVERAGE_REPORTS)
+coverage-report-html: $(COVERAGE_REPORTS) ## Coverage report: HTML (not with community gnatcov)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
@@ -498,8 +503,7 @@ coverage-report-html: $(COVERAGE_REPORTS)
 		--output-dir $(COVERAGE_REPORTS)/html \
 		$(GNATCOV_TRACES)/
 
-# Generate the coverage text report
-coverage-report-text: $(COVERAGE_REPORTS)
+coverage-report-text: $(COVERAGE_REPORTS) ## Coverage report: text
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
 	    --level=stmt+mcdc \
@@ -507,27 +511,15 @@ coverage-report-text: $(COVERAGE_REPORTS)
 		-o $(COVERAGE_REPORTS)/report.txt \
 		$(GNATCOV_TRACES)/
 
-# Generate the machine-readable XML coverage report (full fidelity: per-
-# obligation stmt/decision/MC/DC, per-scope metrics, exemption justifications).
-# Parsed by `make report`. Like the other coverage-report-* targets, this
+# Full fidelity: per-obligation stmt/decision/MC/DC, per-scope metrics,
+# exemption justifications. Like the other coverage-report-* targets, this
 # consumes whatever traces are under $(GNATCOV_TRACES) — run `coverage-test`
-# (or `all-coverage`) first for fresh ones.
-# The exact command is recorded next to the XML, only after a zero exit.
+# (or `all-coverage`) first for fresh ones. The exact command is recorded next
+# to the XML, only after a zero exit.
 GNATCOV_XML_CMD = gnatcov coverage --level=stmt+mcdc --annotate=xml \
     --output-dir $(COVERAGE_REPORTS)/xml $(GNATCOV_TRACES)/
-coverage-report-xml: $(COVERAGE_REPORTS)
+coverage-report-xml: $(COVERAGE_REPORTS) ## Coverage report: machine-readable XML, parsed by `make report`
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- $(GNATCOV_XML_CMD)
 	echo "$(GNATCOV_XML_CMD)" > $(COVERAGE_REPORTS)/xml/gnatcov-command.txt
 	$(ALR) exec -- gnatcov --version > $(COVERAGE_REPORTS)/xml/gnatcov-version.txt
-
-# "quiet" all-in-one coverage, for use by agents: create a
-# coverage report and print only the errors, if any.
-#
-# Only NON-exempted violations count as errors.
-COVERAGE_LOG := coverage.log
-all-coverage:
-	@make coverage-instrumentation coverage-build coverage-test > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
-	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
-	@awk '/^== 3\. EXEMPTED REGIONS ==/ {exit} {print}' $(COVERAGE_REPORTS)/report.txt \
-		| grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' || true
