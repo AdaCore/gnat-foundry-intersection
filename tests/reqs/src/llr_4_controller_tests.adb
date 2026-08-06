@@ -119,6 +119,123 @@ package body Llr_4_Controller_Tests is
    end Check_Display;
 
    ------------------------------------------------------------------------
+   --  Statement .1 -- the composite state record
+   ------------------------------------------------------------------------
+
+   procedure Test_01_Controller_State_Holds_The_Five_Machines
+     (T : in out Test)
+   is
+      --@covers llr_4_controller.1
+
+      pragma Unreferenced (T);
+
+      --  A shape witness (tests/reqs/README.md rule 10). Named associations
+      --  and no `others` choice, so a component added to Controller_State
+      --  leaves this aggregate incomplete and one removed or renamed leaves a
+      --  choice naming nothing -- either fails the build here. Each value is
+      --  supplied through a constant of the type .1 requires the component to
+      --  have, so the component types are checked too: a Left component of
+      --  any type other than Left_Demand_Array would not take Every_Approach.
+      --
+      --  VEH_LAG IS NOT A COMPONENT .1 NAMES. It is a seventh field the
+      --  implementation carries, and it is listed here because omitting it
+      --  would make the aggregate incomplete and break the build rather than
+      --  report a finding. So what this routine establishes is the "holding"
+      --  clause -- the six components .1 names are present, with the types it
+      --  gives them -- plus a build-time gate on any *further* component. It
+      --  does not establish that the six are all there is; the one existing
+      --  surplus is admitted by name, deliberately and visibly.
+      --
+      --  The surplus is not cosmetic. Veh_Lag latches the lag decision at
+      --  both-through entry (src/core/controller.adb:237) and the exit guards
+      --  read the latch (:275, :333), whereas llr_4_controller_1_vehicle.30
+      --  and .43 require the demand to be read live at the commit boundary --
+      --  which is why those two statements fail today. Removing the field is
+      --  part of resolving that divergence, not a separate tidy-up.
+
+      Idle_Mode     : constant States.Mode := Normal_Operation;
+      Idle_Vehicle  : constant States.Vehicle_Sequencer_State :=
+        EW_Barrier_Allred;
+      Idle_Timer    : constant States.Duration_Ms := 0;
+      Every_Approach : constant States.Left_Demand_Array :=
+        (others => No_Left_Demand);
+      Every_Crosswalk : constant States.Pedestrian_Array :=
+        (others => No_Pedestrian_Request);
+      Every_Ped_Timer : constant Controller.Pedestrian_Timers :=
+        (others => 0);
+
+      Witness : constant Controller.Controller_State :=
+        (Mode      => Idle_Mode,
+         Vehicle   => Idle_Vehicle,
+         Veh_Timer => Idle_Timer,
+         Veh_Lag   => False,  --  not named by .1 -- see above
+         Left      => Every_Approach,
+         Ped       => Every_Crosswalk,
+         Ped_Timer => Every_Ped_Timer);
+
+      --  Read back through the record, so each check lands on the component
+      --  rather than on the constant it was built from.
+
+      Mode_Held    : constant States.Mode := Witness.Mode;
+      Vehicle_Held : constant States.Vehicle_Sequencer_State :=
+        Witness.Vehicle;
+      Timer_Held   : constant States.Duration_Ms := Witness.Veh_Timer;
+   begin
+      Assert
+        (Mode_Held = Normal_Operation,
+         "Controller_State must hold the Mode (llr_4_controller.1), but the"
+         & " component did not read back the mode written into it");
+
+      Assert
+        (Vehicle_Held = EW_Barrier_Allred,
+         "Controller_State must hold the Vehicle_Sequencer_State"
+         & " (llr_4_controller.1), but the component did not read back the"
+         & " sequencer state written into it");
+
+      Assert
+        (Timer_Held = 0,
+         "Controller_State must hold the sequencer's remaining-time field"
+         & " Veh_Timer (llr_4_controller.1), but the component did not read"
+         & " back the value written into it");
+
+      --  The two arrays are checked per index, which is what ".1"'s
+      --  "Left_Demand_Array" and "per-crosswalk remaining-time array"
+      --  amount to: one cell reachable per approach and per crosswalk, of
+      --  the component type each machine's state is held in.
+
+      for A in States.Approach loop
+         declare
+            Cell : constant States.Left_Demand_State := Witness.Left (A);
+         begin
+            Assert
+              (Cell = No_Left_Demand,
+               "the Left_Demand_Array cell for "
+               & States.Approach'Image (A)
+               & " did not read back the state written into it");
+         end;
+      end loop;
+
+      for C in States.Crosswalk loop
+         declare
+            Cell  : constant States.Pedestrian_State := Witness.Ped (C);
+            Timer : constant States.Duration_Ms := Witness.Ped_Timer (C);
+         begin
+            Assert
+              (Cell = No_Pedestrian_Request,
+               "the Pedestrian_Array cell for "
+               & States.Crosswalk'Image (C)
+               & " did not read back the state written into it");
+
+            Assert
+              (Timer = 0,
+               "the Ped_Timer cell for "
+               & States.Crosswalk'Image (C)
+               & " did not read back the remaining time written into it");
+         end;
+      end loop;
+   end Test_01_Controller_State_Holds_The_Five_Machines;
+
+   ------------------------------------------------------------------------
    --  The power-on state (statements 2-5)
    ------------------------------------------------------------------------
 

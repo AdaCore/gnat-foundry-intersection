@@ -38,6 +38,9 @@ description:
       - hlr_4_signals.1
     implemented_by:
       - States.Vehicle_Face
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_01_Vehicle_Face_Has_Exactly_Four_Literals
 
   2:
     text: |-
@@ -48,6 +51,9 @@ description:
       - hlr_4_signals.2
     implemented_by:
       - States.Pedestrian_Head
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_02_Pedestrian_Head_Has_Exactly_Four_Literals
 
   3:
     text: |-
@@ -58,6 +64,9 @@ description:
       - hlr_4_signals.3
     implemented_by:
       - States.Request_Indicator
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_03_Request_Indicator_Has_Exactly_Two_Literals
 
   # ---- input signal alphabets ----
   4:
@@ -69,6 +78,9 @@ description:
       - hlr_4_signals.4
     implemented_by:
       - States.Fault_Detection
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_04_Fault_Detection_Has_Exactly_Two_Literals
 
   5:
     text: |-
@@ -79,6 +91,9 @@ description:
       - hlr_4_signals.5
     implemented_by:
       - States.Pedestrian_Button
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_05_Pedestrian_Button_Has_Exactly_Two_Literals
 
   6:
     text: |-
@@ -89,6 +104,9 @@ description:
       - hlr_4_signals.6
     implemented_by:
       - States.Left_Turn_Detector
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_06_Left_Turn_Detector_Has_Exactly_Two_Literals
 
   # ---- instance indices ----
   7:
@@ -101,6 +119,9 @@ description:
       - hlr_6_pedestrian.1
     implemented_by:
       - States.Approach
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_07_Approach_Has_Exactly_Four_Literals
 
   8:
     text: |-
@@ -111,6 +132,9 @@ description:
       - hlr_6_pedestrian.1
     implemented_by:
       - States.Crosswalk
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_08_Crosswalk_Has_Exactly_Four_Literals
 
   # ---- machine-state enumerations ----
   9:
@@ -121,6 +145,9 @@ description:
       - hlr_1_modes.1
     implemented_by:
       - States.Mode
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_09_Mode_Has_Exactly_Two_Literals
 
   10:
     text: |-
@@ -130,6 +157,9 @@ description:
       - hlr_5_vehicle_1_left_demand.1
     implemented_by:
       - States.Left_Demand_State
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_10_Left_Demand_State_Has_Exactly_Two_Literals
 
   11:
     text: |-
@@ -139,6 +169,9 @@ description:
       - hlr_5_vehicle_1_left_demand.1
     implemented_by:
       - States.Left_Demand_Array
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_11_Left_Demand_Array_Holds_One_State_Per_Approach
 
   12:
     text: |-
@@ -156,6 +189,17 @@ description:
       - hlr_5_vehicle.50
     implemented_by:
       - States.Vehicle_Sequencer_State
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_12_Vehicle_Sequencer_Has_Exactly_Twenty_Two_States
+    #     status: "FAILING (#63): the witness names the states this
+    #       statement gives, but two of the twenty-two --
+    #       NS_BOTH_THROUGH_HOLD and EW_BOTH_THROUGH_HOLD -- are not
+    #       literals of the type, so they cannot be named at all and the
+    #       routine asserts the count instead. The type has twenty. This
+    #       is the divergence that also keeps six statements of
+    #       llr_4_controller_1_vehicle untestable; expected to pass
+    #       unchanged once #63 lands."
 
   13:
     text: |-
@@ -166,6 +210,9 @@ description:
       - hlr_6_pedestrian.1
     implemented_by:
       - States.Pedestrian_State
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_13_Pedestrian_State_Has_Exactly_Six_Literals
 
   14:
     text: |-
@@ -175,6 +222,9 @@ description:
       - hlr_6_pedestrian.1
     implemented_by:
       - States.Pedestrian_Array
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_14_Pedestrian_Array_Holds_One_State_Per_Crosswalk
 
   15:
     text: |-
@@ -186,6 +236,9 @@ description:
       - hlr_0_safety.1
     implemented_by:
       - States.Serving_Pedestrian_State
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_15_Serving_Pedestrian_State_Spans_Walk_To_Buffer_Latched
 
   # ---- I/O aggregates ----
   16:
@@ -200,6 +253,9 @@ description:
       - hlr_4_signals.3
     implemented_by:
       - States.Display_State
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_16_Display_State_Aggregates_Every_Output_Signal
 
   17:
     text: |-
@@ -212,6 +268,9 @@ description:
       - hlr_4_signals.6
     implemented_by:
       - States.Sensors_State
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_17_Sensors_State_Aggregates_Every_Input_Signal
 
   # ---- the movement view (what the safety invariant quantifies over) ----
   18:
@@ -223,6 +282,9 @@ description:
       - hlr_0_safety.2
     implemented_by:
       - States.Movement
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_18_Movement_Has_Exactly_Eight_Literals
 
   19:
     text: |-

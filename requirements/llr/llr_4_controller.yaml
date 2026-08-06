@@ -54,6 +54,16 @@ description:
       - hlr_6_pedestrian.1
     implemented_by:
       - Controller.Controller_State
+    # verified_by:
+    #   - means: compiler_check
+    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_01_Controller_State_Holds_The_Five_Machines
+    #     status: "PARTIAL: the witness establishes that the six components
+    #       this statement names are present with the types it gives them, and
+    #       fails the build on any *further* component. It does not establish
+    #       that the six are all there is: Controller_State also carries
+    #       Veh_Lag, which no statement names, and the witness admits it by
+    #       name rather than breaking the build. Veh_Lag goes away with the
+    #       live lag read (#63, llr_4_controller_1_vehicle.30/.43)."
 
   # ---- power-on state ----
   2:
@@ -190,7 +200,7 @@ description:
       - Controller.Project_Outputs
     # verified_by:
     #   - means: proof
-    #     by: src/core/controller.ads:93
+    #     by: src/core/controller.ads:100
 
   # ---- Step: fault pre-emption ----
   13:
@@ -326,7 +336,7 @@ description:
       - Controller.Step
     # verified_by:
     #   - means: proof
-    #     by: src/core/controller.ads:105
+    #     by: src/core/controller.ads:114
 
   # ---- Step: sampling boundary (CONOPS 4.3 realization) ----
   22:

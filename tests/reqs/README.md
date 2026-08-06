@@ -55,5 +55,35 @@ The rules below are the review criteria for adding one.
    `llr_2_buses_tests` does it for the buses. Read the former before writing a
    third.
 
+10. **A statement about the shape of a declaration gets a *shape witness*: a
+    declaration written from the requirement that does not compile when the
+    shape is wrong.** These routines look odd next to the rest — the evidence
+    is mostly in the declarative part, and the body asserts something small —
+    so the technique is worth stating once.
+
+    | Claim | Witness | What it rejects |
+    | --- | --- | --- |
+    | a type has exactly these literals | a Boolean table indexed by the type, one named association per literal, no `others` | a literal added (aggregate incomplete), removed or renamed (choice names nothing) |
+    | an array is over this index, of this component | index it with a value of the index type and hold the cell in a constant of the component type | either type being anything else |
+    | a record aggregates exactly these components | a full named aggregate, no `others` | a component added, removed or renamed, or given another type |
+    | a subtype is this range of that type | hold its ends in constants of the base type | a subtype of another type, or wrong ends |
+
+    Three rules go with it:
+
+    - **The witness cannot count.** An aggregate is complete for whatever the
+      type happens to hold, so it cannot say the requirement asked for four.
+      Each routine therefore *also* asserts the cardinality at run time,
+      arrived at by iterating the type rather than read off `'Length`.
+    - **Prefer the run-time assertion to `pragma Compile_Time_Error`** for
+      anything the code might diverge on. A static witness for a divergence
+      breaks the build instead of reporting a finding, which rule 2 forbids;
+      `llr_1_states.12` is the live example. The pragma is right where the
+      claim cannot fail without the code already being wrong — see
+      `states.ads:346-387` for `llr_1_states.31`.
+    - **Watch for the compiler folding the assertion away.** `-gnatwc` reports
+      it ("condition is always True") and a folded assertion is not a test.
+      Route the value through something non-static — iterating the type, as
+      `Test_15` does.
+
 `workflow/verification-means/classification.md` records which means was assigned
 to each of the 143 LLR statements, and why.

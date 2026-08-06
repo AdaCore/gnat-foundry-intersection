@@ -5,20 +5,25 @@
 --  One routine per statement; the routine name carries the statement number so
 --  a failure names its requirement without a lookup.
 --
---  Three statements of the file have no routine here:
+--  Two statements of the file have no routine here:
 --
---    .1  the composite record's fields -- a structural claim, classified
---        compiler check / analysis, not test.
 --    .12 Project_Outputs returns a Safe_Faces display -- discharged by the
---        postcondition at src/core/controller.ads:93 (proof).
+--        postcondition at src/core/controller.ads:100 (proof).
 --    .21 Step's outputs are Safe_Faces -- discharged by the postcondition at
---        src/core/controller.ads:105 (proof).
+--        src/core/controller.ads:114 (proof).
+--
+--  Statement .1 constrains the shape of a declaration rather than a value, so
+--  its routine is a shape witness: see tests/reqs/README.md rule 10.
 
 with AUnit.Test_Fixtures;
 
 package Llr_4_Controller_Tests is
 
    type Test is new AUnit.Test_Fixtures.Test_Fixture with null record;
+
+   --  ---- the composite state ----
+   procedure Test_01_Controller_State_Holds_The_Five_Machines
+     (T : in out Test);
 
    --  ---- the power-on state (Initialize) ----
    procedure Test_02_Initialize_Sets_Normal_Operation (T : in out Test);
