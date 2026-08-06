@@ -34,7 +34,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Initialize_9cb2dc (Gnattest_T : in out Test) renames Test_Initialize;
 --  id:2.2/9cb2dc2f1d1660db/Initialize/1/0/
    procedure Test_Initialize (Gnattest_T : in out Test) is
-   --  controller.ads:83:4:Initialize
+   --  controller.ads:90:4:Initialize
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -93,7 +93,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Project_Outputs_229f82 (Gnattest_T : in out Test) renames Test_Project_Outputs;
 --  id:2.2/229f82fac868336c/Project_Outputs/1/0/
    procedure Test_Project_Outputs (Gnattest_T : in out Test) is
-   --  controller.ads:91:4:Project_Outputs
+   --  controller.ads:98:4:Project_Outputs
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -226,7 +226,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Step_550f0c (Gnattest_T : in out Test) renames Test_Step;
 --  id:2.2/550f0cec4ac973af/Step/1/0/
    procedure Test_Step (Gnattest_T : in out Test) is
-   --  controller.ads:101:4:Step
+   --  controller.ads:108:4:Step
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
