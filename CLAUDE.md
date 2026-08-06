@@ -112,5 +112,8 @@ generics, the `core` project carries a small in-SPARK instantiation harness
   tag (first editable line of its body) naming the LLR statement id(s) it
   verifies, or `--@covers none: <reason>` for a boundary test. `make trace-check`
   enforces this via the `TEST` layer of `requirements/trace_chain.yaml`; run
-  `make trace` to see the LLR↔test coverage tables.
+  `make trace` to see the LLR↔test coverage tables. That gate does not currently
+  reach `tests/reqs/` (#106), so there review is the only check.
+- Writing a requirements-based test under `tests/reqs/`: read
+  `tests/reqs/README.md` first — its rules are the review criteria.
 - If working on coverage augmentation, run `make all-coverage` to list uncovered code.

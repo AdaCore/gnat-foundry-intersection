@@ -253,8 +253,8 @@ description:
     #       state change that produced it. Dwell durations are unaffected (a state
     #       is still emitted exactly dwell/T_SAMPLE times) and the lag is uniform
     #       across the machines, so this is a phase convention, not a timing
-    #       error -- but it contradicts the statement as written. Not #63; found
-    #       writing this test and not yet tracked by an issue. The test's other
+    #       error -- but it contradicts the statement as written. #105 carries the
+    #       decision: either this statement moves or Step does. The test's other
     #       two groups (sampling steps, input arming) pass, so the failure
     #       localises to the transition phase alone."
 

@@ -49,8 +49,8 @@ layers:
     # added, and lower it only deliberately.
     #
     # IT DOES NOT COVER THE REQUIREMENTS-BASED TESTS, and so did not move when
-    # #51 added 98 of them. Two things stand in the way, both to be fixed before
-    # this floor becomes 113:
+    # #51 added 98 of them. Two things stand in the way (#106), both to be fixed
+    # before this floor becomes 113:
     #
     #   1. `test-inventory` runs `ada_tracer` on the harness project without
     #      `-U`, and without `-U` the tracer reads the root project's own sources
