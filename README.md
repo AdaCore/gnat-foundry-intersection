@@ -59,8 +59,8 @@ staged. The staging directory survives `make reset-hard`.
 
 ### Using pro tools already provided by your environment
 
-If the pro tools are already installed and on your PATH, `make setup-pro` uses
-them directly instead of installing anything, provided nothing is staged in
+If the pro tools are already installed and in your environment, `make setup-pro`
+uses them directly instead of installing anything, provided nothing is staged in
 `pro-downloads/`. `PRO_TOOLS=install` or `PRO_TOOLS=external` forces either
 mode.
 

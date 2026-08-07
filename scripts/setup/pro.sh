@@ -16,12 +16,58 @@ require_vars LOCAL_BIN ALIRE_SETTINGS_DIR PRO_DIR PRO_DOWNLOADS SETUP_MARKER
 # The tools external mode needs on PATH (the Makefile invokes them directly).
 EXTERNAL_TOOLS=(gnat gprbuild gnatformat gnattest gnatcov gnatprove arm-eabi-gnat)
 
-# True if every tool in EXTERNAL_TOOLS is available on PATH.
-external_tools_available() {
-  local cmd
+# The libraries external mode needs on GPR_PROJECT_PATH, by project name.
+EXTERNAL_LIBRARIES=(libadalang)
+
+# Echo the path of library $1's project file on GPR_PROJECT_PATH; non-zero if
+# there is none.
+library_gpr() {
+  local dir
+  while IFS= read -r -d: dir; do
+    if [ -n "$dir" ] && [ -f "$dir/$1.gpr" ]; then
+      printf '%s\n' "$dir/$1.gpr"
+      return 0
+    fi
+  done <<<"${GPR_PROJECT_PATH:-}:"
+  return 1
+}
+
+# Echo the EXTERNAL_TOOLS that are not on PATH, space-separated (empty when
+# they all are).
+missing_external_tools() {
+  local cmd missing=()
   for cmd in "${EXTERNAL_TOOLS[@]}"; do
-    command -v "$cmd" >/dev/null 2>&1 || return 1
+    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
   done
+  printf '%s\n' "${missing[*]:-}"
+}
+
+# Echo the EXTERNAL_LIBRARIES that are not on GPR_PROJECT_PATH, space-separated
+# (empty when they all are).
+missing_external_libraries() {
+  local lib missing=()
+  for lib in "${EXTERNAL_LIBRARIES[@]}"; do
+    library_gpr "$lib" >/dev/null || missing+=("$lib")
+  done
+  printf '%s\n' "${missing[*]:-}"
+}
+
+# True if $1 has a `.gpr` suffix.
+is_gpr_file() {
+  case "$1" in
+    *.gpr) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# True if the marker file $1 proves its product installed: a plain `.gpr` file
+# for the library products, an executable for the toolchains.
+marker_present() {
+  if is_gpr_file "$1"; then
+    [ -f "$1" ]
+  else
+    [ -x "$1" ]
+  fi
 }
 
 # True if any pro download (tarball or zipfile) is staged under $PRO_DOWNLOADS.
@@ -32,16 +78,16 @@ downloads_staged() {
 
 # True if a previous run installed at least one product under $PRO_DIR.
 products_installed() {
-  [ -x "$PRO_DIR/gnatpro/bin/gnat" ] \
-    || [ -x "$PRO_DIR/arm-elf/bin/arm-eabi-gnat" ] \
-    || [ -x "$PRO_DIR/spark/bin/gnatprove" ] \
-    || [ -x "$PRO_DIR/gnatdas/bin/gnatcov" ] \
-    || [ -f "$PRO_DIR/libadalang/share/gpr/libadalang.gpr" ]
+  marker_present "$PRO_DIR/gnatpro/bin/gnat" \
+    || marker_present "$PRO_DIR/arm-elf/bin/arm-eabi-gnat" \
+    || marker_present "$PRO_DIR/spark/bin/gnatprove" \
+    || marker_present "$PRO_DIR/gnatdas/bin/gnatcov" \
+    || marker_present "$PRO_DIR/libadalang/share/gpr/libadalang.gpr"
 }
 
 # Echo the mode: $PRO_TOOLS if forced; else 'install' when downloads are
-# staged or products already installed, 'external' when the tools are on
-# PATH, and 'install' otherwise (its staging instructions explain both).
+# staged or products already installed, 'external' when every tool and library
+# is present, and 'install' otherwise (its staging instructions explain both).
 select_mode() {
   case "${PRO_TOOLS:-}" in
     install | external)
@@ -55,7 +101,7 @@ select_mode() {
   esac
   if downloads_staged || products_installed; then
     printf 'install\n'
-  elif external_tools_available; then
+  elif [ -z "$(missing_external_tools)" ] && [ -z "$(missing_external_libraries)" ]; then
     printf 'external\n'
   else
     printf 'install\n'
@@ -67,34 +113,35 @@ select_mode() {
 use_external_tools() {
   header "Pro tools from the environment"
 
-  local missing_msg_tail="
+  local missing_tools missing_libs problems=()
+  missing_tools=$(missing_external_tools)
+  missing_libs=$(missing_external_libraries)
+  if [ -n "$missing_tools" ]; then
+    problems+=("not found on PATH: $missing_tools")
+  fi
+  if [ -n "$missing_libs" ]; then
+    problems+=("not found on GPR_PROJECT_PATH: $missing_libs")
+  fi
+  if [ ${#problems[@]} -ne 0 ]; then
+    local intro='PRO_TOOLS=external, but ' indent body
+    # Align the later problems with the first.
+    indent=$(printf '%*s' "${#intro}" '')
+    printf -v body '%s\n' "${problems[@]}"
+    body=${body%$'\n'}
+    fatal "$intro${body//$'\n'/$'\n'$indent}.
 Run from an environment that provides the pro tools, or stage the GNAT
 Tracker downloads under
 $PRO_DOWNLOADS
 and re-run 'make setup-pro' to install them locally."
-
-  local cmd missing=()
-  for cmd in "${EXTERNAL_TOOLS[@]}"; do
-    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
-  done
-  if [ ${#missing[@]} -ne 0 ]; then
-    fatal "PRO_TOOLS=external, but not found on PATH: ${missing[*]}.$missing_msg_tail"
   fi
+
+  local cmd lib
   for cmd in "${EXTERNAL_TOOLS[@]}"; do
     detail "$(printf '%-14s' "$cmd") $(command -v "$cmd")"
   done
-
-  local dir found=
-  while IFS= read -r -d: dir; do
-    if [ -n "$dir" ] && [ -f "$dir/libadalang.gpr" ]; then
-      found=$dir
-      break
-    fi
-  done <<<"${GPR_PROJECT_PATH:-}:"
-  if [ -z "$found" ]; then
-    fatal "PRO_TOOLS=external, but no libadalang.gpr on GPR_PROJECT_PATH.$missing_msg_tail"
-  fi
-  detail "$(printf '%-14s' libadalang) $found/libadalang.gpr"
+  for lib in "${EXTERNAL_LIBRARIES[@]}"; do
+    detail "$(printf '%-14s' "$lib") $(library_gpr "$lib")"
+  done
 }
 
 # GNAT Tracker downloads may be zipfiles wrapping the product tarball
@@ -121,15 +168,6 @@ extract_tarball_from_zip() {
     done < <(unzip -Z1 "$zip")
   done < <(printf '%s\n' "$PRO_DOWNLOADS"/*.zip | sort -Vr)
   return 1
-}
-
-# True if the marker file $1 proves its product installed: an executable for
-# the toolchains, a readable project file for the library products.
-marker_present() {
-  case "$1" in
-    *.gpr) [ -f "$1" ] ;;
-    *) [ -x "$1" ] ;;
-  esac
 }
 
 # Install one pro product from its GNAT Tracker download into its own prefix
@@ -195,7 +233,7 @@ an environment that already has the pro tools on PATH to use them directly."
   fi
   rm -rf "$tmp"
   local version=
-  if [ -x "$prefix/$marker" ]; then
+  if ! is_gpr_file "$marker"; then
     version=$("$prefix/$marker" --version 2>/dev/null | head -1 || true)
   fi
   detail "Installed: ${version:-(ok)}"
@@ -268,7 +306,7 @@ print_summary_external() {
   detail "Pro tools          from the environment (see above)"
   printf '\n'
   detail "The Makefile detects this setup automatically, but installs no"
-  detail "toolchain: run make from a shell where the pro tools are on PATH."
+  detail "toolchain: run make from a shell where the pro tools are available."
   detail "To match the make environment in your shell, add to your profile:"
   detail "  export PATH=\"$LOCAL_BIN:\$PATH\""
   detail "  export ALIRE_SETTINGS_DIR=\"$ALIRE_SETTINGS_DIR\""
