@@ -23,6 +23,10 @@ make prove          # Run the prover
 
 make all-coverage   # Generate a coverage report
 
+make build-target   # Build the bare-metal arm-eabi firmware
+make smoke-target   # Boot the firmware under QEMU, check its first display frame
+make test-target    # Run the testsuite ON TARGET (arm-eabi, under QEMU)
+
 make report         # Generate the verification report
 ```
 
@@ -37,6 +41,12 @@ gated on the requirements chain actually validating.
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same
 regardless of which one you ran.
+
+The `*-target` targets additionally need `qemu-system-arm` on PATH; the
+`setup-*` targets do not provision it (CI takes it from the `image:serotonic`
+runner image). `test-target` runs the same test bodies under `tests/` as `make
+test`, minus the host-profile HAL units listed in
+`traffic_light_qemu/tests/host_only_sources.txt`. Coverage is native-only.
 
 ## Feature workflow
 

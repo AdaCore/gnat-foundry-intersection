@@ -1,0 +1,26 @@
+name = "traffic_light_qemu_tests"
+description = "Bare-metal arm-eabi (Cortex-A9) QEMU build of the testsuite"
+version = "0.1.0-dev"
+authors = ["AdaCore"]
+maintainers = ["AdaCore <support@adacore.com>"]
+licenses = "Apache-2.0 WITH LLVM-exception"
+website = "https://gitlab.com/mark/traffic-light-controller"
+tags = ["embedded", "ada", "spark", "arm", "qemu", "zynq", "test"]
+
+# Cross sibling of the root `tests` crate; separate because an Alire solution
+# admits only one compiler. No `traffic_light` dependency or pin: the generated
+# harness reaches the sources by relative path, as traffic_light_qemu.gpr does.
+project-files = ["target_tests.gpr"]
+
+[[depends-on]]
+gnat_arm_elf = "*"
+
+[[depends-on]]
+aunit = "*"
+
+[gpr-set-externals]
+BUILD_KIND = "target"
+
+# The only AUnit profile that compiles against light-tasking-zynq7000, which
+# forbids exception propagation. Keep in step with the Makefile.
+AUNIT_RUNTIME = "zfp-cross"
