@@ -172,9 +172,9 @@ def test_empty_inventory_yields_empty_set(tmp_path: Path) -> None:
     An inventory with no packages is an empty set, not an error *here*.
 
     Whether an empty layer is acceptable is the chain's business, not this
-    module's: it is the TEST layer's `min_nodes` that rejects one (see
-    ``reqs.checks.trace``), because only the chain knows how many routines the
-    harness is supposed to hold.
+    module's: the TEST layer's `method` is what makes one loud (see
+    ``reqs.checks.trace``) -- with no routines, every test-verified requirement
+    goes uncovered.
     """
     assert load(tmp_path).nodes == {}
 

@@ -209,6 +209,38 @@ package Ada_Tracer.Model is
    package Entity_Vectors is new
      Ada.Containers.Vectors (Positive, Entity_Info);
 
+   --------------
+   --  Checks  --
+   --------------
+
+   package String_Vectors is new
+     Ada.Containers.Vectors (Positive, Unbounded_String);
+
+   type Check_Kind is (A_Pragma, An_Aspect);
+   --  What construct a `--@covers`-tagged check is.
+   --  @enum A_Pragma A pragma (`pragma Compile_Time_Error`, ...)
+   --  @enum An_Aspect One aspect association of an aspect specification
+   --    (`Post => ...`, `No_Return`, ...)
+
+   type Check_Info is record
+      Kind   : Check_Kind := A_Pragma;
+      Name   : Unbounded_String;
+      File   : Unbounded_String;
+      Line   : Natural := 0;
+      Column : Natural := 0;
+      Covers : String_Vectors.Vector;
+   end record;
+   --  One construct tagged `--@covers` on the line(s) directly above it;
+   --  untagged constructs are not reported (the tag is an opt-in claim).
+   --  @field Kind Whether the anchor is a pragma or an aspect association
+   --  @field Name The pragma name or aspect mark, as written
+   --  @field File The source file, relative to the run's base directory
+   --  @field Line The line the anchor starts on
+   --  @field Column The column the anchor starts at
+   --  @field Covers The raw payloads of the `@covers` tags, in source order
+
+   package Check_Vectors is new Ada.Containers.Vectors (Positive, Check_Info);
+
    ----------------
    --  Packages  --
    ----------------
@@ -243,6 +275,7 @@ package Ada_Tracer.Model is
       Project             : Unbounded_String;
       Packages            : Package_Vectors.Vector;
       Library_Subprograms : Subprogram_Vectors.Vector;
+      Checks              : Check_Vectors.Vector;
       Index               : Package_Index_Maps.Map;
    end record;
    --  Everything the tool extracted from one project.
@@ -253,6 +286,7 @@ package Ada_Tracer.Model is
    --    a library-level generic procedure. The tool's unit of output is the
    --    package, and these are the exception: a requirement may name one, so
    --    dropping them would leave a ref with nothing to resolve against
+   --  @field Checks The `--@covers`-tagged pragmas and aspects, project-wide
    --  @field Index Maps a fully qualified package name to its position in
    --    `Packages`, so `Walk` can merge a spec and its body in one pass
 

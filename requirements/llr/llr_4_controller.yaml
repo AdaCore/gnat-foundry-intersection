@@ -52,18 +52,10 @@ description:
       - hlr_5_vehicle.1
       - hlr_5_vehicle_1_left_demand.1
       - hlr_6_pedestrian.1
+    verification:
+      - method: static_check
     implemented_by:
       - Controller.Controller_State
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_01_Controller_State_Holds_The_Five_Machines
-    #     status: "PARTIAL: the witness establishes that the six components
-    #       this statement names are present with the types it gives them, and
-    #       fails the build on any *further* component. It does not establish
-    #       that the six are all there is: Controller_State also carries
-    #       Veh_Lag, which no statement names, and the witness admits it by
-    #       name rather than breaking the build. Veh_Lag goes away with the
-    #       live lag read (#63, llr_4_controller_1_vehicle.30/.43)."
 
   # ---- power-on state ----
   2:
@@ -72,11 +64,9 @@ description:
       NORMAL_OPERATION.
     parent_req:
       - hlr_1_modes.2
+    verification: test
     implemented_by:
       - Controller.Initialize
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_02_Initialize_Sets_Normal_Operation
 
   3:
     text: |-
@@ -84,11 +74,9 @@ description:
       EW_BARRIER_ALLRED and State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.47
+    verification: test
     implemented_by:
       - Controller.Initialize
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_03_Initialize_Sets_Barrier_And_Dwell
 
   4:
     text: |-
@@ -96,11 +84,9 @@ description:
       NO_LEFT_DEMAND for every approach.
     parent_req:
       - hlr_5_vehicle_1_left_demand.2
+    verification: test
     implemented_by:
       - Controller.Initialize
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_04_Initialize_Clears_Every_Left_Demand
 
   5:
     text: |-
@@ -108,11 +94,9 @@ description:
       NO_PEDESTRIAN_REQUEST, and State.Ped_Timer to 0, for every crosswalk.
     parent_req:
       - hlr_6_pedestrian.2
+    verification: test
     implemented_by:
       - Controller.Initialize
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_05_Initialize_Clears_Every_Crosswalk
 
   # ---- output projection ----
   6:
@@ -121,11 +105,9 @@ description:
       every through face and every left face.
     parent_req:
       - hlr_2_fault.1
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_06_Fault_Projects_Flashing_Red_Faces
 
   7:
     text: |-
@@ -133,11 +115,9 @@ description:
       crosswalk's pedestrian head.
     parent_req:
       - hlr_2_fault.2
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_07_Fault_Projects_Dark_Pedestrian_Heads
 
   8:
     text: |-
@@ -145,11 +125,9 @@ description:
       every crosswalk's request indicator.
     parent_req:
       - hlr_2_fault.3
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_08_Fault_Projects_No_Request_Indicators
 
   9:
     text: |-
@@ -158,11 +136,9 @@ description:
       (llr_4_controller_1_vehicle).
     parent_req:
       - hlr_4_signals.1
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_09_Normal_Projects_Vehicle_Faces
 
   10:
     text: |-
@@ -171,11 +147,9 @@ description:
       (llr_4_controller_3_pedestrian).
     parent_req:
       - hlr_4_signals.2
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_10_Normal_Projects_Pedestrian_Heads
 
   11:
     text: |-
@@ -184,11 +158,9 @@ description:
       (llr_4_controller_3_pedestrian).
     parent_req:
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_11_Normal_Projects_Request_Indicators
 
   12:
     text: |-
@@ -196,11 +168,11 @@ description:
       Conflicts.Safe_Faces is TRUE.
     parent_req:
       - hlr_0_safety.2
+    verification:
+      - method: test
+      - method: proof
     implemented_by:
       - Controller.Project_Outputs
-    # verified_by:
-    #   - means: proof
-    #     by: src/core/controller.ads:100
 
   # ---- Step: fault pre-emption ----
   13:
@@ -209,11 +181,9 @@ description:
       Sensors.Fault ASSERTED, the controller shall set State.Mode to FAULT.
     parent_req:
       - hlr_1_modes.3
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_13_Asserted_Fault_Enters_Fault_Mode
 
   14:
     text: |-
@@ -221,11 +191,9 @@ description:
       Project_Outputs (State).
     parent_req:
       - hlr_1_modes.4
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_14_Fault_Step_Emits_The_Projection
 
   15:
     text: |-
@@ -233,11 +201,9 @@ description:
       or deriving edges for any NORMAL_OPERATION sub-machine.
     parent_req:
       - hlr_1_modes.4
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_15_Fault_Step_Changes_Nothing
 
   # ---- Step: advance and emit ----
   16:
@@ -250,23 +216,9 @@ description:
       - hlr_4_signals.1
       - hlr_4_signals.2
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_16_Outputs_Project_The_Resulting_State
-    #     status: "FAILING: this statement -- and the context section twice over
-    #       ('then emits the resulting state') -- requires Outputs to be the
-    #       projection of the state left by this step's arming AND timed
-    #       transition. Controller.Step emits before it advances the timers and
-    #       never recomputes, so every Moore output appears one T_SAMPLE after the
-    #       state change that produced it. Dwell durations are unaffected (a state
-    #       is still emitted exactly dwell/T_SAMPLE times) and the lag is uniform
-    #       across the machines, so this is a phase convention, not a timing
-    #       error -- but it contradicts the statement as written. #105 carries the
-    #       decision: either this statement moves or Step does. The test's other
-    #       two groups (sampling steps, input arming) pass, so the failure
-    #       localises to the transition phase alone."
 
   17:
     text: |-
@@ -277,11 +229,9 @@ description:
     parent_req:
       - hlr_3_timing.11
       - hlr_3_timing.13
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_17_Step_Advances_Every_Running_Timer
 
   18:
     text: |-
@@ -292,11 +242,9 @@ description:
       guard against this step's armed inputs.
     parent_req:
       - hlr_3_timing.11
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_18_Transition_Fires_On_Its_Boundary_Step
 
   19:
     text: |-
@@ -306,11 +254,9 @@ description:
       GREEN in the sequencer state before it.
     parent_req:
       - hlr_5_vehicle_1_left_demand.4
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_19_Green_Edge_Clears_Left_Demand
 
   20:
     text: |-
@@ -320,11 +266,9 @@ description:
       advance and were not GREEN in the sequencer state before it.
     parent_req:
       - hlr_6_pedestrian.8
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_20_Green_Edge_Serves_Pedestrian_Request
 
   21:
     text: |-
@@ -332,11 +276,11 @@ description:
       Conflicts.Safe_Faces is TRUE.
     parent_req:
       - hlr_0_safety.2
+    verification:
+      - method: test
+      - method: proof
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: proof
-    #     by: src/core/controller.ads:114
 
   # ---- Step: sampling boundary (CONOPS 4.3 realization) ----
   22:
@@ -349,11 +293,9 @@ description:
     parent_req:
       - hlr_6_pedestrian.8
       - hlr_5_vehicle_1_left_demand.4
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_tests.adb:Test_22_Boundary_Demand_Served_At_This_Onset
 
 algorithm_aspects: |-
   The running timers are well-defined because State.Veh_Timer always runs in

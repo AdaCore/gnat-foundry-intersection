@@ -37,7 +37,7 @@ default:
     OS: Linux
     PLATFORM: x86_64-linux
   services:
-    - image:e3
+    - image:serotonic
     - cpu:4
     # Allow connecting to the internet
     - security_group:GitLabRunnerTasksExecPrivilegedSG
@@ -74,7 +74,7 @@ check:
     - eval $(anod printenv gnatformat --qualifier=stable)
 
     # Run the checks
-    - make check-ada check-shell check-python-reqs
+    - make check-ada check-shell check-python-reqs check-target-test-parity
 
 # Check and test the report engine; its deps are only on pypi.org (which its uv.lock pins).
 check-report:
@@ -141,9 +141,6 @@ pro:x86_64-linux:
     # Build
     - make build-native
 
-    # Check traceability
-    - make trace-check
-
     # Test (test w/ non-instrumented harness build)
     - make test
 
@@ -183,20 +180,75 @@ pro:x86_64-linux:
       # Upload the entire reports/ directory as an artifact
       - reports/
 
-# Target build.
-pro:arm-elf:
+# The tracer's own integration test. A job of its own, and *not* allow_failure:
+# `pro:trace-check` below is red on purpose while the work list is burned down,
+# so a regression in the check extraction it reads would hide there.
+pro:tracer-test:
   extends: .pro
   script:
-    # Install the cross compiler
+    # Install the specs the tracer needs to build
+    - for spec in gnat langkit_support libadalang ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+    - anod install libgpr2 --qualifier=bare,stable
+    - eval $(anod printenv libgpr2 --qualifier=bare,stable)
+
+    - make test-tracer
+
+pro:trace-check:
+  extends: .pro
+  allow_failure: true  # Drop allow_failure after the tracing becomes green
+  script:
+    # Install the specs the tracer and the harness generator need
+    - for spec in gnat gnattest langkit_support libadalang ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+    - anod install libgpr2 --qualifier=bare,stable
+    - eval $(anod printenv libgpr2 --qualifier=bare,stable)
+
+    - make build-native
+    - make trace-check
+
+# Target build, and the on-target testsuite: cross-built with GNAT Pro and run
+# under QEMU. No coverage: gnatcov stays a native concern (see pro:x86_64-linux).
+pro:arm-elf:
+  extends: .pro
+  services:
+    - image:serotonic
+    - cpu:4
+  script:
+    # The cross compiler, and gnattest to generate the cross harness.
     - anod install gnat --qualifier=stable --target=arm-elf
     - eval $(anod printenv gnat --qualifier=stable --target=arm-elf)
+    - anod install gnattest --qualifier=stable
+    - eval $(anod printenv gnattest --qualifier=stable)
 
-    # Sanity check
+    # Sanity checks
     - arm-eabi-gnat --version
+    - gnattest --version
+    - qemu-system-arm --version
 
     # Build (SETUP=none: gprbuild runs directly against the anod toolchain,
     # so the qemu crate's community `gnat_arm_elf` dependency is not fetched)
     - make build-target
+
+    # Boot the firmware first: it is the only exercise of the target HAL, and it
+    # fails faster and more legibly than the harness if the image cannot boot.
+    - make smoke-target
+
+    # Cross-build and run the on-target harness
+    - make build-tests-target
+    - make test-target
+
+  artifacts:
+    when: always #  Upload on errors too
+    paths:
+      # The UART captures. Bare-metal firmware has no exit status, so on failure
+      # these logs are the only evidence of what the guest did.
+      - obj/target/*.log
+      - obj/target/*.log.other
 
 community:x86_64-linux:
   stage: build
@@ -206,6 +258,9 @@ community:x86_64-linux:
   script:
     # Setup
     - make setup-community
+
+    # Sanity check
+    - qemu-system-arm --version
 
     # Build
     - make build-native
@@ -218,8 +273,18 @@ community:x86_64-linux:
     - make coverage-report-cobertura
     - make coverage-report-text
 
+    # Target build and test
+    - make build-target
+    - make smoke-target
+    - make build-tests-target
+    - make test-target
+
   artifacts:
     when: always #  Upload on errors too
     paths:
       # Upload the entire reports/ directory as an artifact
       - reports/
+      # The UART captures. Bare-metal firmware has no exit status, so on failure
+      # these logs are the only evidence of what the guest did.
+      - obj/target/*.log
+      - obj/target/*.log.other

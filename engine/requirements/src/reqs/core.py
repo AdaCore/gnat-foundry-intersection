@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import yaml
 
@@ -112,14 +112,12 @@ def iter_yaml_files(paths: Iterable[str | os.PathLike[str]]) -> tuple[list[Path]
     return files, diags
 
 
-SubKey = Literal["text", "up_ref", "down_ref"]
+SubKey = str
 """Which part of a node a diagnostic should point at.
 
-Every node set implements ``loc_of(node_id, *, sub_key)`` with this parameter, so
-the trace engine can locate a finding without knowing what kind of layer it came
-from: ``"up_ref"`` is where the node cites its parent, ``"down_ref"`` where it
-cites what realizes it (an LLR's ``implemented_by``), and ``None`` the node
-itself. A set for which a given part has no location falls back to the node.
+Every node set implements ``loc_of(node_id, *, sub_key)``: ``"text"``,
+``"up_ref"``, a down-ref key (``"implemented_by"``), or ``None`` for the node
+itself. A part with no location falls back to the node.
 """
 
 YAMLLineMap = dict[tuple[str, ...], int]

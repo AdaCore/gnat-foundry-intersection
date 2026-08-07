@@ -1,18 +1,8 @@
-# Traceability chain, top (most abstract) to bottom. `reqs trace` runs the same
-# bidirectional checks over each pair: every lower node must trace up to a real
-# upper node (or be `derived`), and every upper node must be covered by a lower
-# node (or waived). Paths are relative to this file.
-#
-# Each layer traces to its `parent`, which defaults to the entry above it. TEST
-# and CODE both name LLR, so this list is really a tree: a test cites the LLR it
-# verifies and an LLR cites the code that implements it, and neither has anything
-# to say about the other.
-#
-# The TEST and CODE layers are read out of generated inventories, which cost an
-# Ada toolchain and a Libadalang build. `reqs trace --layers` selects a subset of
-# the chain so a caller that cannot pay for those still checks the rest: `make
-# validate-reqs` takes CONOPS,HLR,LLR, `make trace-check` (the CI gate) adds
-# TEST, and `make trace` tabulates the whole chain. See the Makefile.
+# Traceability chain, top to bottom; `reqs trace` checks each (parent, child)
+# pair both ways. Paths are relative to this file. `parent` defaults to the
+# entry above, so the layers below LLR make the list a tree. A `method` layer
+# must cover exactly the LLRs declaring that verification method; there is no
+# layer for `review`, which carries no machine evidence.
 layers:
   - name: CONOPS
     kind: markdown-leaves
@@ -26,66 +16,52 @@ layers:
     kind: requirement-yaml
     path: llr
     id_pattern: '(.+\.\d+)'
+  # The layers below are read from generated inventories (`make inventories`,
+  # needs the Ada toolchain): `make validate-reqs` selects CONOPS,HLR,LLR via
+  # --layers, `make trace-check` and `make trace` take the whole chain.
   - name: TEST
     kind: ada-tests
-    # The `ada_tracer` inventory of the GNATtest harness project -- the project
-    # that owns the skeletons under `tests/`. A generated file, never committed:
-    # `make trace` / `make trace-check` regenerate it first (see `make
-    # inventories`), so it can never be stale.
     path: ../obj/analysis/test_inventory.json
     parent: LLR
     id_pattern: '(.+\.\d+)'
-    # Tests cover LLRs only in part by design: most LLRs are discharged by proof
-    # or by construction, not by unit test. So an untested LLR is reported
-    # (`make trace`), never an error -- but every test must still declare, via a
-    # `--@covers` tag, which LLR(s) it verifies (or `--@covers none: <reason>`
-    # for a boundary test), so a test drifting off its requirement is caught.
-    partial_coverage: true
-    # `partial_coverage` and an empty inventory would between them make this gate
-    # vacuous: no test routines means no untraced tests to report and no
-    # uncovered LLRs to flag, so "0 tests found" would read exactly like "every
-    # test traced". The floor is the number of routines the harness holds today
-    # (15, across the six `*-test_data-tests.adb` files); raise it as tests are
-    # added, and lower it only deliberately.
+    method: test  # also keeps an empty inventory loud: test-verified LLRs go uncovered
+    # THIS INVENTORY DOES NOT REACH THE REQUIREMENTS-BASED TESTS (#106), so most
+    # of what `method: test` demands is currently invisible to it: `#51` put 98
+    # tagged routines under tests/reqs/, and none of them are counted.
+    # `test-inventory` runs `ada_tracer` on the harness project without `-U`, and
+    # without `-U` the tracer reads the root project's own sources alone. The
+    # generated harness project's `Source_Dirs` are tests/core, tests/hal/common,
+    # tests/types and its own `common`; tests/reqs/ arrives through an *imported*
+    # project (`--additional-tests=tests/reqs/reqs_tests.gpr`). Plain `-U` is not
+    # the fix -- it would pull the application into a layer that requires every
+    # node to carry a `--@covers` tag.
     #
-    # IT DOES NOT COVER THE REQUIREMENTS-BASED TESTS, and so did not move when
-    # #51 added 98 of them. Two things stand in the way (#106), both to be fixed
-    # before this floor becomes 113:
-    #
-    #   1. `test-inventory` runs `ada_tracer` on the harness project without
-    #      `-U`, and without `-U` the tracer reads the root project's own sources
-    #      alone. The generated harness project's `Source_Dirs` are
-    #      tests/core, tests/hal/common, tests/types and its own `common` --
-    #      tests/reqs/ arrives through an *imported* project
-    #      (`--additional-tests=tests/reqs/reqs_tests.gpr`), so none of its
-    #      routines or `--@covers` tags reach this inventory. Plain `-U` is not
-    #      the fix: it would pull the application into a layer that requires
-    #      every node to carry a `--@covers` tag.
-    #   2. `engine/ada_tracer` does not build against this compiler
-    #      (`gpr2-log.ads:137:09: completion of nonlimited type cannot be
-    #      limited`), so neither inventory can be regenerated and `make
-    #      trace-check` cannot run at all.
-    #
-    # Until both are addressed, the `--@covers` tags on the 98 routines under
-    # tests/reqs/ are conventions no tool enforces. Raising this floor now would
-    # only convert that into a failure with a misleading cause.
-    min_nodes: 15
+    # Until #106 lands, expect this layer to report nearly every `test`-verified
+    # statement uncovered. The tags themselves are already in the syntax and
+    # position this layer wants; it is the inventory that cannot see them.
   - name: CODE
     kind: ada-entities
-    # Likewise generated, from traffic_light.gpr.
     path: ../obj/analysis/code_inventory.json
     parent: LLR
-    # Same guard, as a floor rather than a count: the ~50 entities the LLRs name
-    # via `implemented_by` are a small fraction of what the project declares, so
-    # anything near zero means the wrong project was analysed.
-    min_nodes: 40
-    # The one layer whose refs run the other way. Code cites nothing; it is the
-    # LLR that names what implements it, via `implemented_by`. So the engine reads
-    # the refs from the LLR and resolves them here: an `implemented_by` naming
-    # something the code does not declare is a hard error, which is what catches a
-    # requirement drifting off its implementation.
-    refs_point_down: true
-    # And the converse is only partial by design: most of the code -- helpers, the
-    # HAL, anything below the requirement's altitude -- realizes no requirement
-    # directly, so code no LLR names is reported, never flagged.
-    partial_coverage: true
+    refs_point_down: true   # the LLR names the code, not the reverse
+    ref_field: implemented_by
+    partial_coverage: true  # code no LLR names is expected, never flagged
+  # PROOF/STATIC read the source's `--@covers`-tagged checks (`anchors` says
+  # which constructs count for which method).
+  - name: PROOF
+    kind: ada-checks
+    path: ../obj/analysis/code_inventory.json
+    parent: LLR
+    id_pattern: '(.+\.\d+)'
+    method: proof
+    anchors:
+      - aspect:Post
+  - name: STATIC
+    kind: ada-checks
+    path: ../obj/analysis/code_inventory.json
+    parent: LLR
+    id_pattern: '(.+\.\d+)'
+    method: static_check
+    anchors:  # named, not bare `pragma`: a tagged runtime pragma must not count
+      - pragma:Compile_Time_Error
+      - aspect:No_Return

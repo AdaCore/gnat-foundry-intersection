@@ -57,6 +57,7 @@ def write_project(tmp_path: Path) -> Path:
             ),
             package(
                 "States",
+                spec_file=STATES,
                 entities=[
                     entity("States.Movement", file=STATES, line=211),
                     entity("States.T_Walk", file=STATES, line=287, kind="constant"),
@@ -142,10 +143,23 @@ def test_entities_and_subprograms_are_both_nodes(tmp_path: Path) -> None:
     nodes = CodeSet.from_inventory(inventory, tmp_path).nodes
     assert set(nodes) == {
         "Conflicts.Compatible",
+        "States",
         "States.Movement",
         "States.T_Walk",
         "Main",
     }
+
+
+def test_package_with_a_spec_is_a_node(tmp_path: Path) -> None:
+    """A ref may name a package -- the unit containing a compile-time check."""
+    inventory, _diags = code_inventory.load(write_project(tmp_path))
+    code = CodeSet.from_inventory(inventory, tmp_path)
+    node = code.statement("States")
+    assert node is not None
+    assert node.kind == "package"
+    assert str(node.path) == STATES
+    # The Conflicts fixture package records no spec file, so it yields no node.
+    assert code.statement("Conflicts") is None
 
 
 def test_node_carries_its_kind_and_location(tmp_path: Path) -> None:
@@ -172,7 +186,7 @@ def test_code_node_has_no_refs_of_its_own(tmp_path: Path) -> None:
     node = CodeSet.from_inventory(inventory, tmp_path).statement("Conflicts.Compatible")
     assert node is not None
     assert node.up_refs is None
-    assert node.down_refs is None
+    assert node.down_refs_in("implemented_by") is None
     assert not node.is_derived
 
 

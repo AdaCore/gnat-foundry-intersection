@@ -23,11 +23,9 @@ description:
       algorithm_aspects.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - Conflicts.Compatible
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_01_Compatible_Holds_For_Exactly_The_Listed_Pairs
 
   2:
     text: |-
@@ -36,11 +34,9 @@ description:
       pair.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - Conflicts.Conflicts
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_02_Conflicts_Is_The_Complement_Of_Compatible
 
   # ---- the safety predicate ----
   3:
@@ -50,11 +46,9 @@ description:
       TRUE both have Is_Go faces (States.Face_Of, States.Is_Go) in that state.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - Conflicts.Safe_Faces
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_03_Safe_Faces_Holds_Exactly_When_No_Conflicting_Pair_Is_Go
 
   # ---- geometry bindings ----
   4:
@@ -65,11 +59,9 @@ description:
       to NORTH.
     parent_req:
       - hlr_5_vehicle_1_left_demand.4
+    verification: test
     implemented_by:
       - Conflicts.Next_Conflicting_Through
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_04_Next_Conflicting_Through_Maps_Every_Approach
 
   5:
     text: |-
@@ -81,11 +73,9 @@ description:
       - hlr_6_pedestrian.8
       - hlr_0_safety.1
       - hlr_3_timing.10
+    verification: test
     implemented_by:
       - Conflicts.Adjacent_Through
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_05_Adjacent_Through_Maps_Every_Crosswalk
 
   # ---- the crosswalk conflict relation ----
   6:
@@ -101,11 +91,9 @@ description:
       - hlr_0_safety.3
       - hlr_0_safety.1
       - hlr_3_timing.10
+    verification: test
     implemented_by:
       - Conflicts.Crosswalk_Conflicts
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_3_conflicts_tests.adb:Test_06_Crosswalk_Conflicts_Exempts_Exactly_The_Listed_Pairs
 
 algorithm_aspects: |-
   Compatible (statement 1) is the following symmetric matrix over the eight

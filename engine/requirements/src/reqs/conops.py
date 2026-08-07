@@ -34,8 +34,12 @@ class Leaf:
     # trace of its own: the CONOPS sits at the top of the chain, and it names
     # nothing below it either -- that is the HLR's job.
     up_refs: ClassVar[None] = None
-    down_refs: ClassVar[None] = None
     is_derived: ClassVar[bool] = False
+    verification_methods: ClassVar[tuple[str, ...]] = ()
+
+    def down_refs_in(self, field: str | None) -> list[str] | None:  # noqa: ARG002
+        """Nothing: a leaf names nothing below it."""
+        return None
 
 
 class ConopsSet:

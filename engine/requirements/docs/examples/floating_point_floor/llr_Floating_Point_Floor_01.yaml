@@ -16,6 +16,7 @@ description:
       ```
     parent_req:
       - hlr_Floating_Point_Floor_01.1
+    verification: test
     implemented_by:
       - System.Fat_LFlt.Attr_Long_Float.Floor
       - System.Fat_Flt.Attr_Float.Floor
@@ -26,6 +27,7 @@ description:
       equal to `X`.
     parent_req:
       - hlr_Floating_Point_Floor_01.2
+    verification: test
     implemented_by:
       - System.Fat_LFlt.Attr_Long_Float.Floor
       - System.Fat_Flt.Attr_Float.Floor
@@ -35,6 +37,7 @@ description:
       When `X` is zero, the function shall return zero with the sign of `X`.
     parent_req:
       - hlr_Floating_Point_Floor_01.3
+    verification: test
     implemented_by:
       - System.Fat_LFlt.Attr_Long_Float.Floor
       - System.Fat_Flt.Attr_Float.Floor
@@ -45,6 +48,7 @@ description:
       return `X`.
     parent_req:
       - hlr_Floating_Point_Floor_02.1
+    verification: test
     implemented_by:
       - System.Fat_LFlt.Attr_Long_Float.Floor
       - System.Fat_Flt.Attr_Float.Floor

@@ -46,7 +46,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from reqs.core import Diagnostic
 
@@ -81,13 +81,14 @@ class TestNode:
     refs: list[str] = field(default_factory=list)  # covered requirement ids
     derived: bool = False  # tagged `--@covers none` -- verifies un-required code
 
+    verification_methods: ClassVar[tuple[str, ...]] = ()
+
     @property
     def up_refs(self) -> list[str]:
         """The requirement ids this test covers (the ``Statement`` trace surface)."""
         return self.refs
 
-    @property
-    def down_refs(self) -> None:
+    def down_refs_in(self, field: str | None) -> list[str] | None:  # noqa: ARG002
         """Nothing: a test is the bottom of the chain and names nothing below it."""
         return None
 

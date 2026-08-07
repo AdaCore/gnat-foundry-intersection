@@ -1,0 +1,6 @@
+# {W,E}-UNVERIFIED + {W,E}-UNIMPLEMENTED: no verification, no implemented_by.
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_widget.1

@@ -40,33 +40,10 @@ description:
     parent_req:
       - hlr_5_vehicle.1
       - hlr_5_vehicle.24
+    verification:
+      - method: proof
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: proof
-    #     by: src/core/controller.ads:108-118
-    #     status: "The frame half of the statement, and the stronger reading of
-    #       it: Step holds State.Vehicle on every branch that does not call
-    #       Advance_Vehicle, quantified over every state and timer value. What
-    #       it does not say is that the assignment textually lives in
-    #       Advance_Vehicle -- which is not true as written anyway, since
-    #       Advance_Vehicle delegates the both-through entries to its local
-    #       helper Enter_Both (src/core/controller.adb:230-240)."
-    #   - means: proof
-    #     by: src/core/controller.adb:375-390
-    #     status: "The other subprogram that mutates the state in place,
-    #       Advance_Ped, is shown not to move the sequencer -- including on the
-    #       steps where Step is permitted to move it and so cannot say who
-    #       did."
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb
-    #     status: "The 'admits exactly the transitions of 25-50' half is the
-    #       routines of .25-.50 taken together: each names the successor of one
-    #       sequencer state, the case is exhaustive without an `others` choice,
-    #       and the successor is a function of state and guards, so the set of
-    #       admitted transitions is pinned by the set of routines. Six of them
-    #       cannot be written and four fail (#63), so this half is as complete
-    #       as that file is and no more."
 
   2:
     text: |-
@@ -75,17 +52,10 @@ description:
       (State.Veh_Timer reaching zero), never on absence of vehicular demand.
     parent_req:
       - hlr_3_timing.11
+    verification:
+      - method: proof
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_02_Vehicle_Held_While_Dwell_Remains
-    #   - means: proof
-    #     by: src/core/controller.ads:108-118
-    #     status: "Step's frame contract is this statement, universally
-    #       quantified: with more than one sampling period of dwell left the
-    #       sequencer is held, whatever the state and whatever the inputs. The
-    #       test samples the timer values it picks; the contract does not."
 
   # ---- Moore output rows, NS axis (all unlisted faces RED) ----
   3:
@@ -95,11 +65,9 @@ description:
       every other vehicle face.
     parent_req:
       - hlr_5_vehicle.2
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_03_N_Lead_Faces
 
   4:
     text: |-
@@ -108,11 +76,9 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.3
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_04_N_Lead_Yellow_Faces
 
   5:
     text: |-
@@ -120,11 +86,9 @@ description:
       GREEN for the NORTH through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.4
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_05_N_Lead_Clear_Faces
 
   6:
     text: |-
@@ -133,11 +97,9 @@ description:
       vehicle face.
     parent_req:
       - hlr_5_vehicle.5
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_06_NS_Both_Through_Faces
 
   7:
     text: |-
@@ -147,6 +109,7 @@ description:
       both-through phase).
     parent_req:
       - hlr_5_vehicle.48
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -157,11 +120,9 @@ description:
       and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.6
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_08_N_Drop_Yellow_Faces
 
   9:
     text: |-
@@ -169,11 +130,9 @@ description:
       GREEN for the SOUTH through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.7
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_09_N_Drop_Clear_Faces
 
   10:
     text: |-
@@ -182,11 +141,9 @@ description:
       every other vehicle face.
     parent_req:
       - hlr_5_vehicle.8
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_10_S_Lag_Faces
 
   11:
     text: |-
@@ -195,11 +152,9 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.9
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_11_S_Lag_Yellow_Faces
 
   12:
     text: |-
@@ -208,11 +163,9 @@ description:
       other vehicle face.
     parent_req:
       - hlr_5_vehicle.10
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_12_NS_Both_Drop_Yellow_Faces
 
   13:
     text: |-
@@ -220,11 +173,9 @@ description:
       return RED for every vehicle face.
     parent_req:
       - hlr_5_vehicle.11
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_13_NS_Barrier_Allred_Faces
 
   # ---- Moore output rows, EW axis (the exact mirror) ----
   14:
@@ -234,11 +185,9 @@ description:
       every other vehicle face.
     parent_req:
       - hlr_5_vehicle.25
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_14_E_Lead_Faces
 
   15:
     text: |-
@@ -247,11 +196,9 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.26
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_15_E_Lead_Yellow_Faces
 
   16:
     text: |-
@@ -259,11 +206,9 @@ description:
       GREEN for the EAST through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.27
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_16_E_Lead_Clear_Faces
 
   17:
     text: |-
@@ -272,11 +217,9 @@ description:
       vehicle face.
     parent_req:
       - hlr_5_vehicle.28
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_17_EW_Both_Through_Faces
 
   18:
     text: |-
@@ -286,6 +229,7 @@ description:
       both-through phase).
     parent_req:
       - hlr_5_vehicle.50
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -296,11 +240,9 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.29
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_19_E_Drop_Yellow_Faces
 
   20:
     text: |-
@@ -308,11 +250,9 @@ description:
       GREEN for the WEST through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.30
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_20_E_Drop_Clear_Faces
 
   21:
     text: |-
@@ -321,11 +261,9 @@ description:
       other vehicle face.
     parent_req:
       - hlr_5_vehicle.31
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_21_W_Lag_Faces
 
   22:
     text: |-
@@ -334,11 +272,9 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.32
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_22_W_Lag_Yellow_Faces
 
   23:
     text: |-
@@ -347,11 +283,9 @@ description:
       other vehicle face.
     parent_req:
       - hlr_5_vehicle.33
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_23_EW_Both_Drop_Yellow_Faces
 
   24:
     text: |-
@@ -359,11 +293,9 @@ description:
       return RED for every vehicle face.
     parent_req:
       - hlr_5_vehicle.34
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_24_EW_Barrier_Allred_Faces
 
   # ---- transitions, NS axis ----
   25:
@@ -373,11 +305,9 @@ description:
       shall set State.Vehicle to N_LEAD and State.Veh_Timer to T_LEAD.
     parent_req:
       - hlr_5_vehicle.12
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_25_EW_Barrier_Allred_To_N_Lead_On_North_Demand
 
   26:
     text: |-
@@ -390,17 +320,10 @@ description:
       - hlr_5_vehicle.13
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_26_EW_Barrier_Allred_To_NS_Both_Through_No_Demand
-    #     status: "FAILING (#63): the test transcribes this statement's commit
-    #       interval, which reserves a full lagging-left block -- 22 000 ms with
-    #       the current valuations. The code decides the lag at both-through
-    #       entry and reserves only the closing yellow, so it loads 34 000 ms.
-    #       The test is expected to pass unchanged once #63 lands."
 
   27:
     text: |-
@@ -409,11 +332,9 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.14
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_27_N_Lead_To_N_Lead_Yellow_On_Dwell_Elapse
 
   28:
     text: |-
@@ -422,11 +343,9 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.15
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_28_N_Lead_Yellow_To_N_Lead_Clear_On_Dwell_Elapse
 
   29:
     text: |-
@@ -439,15 +358,10 @@ description:
       - hlr_5_vehicle.16
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_29_N_Lead_Clear_To_NS_Both_Through_On_Dwell_Elapse
-    #     status: "FAILING (#63): as for statement 26, but entering both-through
-    #       after a lead ran -- the statement gives 10 000 ms and the code loads
-    #       22 000 ms. Expected to pass unchanged once #63 lands."
 
   30:
     text: |-
@@ -457,16 +371,9 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.17
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_30_NS_Both_Through_To_N_Drop_Yellow_On_South_Demand
-    #     status: "FAILING (#63): this statement reads the lagging approach's
-    #       demand live, at the commit boundary. The code reads a flag latched on
-    #       entry to NS_BOTH_THROUGH, so a state parked there with SOUTH pending
-    #       takes the no-demand branch to NS_BOTH_DROP_YELLOW. Expected to pass
-    #       unchanged once #63 lands."
 
   31:
     text: |-
@@ -479,6 +386,7 @@ description:
       - hlr_5_vehicle.18
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -490,6 +398,7 @@ description:
     parent_req:
       - hlr_5_vehicle.49
       - hlr_3_timing.7
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -500,11 +409,9 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.19
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_33_N_Drop_Yellow_To_N_Drop_Clear_On_Dwell_Elapse
 
   34:
     text: |-
@@ -513,11 +420,9 @@ description:
       T_LAG.
     parent_req:
       - hlr_5_vehicle.20
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_34_N_Drop_Clear_To_S_Lag_On_Dwell_Elapse
 
   35:
     text: |-
@@ -526,11 +431,9 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.21
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_35_S_Lag_To_S_Lag_Yellow_On_Dwell_Elapse
 
   36:
     text: |-
@@ -539,11 +442,9 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.22
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_36_S_Lag_Yellow_To_NS_Barrier_Allred_On_Dwell_Elapse
 
   37:
     text: |-
@@ -552,11 +453,9 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.23
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_37_NS_Both_Drop_Yellow_To_NS_Barrier_Allred_On_Dwell_Elapse
 
   # ---- transitions, EW axis (the exact mirror) ----
   38:
@@ -566,11 +465,9 @@ description:
       shall set State.Vehicle to E_LEAD and State.Veh_Timer to T_LEAD.
     parent_req:
       - hlr_5_vehicle.35
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_38_NS_Barrier_Allred_To_E_Lead_On_East_Demand
 
   39:
     text: |-
@@ -583,15 +480,10 @@ description:
       - hlr_5_vehicle.36
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_39_NS_Barrier_Allred_To_EW_Both_Through_No_Demand
-    #     status: "FAILING (#63): statement 26's divergence on the EW axis --
-    #       22 000 ms required, 34 000 ms loaded. Expected to pass unchanged once
-    #       #63 lands."
 
   40:
     text: |-
@@ -600,11 +492,9 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.37
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_40_E_Lead_To_E_Lead_Yellow_On_Dwell_Elapse
 
   41:
     text: |-
@@ -613,11 +503,9 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.38
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_41_E_Lead_Yellow_To_E_Lead_Clear_On_Dwell_Elapse
 
   42:
     text: |-
@@ -630,15 +518,10 @@ description:
       - hlr_5_vehicle.39
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_42_E_Lead_Clear_To_EW_Both_Through_On_Dwell_Elapse
-    #     status: "FAILING (#63): statement 29's divergence on the EW axis --
-    #       10 000 ms required, 22 000 ms loaded. Expected to pass unchanged once
-    #       #63 lands."
 
   43:
     text: |-
@@ -648,15 +531,9 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.40
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_43_EW_Both_Through_To_E_Drop_Yellow_On_West_Demand
-    #     status: "FAILING (#63): statement 30's divergence on the EW axis -- the
-    #       live WEST demand is not read at the commit boundary, so the step goes
-    #       to EW_BOTH_DROP_YELLOW instead of E_DROP_YELLOW. Expected to pass
-    #       unchanged once #63 lands."
 
   44:
     text: |-
@@ -669,6 +546,7 @@ description:
       - hlr_5_vehicle.41
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -680,6 +558,7 @@ description:
     parent_req:
       - hlr_5_vehicle.51
       - hlr_3_timing.7
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -690,11 +569,9 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.42
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_46_E_Drop_Yellow_To_E_Drop_Clear_On_Dwell_Elapse
 
   47:
     text: |-
@@ -703,11 +580,9 @@ description:
       T_LAG.
     parent_req:
       - hlr_5_vehicle.43
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_47_E_Drop_Clear_To_W_Lag_On_Dwell_Elapse
 
   48:
     text: |-
@@ -716,11 +591,9 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.44
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_48_W_Lag_To_W_Lag_Yellow_On_Dwell_Elapse
 
   49:
     text: |-
@@ -729,11 +602,9 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.45
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_49_W_Lag_Yellow_To_EW_Barrier_Allred_On_Dwell_Elapse
 
   50:
     text: |-
@@ -742,11 +613,9 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.46
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_1_vehicle_tests.adb:Test_50_EW_Both_Drop_Yellow_To_EW_Barrier_Allred_On_Dwell_Elapse
 
 algorithm_aspects: |-
   The output table is written as explicit literal aggregates per state — not a

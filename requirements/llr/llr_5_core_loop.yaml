@@ -17,11 +17,9 @@ description:
       the first iteration.
     parent_req:
       - hlr_1_modes.2
+    verification: test
     implemented_by:
       - State_Machine_Loop
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_5_core_loop_tests.adb:Test_01_Initialize_Once_Before_First_Iteration
 
   2:
     text: |-
@@ -36,11 +34,9 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - State_Machine_Loop
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_5_core_loop_tests.adb:Test_02_Iteration_Runs_The_Four_Stages_In_Order
 
   3:
     text: |-
@@ -49,33 +45,10 @@ description:
     parent_req:
       - hlr_1_modes.4
       - hlr_3_timing.11
+    verification:
+      - method: static_check
     implemented_by:
       - State_Machine_Loop
-    # verified_by:
-    #   - means: compiler_check
-    #     by: src/core/state_machine_loop.ads:31
-    #     status: "No_Return is a legality rule, not documentation: RM 6.5.1
-    #       forbids a return statement in the body, and GNAT rejects one --
-    #       verified by mutation ('return statement not allowed in No_Return
-    #       procedure', make build-native fails). So no explicit termination
-    #       path can be written at all."
-    #   - means: proof
-    #     by: src/core/state_machine_loop.adb:24-33
-    #     status: "The implicit return at the end of the body is what is left,
-    #       and SPARK rejects one that is reachable -- verified by mutation
-    #       (adding an `exit` to the loop makes `make prove` fail with 'implied
-    #       return after this statement would have raised Program_Error'). The
-    #       unit is analysed because state_machine_loop_proof instantiates it.
-    #       Note the ordinary build only *warns* about this one; make prove is
-    #       the gate."
-    #   - means: test
-    #     by: tests/reqs/src/llr_5_core_loop_tests.adb:Test_03_Loop_Never_Returns_To_Its_Caller
-    #     status: "The behavioural half the other two do not reach: both are
-    #       satisfied by a body that raises on its first statement, so the
-    #       routine drives real iterations and asserts the loop was left only
-    #       by the exception the spy injects. Bounded, and therefore weaker
-    #       than the proof -- but it is the half that fails if the loop stops
-    #       iterating."
 
   4:
     text: |-
@@ -83,11 +56,9 @@ description:
       once every T_SAMPLE logical milliseconds (llr_1_states.30).
     parent_req:
       - hlr_3_timing.13
+    verification: test
     implemented_by:
       - State_Machine_Loop
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_5_core_loop_tests.adb:Test_04_Sources_Read_Once_Per_Sampling_Period
 
 algorithm_aspects: |-
   The four-stage order realizes the fixed-cadence sampled contract

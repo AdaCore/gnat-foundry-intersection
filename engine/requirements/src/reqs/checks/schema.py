@@ -20,6 +20,10 @@ Checks:
     - {E,W}-PARENT-MISSING : a parent_req that resolves to no statement in the set.
       Warning by default (the curated examples are deliberately partial);
       error when ``complete=True`` (a full requirement set must trace cleanly).
+    - {E,W}-UNVERIFIED : an LLR statement declaring no ``verification`` method
+      (same escalation).
+    - {E,W}-UNIMPLEMENTED : an LLR statement with no ``implemented_by`` (same
+      escalation).
 
   Lint / soft (warnings; never fail the run)
     - W-RS3 : each description statement should contain exactly one "shall".
@@ -34,12 +38,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from reqs.core import SHALL_RE, Diagnostic, prose
+from reqs.document import VERIFICATION_METHODS
 from reqs.requirement_set import LlrFile, RequirementFile, RequirementSet, parse_req_id
 
 if TYPE_CHECKING:
     import os
     from collections.abc import Iterable
     from pathlib import Path
+
+    from reqs.document import LlrStatement
 
 RS3_OPTOUT = "rs3:skip"
 
@@ -96,7 +103,32 @@ class RequirementChecker:
                     diag = self._parent_diagnostic(reqset, parent_id, file.path, line, loc)
                     if diag is not None:
                         out.append(diag)
+                out.extend(self._completeness_diagnostics(file, key, statement))
         return out
+
+    def _completeness_diagnostics(
+        self, file: LlrFile, key: int, statement: LlrStatement
+    ) -> list[Diagnostic]:
+        """Report a statement that names no implementer or declares no verification."""
+        gaps = []
+        if statement.verification is None:
+            methods = ", ".join(VERIFICATION_METHODS)
+            gaps.append(("UNVERIFIED", f"statement declares no verification (one of: {methods})"))
+        if statement.implemented_by is None:
+            gaps.append(("UNIMPLEMENTED", "statement names no implemented_by"))
+        _path, line, loc = file.loc_of(key)
+        hint = "" if self.complete else " (use --complete to require it)"
+        return [
+            Diagnostic(
+                "error" if self.complete else "warning",
+                f"E-{code}" if self.complete else f"W-{code}",
+                message + hint,
+                file.path,
+                line=line,
+                path=loc,
+            )
+            for code, message in gaps
+        ]
 
     def _parent_diagnostic(
         self,

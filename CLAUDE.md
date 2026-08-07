@@ -15,11 +15,17 @@ The aim of this repository is to demonstrate how the engine can work on the *app
 Essential commands:
 
 ```bash
+make help           # List the public targets, by section
+
 make build-native   # Build the native app
 make test           # Run the testsuite
 make prove          # Run the prover
 
 make all-coverage   # Generate a coverage report
+
+make build-target   # Build the bare-metal arm-eabi firmware
+make smoke-target   # Boot the firmware under QEMU, check its first display frame
+make test-target    # Run the testsuite ON TARGET (arm-eabi, under QEMU)
 
 make report         # Generate the verification report
 ```
@@ -35,6 +41,12 @@ gated on the requirements chain actually validating.
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same
 regardless of which one you ran.
+
+The `*-target` targets additionally need `qemu-system-arm` on PATH; the
+`setup-*` targets do not provision it (CI takes it from the `image:serotonic`
+runner image). `test-target` runs the same test bodies under `tests/` as `make
+test`, minus the host-profile HAL units listed in
+`traffic_light_qemu/tests/host_only_sources.txt`. Coverage is native-only.
 
 ## Feature workflow
 
@@ -88,6 +100,10 @@ Unless specifically asked, do not look at git branches other than the one you're
 - Read the code conventions: `design/code_conventions.md`
 - Format with `make format`
 - Validate your change with `make check && make build-native`
+- A contract or compile-time check that discharges a `proof` / `static_check`
+  LLR carries a `--@covers <id>` comment on the line directly above the aspect
+  or pragma (see `engine/requirements/docs/README.md`); `make trace-check`
+  resolves those. Untagged checks are fine — tagging is opt-in evidence.
 
 ## Keeping `core` proven
 
@@ -114,6 +130,11 @@ generics, the `core` project carries a small in-SPARK instantiation harness
   enforces this via the `TEST` layer of `requirements/trace_chain.yaml`; run
   `make trace` to see the LLR↔test coverage tables. That gate does not currently
   reach `tests/reqs/` (#106), so there review is the only check.
+- Every LLR statement declares its `verification:` method(s). `make trace-check`
+  requires a covering test for each `test`-verified statement and rejects a
+  `--@covers` citing a statement not declaring `test` — add a `method: test`
+  entry to that statement's `verification:` in the same change if the test is
+  genuine.
 - Writing a requirements-based test under `tests/reqs/`: read
   `tests/reqs/README.md` first — its rules are the review criteria.
 - If working on coverage augmentation, run `make all-coverage` to list uncovered code.

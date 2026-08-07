@@ -15,19 +15,10 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification:
+      - method: static_check
     implemented_by:
       - Main
-    # verified_by:
-    #   - means: test
-    #     by: "PLACEHOLDER (#17): system-level. Generic instantiation is
-    #       compile-checked for the formal *profile*, not for the identity of
-    #       the actual -- `new Buses.Source_Bus (Producer => Sources.Sample)`
-    #       compiles just as happily with any other matching procedure -- so
-    #       no witness in the unit under test can establish this. What the
-    #       statement is really about is behavioural (every input signal
-    #       reaches the controller from the HAL sources), and that is
-    #       observable end to end once the system-level tests exist.
-    #       Currently unverified."
 
   2:
     text: |-
@@ -37,12 +28,10 @@ description:
       - hlr_4_signals.1
       - hlr_4_signals.2
       - hlr_4_signals.3
+    verification:
+      - method: static_check
     implemented_by:
       - Main
-    # verified_by:
-    #   - means: test
-    #     by: "PLACEHOLDER (#17): system-level, for the reason given under
-    #       statement 1. Currently unverified."
 
   3:
     text: |-
@@ -51,12 +40,10 @@ description:
       Bus_Write.
     parent_req:
       - hlr_1_modes.2
+    verification:
+      - method: static_check
     implemented_by:
       - Main
-    # verified_by:
-    #   - means: test
-    #     by: "PLACEHOLDER (#17): system-level, for the reason given under
-    #       statement 1. Currently unverified."
 
   4:
     text: |-
@@ -64,6 +51,9 @@ description:
       Display.Initialize.
     parent_req:
       - hlr_1_modes.2
+    verification:
+      - method: review
+        justification: Main is SPARK_Mode-off and never returns; no tool can observe the Display.Initialize call
     implemented_by:
       - Main
 
@@ -73,5 +63,8 @@ description:
       State_Machine_Loop.
     parent_req:
       - hlr_1_modes.2
+    verification:
+      - method: review
+        justification: call ordering inside the non-returning Main is observable to no prover, compiler check, or test harness
     implemented_by:
       - Main

@@ -20,11 +20,9 @@ description:
       DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.3
+    verification: test
     implemented_by:
       - Controller.Head_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_01_No_Request_Head_Is_Dont_Walk
 
   2:
     text: |-
@@ -32,11 +30,9 @@ description:
       DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.6
+    verification: test
     implemented_by:
       - Controller.Head_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_02_Pending_Head_Is_Dont_Walk
 
   3:
     text: |-
@@ -44,11 +40,9 @@ description:
       crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.10
+    verification: test
     implemented_by:
       - Controller.Head_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_03_Walk_Interval_Head_Is_Walk
 
   4:
     text: |-
@@ -56,11 +50,9 @@ description:
       FLASH_DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.11
+    verification: test
     implemented_by:
       - Controller.Head_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_04_Change_Head_Is_Flash_Dont_Walk
 
   5:
     text: |-
@@ -68,11 +60,9 @@ description:
       Head_Of shall return DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.14
+    verification: test
     implemented_by:
       - Controller.Head_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_05_Buffer_Heads_Are_Dont_Walk
 
   # ---- Moore outputs: the request indicator ----
   6:
@@ -81,11 +71,9 @@ description:
       NO_REQUEST for that crosswalk's request indicator.
     parent_req:
       - hlr_6_pedestrian.4
+    verification: test
     implemented_by:
       - Controller.Request_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_06_No_Request_Indicator_Is_No_Request
 
   7:
     text: |-
@@ -93,11 +81,9 @@ description:
       return REQUEST_PENDING for that crosswalk's request indicator.
     parent_req:
       - hlr_6_pedestrian.7
+    verification: test
     implemented_by:
       - Controller.Request_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_07_Pending_Indicator_Is_Request_Pending
 
   8:
     text: |-
@@ -106,11 +92,9 @@ description:
       request indicator.
     parent_req:
       - hlr_6_pedestrian.9
+    verification: test
     implemented_by:
       - Controller.Request_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_08_Serving_Indicators_Are_No_Request
 
   9:
     text: |-
@@ -118,11 +102,9 @@ description:
       REQUEST_PENDING for that crosswalk's request indicator.
     parent_req:
       - hlr_6_pedestrian.16
+    verification: test
     implemented_by:
       - Controller.Request_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_09_Latched_Indicator_Is_Request_Pending
 
   # ---- input arming (Step, before outputs are emitted) ----
   10:
@@ -132,11 +114,9 @@ description:
       PENDING_PEDESTRIAN_REQUEST.
     parent_req:
       - hlr_6_pedestrian.5
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_10_Press_Arms_Idle_Crosswalk
 
   11:
     text: |-
@@ -145,11 +125,9 @@ description:
       BUFFER_INTERVAL_LATCHED, leaving State.Ped_Timer (C) unchanged.
     parent_req:
       - hlr_6_pedestrian.15
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_11_Press_Latches_Buffer_Interval
 
   # ---- the service edge (Step, after the sequencer advances) ----
   12:
@@ -160,11 +138,9 @@ description:
       and State.Ped_Timer (C) to T_WALK.
     parent_req:
       - hlr_6_pedestrian.8
+    verification: test
     implemented_by:
       - Controller.Step
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_12_Adjacent_Green_Rise_Serves_Pending
 
   # ---- timed transitions (Advance_Ped) ----
   13:
@@ -174,11 +150,9 @@ description:
       State.Ped_Timer (C) to T_FDW.
     parent_req:
       - hlr_6_pedestrian.12
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_13_Walk_Elapses_To_Change
 
   14:
     text: |-
@@ -187,11 +161,9 @@ description:
       State.Ped_Timer (C) to T_BUFFER.
     parent_req:
       - hlr_6_pedestrian.13
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_14_Change_Elapses_To_Buffer
 
   15:
     text: |-
@@ -200,11 +172,9 @@ description:
       State.Ped_Timer (C) to 0.
     parent_req:
       - hlr_6_pedestrian.17
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_15_Buffer_Elapses_To_No_Request
 
   16:
     text: |-
@@ -213,11 +183,9 @@ description:
       PENDING_PEDESTRIAN_REQUEST and State.Ped_Timer (C) to 0.
     parent_req:
       - hlr_6_pedestrian.18
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_16_Latched_Buffer_Elapses_To_Pending
 
   # ---- timer discipline ----
   17:
@@ -229,11 +197,9 @@ description:
       - hlr_6_pedestrian.13
       - hlr_6_pedestrian.17
       - hlr_6_pedestrian.18
+    verification: test
     implemented_by:
       - Controller.Running_Ped
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_4_controller_3_pedestrian_tests.adb:Test_17_Ped_Timer_Runs_While_Serving
 
 algorithm_aspects: |-
   Time-in-SERVING as a series clock. hlr_6_pedestrian.17/.18 fire when the

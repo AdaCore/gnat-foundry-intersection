@@ -178,6 +178,7 @@ is
             + States.T_Yellow
           else States.T_Yellow))
    with
+     --@covers llr_1_states.29
      Post =>
        Both_Duration'Result >= States.T_Both_Min
        and then Both_Duration'Result <= States.T_Axis;

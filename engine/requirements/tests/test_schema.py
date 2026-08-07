@@ -28,6 +28,14 @@ def test_complete_escalates_partial_trace() -> None:
     assert "E-PARENT-MISSING" in codes
 
 
+def test_complete_escalates_missing_downward_trace() -> None:
+    """Under --complete a statement lacking verification/implemented_by is an error."""
+    diags = validate_paths([FIX / "llr_incomplete_downward.yaml"], complete=True)
+    codes = {(d.code, d.level) for d in diags}
+    assert ("E-UNVERIFIED", "error") in codes
+    assert ("E-UNIMPLEMENTED", "error") in codes
+
+
 # (description, [fixture files], expected code, expected level)
 NEGATIVE_CASES = [
     ("unknown top-level key rejected", ["hlr_unknown_key.yaml"], "E-SCHEMA", "error"),
@@ -53,6 +61,17 @@ NEGATIVE_CASES = [
         "error",
     ),
     ("parent_req must be a statement ID", ["llr_parent_barestem.yaml"], "E-PARENT-FORMAT", "error"),
+    ("unknown verification method", ["llr_bad_verification.yaml"], "E-SCHEMA", "error"),
+    ("by is not a verification key", ["llr_test_with_by.yaml"], "E-SCHEMA", "error"),
+    (
+        "review without justification",
+        ["llr_review_without_justification.yaml"],
+        "E-SCHEMA",
+        "error",
+    ),
+    ("repeated verification method", ["llr_dup_verification.yaml"], "E-SCHEMA", "error"),
+    ("no verification method", ["llr_incomplete_downward.yaml"], "W-UNVERIFIED", "warning"),
+    ("no implemented_by", ["llr_incomplete_downward.yaml"], "W-UNIMPLEMENTED", "warning"),
 ]
 
 

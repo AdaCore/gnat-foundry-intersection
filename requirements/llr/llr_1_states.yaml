@@ -36,11 +36,9 @@ description:
       vehicle face output signal.
     parent_req:
       - hlr_4_signals.1
+    verification: test
     implemented_by:
       - States.Vehicle_Face
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_01_Vehicle_Face_Has_Exactly_Four_Literals
 
   2:
     text: |-
@@ -49,11 +47,9 @@ description:
       every crosswalk's pedestrian head output signal, where NONE is dark.
     parent_req:
       - hlr_4_signals.2
+    verification: test
     implemented_by:
       - States.Pedestrian_Head
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_02_Pedestrian_Head_Has_Exactly_Four_Literals
 
   3:
     text: |-
@@ -62,11 +58,9 @@ description:
       crosswalk's request indicator output signal.
     parent_req:
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - States.Request_Indicator
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_03_Request_Indicator_Has_Exactly_Two_Literals
 
   # ---- input signal alphabets ----
   4:
@@ -76,11 +70,9 @@ description:
       input signal.
     parent_req:
       - hlr_4_signals.4
+    verification: test
     implemented_by:
       - States.Fault_Detection
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_04_Fault_Detection_Has_Exactly_Two_Literals
 
   5:
     text: |-
@@ -89,11 +81,9 @@ description:
       pedestrian demand button input signal.
     parent_req:
       - hlr_4_signals.5
+    verification: test
     implemented_by:
       - States.Pedestrian_Button
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_05_Pedestrian_Button_Has_Exactly_Two_Literals
 
   6:
     text: |-
@@ -102,11 +92,9 @@ description:
       approach's left-turn detector input signal.
     parent_req:
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - States.Left_Turn_Detector
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_06_Left_Turn_Detector_Has_Exactly_Two_Literals
 
   # ---- instance indices ----
   7:
@@ -117,11 +105,9 @@ description:
     parent_req:
       - hlr_5_vehicle_1_left_demand.1
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Approach
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_07_Approach_Has_Exactly_Four_Literals
 
   8:
     text: |-
@@ -130,11 +116,9 @@ description:
       of every per-crosswalk machine and signal array.
     parent_req:
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Crosswalk
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_08_Crosswalk_Has_Exactly_Four_Literals
 
   # ---- machine-state enumerations ----
   9:
@@ -143,11 +127,9 @@ description:
       NORMAL_OPERATION and FAULT.
     parent_req:
       - hlr_1_modes.1
+    verification: test
     implemented_by:
       - States.Mode
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_09_Mode_Has_Exactly_Two_Literals
 
   10:
     text: |-
@@ -155,11 +137,9 @@ description:
       the literals NO_LEFT_DEMAND and LEFT_DEMAND_PENDING.
     parent_req:
       - hlr_5_vehicle_1_left_demand.1
+    verification: test
     implemented_by:
       - States.Left_Demand_State
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_10_Left_Demand_State_Has_Exactly_Two_Literals
 
   11:
     text: |-
@@ -167,11 +147,9 @@ description:
       Approach holding one Left_Demand_State per approach.
     parent_req:
       - hlr_5_vehicle_1_left_demand.1
+    verification: test
     implemented_by:
       - States.Left_Demand_Array
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_11_Left_Demand_Array_Holds_One_State_Per_Approach
 
   12:
     text: |-
@@ -187,19 +165,9 @@ description:
       - hlr_5_vehicle.24
       - hlr_5_vehicle.48
       - hlr_5_vehicle.50
+    verification: test
     implemented_by:
       - States.Vehicle_Sequencer_State
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_12_Vehicle_Sequencer_Has_Exactly_Twenty_Two_States
-    #     status: "FAILING (#63): the witness names the states this
-    #       statement gives, but two of the twenty-two --
-    #       NS_BOTH_THROUGH_HOLD and EW_BOTH_THROUGH_HOLD -- are not
-    #       literals of the type, so they cannot be named at all and the
-    #       routine asserts the count instead. The type has twenty. This
-    #       is the divergence that also keeps six statements of
-    #       llr_4_controller_1_vehicle untestable; expected to pass
-    #       unchanged once #63 lands."
 
   13:
     text: |-
@@ -208,11 +176,9 @@ description:
       CHANGE_INTERVAL, BUFFER_INTERVAL, and BUFFER_INTERVAL_LATCHED.
     parent_req:
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Pedestrian_State
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_13_Pedestrian_State_Has_Exactly_Six_Literals
 
   14:
     text: |-
@@ -220,11 +186,9 @@ description:
       Crosswalk holding one Pedestrian_State per crosswalk.
     parent_req:
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Pedestrian_Array
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_14_Pedestrian_Array_Holds_One_State_Per_Crosswalk
 
   15:
     text: |-
@@ -234,11 +198,9 @@ description:
     parent_req:
       - hlr_6_pedestrian.1
       - hlr_0_safety.1
+    verification: test
     implemented_by:
       - States.Serving_Pedestrian_State
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_15_Serving_Pedestrian_State_Spans_Walk_To_Buffer_Latched
 
   # ---- I/O aggregates ----
   16:
@@ -251,11 +213,9 @@ description:
       - hlr_4_signals.1
       - hlr_4_signals.2
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - States.Display_State
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_16_Display_State_Aggregates_Every_Output_Signal
 
   17:
     text: |-
@@ -266,11 +226,9 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - States.Sensors_State
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_17_Sensors_State_Aggregates_Every_Input_Signal
 
   # ---- the movement view (what the safety invariant quantifies over) ----
   18:
@@ -280,11 +238,9 @@ description:
       and W_LEFT.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - States.Movement
-    # verified_by:
-    #   - means: compiler_check
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_18_Movement_Has_Exactly_Eight_Literals
 
   19:
     text: |-
@@ -294,11 +250,9 @@ description:
     parent_req:
       - hlr_0_safety.2
       - hlr_4_signals.1
+    verification: test
     implemented_by:
       - States.Face_Of
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_19_Face_Of_Reads_The_Movements_Own_Face
 
   20:
     text: |-
@@ -306,11 +260,9 @@ description:
       Vehicle_Face exactly when it is GREEN or YELLOW.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - States.Is_Go
-    # verified_by:
-    #   - means: test
-    #     by: tests/reqs/src/llr_1_states_tests.adb:Test_20_Is_Go_Holds_Exactly_For_Green_And_Yellow
 
   # ---- durations: representation ----
   21:
@@ -321,6 +273,8 @@ description:
       - hlr_3_timing.1
       - hlr_3_timing.2
       - hlr_3_timing.3
+    verification:
+      - method: static_check
     implemented_by:
       - States.Duration_Ms
 
@@ -330,6 +284,8 @@ description:
       The States package shall value T_WALK at 7_000 milliseconds.
     parent_req:
       - hlr_3_timing.1
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Walk
 
@@ -338,6 +294,8 @@ description:
       The States package shall value T_FDW at 7_000 milliseconds.
     parent_req:
       - hlr_3_timing.2
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_FDW
 
@@ -346,6 +304,8 @@ description:
       The States package shall value T_BUFFER at 2_000 milliseconds.
     parent_req:
       - hlr_3_timing.3
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Buffer
 
@@ -359,6 +319,8 @@ description:
       - hlr_3_timing.4
       - hlr_3_timing.5
       - hlr_3_timing.6
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Yellow
 
@@ -368,6 +330,8 @@ description:
       T_LEAD = 6_000, T_LAG = 6_000, and T_BOTH_MIN = 10_000 milliseconds.
     parent_req:
       - hlr_3_timing.9
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Axis
 
@@ -379,6 +343,8 @@ description:
     parent_req:
       - hlr_3_timing.10
       - hlr_0_safety.1
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Both_Min
 
@@ -390,6 +356,8 @@ description:
     parent_req:
       - hlr_3_timing.10
       - hlr_0_safety.1
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Axis
 
@@ -401,6 +369,8 @@ description:
       - (T_YELLOW + T_REDCLEAR + T_LAG + T_YELLOW) is at least T_BOTH_MIN.
     parent_req:
       - hlr_3_timing.12
+    verification:
+      - method: proof
     implemented_by:
       - States.T_Axis
 
@@ -411,6 +381,8 @@ description:
       100 milliseconds.
     parent_req:
       - hlr_3_timing.13
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Sample
 
@@ -423,11 +395,10 @@ description:
       (statement 30).
     parent_req:
       - hlr_3_timing.11
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Sample
-    # verified_by:
-    #   - means: compiler_check
-    #     by: src/types/states.ads:346-387
 
 algorithm_aspects: |-
   The margin inequalities (27, 28) are the static discharge of the

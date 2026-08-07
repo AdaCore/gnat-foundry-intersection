@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from inventory_fixture import gnattest_routine, package, subprogram, write_inventory
+from inventory_fixture import check, gnattest_routine, package, subprogram, write_inventory
 from typer.testing import CliRunner
 
 from reqs.checks.trace import (
@@ -71,9 +71,13 @@ def write_conops(tmp_path: Path) -> Path:
 
 
 def write_req(
-    tmp_path: Path, name: str, ref_field: str, statements: Sequence[Sequence[str] | None]
+    tmp_path: Path,
+    name: str,
+    ref_field: str,
+    statements: Sequence[Sequence[str] | None],
+    verifications: Sequence[str | None] | None = None,
 ) -> Path:
-    """Write a requirement file; statements[i] is a list of up-refs, or None => derived."""
+    """Write a requirement file from up-ref lists (None => derived) and optional method marks."""
     lines = ["description:"]
     for i, refs in enumerate(statements, start=1):
         lines.append(f"  {i}:")
@@ -83,6 +87,13 @@ def write_req(
         else:
             lines.append(f"    {ref_field}:")
             lines.extend(f"      - {r}" for r in refs)
+        method = verifications[i - 1] if verifications is not None else None
+        if method == "review":  # a review entry must carry its justification
+            lines.append("    verification:")
+            lines.append("      - method: review")
+            lines.append("        justification: fixture")
+        elif method is not None:
+            lines.append(f"    verification: {method}")
     p = tmp_path / name
     p.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return p
@@ -120,7 +131,7 @@ def llr_layer(llr_dir: Path) -> Layer:
     return Layer("LLR", "requirement-yaml", llr_dir, id_pattern=r"(.+\.\d+)")
 
 
-def make_test_layer(inventory: Path, *, partial: bool = False, min_nodes: int = 0) -> Layer:
+def make_test_layer(inventory: Path, *, partial: bool = False, method: str | None = None) -> Layer:
     """Make a TEST layer whose up-refs are LLR statement IDs."""
     return Layer(
         "TEST",
@@ -128,25 +139,28 @@ def make_test_layer(inventory: Path, *, partial: bool = False, min_nodes: int = 
         inventory,
         id_pattern=r"(.+\.\d+)",
         partial_coverage=partial,
-        min_nodes=min_nodes,
+        method=method,
     )
 
 
-def make_code_layer(inventory: Path, *, parent: str = "LLR") -> Layer:
-    """
-    Make a CODE layer: the LLR names the code, so its refs point *down*.
-
-    It is `partial_coverage` for the same reason the TEST layer is -- most of the
-    code realizes no requirement directly -- and `parent` is explicit because
-    both TEST and CODE hang off the LLR layer, not off each other.
-    """
+def make_code_layer(
+    inventory: Path,
+    *,
+    parent: str = "LLR",
+    name: str = "CODE",
+    ref_field: str | None = "implemented_by",
+    method: str | None = None,
+) -> Layer:
+    """Make a CODE-like layer: the LLR names the code, so its refs point *down*."""
     return Layer(
-        "CODE",
+        name,
         "ada-entities",
         inventory,
         parent=parent,
-        partial_coverage=True,
+        partial_coverage=method is None,
         refs_point_down=True,
+        ref_field=ref_field,
+        method=method,
     )
 
 
@@ -173,15 +187,16 @@ def llr_test_chain(
     routines: dict[str, list[str]],
     *,
     partial: bool = False,
-    min_nodes: int = 0,
+    method: str | None = None,
+    verifications: Sequence[str | None] | None = None,
 ) -> list[Layer]:
     """Build a minimal LLR -> TEST chain: LLR statements above, one test unit below."""
     llr_dir = tmp_path / "llr"
     llr_dir.mkdir(exist_ok=True)
-    write_req(llr_dir, "llr_x.yaml", "parent_req", llr_statements)
+    write_req(llr_dir, "llr_x.yaml", "parent_req", llr_statements, verifications=verifications)
     return [
         llr_layer(llr_dir),
-        make_test_layer(write_tests(tmp_path, "u", routines), partial=partial, min_nodes=min_nodes),
+        make_test_layer(write_tests(tmp_path, "u", routines), partial=partial, method=method),
     ]
 
 
@@ -413,10 +428,10 @@ def test_render_tables_wrap_wide_column_to_width(tmp_path: Path) -> None:
 
 
 def test_severity_style_flags_problems() -> None:
-    """Row styles: red for real gaps, yellow for waived/derived, green otherwise."""
-    for status in ("UNCOVERED", "UNTRACED", "DANGLING"):
+    """Row styles: red for real gaps, yellow for expected/accounted-for, green otherwise."""
+    for status in ("UNCOVERED", "UNTRACED", "DANGLING", "UNVERIFIED", "MISMATCH"):
         assert _severity_style(status) == "red bold"
-    for status in ("WAIVED", "DERIVED"):
+    for status in ("WAIVED", "DERIVED", "REVIEW"):
         assert _severity_style(status) == "yellow"
     assert _severity_style("OK") == "green"
 
@@ -635,7 +650,7 @@ def test_implemented_by_naming_absent_code_is_dangling(tmp_path: Path) -> None:
         (
             "E-TRACE-DANGLING",
             "error",
-            "LLR 'llr_x.1' down-ref 'Conflicts.Crosswalk_Conflicts' resolves to no CODE node",
+            "LLR 'llr_x.1' implemented_by 'Conflicts.Crosswalk_Conflicts' resolves to no CODE node",
         )
     ]
 
@@ -697,6 +712,301 @@ def test_missing_inventory_fails_the_check(tmp_path: Path) -> None:
     assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-IO"]
 
 
+# -- proof / static-check evidence: `--@covers`-tagged checks in the source ----
+
+
+def write_proof_llr(tmp_path: Path, *, also_test: bool = False) -> Path:
+    """Write one proof-verified LLR statement."""
+    llr_dir = tmp_path / "llr"
+    llr_dir.mkdir(exist_ok=True)
+    (llr_dir / "llr_x.yaml").write_text(
+        "description:\n"
+        "  1:\n"
+        "    text: The system shall do the thing.\n"
+        "    parent_req:\n"
+        "      - hlr_a.1\n"
+        "    verification:\n"
+        "      - method: proof\n"
+        + ("      - method: test\n" if also_test else "")
+        + "    implemented_by:\n"
+        "      - Conflicts.Compatible\n",
+        encoding="utf-8",
+    )
+    return llr_dir
+
+
+def write_checks(tmp_path: Path, *specs: dict[str, object]) -> Path:
+    """Write a code inventory holding only tagged checks (see `inventory_fixture.check`)."""
+    return write_inventory(
+        tmp_path / "checks_inventory.json",
+        checks=[check(**spec) for spec in specs],  # type: ignore[arg-type]
+    )
+
+
+POST_CHECK = {"kind": "aspect", "name": "Post", "file": "src/core/x.ads", "line": 12}
+
+
+def make_proof_layer(inventory: Path) -> Layer:
+    """Make a PROOF layer reading the source's tagged contract aspects."""
+    return Layer(
+        "PROOF",
+        "ada-checks",
+        inventory,
+        parent="LLR",
+        id_pattern=r"(.+\.\d+)",
+        method="proof",
+        anchors=["aspect:Post"],
+    )
+
+
+def test_tagged_contract_satisfies_the_proof_layer(tmp_path: Path) -> None:
+    """A `Post` aspect tagged `--@covers llr_x.1` discharges the proof declaration."""
+    chain = [
+        llr_layer(write_proof_llr(tmp_path)),
+        make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]})),
+    ]
+    assert check_trace(chain, complete=True) == []
+
+
+def test_declared_proof_with_no_tagged_check_is_uncovered(tmp_path: Path) -> None:
+    """A declared proof no check cites yet is an open obligation, not silently green."""
+    chain = [
+        llr_layer(write_proof_llr(tmp_path)),
+        make_proof_layer(write_checks(tmp_path)),
+    ]
+    assert [code for code, _level, _msg in summarize(check_trace(chain, complete=True))] == [
+        "E-TRACE-UNCOVERED"
+    ]
+
+
+def test_anchors_filter_which_constructs_count(tmp_path: Path) -> None:
+    """A tagged pragma is not proof evidence, and its orphaned tag is reported."""
+    inventory = write_checks(
+        tmp_path, {"kind": "pragma", "file": "src/core/x.ads", "line": 3, "covers": ["llr_x.1"]}
+    )
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    assert [code for code, _level, _msg in summarize(check_trace(chain, complete=True))] == [
+        "E-TRACE-CHECK-IGNORED",  # the author opted in; the citation must not vanish
+        "E-TRACE-UNCOVERED",
+    ]
+
+
+def test_ignored_tagged_check_is_located_at_the_construct(tmp_path: Path) -> None:
+    """The orphaned-tag diagnostic points at the tagged construct in the source."""
+    inventory = write_checks(
+        tmp_path,
+        {
+            "kind": "aspect",
+            "name": "Pre",
+            "file": "src/core/x.ads",
+            "line": 7,
+            "covers": ["llr_x.1"],
+        },
+    )
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    diag = next(d for d in check_trace(chain) if d.code == "E-TRACE-CHECK-IGNORED")
+    assert diag.message == (
+        "tagged aspect 'Pre' matches no ada-checks layer's anchors; "
+        "its --@covers citation is silently discharging nothing"
+    )
+    assert (str(diag.file), diag.line) == ("src/core/x.ads", 7)
+
+
+def test_covers_none_check_outside_anchors_is_not_reported(tmp_path: Path) -> None:
+    """A `--@covers none:` tag cites nothing, so dropping it loses no evidence."""
+    inventory = write_checks(
+        tmp_path,
+        {"kind": "pragma", "file": "src/core/x.ads", "line": 3, "covers": ["none: out of scope"]},
+    )
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    codes = [code for code, _level, _msg in summarize(check_trace(chain, complete=True))]
+    assert "E-TRACE-CHECK-IGNORED" not in codes
+
+
+def test_empty_covers_payload_on_an_unanchored_construct_is_reported(tmp_path: Path) -> None:
+    """A bare `--@covers` must not vanish just because its construct is unanchored."""
+    inventory = write_checks(
+        tmp_path,
+        {**POST_CHECK, "covers": ["llr_x.1"]},  # the statement is covered anyway
+        {"kind": "aspect", "name": "Pre", "file": "src/core/x.ads", "line": 7, "covers": [""]},
+    )
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    diags = check_trace(chain, complete=True)
+    assert [d.code for d in diags] == ["E-TRACE-CHECK-EMPTY"]
+    assert diags[0].message == (
+        "tagged aspect 'Pre' has a --@covers tag citing nothing; name the statement "
+        "id(s) it discharges, or write --@covers none: <reason>"
+    )
+    assert (str(diags[0].file), diags[0].line) == ("src/core/x.ads", 7)
+
+
+def test_empty_covers_payload_on_an_anchored_construct_is_reported(tmp_path: Path) -> None:
+    """The payload check is anchor-independent: the accepted construct is reported too."""
+    inventory = write_checks(tmp_path, {**POST_CHECK, "covers": [""]})
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    codes = [code for code, _level, _msg in summarize(check_trace(chain, complete=True))]
+    assert codes[0] == "E-TRACE-CHECK-EMPTY"
+
+
+def test_a_check_with_one_good_and_one_empty_payload_is_reported(tmp_path: Path) -> None:
+    """A construct's good citation does not excuse a second, broken tag on it."""
+    inventory = write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1", "   "]})
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    assert [d.code for d in check_trace(chain, complete=True)] == ["E-TRACE-CHECK-EMPTY"]
+
+
+def test_covers_none_payload_is_not_reported_as_empty(tmp_path: Path) -> None:
+    """`none:` cites nothing on purpose -- it is a claim, not a broken tag."""
+    inventory = write_checks(
+        tmp_path,
+        {**POST_CHECK, "covers": ["llr_x.1"]},
+        {
+            "kind": "aspect",
+            "name": "Pre",
+            "file": "src/core/x.ads",
+            "line": 7,
+            "covers": ["none: guards an implementation detail"],
+        },
+    )
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    assert check_trace(chain, complete=True) == []
+
+
+def test_anchor_matching_is_case_insensitive(tmp_path: Path) -> None:
+    """Ada names are case-insensitive, so `aspect:post` accepts a `Post` aspect."""
+    layer = make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]}))
+    layer.anchors = ["aspect:post"]
+    assert check_trace([llr_layer(write_proof_llr(tmp_path)), layer], complete=True) == []
+
+
+def test_named_pragma_anchor_excludes_other_pragmas(tmp_path: Path) -> None:
+    """`pragma:Compile_Time_Error` accepts only that pragma; a tagged Assert is drift-proofed."""
+    llr_dir = tmp_path / "llr"
+    llr_dir.mkdir(exist_ok=True)
+    write_req(llr_dir, "llr_x.yaml", "parent_req", [["hlr_a.1"]], verifications=["static_check"])
+    inventory = write_checks(
+        tmp_path,
+        {"kind": "pragma", "file": "src/x.ads", "line": 3, "covers": ["llr_x.1"]},
+        {"kind": "pragma", "name": "Assert", "file": "src/x.ads", "line": 9, "covers": ["llr_x.1"]},
+    )
+    layer = Layer(
+        "STATIC",
+        "ada-checks",
+        inventory,
+        parent="LLR",
+        id_pattern=r"(.+\.\d+)",
+        method="static_check",
+        anchors=["pragma:Compile_Time_Error"],
+    )
+    diags = summarize(check_trace([llr_layer(llr_dir), layer], complete=True))
+    # The Compile_Time_Error covers the statement; the runtime Assert's tag is loud.
+    assert [code for code, _level, _msg in diags] == ["E-TRACE-CHECK-IGNORED"]
+
+
+def test_one_check_may_cover_several_statements(tmp_path: Path) -> None:
+    """Multiple `--@covers` payloads on one construct union, like test tags."""
+    llr_dir = tmp_path / "llr"
+    llr_dir.mkdir(exist_ok=True)
+    write_req(llr_dir, "llr_x.yaml", "parent_req", [["hlr_a.1"], ["hlr_a.2"]], ["proof", "proof"])
+    inventory = write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1", "llr_x.2"]})
+    assert check_trace([llr_layer(llr_dir), make_proof_layer(inventory)], complete=True) == []
+
+
+def test_duplicate_check_node_id_is_reported(tmp_path: Path) -> None:
+    """Two inventory entries claiming one file:line would silently drop citations."""
+    inventory = write_checks(
+        tmp_path,
+        {**POST_CHECK, "covers": ["llr_x.1"]},
+        {**POST_CHECK, "covers": ["llr_x.2"]},
+    )
+    chain = [llr_layer(write_proof_llr(tmp_path)), make_proof_layer(inventory)]
+    assert "E-CHECK-DUPID" in [code for code, _level, _msg in summarize(check_trace(chain))]
+
+
+def test_dangling_check_tag_is_located_at_the_construct(tmp_path: Path) -> None:
+    """A tag citing an absent statement dangles, pointing at the tagged construct."""
+    chain = [
+        llr_layer(write_proof_llr(tmp_path)),
+        make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.9"]})),
+    ]
+    diags = summarize(check_trace(chain))
+    assert (
+        "E-TRACE-DANGLING",
+        "error",
+        "PROOF 'src/core/x.ads:12' up-ref 'llr_x.9' resolves to no LLR node",
+    ) in diags
+    dangling = next(d for d in check_trace(chain) if d.code == "E-TRACE-DANGLING")
+    assert (str(dangling.file), dangling.line) == ("src/core/x.ads", 12)
+
+
+def test_check_citing_an_undeclared_method_is_drift(tmp_path: Path) -> None:
+    """A contract citing a statement that does not declare proof contradicts the mark."""
+    llr_dir = tmp_path / "llr"
+    llr_dir.mkdir(exist_ok=True)
+    write_req(llr_dir, "llr_x.yaml", "parent_req", [["hlr_a.1"]], verifications=["test"])
+    chain = [
+        llr_layer(llr_dir),
+        make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]})),
+    ]
+    assert summarize(check_trace(chain, complete=True)) == [
+        (
+            "E-TRACE-METHOD",
+            "error",
+            "PROOF 'src/core/x.ads:12' covers LLR 'llr_x.1', whose verification (test) "
+            "does not include 'proof'",
+        )
+    ]
+
+
+def test_check_evidence_renders_in_the_verification_table(tmp_path: Path) -> None:
+    """The merged table shows the citing construct; the checks keep an upward table."""
+    chain = [
+        llr_layer(write_proof_llr(tmp_path)),
+        make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]})),
+    ]
+    out = render_tables(chain, width=140)
+    assert "LLR → VERIFICATION" in out
+    assert "proof: src/core/x.ads:12" in out
+    assert "PROOF → LLR" in out  # the artifact-side view: each check and what it cites
+
+
+def test_check_tagged_none_is_derived_not_untraced(tmp_path: Path) -> None:
+    """`--@covers none: <reason>` on a check parks it as derived, like a boundary test."""
+    chain = [
+        llr_layer(write_proof_llr(tmp_path)),
+        make_proof_layer(
+            write_checks(
+                tmp_path,
+                {**POST_CHECK, "covers": ["llr_x.1"]},
+                {**POST_CHECK, "line": 40, "covers": ["none: proof plumbing"]},
+            )
+        ),
+    ]
+    assert check_trace(chain, complete=True) == []
+    assert "DERIVED" in render_tables(chain, width=140)
+
+
+def test_multi_method_statement_satisfies_each_layer(tmp_path: Path) -> None:
+    """A statement declaring proof and test is enforced by both layers, cleanly."""
+    llr_dir = write_proof_llr(tmp_path, also_test=True)
+    proof_chain = [
+        llr_layer(llr_dir),
+        make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]})),
+    ]
+    assert check_trace(proof_chain, complete=True) == []
+    test_chain = [
+        llr_layer(llr_dir),
+        make_test_layer(write_tests(tmp_path, "u", {"Test_A": ["llr_x.1"]}), method="test"),
+    ]
+    assert check_trace(test_chain, complete=True) == []  # the test entry: no drift
+    uncovered = [
+        llr_layer(llr_dir),
+        make_test_layer(write_tests(tmp_path, "u", {}), method="test"),
+    ]
+    codes = [code for code, _l, _m in summarize(check_trace(uncovered, complete=True))]
+    assert codes == ["E-TRACE-UNCOVERED"]  # ...and it still demands its test
+
+
 # -- the chain is a tree: a layer traces to its named parent -------------------
 
 
@@ -725,75 +1035,319 @@ def test_unknown_parent_is_reported(tmp_path: Path) -> None:
     assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-TRACE-PARENT"]
 
 
-def test_load_chain_reads_parent_and_refs_point_down(tmp_path: Path) -> None:
-    """`parent`, `refs_point_down` and `min_nodes` are parsed from the chain config."""
+def test_load_chain_reads_parent_refs_point_down_and_method(tmp_path: Path) -> None:
+    """`parent`, `refs_point_down`, `ref_field`, `method` and `anchors` come from the config."""
     (tmp_path / "llr").mkdir()
     (tmp_path / "trace_chain.yaml").write_text(
         "layers:\n"
         "  - {name: LLR, kind: requirement-yaml, path: llr, id_pattern: '(.+\\.\\d+)'}\n"
         "  - {name: TEST, kind: ada-tests, path: test_inventory.json,"
-        " id_pattern: '(.+\\.\\d+)', partial_coverage: true, min_nodes: 15}\n"
+        " id_pattern: '(.+\\.\\d+)', method: test}\n"
         "  - {name: CODE, kind: ada-entities, path: code_inventory.json, parent: LLR,"
-        " partial_coverage: true, refs_point_down: true}\n",
+        " partial_coverage: true, refs_point_down: true, ref_field: implemented_by}\n"
+        "  - {name: STATIC, kind: ada-checks, path: code_inventory.json, parent: LLR,"
+        " id_pattern: '(.+\\.\\d+)', method: static_check,"
+        " anchors: [pragma, 'aspect:No_Return']}\n",
         encoding="utf-8",
     )
     layers = load_chain(tmp_path / "trace_chain.yaml")
-    assert [layer.name for layer in layers] == ["LLR", "TEST", "CODE"]
+    assert [layer.name for layer in layers] == ["LLR", "TEST", "CODE", "STATIC"]
     assert layers[2].parent == "LLR"
     assert layers[2].refs_point_down is True
+    assert layers[2].ref_field == "implemented_by"
+    assert layers[3].method == "static_check"
+    assert layers[3].anchors == ["pragma", "aspect:No_Return"]
     assert layers[1].parent is None  # defaults to the layer above
     assert layers[1].refs_point_down is False
-    assert layers[1].min_nodes == 15
-    assert layers[0].min_nodes == 0  # default: no floor
+    assert layers[1].method == "test"
+    assert layers[0].method is None  # default: no method
+    assert layers[0].ref_field is None
+    assert layers[0].anchors == []
 
 
-# -- an empty layer must not read as "everything traced" -----------------------
+# -- verification methods: each LLR declares how it is discharged --------------
 #
-# The TEST layer is `partial_coverage`, so an untested LLR is never flagged, and a
-# layer with no nodes has no untraced nodes to flag either. Between them, an
-# inventory that came back valid but empty -- wrong generated project, moved
-# sources, a routine filter that stopped matching -- would pass the gate silently.
-# `min_nodes` is what makes that a build failure instead.
+# A method layer covers exactly the LLRs declaring its method; this also keeps
+# an empty generated inventory loud, with no hand-maintained node floor.
 
 
-def test_empty_test_layer_below_min_nodes_is_an_error(tmp_path: Path) -> None:
-    """An inventory with no test routines fails the layer's `min_nodes` floor."""
-    chain = llr_test_chain(tmp_path, TWO_LLRS, {}, partial=True, min_nodes=1)
+def test_test_verified_llr_without_test_errors_under_complete(tmp_path: Path) -> None:
+    """An LLR declaring `verification: test` that no test covers is UNCOVERED."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.1"]},
+        method="test",
+        verifications=["test", "test"],
+    )
     assert summarize(check_trace(chain, complete=True)) == [
         (
-            "E-TRACE-EMPTY",
+            "E-TRACE-UNCOVERED",
             "error",
-            "TEST layer yielded 0 node(s), expected at least 1; the layer was enumerated "
-            "from the wrong place, or min_nodes needs lowering deliberately",
+            "LLR node 'llr_x.2' declares verification 'test' but covered by no TEST and no waiver",
         )
     ]
 
 
-def test_short_test_layer_below_min_nodes_is_an_error(tmp_path: Path) -> None:
-    """A floor above zero also catches a partially-enumerated inventory."""
-    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=True, min_nodes=2)
-    assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-TRACE-EMPTY"]
-
-
-def test_test_layer_at_or_above_min_nodes_is_clean(tmp_path: Path) -> None:
-    """Meeting the floor draws no diagnostic; exceeding it is fine too."""
+def test_llr_verified_by_another_method_needs_no_test(tmp_path: Path) -> None:
+    """An LLR declaring `verification: review` is not this layer's to cover."""
     chain = llr_test_chain(
         tmp_path,
         TWO_LLRS,
-        {"Test_A": ["llr_x.1"], "Test_B": ["llr_x.2"]},
-        partial=True,
-        min_nodes=2,
+        {"Test_A": ["llr_x.1"]},
+        method="test",
+        verifications=["test", "review"],
     )
     assert check_trace(chain, complete=True) == []
 
 
-def test_min_nodes_is_silent_when_the_layer_failed_to_load(tmp_path: Path) -> None:
-    """A missing inventory is reported once, as E-IO; 'and it is empty' adds nothing."""
-    chain = [
-        llr_layer(write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])),
-        make_test_layer(tmp_path / "absent.json", partial=True, min_nodes=15),
+def test_llr_declaring_no_method_is_unverified(tmp_path: Path) -> None:
+    """Under a method layer, an LLR that declares nothing is a hard error."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.1"]},
+        method="test",
+        verifications=["test", None],
+    )
+    assert summarize(check_trace(chain, complete=True)) == [
+        (
+            "E-TRACE-UNVERIFIED",
+            "error",
+            "LLR 'llr_x.2' declares no verification method "
+            "(one of: test, proof, static_check, review)",
+        )
     ]
-    assert [code for code, _level, _msg in summarize(check_trace(chain))] == ["E-IO"]
+
+
+def test_test_covering_a_review_verified_llr_is_method_drift(tmp_path: Path) -> None:
+    """A test citing an LLR declared review-verified contradicts the mark: error."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.1"], "Test_B": ["llr_x.2"]},
+        method="test",
+        verifications=["test", "review"],
+    )
+    assert summarize(check_trace(chain, complete=True)) == [
+        (
+            "E-TRACE-METHOD",
+            "error",
+            "TEST 'u.Test_B' covers LLR 'llr_x.2', whose verification (review) "
+            "does not include 'test'",
+        )
+    ]
+
+
+def test_empty_inventory_fails_through_the_uncovered_llrs(tmp_path: Path) -> None:
+    """The empty-enumeration guard: no routines means every test-verified LLR errors."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {}, method="test", verifications=["test", "test"])
+    assert [code for code, _level, _msg in summarize(check_trace(chain, complete=True))] == [
+        "E-TRACE-UNCOVERED",
+        "E-TRACE-UNCOVERED",
+    ]
+
+
+def test_verification_table_merges_the_method_layers(tmp_path: Path) -> None:
+    """One row per statement: OK / REVIEW / UNCOVERED / UNVERIFIED / MISMATCH."""
+    chain = llr_test_chain(
+        tmp_path,
+        [["hlr_x.1"], ["hlr_x.2"], ["hlr_x.3"], ["hlr_x.4"], ["hlr_x.5"]],
+        {"Test_A": ["llr_x.1"], "Test_B": ["llr_x.4"]},
+        method="test",
+        verifications=["test", "review", None, "review", "test"],
+    )
+    out = render_tables(chain, width=120)
+    assert "LLR → VERIFICATION" in out
+    assert "LLR → TEST" not in out  # merged, not per-method
+    assert "TEST → LLR" in out  # the artifacts' own upward trace stays
+    (row_1,) = [line for line in out.splitlines() if line.startswith("│ llr_x.1 ")]
+    (row_2,) = [line for line in out.splitlines() if line.startswith("│ llr_x.2 ")]
+    (row_3,) = [line for line in out.splitlines() if line.startswith("│ llr_x.3 ")]
+    (row_4,) = [line for line in out.splitlines() if line.startswith("│ llr_x.4 ")]
+    (row_5,) = [line for line in out.splitlines() if line.startswith("│ llr_x.5 ")]
+    assert "OK" in row_1
+    assert "test: u.Test_A" in row_1  # the evidence, labeled by method
+    assert "REVIEW" in row_2
+    assert "review: fixture" in row_2  # the justification is the evidence
+    assert "UNVERIFIED" in row_3
+    assert "MISMATCH" in row_4  # covered by a test, yet declared review-verified
+    assert "(not declared)" in row_4
+    assert "UNCOVERED" in row_5  # declared test-verified, no test yet
+    assert "test: —" in row_5
+
+
+def test_unknown_method_is_a_config_error(tmp_path: Path) -> None:
+    """A typo'd method would silently require nothing; it stops the run instead."""
+    chain = llr_test_chain(
+        tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, method="tets", verifications=["test", "test"]
+    )
+    assert summarize(check_trace(chain)) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'TEST' names unknown method 'tets' (one of: test, proof, static_check, review)",
+        )
+    ]
+
+
+def test_refs_point_down_without_ref_field_is_a_config_error(tmp_path: Path) -> None:
+    """A down-pointing layer with no ref_field would read no refs; it stops the run."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])
+    layer = make_code_layer(write_code(tmp_path, "Conflicts.Compatible"))
+    layer.ref_field = None
+    assert summarize(check_trace([llr_layer(llr_dir), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'CODE' sets refs_point_down but no ref_field says where its refs are written",
+        )
+    ]
+
+
+def test_method_on_a_downward_layer_is_a_config_error(tmp_path: Path) -> None:
+    """Method layers trace upward: evidence cites its statement, not the reverse."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])
+    layer = make_code_layer(write_code(tmp_path, "Conflicts.Compatible"), method="proof")
+    assert summarize(check_trace([llr_layer(llr_dir), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'CODE' sets both method and refs_point_down; "
+            "a method layer's evidence cites its parent upward",
+        )
+    ]
+
+
+def test_ref_field_without_refs_point_down_is_a_config_error(tmp_path: Path) -> None:
+    """A ref_field on an upward-tracing layer would never be read; it stops the run."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])
+    layer = make_code_layer(write_code(tmp_path, "Conflicts.Compatible"))
+    layer.refs_point_down = False
+    assert summarize(check_trace([llr_layer(llr_dir), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'CODE' names ref_field 'implemented_by' but its refs do not point down",
+        )
+    ]
+
+
+def test_unknown_ref_field_is_a_config_error(tmp_path: Path) -> None:
+    """A mistyped ref_field would read no refs at all; the whole layer must not go quiet."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])
+    layer = make_code_layer(write_code(tmp_path, "Conflicts.Compatible"))
+    layer.ref_field = "implemented_byy"
+    assert summarize(check_trace([llr_layer(llr_dir), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'CODE' names unknown ref_field 'implemented_byy'; no statement holds "
+            "refs in it, so the layer would resolve nothing (one of: implemented_by)",
+        )
+    ]
+
+
+def test_unknown_ref_field_is_caught_under_partial_coverage(tmp_path: Path) -> None:
+    """The typo's danger: partial_coverage flags nothing, so the trace would pass green."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Nowhere.At_All"])])
+    layer = make_code_layer(write_code(tmp_path, "Conflicts.Compatible"))
+    layer.ref_field = "implemented_byy"
+    # Spelt right, the dangling `implemented_by` ref is an error; spelt wrong, the
+    # config check has to be what stops the run.
+    assert [code for code, _level, _msg in summarize(check_trace([llr_layer(llr_dir), layer]))] == [
+        "E-TRACE-CONFIG"
+    ]
+
+
+def test_ref_field_read_from_a_non_requirement_parent_is_a_config_error(tmp_path: Path) -> None:
+    """Only requirement statements hold down-refs; any other parent resolves nothing."""
+    llr_dir = write_llr_with_code_refs(tmp_path, [(["hlr_a.1"], ["Conflicts.Compatible"])])
+    inventory = write_code(tmp_path, "Conflicts.Compatible")
+    # A CODE layer hung off TEST rather than LLR: `implemented_by` exists, but no
+    # test routine holds any, so every ref would go unread.
+    layer = make_code_layer(inventory, parent="TEST")
+    chain = [llr_layer(llr_dir), make_test_layer(write_tests(tmp_path, "u", {})), layer]
+    assert summarize(check_trace(chain)) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'CODE' reads its refs from the 'implemented_by' of 'TEST', "
+            "whose 'ada-tests' nodes hold no downward refs",
+        )
+    ]
+
+
+def test_method_with_partial_coverage_is_a_config_error(tmp_path: Path) -> None:
+    """partial_coverage on a method layer would exempt exactly what it must cover."""
+    layer = make_test_layer(write_tests(tmp_path, "u", {}), partial=True, method="test")
+    (tmp_path / "llr").mkdir(exist_ok=True)
+    assert summarize(check_trace([llr_layer(tmp_path / "llr"), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'TEST' sets both method and partial_coverage, "
+            "which would exempt the very statements the method requires covered",
+        )
+    ]
+
+
+def test_anchors_on_a_non_checks_layer_is_a_config_error(tmp_path: Path) -> None:
+    """An anchors list means nothing outside ada-checks; it would select nothing."""
+    layer = make_test_layer(write_tests(tmp_path, "u", {}), method="test")
+    layer.anchors = ["pragma"]
+    (tmp_path / "llr").mkdir(exist_ok=True)
+    assert summarize(check_trace([llr_layer(tmp_path / "llr"), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'TEST' lists anchors but is not an ada-checks layer; they would select nothing",
+        )
+    ]
+
+
+def test_unknown_chain_key_is_a_config_error(tmp_path: Path) -> None:
+    """A leftover or misspelled config knob must not be silently ignored."""
+    (tmp_path / "llr").mkdir()
+    (tmp_path / "chain.yaml").write_text(
+        "layers:\n"
+        "  - {name: LLR, kind: requirement-yaml, path: llr, id_pattern: '(.+\\.\\d+)',"
+        " min_nodes: 3}\n",
+        encoding="utf-8",
+    )
+    assert summarize(check_trace(load_chain(tmp_path / "chain.yaml"))) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'LLR' has unknown config key(s) min_nodes",
+        )
+    ]
+
+
+def test_checks_layer_without_anchors_is_a_config_error(tmp_path: Path) -> None:
+    """An ada-checks layer with no anchors would match nothing; it stops the run."""
+    layer = make_proof_layer(write_checks(tmp_path))
+    layer.anchors = []
+    assert summarize(check_trace([llr_layer(write_proof_llr(tmp_path)), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'PROOF' is ada-checks but lists no anchors; it would match no check at all",
+        )
+    ]
+
+
+def test_malformed_anchor_is_a_config_error(tmp_path: Path) -> None:
+    """A typo'd anchor would silently match nothing; it stops the run instead."""
+    layer = make_proof_layer(write_checks(tmp_path))
+    layer.anchors = ["aspct:Post"]
+    assert summarize(check_trace([llr_layer(write_proof_llr(tmp_path)), layer])) == [
+        (
+            "E-TRACE-CONFIG",
+            "error",
+            "layer 'PROOF' anchor 'aspct:Post' is not 'pragma'[':<Name>'] or 'aspect:<Name>'",
+        )
+    ]
 
 
 # -- ids must match the pattern whole -----------------------------------------
@@ -896,7 +1450,7 @@ def test_cli_layers_orphaning_a_parent_is_reported(tmp_path: Path) -> None:
         "  - {name: TEST, kind: ada-tests, path: test_inventory.json,"
         " id_pattern: '(.+\\.\\d+)', partial_coverage: true}\n"
         "  - {name: CODE, kind: ada-entities, path: code_inventory.json, parent: LLR,"
-        " partial_coverage: true, refs_point_down: true}\n",
+        " partial_coverage: true, refs_point_down: true, ref_field: implemented_by}\n",
         encoding="utf-8",
     )
     result = runner.invoke(

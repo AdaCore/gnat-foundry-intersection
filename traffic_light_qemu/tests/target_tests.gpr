@@ -1,0 +1,9 @@
+--  Source-less shell for the cross test crate, so `alr exec` can supply aunit
+--  and the arm-eabi toolchain to the harness gnattest generates under
+--  <root>/obj/target/gnattest/harness/ (`make test-target`). Cross sibling of
+--  ../../tests/tests.gpr.
+
+project Target_Tests is
+   for Source_Dirs use ();
+   for Object_Dir use "obj";
+end Target_Tests;
