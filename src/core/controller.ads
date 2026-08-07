@@ -111,7 +111,7 @@ is
      (State   : in out Controller_State;
       Sensors : States.Sensors_State;
       Outputs : out States.Display_State)
-     --@covers llr_4_controller.21
+     --@covers llr_4_controller.21, llr_4_controller_1_vehicle.1
    with
      Post =>
        Conflicts.Safe_Faces (Outputs)

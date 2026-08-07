@@ -53,6 +53,7 @@ description:
     parent_req:
       - hlr_3_timing.11
     verification:
+      - method: test
       - method: proof
     implemented_by:
       - Controller.Advance_Vehicle

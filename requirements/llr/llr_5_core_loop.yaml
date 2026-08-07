@@ -46,6 +46,7 @@ description:
       - hlr_1_modes.4
       - hlr_3_timing.11
     verification:
+      - method: test
       - method: static_check
     implemented_by:
       - State_Machine_Loop

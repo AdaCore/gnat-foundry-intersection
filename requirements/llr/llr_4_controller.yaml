@@ -53,7 +53,7 @@ description:
       - hlr_5_vehicle_1_left_demand.1
       - hlr_6_pedestrian.1
     verification:
-      - method: static_check
+      - method: test
     implemented_by:
       - Controller.Controller_State
 
