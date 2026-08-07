@@ -342,16 +342,26 @@ TARGET_AUNIT_OBJDIR := $(CURDIR)/obj/target/aunit/obj
 # typo, which would silently shorten the on-target run.
 #
 # Of the three, only timings.ads cites a requirement (llr_6_hal.1), so only it
-# needs a waiver in check-target-test-parity.sh; every other requirement
-# citation in the suite runs on target.
+# needs a waiver in check-target-test-parity.sh.
+#
+# That waiver is NOT the only requirement citation off target. The 120 routines
+# under tests/reqs/ reach the native harness through --additional-tests below,
+# and GNATTEST_TARGET_SWITCHES carries no such switch, so none of them run under
+# QEMU. check-target-test-parity.sh cannot see them either -- it greps the
+# generated `<unit>-test_data*` files of the ignored units, a pattern nothing in
+# tests/reqs/ matches -- so it passes on a tree where most citations never reach
+# the target. This is #106's blind spot (an imported project the root project's
+# sources do not reach) at a second consumer; see #110.
 TARGET_TEST_IGNORE := $(CURDIR)/traffic_light_qemu/tests/host_only_sources.txt
 
 QEMU_TEST_TIMEOUT  ?= 120
 QEMU_SMOKE_TIMEOUT ?= 60
 
-# How many tests the cross harness must run: the 16 native ones less the units
-# in TARGET_TEST_IGNORE. A mismatch fails `test-target`, so the suite cannot
-# shrink unnoticed. Keep in step when adding tests or changing that list.
+# How many tests the cross harness must run: the 16 generated skeletons less
+# the units in TARGET_TEST_IGNORE. NOT the native total, which is 136 -- the
+# 120 routines under tests/reqs/ are native-only (see TARGET_TEST_IGNORE above
+# and #110). A mismatch fails `test-target`, so the suite cannot shrink
+# unnoticed. Keep in step when adding tests or changing that list.
 QEMU_TEST_EXPECTED ?= 11
 
 # --no-command-line / --no-test-filtering: gnattest's default driver needs

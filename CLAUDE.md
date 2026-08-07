@@ -44,9 +44,13 @@ regardless of which one you ran.
 
 The `*-target` targets additionally need `qemu-system-arm` on PATH; the
 `setup-*` targets do not provision it (CI takes it from the `image:serotonic`
-runner image). `test-target` runs the same test bodies under `tests/` as `make
-test`, minus the host-profile HAL units listed in
-`traffic_light_qemu/tests/host_only_sources.txt`. Coverage is native-only.
+runner image). `test-target` runs the *generated* test bodies under `tests/`,
+minus the host-profile HAL units listed in
+`traffic_light_qemu/tests/host_only_sources.txt` — 11 of the 16 skeletons. It
+does **not** run the 120 requirements-based routines under `tests/reqs/`, which
+reach the native harness through `--additional-tests` and have no cross-harness
+equivalent (#110), so `make test` runs 136 and `make test-target` 11. Coverage
+is native-only.
 
 ## Feature workflow
 
