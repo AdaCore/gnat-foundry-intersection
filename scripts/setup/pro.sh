@@ -207,7 +207,7 @@ Log in to GNAT Tracker and download the x86_64-linux packages for GNAT Pro
 for Ada (native and arm-elf), SPARK Pro, GNAT DAS and Libadalang, as either
 the product tarballs or the zipfiles wrapping them. Copy them into the
 directory above, then re-run 'make setup-pro'. Alternatively, re-run it from
-an environment that already has the pro tools on PATH to use them directly."
+an environment that already provides the pro tools to use them directly."
   fi
   detail "Tarball:  $tarball"
 

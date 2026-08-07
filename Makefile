@@ -66,9 +66,12 @@ UV  := $(if $(wildcard $(LOCAL_BIN)/uv),$(LOCAL_BIN)/uv,uv)
 SETUP_MARKER := $(INSTALL_DIR)/setup
 SETUP := $(or $(filter pro community external,$(shell cat '$(SETUP_MARKER)' 2>/dev/null)),none)
 
-# The setup-* recipes run against this unmodified PATH so the previous
+# The setup-* recipes run against this unmodified environment so the previous
 # setup's toolchain cannot leak into the new one.
-SYSTEM_PATH := $(PATH)
+SYSTEM_PATH             := $(PATH)
+SYSTEM_GPR_PROJECT_PATH := $(GPR_PROJECT_PATH)
+SYSTEM_LIBRARY_PATH     := $(LIBRARY_PATH)
+SYSTEM_LD_LIBRARY_PATH  := $(LD_LIBRARY_PATH)
 
 # Compose the detected setup's tools onto PATH. For SETUP=none the
 # environment is left alone.
@@ -401,6 +404,9 @@ test-report-engine: ## Run the report engine's own test suite
 
 # Env vars common to both setup-* targets.
 SETUP_ENV := PATH='$(SYSTEM_PATH)' \
+    GPR_PROJECT_PATH='$(SYSTEM_GPR_PROJECT_PATH)' \
+    LIBRARY_PATH='$(SYSTEM_LIBRARY_PATH)' \
+    LD_LIBRARY_PATH='$(SYSTEM_LD_LIBRARY_PATH)' \
     LOCAL_BIN='$(LOCAL_BIN)' \
     ALIRE_SETTINGS_DIR='$(ALIRE_SETTINGS_DIR)' \
     SETUP_MARKER='$(SETUP_MARKER)'
