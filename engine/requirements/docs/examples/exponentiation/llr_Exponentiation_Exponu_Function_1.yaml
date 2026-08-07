@@ -20,6 +20,7 @@ description:
       ```
     parent_req:
       - hlr_Exponentiation_Int_1.1
+    verification: test
     implemented_by:
       - System.Exp_Uns
       - System.Exp_LLU
@@ -30,6 +31,7 @@ description:
       result of the multiplication of `Left` by itself `Right - 1` times.
     parent_req:
       - hlr_Exponentiation_Int_1.2
+    verification: test
     implemented_by:
       - System.Exp_Uns
       - System.Exp_LLU
@@ -39,6 +41,7 @@ description:
       When `Right` is equal to 0, the `Exponu` function shall return 1.
     parent_req:
       - hlr_Exponentiation_Int_1.3
+    verification: test
     implemented_by:
       - System.Exp_Uns
       - System.Exp_LLU

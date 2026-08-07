@@ -15,6 +15,8 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification:
+      - method: static_check
     implemented_by:
       - Main
 
@@ -26,6 +28,8 @@ description:
       - hlr_4_signals.1
       - hlr_4_signals.2
       - hlr_4_signals.3
+    verification:
+      - method: static_check
     implemented_by:
       - Main
 
@@ -36,6 +40,8 @@ description:
       Bus_Write.
     parent_req:
       - hlr_1_modes.2
+    verification:
+      - method: static_check
     implemented_by:
       - Main
 
@@ -45,6 +51,9 @@ description:
       Display.Initialize.
     parent_req:
       - hlr_1_modes.2
+    verification:
+      - method: review
+        justification: Main is SPARK_Mode-off and never returns; no tool can observe the Display.Initialize call
     implemented_by:
       - Main
 
@@ -54,5 +63,8 @@ description:
       State_Machine_Loop.
     parent_req:
       - hlr_1_modes.2
+    verification:
+      - method: review
+        justification: call ordering inside the non-returning Main is observable to no prover, compiler check, or test harness
     implemented_by:
       - Main

@@ -29,6 +29,7 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - Buses.Source_Bus.Bus_Read
 
@@ -43,6 +44,7 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - Buses.Source_Bus.Bus_Read
 
@@ -55,6 +57,7 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - Buses.Source_Bus.Bus_Read
 
@@ -66,5 +69,6 @@ description:
       - hlr_4_signals.1
       - hlr_4_signals.2
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - Buses.Display_Bus.Bus_Write

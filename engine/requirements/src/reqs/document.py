@@ -18,6 +18,10 @@ from pydantic_core import PydanticCustomError
 NonEmptyStr = Annotated[str, Field(min_length=1)]
 RefList = Annotated[list[NonEmptyStr], Field(min_length=1)]
 
+# How an LLR statement is verified; machine evidence cites it back via `--@covers`.
+VERIFICATION_METHODS = ("test", "proof", "static_check", "review")
+VerificationMethod = Literal["test", "proof", "static_check", "review"]
+
 
 class _Model(BaseModel):
     """Strict, immutable base: unknown keys rejected, no coercion, no nulls."""
@@ -40,14 +44,29 @@ class _Model(BaseModel):
         return data
 
 
+class VerificationMeans(_Model):
+    """One way a statement is discharged."""
+
+    method: VerificationMethod
+    justification: NonEmptyStr | None = None  # review only: why no machine check
+
+    @model_validator(mode="after")
+    def _justification_matches_method(self) -> Self:
+        if (self.justification is not None) != (self.method == "review"):
+            raise PydanticCustomError(
+                "verification_justification",
+                "'justification' must be present exactly when method is 'review'",
+            )
+        return self
+
+
 class _BaseStatement(_Model):
     """One atomic shall-statement, carrying its own trace refs."""
 
     up_ref_key: ClassVar[str]  # name of the subclass's up-ref field
-    # Name of the subclass's *down*-ref field, if it has one. A statement that
-    # names what realizes it traces downward as well as upward, and the trace
-    # engine resolves those refs against the layer below (see reqs.checks.trace).
-    down_ref_key: ClassVar[str | None] = None
+    # Down-ref fields, if any; the trace engine resolves each against its own
+    # layer below (a layer's `ref_field`).
+    down_ref_fields: ClassVar[tuple[str, ...]] = ()
 
     text: NonEmptyStr
 
@@ -56,9 +75,27 @@ class _BaseStatement(_Model):
     def up_refs(self) -> list[str] | None:
         """The statement's upward trace refs; None when derived (HLR only)."""
 
+    def down_refs_in(self, field: str | None) -> list[str] | None:
+        """Return the downward trace refs held in `field`; None if it has none."""
+        if field in self.down_ref_fields:
+            return getattr(self, field)  # type: ignore[no-any-return]
+        return None
+
     @property
-    def down_refs(self) -> list[str] | None:
-        """The statement's downward trace refs; None when the level has none."""
+    def _verification(self) -> list[VerificationMeans]:
+        # Only an LLR declares verification means; the shared surface reads ().
+        return getattr(self, "verification", None) or []
+
+    @property
+    def verification_methods(self) -> tuple[str, ...]:
+        """The declared verification methods, in order; empty when undeclared."""
+        return tuple(means.method for means in self._verification)
+
+    def justification_for(self, method: str | None) -> str | None:
+        """Return the justification of the entry declaring `method`, if any."""
+        for means in self._verification:
+            if means.method == method:
+                return means.justification
         return None
 
     @property
@@ -101,12 +138,21 @@ class HlrStatement(_BaseStatement):
 
 
 class LlrStatement(_BaseStatement):
-    """An LLR statement."""
+    """
+    An LLR statement.
+
+    `verification` lists how the statement is discharged, one entry per method;
+    `verification: test` is shorthand for the single bare entry. A `review`
+    entry says why no machine check exists (`justification`); the machine
+    methods carry nothing here, because their evidence cites *us* -- a
+    `--@covers` tag on the test routine, contract or pragma.
+    """
 
     up_ref_key: ClassVar[str] = "parent_req"
-    down_ref_key: ClassVar[str | None] = "implemented_by"
+    down_ref_fields: ClassVar[tuple[str, ...]] = ("implemented_by",)
 
     parent_req: RefList
+    verification: Annotated[list[VerificationMeans], Field(min_length=1)] | None = None
     implemented_by: RefList | None = None
 
     @property
@@ -114,10 +160,31 @@ class LlrStatement(_BaseStatement):
         """The statement's `parent_req` refs."""
         return self.parent_req
 
-    @property
-    def down_refs(self) -> list[str] | None:
-        """The fully qualified Ada names said to implement the statement."""
-        return self.implemented_by
+    @field_validator("verification", mode="before")
+    @classmethod
+    def _shorthand(cls, value: object) -> object:
+        # `verification: test` is sugar for a single entry with no evidence.
+        if isinstance(value, str):
+            return [{"method": value}]
+        return value
+
+    @field_validator("verification", mode="after")
+    @classmethod
+    def _methods_unique(
+        cls, value: list[VerificationMeans] | None
+    ) -> list[VerificationMeans] | None:
+        methods = [means.method for means in value or ()]
+        if len(set(methods)) != len(methods):
+            raise PydanticCustomError("verification_dup", "verification methods must not repeat")
+        return value
+
+
+# Every downward-ref field a statement can hold. A trace layer's `ref_field`
+# must name one of these: a mistyped field reads no refs from any statement, so
+# the layer would resolve nothing and quietly check nothing.
+DOWN_REF_FIELDS: tuple[str, ...] = tuple(
+    dict.fromkeys(name for cls in (HlrStatement, LlrStatement) for name in cls.down_ref_fields)
+)
 
 
 class _BaseDocument(_Model):

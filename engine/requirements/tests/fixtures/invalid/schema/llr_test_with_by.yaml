@@ -1,0 +1,12 @@
+# E-SCHEMA: `by:` is not a verification-entry key; evidence tags the source.
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_widget.1
+    verification:
+      - method: test
+        by:
+          - Widget.Do_The_Thing
+    implemented_by:
+      - Widget.Do_The_Thing

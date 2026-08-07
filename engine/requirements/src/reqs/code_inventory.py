@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     import os
     from collections.abc import Iterator
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 """The ``schema_version`` this module can read. Owned here, not shared with the
 tracer: the two are separate programs and the whole point of the field is that
 they can disagree and say so."""
@@ -124,8 +124,18 @@ class Package(_Model):
     """One package, with its spec and body merged."""
 
     name: str
+    spec_file: str | None = None
     subprograms: list[Subprogram] = Field(default_factory=list)
     entities: list[Entity] = Field(default_factory=list)
+
+
+class Check(_Model):
+    """One ``--@covers``-tagged pragma or aspect association."""
+
+    kind: str  # "pragma" | "aspect"
+    name: str  # the pragma name or aspect mark, as written
+    location: Location
+    covers: list[str] = Field(default_factory=list)  # raw tag payloads
 
 
 class Inventory(_Model):
@@ -138,6 +148,8 @@ class Inventory(_Model):
     # Subprograms that are compilation units of their own and so belong to no
     # package -- `main.adb`'s `Main`, a library-level generic procedure.
     library_subprograms: list[Subprogram] = Field(default_factory=list)
+    # The `--@covers`-tagged pragmas and aspects, project-wide.
+    checks: list[Check] = Field(default_factory=list)
 
     def all_subprograms(self) -> Iterator[Subprogram]:
         """Yield every subprogram entry, those in packages first."""

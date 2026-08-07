@@ -125,11 +125,12 @@ def package(
     *,
     subprograms: Sequence[dict[str, Any]] = (),
     entities: Sequence[dict[str, Any]] = (),
+    spec_file: str | None = None,
 ) -> dict[str, Any]:
     """Build one package entry."""
     return {
         "name": name,
-        "spec_file": None,
+        "spec_file": spec_file,
         "body_file": None,
         "is_generic": False,
         "doc": {},
@@ -138,11 +139,29 @@ def package(
     }
 
 
+def check(
+    *,
+    file: str,
+    line: int,
+    kind: str = "pragma",
+    name: str = "Compile_Time_Error",
+    covers: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Build one `--@covers`-tagged check entry (a pragma or an aspect)."""
+    return {
+        "kind": kind,
+        "name": name,
+        "location": {"file": file, "line": line, "column": 4},
+        "covers": list(covers),
+    }
+
+
 def write_inventory(
     path: Path,
     *,
     packages: Sequence[dict[str, Any]] = (),
     library_subprograms: Sequence[dict[str, Any]] = (),
+    checks: Sequence[dict[str, Any]] = (),
     schema_version: int = SCHEMA_VERSION,
     tool: str = TOOL,
 ) -> Path:
@@ -155,6 +174,7 @@ def write_inventory(
                 "project": "fixture.gpr",
                 "packages": list(packages),
                 "library_subprograms": list(library_subprograms),
+                "checks": list(checks),
             }
         ),
         encoding="utf-8",

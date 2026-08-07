@@ -16,8 +16,8 @@ must **never** reference the CONOPS.
 - `engine/requirements/docs/{rules,ears}.md` — RS.1–RS.5, EARS grammar.
 - `engine/requirements/docs/examples/*/llr_*.yaml` — worked LLR examples showing
   the format: `visibility:`, `description:` map with per-statement `text` +
-  `parent_req:` (list of HLR IDs), optional `preconditions`, `implemented_by`,
-  `algorithm_aspects`, `rationale`.
+  `parent_req:` (list of HLR IDs) + `verification:` + `implemented_by`,
+  optional `preconditions`, `algorithm_aspects`, `rationale`.
 
 ## Outputs
 
@@ -34,10 +34,17 @@ must **never** reference the CONOPS.
 1. If the LLR layer is not yet enabled, do the one-time prerequisite above.
 2. For each HLR the feature touches, write the refining LLR statements in EARS.
 3. Set `parent_req` on every statement to the HLR ID(s) it refines.
-4. Record mechanism detail (algorithms, latches, error paths) that the HLR omits.
-5. Validate (the oracle).
-6. Remove from `workflow/<feature>/notes.md` any notes that have been addressed by the LLRs.
-7. Add to `workflow/<feature>/notes.md` any notes that are useful for implementation, in particular
+4. Declare `verification:` on every statement, one entry per method: `test`,
+   `proof` or `static_check` (the evidence itself will cite the statement with
+   a `--@covers` tag — on the test routine, above the contract aspect, or
+   above the pragma; until it exists the statement stays on the trace gate's
+   uncovered list), or `review` only when no machine evidence is possible (say
+   why in `justification:`). One bare method may use the shorthand
+   `verification: test`. Also name what implements it in `implemented_by:`.
+5. Record mechanism detail (algorithms, latches, error paths) that the HLR omits.
+6. Validate (the oracle).
+7. Remove from `workflow/<feature>/notes.md` any notes that have been addressed by the LLRs.
+8. Add to `workflow/<feature>/notes.md` any notes that are useful for implementation, in particular
    any LLRs that you have added/modified and that are not yet implemented by code.
 
 ## Oracle

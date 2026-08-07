@@ -70,7 +70,8 @@ package Ada_Tracer.Comments is
    --
    --  Section rulers (a comment whose payload is only dashes and spaces, as in
    --  `src/core/controller.adb`) terminate the block and are dropped, so a
-   --  banner heading is never mistaken for a subprogram's documentation.
+   --  banner heading is never mistaken for a subprogram's documentation. An
+   --  end-of-line remark trailing the declaration above also terminates it.
    --  @param Before The declaration's first token
    --  @param Skip_Blank_Lines Whether to look past a run of blank lines to
    --    reach the block. Needed only for a package header, which is separated

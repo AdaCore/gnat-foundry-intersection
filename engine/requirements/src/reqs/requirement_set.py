@@ -131,13 +131,15 @@ def _loc_of(
     statement = file.description[number]
     loc: tuple[str, ...] = ("description", str(number))
     # The key a `sub_key` names is per-level ("source" vs "parent_req"), and a
-    # level may not have one at all -- only an LLR names what implements it. When
-    # it does not, the location falls back to the statement.
-    key = {
-        "text": "text",
-        "up_ref": statement.up_ref_key,
-        "down_ref": statement.down_ref_key,
-    }.get(sub_key or "")
+    # level may not have one at all; the location then falls back to the statement.
+    if sub_key == "text":
+        key = "text"
+    elif sub_key == "up_ref":
+        key = statement.up_ref_key
+    elif sub_key in statement.down_ref_fields:
+        key = sub_key
+    else:
+        key = None
     if key is not None:
         loc = (*loc, key)
     line = file.nearest_line(loc)

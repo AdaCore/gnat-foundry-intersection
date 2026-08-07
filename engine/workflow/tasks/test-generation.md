@@ -38,9 +38,10 @@ in meaningful test bodies, so the suite builds and passes.
    test) says so with `--@covers none: <reason>`. The trace gate
    (`make trace-check` — *not* `make validate-reqs`, which cannot afford the Ada
    toolchain the `TEST` layer's inventory needs) fails if any routine has no tag
-   or names an LLR that does not exist. Tests cover LLRs only in part by design
-   (proof discharges the rest), so an *untested* LLR is only reported, never an
-   error — see the `TEST` layer in `requirements/trace_chain.yaml`.
+   or names an LLR that does not exist. Every LLR declaring the `test` method
+   must be covered by some routine's tag, and a tag citing an LLR that does not
+   declare it is an error — add a `method: test` entry to that statement's
+   `verification:` in the same change if the test is genuine.
 4. Build and run (the oracle). Coverage-to-100% is the *next* task, not this one;
    here the bar is "harness builds and all tests pass".
 

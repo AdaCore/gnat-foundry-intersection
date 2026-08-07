@@ -21,7 +21,7 @@
 
 package Ada_Tracer is
 
-   Schema_Version : constant := 2;
+   Schema_Version : constant := 3;
    --  Version of the emitted JSON document. Bump on any incompatible change
    --  to the shape described in `json_schema.md`.
 

@@ -12,7 +12,7 @@ SHELL := bash
         generate-tests test \
         generate-tests-target build-tests-target test-target smoke-target \
         validate-reqs trace trace-check test-reqs-engine \
-        build-tracer \
+        build-tracer test-tracer \
         code-inventory test-inventory inventories \
         report report-pdf test-report-engine \
         setup-community setup-pro reset-hard \
@@ -444,6 +444,10 @@ ifeq ($(SETUP),community)
 else
 	gprbuild -q -P $(TRACER_DIR)/ada_tracer.gpr
 endif
+
+# Run the tracer's test suite
+test-tracer: build-tracer
+	ADA_TRACER="$(TRACER)" $(UV) --directory "$(REQS_ENGINE)" run pytest tests/test_ada_tracer.py
 
 # Run the tracer through `alr exec`, to load the project and its environment.
 TRACER_RUN = $(ALR) exec -P -- $(TRACER)

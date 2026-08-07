@@ -1,7 +1,7 @@
 # reqs — requirements tooling
 
 Tooling for the requirement YAML files in this directory: schema validation,
-EARS linting, and (planned) traceability and reporting. The requirement format
+EARS linting, and traceability (`reqs trace`). The requirement format
 itself is documented under [`docs/`](docs/README.md); a machine-checkable
 schema is defined (with Pydantic) in [`src/reqs/document.py`](src/reqs/document.py).
 
@@ -62,6 +62,8 @@ The CLI emits coded diagnostics; each runtime message is self-describing. The
 | `E-PARENT-FORMAT` | error | [`rules.md` RS.2](docs/rules.md#rule-rs2) |
 | `E-PARENT-TYPE` | error | [`checks/schema.py`](src/reqs/checks/schema.py) |
 | `W`/`E-PARENT-MISSING` | warning, error under `--complete` | [`checks/schema.py`](src/reqs/checks/schema.py) |
+| `W`/`E-UNVERIFIED` | warning, error under `--complete` | [`checks/schema.py`](src/reqs/checks/schema.py) |
+| `W`/`E-UNIMPLEMENTED` | warning, error under `--complete` | [`checks/schema.py`](src/reqs/checks/schema.py) |
 | `W-RS3` | warning | [`rules.md` RS.3](docs/rules.md#rule-rs3) |
 
 ### `validate ears`
@@ -79,4 +81,4 @@ Both commands exit non-zero on any error; warnings alone exit 0.
 ## Out of scope (planned / deferred)
 
 Deeper EARS semantics, stable opaque IDs, and ReqIF round-tripping are deferred.
-`reqs trace` and `reqs report` will attach as future top-level commands.
+`reqs report` will attach as a future top-level command.
