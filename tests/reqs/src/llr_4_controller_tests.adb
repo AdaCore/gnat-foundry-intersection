@@ -1484,7 +1484,11 @@ package body Llr_4_Controller_Tests is
       --  both modes and all twenty sequencer states, at each of the three
       --  dwell positions, under three input snapshots -- quiet, every arming
       --  input asserted, and the fault line raised. Three hundred and sixty
-      --  steps, of which a hundred and twenty fire a timed transition.
+      --  steps, of which forty fire a timed transition: a hundred and twenty
+      --  are taken at the boundary dwell, and of those the sixty already in
+      --  FAULT and the twenty meeting the fault snapshot return at stage 1
+      --  before any timer moves (controller.adb:452), leaving one mode times
+      --  twenty states times the two non-faulting snapshots.
       --
       --  The fault snapshot is included because the FAULT *entry* is a step
       --  that changes mode while emitting (statements .13/.14), so it is the
