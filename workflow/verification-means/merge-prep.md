@@ -1,5 +1,11 @@
 # Merge prep: !84 against #51
 
+**Applied 2026-08-07.** !84 merged as `4e45fe2`; this branch took it in
+`949e6a5` (conflicts and the dead comment blocks), `84e0b09` (the methods this
+branch's evidence supplies) and `a5f502f` (the three calls we dispute). What
+follows is the reasoning those commits act on, kept because the trace data
+records the decision but not the argument.
+
 !84 (`topic/Tracing-script-improvements`, based on main at `142fd3b`) closes #100:
 every LLR statement declares a live `verification:` block, and machine evidence
 moves artifact-side — a `--@covers` tag on a test routine, or on the comment
