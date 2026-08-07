@@ -5,12 +5,16 @@
 --  One routine per statement; the routine name carries the statement number so
 --  a failure names its requirement without a lookup.
 --
---  Two statements of the file have no routine here:
+--  Every statement of the file has a routine here.
 --
---    .12 Project_Outputs returns a Safe_Faces display -- discharged by the
---        postcondition at src/core/controller.ads:100 (proof).
---    .21 Step's outputs are Safe_Faces -- discharged by the postcondition at
---        src/core/controller.ads:114 (proof).
+--  Statements .12 and .21 -- the two halves of the repository's headline
+--  safety property -- declare `proof` as well as `test`, and hold both. The
+--  proof is the `Post` on Project_Outputs (src/core/controller.ads:102) and
+--  the one on Step (:117), each tagged with the statement it discharges; the
+--  routines below run the same predicate over every composite state the
+--  constructors in the body can build. The contract quantifies over values no
+--  test reaches; the routine executes code the prover only reasons about.
+--  Neither subsumes the other, which is why both methods are declared.
 --
 --  Statement .1 constrains the shape of a declaration rather than a value, so
 --  its routine is a shape witness: see tests/reqs/README.md rule 10.
@@ -41,6 +45,9 @@ package Llr_4_Controller_Tests is
    procedure Test_10_Normal_Projects_Pedestrian_Heads (T : in out Test);
    procedure Test_11_Normal_Projects_Request_Indicators (T : in out Test);
 
+   --  ---- the output projection: the safety property ----
+   procedure Test_12_Projection_Is_Always_Safe (T : in out Test);
+
    --  ---- Step: fault pre-emption ----
    procedure Test_13_Asserted_Fault_Enters_Fault_Mode (T : in out Test);
    procedure Test_14_Fault_Step_Emits_The_Projection (T : in out Test);
@@ -52,6 +59,9 @@ package Llr_4_Controller_Tests is
    procedure Test_18_Transition_Fires_On_Its_Boundary_Step (T : in out Test);
    procedure Test_19_Green_Edge_Clears_Left_Demand (T : in out Test);
    procedure Test_20_Green_Edge_Serves_Pedestrian_Request (T : in out Test);
+
+   --  ---- Step: the safety property ----
+   procedure Test_21_Step_Emits_Only_Safe_Faces (T : in out Test);
 
    --  ---- Step: the sampling boundary (CONOPS 4.3) ----
    procedure Test_22_Boundary_Demand_Served_At_This_Onset (T : in out Test);

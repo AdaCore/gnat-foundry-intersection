@@ -1,5 +1,6 @@
 with AUnit.Assertions; use AUnit.Assertions;
 
+with Conflicts;
 with Controller;
 with Reqs_Support;
 with States;
@@ -117,6 +118,56 @@ package body Llr_4_Controller_Tests is
             & States.Request_Indicator'Image (Expect.Requests (C)));
       end loop;
    end Check_Display;
+
+   procedure Check_Safe_Faces (D : States.Display_State; Where : String);
+   --  Assert Conflicts.Safe_Faces (D), naming the offending movement pair and
+   --  the place (Where) on failure.
+
+   procedure Check_Safe_Faces (D : States.Display_State; Where : String) is
+   begin
+
+      --  The oracle is Conflicts.Safe_Faces itself, which is what statements
+      --  .12 and .21 name: they say the returned display is one "for which
+      --  Conflicts.Safe_Faces is TRUE", so calling it is the faithful
+      --  rendering rather than a second transcription of hlr_0_safety.2 (the
+      --  same reading of rule 1 that lets .16's routine compute through
+      --  Project_Outputs). That Safe_Faces means what the safety property
+      --  means is llr_3_conflicts.3's obligation, asserted exhaustively over
+      --  the movement pairs by Llr_3_Conflicts_Tests.Test_03; if it were
+      --  wrong, that routine fails rather than this one.
+      --
+      --  The pair search below is diagnostic only -- it re-walks the domain to
+      --  say *which* two movements were both go, so a failure names the
+      --  conflict instead of reporting a bare FALSE. The assertion is on the
+      --  predicate, not on the search.
+
+      if Conflicts.Safe_Faces (D) then
+         return;
+      end if;
+
+      for M1 in States.Movement loop
+         for M2 in States.Movement loop
+            if Conflicts.Conflicts (M1, M2)
+              and then States.Is_Go (States.Face_Of (D, M1))
+              and then States.Is_Go (States.Face_Of (D, M2))
+            then
+               Assert
+                 (False,
+                  Where
+                  & ": the display is not Safe_Faces -- "
+                  & States.Movement'Image (M1)
+                  & " shows "
+                  & States.Vehicle_Face'Image (States.Face_Of (D, M1))
+                  & " while the conflicting "
+                  & States.Movement'Image (M2)
+                  & " shows "
+                  & States.Vehicle_Face'Image (States.Face_Of (D, M2)));
+            end if;
+         end loop;
+      end loop;
+
+      Assert (False, Where & ": the display is not Safe_Faces");
+   end Check_Safe_Faces;
 
    ------------------------------------------------------------------------
    --  Statement .1 -- the composite state record
@@ -665,6 +716,63 @@ package body Llr_4_Controller_Tests is
       end loop;
 
    end Test_11_Normal_Projects_Request_Indicators;
+
+   ------------------------------------------------------------------------
+   --  The safety property of the projection (statement 12)
+   ------------------------------------------------------------------------
+
+   procedure Test_12_Projection_Is_Always_Safe (T : in out Test) is
+      --@covers llr_4_controller.12
+
+      pragma Unreferenced (T);
+   begin
+
+      --  Statement .12 is unquantified -- "the Project_Outputs function shall
+      --  return a Display_State for which Conflicts.Safe_Faces is TRUE",
+      --  without a mode or a state to qualify it -- so the domain is the whole
+      --  of Controller_State that this file's constructors can reach: both
+      --  modes, every one of the twenty sequencer states, and every pedestrian
+      --  state, two hundred and forty composite states in all.
+      --
+      --  Safe_Faces quantifies over States.Movement, which is the eight
+      --  *vehicle* movements; the pedestrian half of the display does not
+      --  enter the predicate. The pedestrian sweep is here anyway, and the
+      --  left-turn demands are latched, because .12 admits no exception for
+      --  them: a projection whose vehicle faces were disturbed by a crosswalk
+      --  being served, or by a demand pending, would break the property on a
+      --  state this loop visits.
+      --
+      --  This routine and the `Post` at src/core/controller.ads:102 are the
+      --  two means .12 declares. They are not redundant: the contract holds
+      --  over every value of the type, including composite states no
+      --  constructor here builds, and it is checked by gnatprove rather than
+      --  by execution -- while this routine runs the real function on real
+      --  states, so it also catches a projection that is safe only because
+      --  the prover was given an assumption the code does not honour.
+
+      for M in States.Mode loop
+         for V in States.Vehicle_Sequencer_State loop
+            for P in States.Pedestrian_State loop
+               Check_Safe_Faces
+                 (Controller.Project_Outputs
+                    (Composite_State
+                       (V             => V,
+                        Veh_Remaining => States.T_Sample,
+                        M             => M,
+                        P             => P,
+                        Ped_Remaining => States.T_Sample,
+                        L             => Left_Demand_Pending)),
+                  "the projection of "
+                  & States.Mode'Image (M)
+                  & " in "
+                  & States.Vehicle_Sequencer_State'Image (V)
+                  & " with every crosswalk in "
+                  & States.Pedestrian_State'Image (P));
+            end loop;
+         end loop;
+      end loop;
+
+   end Test_12_Projection_Is_Always_Safe;
 
    ------------------------------------------------------------------------
    --  Step: fault pre-emption (statements 13-15)
@@ -1346,6 +1454,102 @@ package body Llr_4_Controller_Tests is
          & States.Pedestrian_State'Image (State.Ped (East_Side)));
 
    end Test_20_Green_Edge_Serves_Pedestrian_Request;
+
+   ------------------------------------------------------------------------
+   --  The safety property of the emitted outputs (statement 21)
+   ------------------------------------------------------------------------
+
+   procedure Test_21_Step_Emits_Only_Safe_Faces (T : in out Test) is
+      --@covers llr_4_controller.21
+
+      pragma Unreferenced (T);
+
+      Dwells : constant array (1 .. 3) of States.Duration_Ms :=
+        (1 => States.T_Sample,
+         2 => 2 * States.T_Sample,
+         3 => 3 * States.T_Sample);
+      --  A boundary step, the step before one, and a step well inside a dwell.
+      --  The first is the one that matters: a step on which a timed transition
+      --  fires is where two phases meet, and where an implementation that got
+      --  the clearance ordering wrong would release conflicting movements.
+
+      Faulting : States.Sensors_State := Reqs_Support.Quiet;
+
+      State   : Controller.Controller_State;
+      Outputs : States.Display_State;
+   begin
+
+      --  Statement .21 is the same property as .12 on the other subprogram,
+      --  and equally unquantified, so the sweep is over what a step can be:
+      --  both modes and all twenty sequencer states, at each of the three
+      --  dwell positions, under three input snapshots -- quiet, every arming
+      --  input asserted, and the fault line raised. Three hundred and sixty
+      --  steps, of which a hundred and twenty fire a timed transition.
+      --
+      --  The fault snapshot is included because the FAULT *entry* is a step
+      --  that changes mode while emitting (statements .13/.14), so it is the
+      --  one step whose outputs are neither purely NORMAL_OPERATION nor purely
+      --  FAULT; a display assembled from half of each is exactly the sort of
+      --  thing this statement forbids.
+      --
+      --  Unlike most of this file, .21 is insensitive to the emit-versus-
+      --  advance divergence of #105: the claim is that whatever is emitted is
+      --  safe, not which state it is the projection of, so it holds under
+      --  either phase. This routine is therefore expected to pass, and does.
+      --
+      --  As with .12, the `Post` at src/core/controller.ads:117 is the other
+      --  declared means and covers the states no constructor here reaches.
+
+      Faulting.Fault := Asserted;
+
+      for M in States.Mode loop
+         for V in States.Vehicle_Sequencer_State loop
+            for K in Dwells'Range loop
+               declare
+                  Where : constant String :=
+                    "a step from "
+                    & States.Mode'Image (M)
+                    & " in "
+                    & States.Vehicle_Sequencer_State'Image (V)
+                    & " with"
+                    & States.Duration_Ms'Image (Dwells (K))
+                    & " ms of dwell left";
+               begin
+                  State :=
+                    Composite_State
+                      (V             => V,
+                       Veh_Remaining => Dwells (K),
+                       M             => M,
+                       P             => Pending_Pedestrian_Request);
+
+                  Controller.Step (State, Reqs_Support.Quiet, Outputs);
+                  Check_Safe_Faces (Outputs, Where & ", quiet");
+
+                  State :=
+                    Composite_State
+                      (V             => V,
+                       Veh_Remaining => Dwells (K),
+                       M             => M,
+                       P             => Pending_Pedestrian_Request);
+
+                  Controller.Step (State, Loud, Outputs);
+                  Check_Safe_Faces (Outputs, Where & ", every input asserted");
+
+                  State :=
+                    Composite_State
+                      (V             => V,
+                       Veh_Remaining => Dwells (K),
+                       M             => M,
+                       P             => Pending_Pedestrian_Request);
+
+                  Controller.Step (State, Faulting, Outputs);
+                  Check_Safe_Faces (Outputs, Where & ", fault asserted");
+               end;
+            end loop;
+         end loop;
+      end loop;
+
+   end Test_21_Step_Emits_Only_Safe_Faces;
 
    ------------------------------------------------------------------------
    --  Step: the sampling boundary (statement 22)
