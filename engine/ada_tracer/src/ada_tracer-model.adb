@@ -37,6 +37,9 @@ package body Ada_Tracer.Model is
       function Before (Left, Right : Package_Info) return Boolean;
       --  Order two packages by their fully qualified name.
 
+      function Before (Left, Right : Check_Info) return Boolean;
+      --  Order two checks by source position.
+
       ------------
       -- Before --
       ------------
@@ -46,10 +49,23 @@ package body Ada_Tracer.Model is
          return Left.Name < Right.Name;
       end Before;
 
+      ------------
+      -- Before --
+      ------------
+
+      function Before (Left, Right : Check_Info) return Boolean is
+      begin
+         return
+           Left.File < Right.File
+           or else (Left.File = Right.File and then Left.Line < Right.Line);
+      end Before;
+
       package Sorting is new Package_Vectors.Generic_Sorting (Before);
+      package Check_Sorting is new Check_Vectors.Generic_Sorting (Before);
 
    begin
       Sorting.Sort (Self.Packages);
+      Check_Sorting.Sort (Self.Checks);
       Self.Index.Clear;
    end Sort_By_Name;
 

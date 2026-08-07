@@ -37,5 +37,6 @@ description:
       spans Tick_Period_Us microseconds of wall clock.
     parent_req:
       - hlr_3_timing.11
+    verification: test
     implemented_by:
       - Timings.Delay_For

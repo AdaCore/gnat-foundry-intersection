@@ -40,6 +40,8 @@ description:
     parent_req:
       - hlr_5_vehicle.1
       - hlr_5_vehicle.24
+    verification:
+      - method: proof
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -50,6 +52,8 @@ description:
       (State.Veh_Timer reaching zero), never on absence of vehicular demand.
     parent_req:
       - hlr_3_timing.11
+    verification:
+      - method: proof
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -61,6 +65,7 @@ description:
       every other vehicle face.
     parent_req:
       - hlr_5_vehicle.2
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -71,6 +76,7 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.3
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -80,6 +86,7 @@ description:
       GREEN for the NORTH through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.4
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -90,6 +97,7 @@ description:
       vehicle face.
     parent_req:
       - hlr_5_vehicle.5
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -101,6 +109,7 @@ description:
       both-through phase).
     parent_req:
       - hlr_5_vehicle.48
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -111,6 +120,7 @@ description:
       and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.6
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -120,6 +130,7 @@ description:
       GREEN for the SOUTH through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.7
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -130,6 +141,7 @@ description:
       every other vehicle face.
     parent_req:
       - hlr_5_vehicle.8
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -140,6 +152,7 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.9
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -150,6 +163,7 @@ description:
       other vehicle face.
     parent_req:
       - hlr_5_vehicle.10
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -159,6 +173,7 @@ description:
       return RED for every vehicle face.
     parent_req:
       - hlr_5_vehicle.11
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -170,6 +185,7 @@ description:
       every other vehicle face.
     parent_req:
       - hlr_5_vehicle.25
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -180,6 +196,7 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.26
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -189,6 +206,7 @@ description:
       GREEN for the EAST through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.27
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -199,6 +217,7 @@ description:
       vehicle face.
     parent_req:
       - hlr_5_vehicle.28
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -210,6 +229,7 @@ description:
       both-through phase).
     parent_req:
       - hlr_5_vehicle.50
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -220,6 +240,7 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.29
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -229,6 +250,7 @@ description:
       GREEN for the WEST through face, and RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.30
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -239,6 +261,7 @@ description:
       other vehicle face.
     parent_req:
       - hlr_5_vehicle.31
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -249,6 +272,7 @@ description:
       RED for every other vehicle face.
     parent_req:
       - hlr_5_vehicle.32
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -259,6 +283,7 @@ description:
       other vehicle face.
     parent_req:
       - hlr_5_vehicle.33
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -268,6 +293,7 @@ description:
       return RED for every vehicle face.
     parent_req:
       - hlr_5_vehicle.34
+    verification: test
     implemented_by:
       - Controller.Vehicle_Face_Outputs
 
@@ -279,6 +305,7 @@ description:
       shall set State.Vehicle to N_LEAD and State.Veh_Timer to T_LEAD.
     parent_req:
       - hlr_5_vehicle.12
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -293,6 +320,7 @@ description:
       - hlr_5_vehicle.13
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
@@ -304,6 +332,7 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.14
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -314,6 +343,7 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.15
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -328,6 +358,7 @@ description:
       - hlr_5_vehicle.16
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
@@ -340,6 +371,7 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.17
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -354,6 +386,7 @@ description:
       - hlr_5_vehicle.18
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -365,6 +398,7 @@ description:
     parent_req:
       - hlr_5_vehicle.49
       - hlr_3_timing.7
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -375,6 +409,7 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.19
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -385,6 +420,7 @@ description:
       T_LAG.
     parent_req:
       - hlr_5_vehicle.20
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -395,6 +431,7 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.21
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -405,6 +442,7 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.22
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -415,6 +453,7 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.23
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -426,6 +465,7 @@ description:
       shall set State.Vehicle to E_LEAD and State.Veh_Timer to T_LEAD.
     parent_req:
       - hlr_5_vehicle.35
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -440,6 +480,7 @@ description:
       - hlr_5_vehicle.36
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
@@ -451,6 +492,7 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.37
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -461,6 +503,7 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.38
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -475,6 +518,7 @@ description:
       - hlr_5_vehicle.39
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
       - Controller.Both_Duration
@@ -487,6 +531,7 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.40
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -501,6 +546,7 @@ description:
       - hlr_5_vehicle.41
       - hlr_3_timing.7
       - hlr_3_timing.8
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -512,6 +558,7 @@ description:
     parent_req:
       - hlr_5_vehicle.51
       - hlr_3_timing.7
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -522,6 +569,7 @@ description:
       State.Veh_Timer to T_REDCLEAR.
     parent_req:
       - hlr_5_vehicle.42
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -532,6 +580,7 @@ description:
       T_LAG.
     parent_req:
       - hlr_5_vehicle.43
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -542,6 +591,7 @@ description:
       State.Veh_Timer to T_YELLOW.
     parent_req:
       - hlr_5_vehicle.44
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -552,6 +602,7 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.45
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 
@@ -562,6 +613,7 @@ description:
       State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.46
+    verification: test
     implemented_by:
       - Controller.Advance_Vehicle
 

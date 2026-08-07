@@ -19,6 +19,7 @@ description:
       State.Left (A) to LEFT_DEMAND_PENDING.
     parent_req:
       - hlr_5_vehicle_1_left_demand.3
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -29,6 +30,7 @@ description:
       Sensors.Left_Turns (A).
     parent_req:
       - hlr_5_vehicle_1_left_demand.3
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -40,6 +42,7 @@ description:
       NO_LEFT_DEMAND.
     parent_req:
       - hlr_5_vehicle_1_left_demand.4
+    verification: test
     implemented_by:
       - Controller.Step
 

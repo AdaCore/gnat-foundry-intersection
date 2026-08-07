@@ -28,4 +28,7 @@ generic
    --  Producer side of the display bus: push the outputs to the display
    --  (Buses.Display_Bus.Write's signature).
 procedure State_Machine_Loop
-with SPARK_Mode => On, No_Return;
+with
+  SPARK_Mode => On,
+  --@covers llr_5_core_loop.3
+  No_Return;

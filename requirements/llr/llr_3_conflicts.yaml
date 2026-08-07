@@ -23,6 +23,7 @@ description:
       algorithm_aspects.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - Conflicts.Compatible
 
@@ -33,6 +34,7 @@ description:
       pair.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - Conflicts.Conflicts
 
@@ -44,6 +46,7 @@ description:
       TRUE both have Is_Go faces (States.Face_Of, States.Is_Go) in that state.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - Conflicts.Safe_Faces
 
@@ -56,6 +59,7 @@ description:
       to NORTH.
     parent_req:
       - hlr_5_vehicle_1_left_demand.4
+    verification: test
     implemented_by:
       - Conflicts.Next_Conflicting_Through
 
@@ -69,6 +73,7 @@ description:
       - hlr_6_pedestrian.8
       - hlr_0_safety.1
       - hlr_3_timing.10
+    verification: test
     implemented_by:
       - Conflicts.Adjacent_Through
 
@@ -86,6 +91,7 @@ description:
       - hlr_0_safety.3
       - hlr_0_safety.1
       - hlr_3_timing.10
+    verification: test
     implemented_by:
       - Conflicts.Crosswalk_Conflicts
 

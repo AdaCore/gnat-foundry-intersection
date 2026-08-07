@@ -280,6 +280,18 @@ package body Ada_Tracer.Comments is
                exit when Line_Feeds (Token_Text (Token)) > 1;
 
             when Ada_Comment    =>
+               --  An end-of-line remark belongs to the code on its line: stop.
+
+               declare
+                  Above : constant Token_Reference :=
+                    Previous (Token, Exclude_Trivia => False);
+               begin
+                  exit when
+                    Above /= No_Token
+                    and then (Kind (Data (Above)) /= Ada_Whitespace
+                              or else Line_Feeds (Token_Text (Above)) = 0);
+               end;
+
                declare
                   Payload : constant String :=
                     Strip_Marker (Token_Text (Token));

@@ -92,6 +92,23 @@ unsupported. `Ada_Tracer.Comments` reimplements the token walk — never raising
 on odd formatting, looking both ways, and parsing the tags into structured
 output instead of rejecting them.
 
+## Tests
+
+```bash
+make test-tracer   # build, then run the binary over an Ada fixture
+```
+
+The test lives with the consumer of the schema, in
+`engine/requirements/tests/test_ada_tracer.py`: it runs this binary over
+`engine/requirements/tests/fixtures/ada_tracer/checks.ads` and checks the
+emitted `checks` array end to end, through `reqs.code_inventory` and the
+`CheckSet` the trace chain's PROOF / STATIC layers are built from. Every other
+test of `reqs` fabricates the inventory JSON, so this is the one that would
+catch a token/AST association regression here.
+
+It skips under a plain `make test-reqs-engine` (which needs no Ada toolchain);
+`make test-tracer` passes `ADA_TRACER`, which turns that skip into a failure.
+
 ## Layout
 
 ```

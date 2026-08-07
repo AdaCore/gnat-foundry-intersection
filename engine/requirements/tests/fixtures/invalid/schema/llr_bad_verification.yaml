@@ -1,0 +1,9 @@
+# E-SCHEMA: `verification` must be one of test, proof, static_check, review.
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_widget.1
+    verification: fuzzing
+    implemented_by:
+      - Widget.Do_The_Thing

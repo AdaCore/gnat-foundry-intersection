@@ -17,6 +17,7 @@ description:
       the first iteration.
     parent_req:
       - hlr_1_modes.2
+    verification: test
     implemented_by:
       - State_Machine_Loop
 
@@ -33,6 +34,7 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - State_Machine_Loop
 
@@ -43,6 +45,8 @@ description:
     parent_req:
       - hlr_1_modes.4
       - hlr_3_timing.11
+    verification:
+      - method: static_check
     implemented_by:
       - State_Machine_Loop
 
@@ -52,6 +56,7 @@ description:
       once every T_SAMPLE logical milliseconds (llr_1_states.30).
     parent_req:
       - hlr_3_timing.13
+    verification: test
     implemented_by:
       - State_Machine_Loop
 

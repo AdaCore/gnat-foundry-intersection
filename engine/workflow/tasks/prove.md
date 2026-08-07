@@ -26,7 +26,12 @@ errors.
 1. Run the oracle to see the unproved checks.
 2. Discharge them by strengthening contracts, adding loop invariants, or adding
    *proof-only ghost code / lemmas* — never by weakening what is being proven.
-3. Re-run until clean.
+3. If a contract you add or change is the evidence for a `proof`-verified LLR
+   statement, tag it: a `--@covers <llr id>` comment on the line directly
+   before the aspect (or above the `with` opening a one-line aspect list) —
+   see `engine/requirements/docs/README.md`. `make trace-check` resolves the
+   tag; without it the statement stays on the uncovered list.
+4. Re-run until clean.
 
 ## Oracle
 

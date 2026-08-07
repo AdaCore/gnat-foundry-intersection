@@ -8,8 +8,9 @@ implements it, via ``implemented_by``. So this set only has to answer "is there
 such an entity?" and the refs are read from the layer above (see
 ``reqs.checks.trace``, ``refs_point_down``).
 
-A node is one declared name -- a subprogram, type, subtype, constant, variable
-or exception -- keyed by its fully qualified name as the source writes it.
+A node is one declared name -- a package, subprogram, type, subtype, constant,
+variable or exception -- keyed by its fully qualified name as the source writes
+it. Packages are nodes too, so an ``implemented_by`` may name a whole unit.
 Matching is textual and case-insensitive, which is what Ada's own rules imply;
 it is *not* name resolution, so a renaming or a use-clause is not followed. That
 is adequate for the refs at hand and is what lets the inventory be produced
@@ -41,8 +42,12 @@ class CodeNode:
     # in either direction: the requirement names the code, not the reverse, and
     # the code is the bottom of the chain.
     up_refs: ClassVar[None] = None
-    down_refs: ClassVar[None] = None
     is_derived: ClassVar[bool] = False
+    verification_methods: ClassVar[tuple[str, ...]] = ()
+
+    def down_refs_in(self, field: str | None) -> list[str] | None:  # noqa: ARG002
+        """Nothing: an entity cites nothing, in either direction."""
+        return None
 
 
 class CodeSet:
@@ -68,6 +73,9 @@ class CodeSet:
         refs mean.
         """
         nodes: dict[str, CodeNode] = {}
+        for package in inventory.packages:
+            if package.spec_file is not None:
+                nodes.setdefault(package.name, CodeNode(Path(package.spec_file), 1, "package"))
         for sub in inventory.all_subprograms():
             nodes.setdefault(
                 sub.qualified_name,

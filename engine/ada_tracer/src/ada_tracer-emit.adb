@@ -35,6 +35,11 @@ package body Ada_Tracer.Emit is
    --  @param Kind The kind to render
    --  @return Its lower-case name
 
+   function Image (Kind : Check_Kind) return String;
+   --  The wire name of a check anchor's kind.
+   --  @param Kind The kind to render
+   --  @return Its lower-case name
+
    function To_JSON (Doc : Documentation) return JSON_Value;
    --  Render one documentation record.
    --  @param Doc The documentation to serialize
@@ -65,6 +70,11 @@ package body Ada_Tracer.Emit is
    function To_JSON (Info : Package_Info) return JSON_Value;
    --  Render one package.
    --  @param Info The package to serialize
+   --  @return Its JSON representation
+
+   function To_JSON (Info : Check_Info) return JSON_Value;
+   --  Render one `--@covers`-tagged check.
+   --  @param Info The check to serialize
    --  @return Its JSON representation
 
    ------------------
@@ -145,6 +155,18 @@ package body Ada_Tracer.Emit is
            when A_Constant   => "constant",
            when A_Variable   => "variable",
            when An_Exception => "exception");
+   end Image;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Kind : Check_Kind) return String is
+   begin
+      return
+        (case Kind is
+           when A_Pragma  => "pragma",
+           when An_Aspect => "aspect");
    end Image;
 
    -------------
@@ -330,6 +352,31 @@ package body Ada_Tracer.Emit is
    -- To_JSON --
    -------------
 
+   function To_JSON (Info : Check_Info) return JSON_Value is
+      Result   : constant JSON_Value := Create_Object;
+      Location : constant JSON_Value := Create_Object;
+      Covers   : JSON_Array := Empty_Array;
+   begin
+      for Payload of Info.Covers loop
+         Append (Covers, Create (To_String (Payload)));
+      end loop;
+
+      Location.Set_Field ("file", To_String (Info.File));
+      Location.Set_Field ("line", Info.Line);
+      Location.Set_Field ("column", Info.Column);
+
+      Result.Set_Field ("kind", Image (Info.Kind));
+      Result.Set_Field ("name", To_String (Info.Name));
+      Result.Set_Field ("location", Location);
+      Result.Set_Field ("covers", Covers);
+
+      return Result;
+   end To_JSON;
+
+   -------------
+   -- To_JSON --
+   -------------
+
    function To_JSON
      (Project : Model.Project_Info; Compact : Boolean := False)
       return Unbounded_String
@@ -337,6 +384,7 @@ package body Ada_Tracer.Emit is
       Root     : constant JSON_Value := Create_Object;
       Packages : JSON_Array := Empty_Array;
       Library  : JSON_Array := Empty_Array;
+      Checks   : JSON_Array := Empty_Array;
    begin
       for Item of Project.Packages loop
          Append (Packages, To_JSON (Item));
@@ -346,11 +394,16 @@ package body Ada_Tracer.Emit is
          Append (Library, To_JSON (Item));
       end loop;
 
+      for Item of Project.Checks loop
+         Append (Checks, To_JSON (Item));
+      end loop;
+
       Root.Set_Field ("schema_version", Integer'(Schema_Version));
       Root.Set_Field ("tool", "ada_tracer");
       Root.Set_Field ("project", To_String (Project.Project));
       Root.Set_Field ("packages", Packages);
       Root.Set_Field ("library_subprograms", Library);
+      Root.Set_Field ("checks", Checks);
 
       return Write (Root, Compact => Compact);
    end To_JSON;

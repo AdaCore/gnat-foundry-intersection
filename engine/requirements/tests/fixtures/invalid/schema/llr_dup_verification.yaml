@@ -1,0 +1,11 @@
+# E-SCHEMA: verification methods must not repeat.
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_widget.1
+    verification:
+      - method: test
+      - method: test
+    implemented_by:
+      - Widget.Do_The_Thing

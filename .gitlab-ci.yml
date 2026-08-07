@@ -141,9 +141,6 @@ pro:x86_64-linux:
     # Build
     - make build-native
 
-    # Check traceability
-    - make trace-check
-
     # Test (test w/ non-instrumented harness build)
     - make test
 
@@ -182,6 +179,37 @@ pro:x86_64-linux:
     paths:
       # Upload the entire reports/ directory as an artifact
       - reports/
+
+# The tracer's own integration test. A job of its own, and *not* allow_failure:
+# `pro:trace-check` below is red on purpose while the work list is burned down,
+# so a regression in the check extraction it reads would hide there.
+pro:tracer-test:
+  extends: .pro
+  script:
+    # Install the specs the tracer needs to build
+    - for spec in gnat langkit_support libadalang ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+    - anod install libgpr2 --qualifier=bare,stable
+    - eval $(anod printenv libgpr2 --qualifier=bare,stable)
+
+    - make test-tracer
+
+pro:trace-check:
+  extends: .pro
+  allow_failure: true  # Drop allow_failure after the tracing becomes green
+  script:
+    # Install the specs the tracer and the harness generator need
+    - for spec in gnat gnattest langkit_support libadalang ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+    - anod install libgpr2 --qualifier=bare,stable
+    - eval $(anod printenv libgpr2 --qualifier=bare,stable)
+
+    - make build-native
+    - make trace-check
 
 # Target build, and the on-target testsuite: cross-built with GNAT Pro and run
 # under QEMU. No coverage: gnatcov stays a native concern (see pro:x86_64-linux).

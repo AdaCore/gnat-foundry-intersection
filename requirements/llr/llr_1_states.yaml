@@ -36,6 +36,7 @@ description:
       vehicle face output signal.
     parent_req:
       - hlr_4_signals.1
+    verification: test
     implemented_by:
       - States.Vehicle_Face
 
@@ -46,6 +47,7 @@ description:
       every crosswalk's pedestrian head output signal, where NONE is dark.
     parent_req:
       - hlr_4_signals.2
+    verification: test
     implemented_by:
       - States.Pedestrian_Head
 
@@ -56,6 +58,7 @@ description:
       crosswalk's request indicator output signal.
     parent_req:
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - States.Request_Indicator
 
@@ -67,6 +70,7 @@ description:
       input signal.
     parent_req:
       - hlr_4_signals.4
+    verification: test
     implemented_by:
       - States.Fault_Detection
 
@@ -77,6 +81,7 @@ description:
       pedestrian demand button input signal.
     parent_req:
       - hlr_4_signals.5
+    verification: test
     implemented_by:
       - States.Pedestrian_Button
 
@@ -87,6 +92,7 @@ description:
       approach's left-turn detector input signal.
     parent_req:
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - States.Left_Turn_Detector
 
@@ -99,6 +105,7 @@ description:
     parent_req:
       - hlr_5_vehicle_1_left_demand.1
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Approach
 
@@ -109,6 +116,7 @@ description:
       of every per-crosswalk machine and signal array.
     parent_req:
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Crosswalk
 
@@ -119,6 +127,7 @@ description:
       NORMAL_OPERATION and FAULT.
     parent_req:
       - hlr_1_modes.1
+    verification: test
     implemented_by:
       - States.Mode
 
@@ -128,6 +137,7 @@ description:
       the literals NO_LEFT_DEMAND and LEFT_DEMAND_PENDING.
     parent_req:
       - hlr_5_vehicle_1_left_demand.1
+    verification: test
     implemented_by:
       - States.Left_Demand_State
 
@@ -137,6 +147,7 @@ description:
       Approach holding one Left_Demand_State per approach.
     parent_req:
       - hlr_5_vehicle_1_left_demand.1
+    verification: test
     implemented_by:
       - States.Left_Demand_Array
 
@@ -154,6 +165,7 @@ description:
       - hlr_5_vehicle.24
       - hlr_5_vehicle.48
       - hlr_5_vehicle.50
+    verification: test
     implemented_by:
       - States.Vehicle_Sequencer_State
 
@@ -164,6 +176,7 @@ description:
       CHANGE_INTERVAL, BUFFER_INTERVAL, and BUFFER_INTERVAL_LATCHED.
     parent_req:
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Pedestrian_State
 
@@ -173,6 +186,7 @@ description:
       Crosswalk holding one Pedestrian_State per crosswalk.
     parent_req:
       - hlr_6_pedestrian.1
+    verification: test
     implemented_by:
       - States.Pedestrian_Array
 
@@ -184,6 +198,7 @@ description:
     parent_req:
       - hlr_6_pedestrian.1
       - hlr_0_safety.1
+    verification: test
     implemented_by:
       - States.Serving_Pedestrian_State
 
@@ -198,6 +213,7 @@ description:
       - hlr_4_signals.1
       - hlr_4_signals.2
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - States.Display_State
 
@@ -210,6 +226,7 @@ description:
       - hlr_4_signals.4
       - hlr_4_signals.5
       - hlr_4_signals.6
+    verification: test
     implemented_by:
       - States.Sensors_State
 
@@ -221,6 +238,7 @@ description:
       and W_LEFT.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - States.Movement
 
@@ -232,6 +250,7 @@ description:
     parent_req:
       - hlr_0_safety.2
       - hlr_4_signals.1
+    verification: test
     implemented_by:
       - States.Face_Of
 
@@ -241,6 +260,7 @@ description:
       Vehicle_Face exactly when it is GREEN or YELLOW.
     parent_req:
       - hlr_0_safety.2
+    verification: test
     implemented_by:
       - States.Is_Go
 
@@ -253,6 +273,8 @@ description:
       - hlr_3_timing.1
       - hlr_3_timing.2
       - hlr_3_timing.3
+    verification:
+      - method: static_check
     implemented_by:
       - States.Duration_Ms
 
@@ -262,6 +284,8 @@ description:
       The States package shall value T_WALK at 7_000 milliseconds.
     parent_req:
       - hlr_3_timing.1
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Walk
 
@@ -270,6 +294,8 @@ description:
       The States package shall value T_FDW at 7_000 milliseconds.
     parent_req:
       - hlr_3_timing.2
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_FDW
 
@@ -278,6 +304,8 @@ description:
       The States package shall value T_BUFFER at 2_000 milliseconds.
     parent_req:
       - hlr_3_timing.3
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Buffer
 
@@ -291,6 +319,8 @@ description:
       - hlr_3_timing.4
       - hlr_3_timing.5
       - hlr_3_timing.6
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Yellow
 
@@ -300,6 +330,8 @@ description:
       T_LEAD = 6_000, T_LAG = 6_000, and T_BOTH_MIN = 10_000 milliseconds.
     parent_req:
       - hlr_3_timing.9
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Axis
 
@@ -311,6 +343,8 @@ description:
     parent_req:
       - hlr_3_timing.10
       - hlr_0_safety.1
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Both_Min
 
@@ -322,6 +356,8 @@ description:
     parent_req:
       - hlr_3_timing.10
       - hlr_0_safety.1
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Axis
 
@@ -333,6 +369,8 @@ description:
       - (T_YELLOW + T_REDCLEAR + T_LAG + T_YELLOW) is at least T_BOTH_MIN.
     parent_req:
       - hlr_3_timing.12
+    verification:
+      - method: proof
     implemented_by:
       - States.T_Axis
 
@@ -343,6 +381,8 @@ description:
       100 milliseconds.
     parent_req:
       - hlr_3_timing.13
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Sample
 
@@ -355,6 +395,8 @@ description:
       (statement 30).
     parent_req:
       - hlr_3_timing.11
+    verification:
+      - method: static_check
     implemented_by:
       - States.T_Sample
 

@@ -1,0 +1,10 @@
+# E-SCHEMA: a review entry must say why no machine check is possible.
+description:
+  1:
+    text: The widget shall do the thing.
+    parent_req:
+      - hlr_widget.1
+    verification:
+      - method: review
+    implemented_by:
+      - Widget.Do_The_Thing

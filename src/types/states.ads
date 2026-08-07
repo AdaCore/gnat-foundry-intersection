@@ -343,47 +343,108 @@ is
    --  falls on a sampling boundary (llr_4_controller.17/.18). Any
    --  re-valuation of a dwell (or of T_SAMPLE) must preserve divisibility;
    --  these checks make a violation a compile-time error.
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Walk mod T_Sample /= 0,
         "T_WALK must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_FDW mod T_Sample /= 0,
         "T_FDW must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Buffer mod T_Sample /= 0,
         "T_BUFFER must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Yellow mod T_Sample /= 0,
         "T_YELLOW must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Redclear mod T_Sample /= 0,
         "T_REDCLEAR must be an integral multiple of T_SAMPLE"
         & " (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Barrier mod T_Sample /= 0,
         "T_BARRIER must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Axis mod T_Sample /= 0,
         "T_AXIS must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Lead mod T_Sample /= 0,
         "T_LEAD must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Lag mod T_Sample /= 0,
         "T_LAG must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+   --@covers llr_1_states.31
    pragma
      Compile_Time_Error
        (T_Both_Min mod T_Sample /= 0,
         "T_BOTH_MIN must be an integral multiple of T_SAMPLE"
         & " (llr_1_states.31)");
+
+   --  Valuation checks (llr_1_states.21-.28, .30): a re-valuation that breaks
+   --  a requirement is a compile-time error.
+   --@covers llr_1_states.21
+   pragma
+     Compile_Time_Error
+       (Duration_Ms'First /= 0 or else Duration_Ms'Last /= 3_600_000,
+        "Duration_Ms must be the range 0 .. 3_600_000 (llr_1_states.21)");
+   --@covers llr_1_states.22
+   pragma
+     Compile_Time_Error
+       (T_Walk /= 7_000, "T_WALK must be 7_000 ms (llr_1_states.22)");
+   --@covers llr_1_states.23
+   pragma
+     Compile_Time_Error
+       (T_FDW /= 7_000, "T_FDW must be 7_000 ms (llr_1_states.23)");
+   --@covers llr_1_states.24
+   pragma
+     Compile_Time_Error
+       (T_Buffer /= 2_000, "T_BUFFER must be 2_000 ms (llr_1_states.24)");
+   --@covers llr_1_states.25
+   pragma
+     Compile_Time_Error
+       (T_Yellow /= 4_000
+        or else T_Redclear /= 2_000
+        or else T_Barrier /= 2_000,
+        "kinematic durations must hold their provisional values"
+        & " (llr_1_states.25)");
+   --@covers llr_1_states.26
+   pragma
+     Compile_Time_Error
+       (T_Axis /= 40_000
+        or else T_Lead /= 6_000
+        or else T_Lag /= 6_000
+        or else T_Both_Min /= 10_000,
+        "policy durations must hold their required values (llr_1_states.26)");
+   --@covers llr_1_states.27
+   pragma
+     Compile_Time_Error
+       (T_Both_Min + T_Yellow + T_Barrier < T_Walk + T_FDW + T_Buffer,
+        "pedestrian service must fit the both-through window"
+        & " (llr_1_states.27)");
+   --@covers llr_1_states.28
+   pragma
+     Compile_Time_Error
+       (T_Axis - T_Barrier - T_Yellow - T_Lag < T_Walk + T_FDW + T_Buffer,
+        "pedestrian service must fit the axis slot (llr_1_states.28)");
+   --@covers llr_1_states.30
+   pragma
+     Compile_Time_Error
+       (T_Sample /= 100, "T_SAMPLE must be 100 ms (llr_1_states.30)");
 
 end States;

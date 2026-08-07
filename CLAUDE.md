@@ -100,6 +100,10 @@ Unless specifically asked, do not look at git branches other than the one you're
 - Read the code conventions: `design/code_conventions.md`
 - Format with `make format`
 - Validate your change with `make check && make build-native`
+- A contract or compile-time check that discharges a `proof` / `static_check`
+  LLR carries a `--@covers <id>` comment on the line directly above the aspect
+  or pragma (see `engine/requirements/docs/README.md`); `make trace-check`
+  resolves those. Untagged checks are fine — tagging is opt-in evidence.
 
 ## Keeping `core` proven
 
@@ -125,4 +129,9 @@ generics, the `core` project carries a small in-SPARK instantiation harness
   verifies, or `--@covers none: <reason>` for a boundary test. `make trace-check`
   enforces this via the `TEST` layer of `requirements/trace_chain.yaml`; run
   `make trace` to see the LLR↔test coverage tables.
+- Every LLR statement declares its `verification:` method(s). `make trace-check`
+  requires a covering test for each `test`-verified statement and rejects a
+  `--@covers` citing a statement not declaring `test` — add a `method: test`
+  entry to that statement's `verification:` in the same change if the test is
+  genuine.
 - If working on coverage augmentation, run `make all-coverage` to list uncovered code.

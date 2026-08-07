@@ -52,6 +52,8 @@ description:
       - hlr_5_vehicle.1
       - hlr_5_vehicle_1_left_demand.1
       - hlr_6_pedestrian.1
+    verification:
+      - method: static_check
     implemented_by:
       - Controller.Controller_State
 
@@ -62,6 +64,7 @@ description:
       NORMAL_OPERATION.
     parent_req:
       - hlr_1_modes.2
+    verification: test
     implemented_by:
       - Controller.Initialize
 
@@ -71,6 +74,7 @@ description:
       EW_BARRIER_ALLRED and State.Veh_Timer to T_BARRIER.
     parent_req:
       - hlr_5_vehicle.47
+    verification: test
     implemented_by:
       - Controller.Initialize
 
@@ -80,6 +84,7 @@ description:
       NO_LEFT_DEMAND for every approach.
     parent_req:
       - hlr_5_vehicle_1_left_demand.2
+    verification: test
     implemented_by:
       - Controller.Initialize
 
@@ -89,6 +94,7 @@ description:
       NO_PEDESTRIAN_REQUEST, and State.Ped_Timer to 0, for every crosswalk.
     parent_req:
       - hlr_6_pedestrian.2
+    verification: test
     implemented_by:
       - Controller.Initialize
 
@@ -99,6 +105,7 @@ description:
       every through face and every left face.
     parent_req:
       - hlr_2_fault.1
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
 
@@ -108,6 +115,7 @@ description:
       crosswalk's pedestrian head.
     parent_req:
       - hlr_2_fault.2
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
 
@@ -117,6 +125,7 @@ description:
       every crosswalk's request indicator.
     parent_req:
       - hlr_2_fault.3
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
 
@@ -127,6 +136,7 @@ description:
       (llr_4_controller_1_vehicle).
     parent_req:
       - hlr_4_signals.1
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
 
@@ -137,6 +147,7 @@ description:
       (llr_4_controller_3_pedestrian).
     parent_req:
       - hlr_4_signals.2
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
 
@@ -147,6 +158,7 @@ description:
       (llr_4_controller_3_pedestrian).
     parent_req:
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - Controller.Project_Outputs
 
@@ -156,6 +168,9 @@ description:
       Conflicts.Safe_Faces (Project_Outputs'Result).
     parent_req:
       - hlr_0_safety.2
+    verification:
+      - method: test
+      - method: proof
     implemented_by:
       - Controller.Project_Outputs
 
@@ -166,6 +181,7 @@ description:
       Sensors.Fault ASSERTED, the controller shall set State.Mode to FAULT.
     parent_req:
       - hlr_1_modes.3
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -175,6 +191,7 @@ description:
       Project_Outputs (State).
     parent_req:
       - hlr_1_modes.4
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -184,6 +201,7 @@ description:
       or deriving edges for any NORMAL_OPERATION sub-machine.
     parent_req:
       - hlr_1_modes.4
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -198,6 +216,7 @@ description:
       - hlr_4_signals.1
       - hlr_4_signals.2
       - hlr_4_signals.3
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -210,6 +229,7 @@ description:
     parent_req:
       - hlr_3_timing.11
       - hlr_3_timing.13
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -222,6 +242,7 @@ description:
       guard against this step's armed inputs.
     parent_req:
       - hlr_3_timing.11
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -233,6 +254,7 @@ description:
       GREEN in the sequencer state before it.
     parent_req:
       - hlr_5_vehicle_1_left_demand.4
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -244,6 +266,7 @@ description:
       advance and were not GREEN in the sequencer state before it.
     parent_req:
       - hlr_6_pedestrian.8
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -253,6 +276,9 @@ description:
       Conflicts.Safe_Faces (Outputs).
     parent_req:
       - hlr_0_safety.2
+    verification:
+      - method: test
+      - method: proof
     implemented_by:
       - Controller.Step
 
@@ -267,6 +293,7 @@ description:
     parent_req:
       - hlr_6_pedestrian.8
       - hlr_5_vehicle_1_left_demand.4
+    verification: test
     implemented_by:
       - Controller.Step
 

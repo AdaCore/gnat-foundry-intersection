@@ -89,7 +89,9 @@ is
    --  @param State The controller state, set to its power-on value
 
    function Project_Outputs
-     (State : Controller_State) return States.Display_State
+     (State : Controller_State)
+      return States.Display_State
+             --@covers llr_4_controller.12
    with Post => Conflicts.Safe_Faces (Project_Outputs'Result);
    --  Project the composite state to the display-bus payload -- a pure Moore
    --  output function (`hlr_2_fault`, `hlr_5_vehicle` output rows,
@@ -102,6 +104,7 @@ is
      (State   : in out Controller_State;
       Sensors : States.Sensors_State;
       Outputs : out States.Display_State)
+     --@covers llr_4_controller.21
    with Post => Conflicts.Safe_Faces (Outputs);
    --  One core-loop step, accounting for exactly one sampling period
    --  T_SAMPLE of logical time (llr_4_controller.17): arm the freshly

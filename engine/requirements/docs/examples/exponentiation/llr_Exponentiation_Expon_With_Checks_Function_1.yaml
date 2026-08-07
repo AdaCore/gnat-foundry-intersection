@@ -17,6 +17,7 @@ description:
       ```
     parent_req:
       - hlr_Exponentiation_Int_1.1
+    verification: test
     implemented_by:
       - System.Exp_Int
       - System.Exp_LLI
@@ -28,6 +29,7 @@ description:
       `Right - 1` times.
     parent_req:
       - hlr_Exponentiation_Int_1.2
+    verification: test
     implemented_by:
       - System.Exp_Int
       - System.Exp_LLI
@@ -38,6 +40,7 @@ description:
       package shall return 1.
     parent_req:
       - hlr_Exponentiation_Int_1.3
+    verification: test
     implemented_by:
       - System.Exp_Int
       - System.Exp_LLI
@@ -48,6 +51,7 @@ description:
       function of the `System.Expont` package shall return 0.
     parent_req:
       - hlr_Exponentiation_Int_1.2
+    verification: test
     implemented_by:
       - System.Exp_Int
       - System.Exp_LLI
@@ -58,6 +62,7 @@ description:
       `System.Expont` package shall raise `Constraint_Error`.
     parent_req:
       - hlr_Exponentiation_Int_2.1
+    verification: test
     implemented_by:
       - System.Exp_Int
       - System.Exp_LLI

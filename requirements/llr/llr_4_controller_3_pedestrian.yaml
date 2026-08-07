@@ -20,6 +20,7 @@ description:
       DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.3
+    verification: test
     implemented_by:
       - Controller.Head_Of
 
@@ -29,6 +30,7 @@ description:
       DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.6
+    verification: test
     implemented_by:
       - Controller.Head_Of
 
@@ -38,6 +40,7 @@ description:
       crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.10
+    verification: test
     implemented_by:
       - Controller.Head_Of
 
@@ -47,6 +50,7 @@ description:
       FLASH_DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.11
+    verification: test
     implemented_by:
       - Controller.Head_Of
 
@@ -56,6 +60,7 @@ description:
       Head_Of shall return DONT_WALK for that crosswalk's pedestrian head.
     parent_req:
       - hlr_6_pedestrian.14
+    verification: test
     implemented_by:
       - Controller.Head_Of
 
@@ -66,6 +71,7 @@ description:
       NO_REQUEST for that crosswalk's request indicator.
     parent_req:
       - hlr_6_pedestrian.4
+    verification: test
     implemented_by:
       - Controller.Request_Of
 
@@ -75,6 +81,7 @@ description:
       return REQUEST_PENDING for that crosswalk's request indicator.
     parent_req:
       - hlr_6_pedestrian.7
+    verification: test
     implemented_by:
       - Controller.Request_Of
 
@@ -85,6 +92,7 @@ description:
       request indicator.
     parent_req:
       - hlr_6_pedestrian.9
+    verification: test
     implemented_by:
       - Controller.Request_Of
 
@@ -94,6 +102,7 @@ description:
       REQUEST_PENDING for that crosswalk's request indicator.
     parent_req:
       - hlr_6_pedestrian.16
+    verification: test
     implemented_by:
       - Controller.Request_Of
 
@@ -105,6 +114,7 @@ description:
       PENDING_PEDESTRIAN_REQUEST.
     parent_req:
       - hlr_6_pedestrian.5
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -115,6 +125,7 @@ description:
       BUFFER_INTERVAL_LATCHED, leaving State.Ped_Timer (C) unchanged.
     parent_req:
       - hlr_6_pedestrian.15
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -127,6 +138,7 @@ description:
       and State.Ped_Timer (C) to T_WALK.
     parent_req:
       - hlr_6_pedestrian.8
+    verification: test
     implemented_by:
       - Controller.Step
 
@@ -138,6 +150,7 @@ description:
       State.Ped_Timer (C) to T_FDW.
     parent_req:
       - hlr_6_pedestrian.12
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
 
@@ -148,6 +161,7 @@ description:
       State.Ped_Timer (C) to T_BUFFER.
     parent_req:
       - hlr_6_pedestrian.13
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
 
@@ -158,6 +172,7 @@ description:
       State.Ped_Timer (C) to 0.
     parent_req:
       - hlr_6_pedestrian.17
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
 
@@ -168,6 +183,7 @@ description:
       PENDING_PEDESTRIAN_REQUEST and State.Ped_Timer (C) to 0.
     parent_req:
       - hlr_6_pedestrian.18
+    verification: test
     implemented_by:
       - Controller.Advance_Ped
 
@@ -181,6 +197,7 @@ description:
       - hlr_6_pedestrian.13
       - hlr_6_pedestrian.17
       - hlr_6_pedestrian.18
+    verification: test
     implemented_by:
       - Controller.Running_Ped
 

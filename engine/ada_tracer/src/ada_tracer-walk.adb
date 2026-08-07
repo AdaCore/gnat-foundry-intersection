@@ -209,6 +209,25 @@ package body Ada_Tracer.Walk is
       --  @param Decl The body
       --  @return Its interior blocks, or an empty vector for anything else
 
+      function Is_First_Aspect (Node : Ada_Node'Class) return Boolean;
+      --  Whether `Node` is the first association of its aspect list.
+      --  @param Node The aspect association to test
+      --  @return True when it opens the list
+
+      procedure Record_Check
+        (Node : Ada_Node'Class; Kind : Check_Kind; Name : String);
+      --  Report `Node` as a check when the comment block directly above it
+      --  carries a `@covers` tag; untagged constructs are not checks.
+      --  @param Node The pragma or aspect association
+      --  @param Kind Which of the two it is
+      --  @param Name The pragma name or aspect mark
+
+      function Scan_Checks (Node : Ada_Node'Class) return Visit_Status;
+      --  `Traverse` callback dispatching pragmas and aspect associations to
+      --  `Record_Check`.
+      --  @param Node The node under visit
+      --  @return Always `Into`: checks may sit at any depth
+
       function Register
         (Decl       : Basic_Decl'Class;
          Anchor     : Ada_Node'Class;
@@ -491,6 +510,91 @@ package body Ada_Tracer.Walk is
 
          return Result;
       end Interior_Comments;
+
+      ---------------------
+      -- Is_First_Aspect --
+      ---------------------
+
+      function Is_First_Aspect (Node : Ada_Node'Class) return Boolean is
+         List : constant Ada_Node := Node.Parent;
+      begin
+         return
+           not List.Is_Null
+           and then List.Kind = Ada_Aspect_Assoc_List
+           and then List.Children_Count > 0
+           and then List.Child (1) = Node.As_Ada_Node;
+      end Is_First_Aspect;
+
+      ------------------
+      -- Record_Check --
+      ------------------
+
+      procedure Record_Check
+        (Node : Ada_Node'Class; Kind : Check_Kind; Name : String)
+      is
+         Block : Comments.Comment_Block :=
+           Comments.Leading_Block (Node.Token_Start);
+         Info  : Check_Info;
+      begin
+         --  A first aspect may be tagged above the `with` that opens the
+         --  aspect list, which is how a one-line `with Post => ...` reads.
+
+         if Comments.Is_Empty (Block)
+           and then Kind = An_Aspect
+           and then Is_First_Aspect (Node)
+           and then not Node.Parent.Parent.Is_Null
+         then
+            Block := Comments.Leading_Block (Node.Parent.Parent.Token_Start);
+         end if;
+
+         if Comments.Is_Empty (Block) then
+            return;
+         end if;
+
+         for Tag of Gnatdoc_Tags.Parse (Block, Model.Leading).Tags loop
+            if To_String (Tag.Tag) = "covers" then
+               Info.Covers.Append (Tag.Text);
+            end if;
+         end loop;
+
+         if Info.Covers.Is_Empty then
+            return;
+         end if;
+
+         declare
+            Sloc : constant Source_Location_Range := Sloc_Range (Node);
+         begin
+            Info.Kind := Kind;
+            Info.Name := To_Unbounded_String (Name);
+            Info.File := To_Unbounded_String (File);
+            Info.Line := Natural (Sloc.Start_Line);
+            Info.Column := Natural (Sloc.Start_Column);
+         end;
+
+         Into.Checks.Append (Info);
+      end Record_Check;
+
+      -----------------
+      -- Scan_Checks --
+      -----------------
+
+      function Scan_Checks (Node : Ada_Node'Class) return Visit_Status is
+      begin
+         case Node.Kind is
+            when Ada_Pragma_Node  =>
+               Record_Check
+                 (Node, A_Pragma, Node_Text (Node.As_Pragma_Node.F_Id));
+
+            when Ada_Aspect_Assoc =>
+               Record_Check
+                 (Node, An_Aspect, Node_Text (Node.As_Aspect_Assoc.F_Id));
+
+            when others           =>
+               null;
+         end case;
+
+         return Libadalang.Common.Into;
+      end Scan_Checks;
 
       --------------
       -- Register --
@@ -886,6 +990,10 @@ package body Ada_Tracer.Walk is
          when others                    =>
             null;
       end case;
+
+      --  Flat, unlike the walk above: a check anchors evidence wherever it sits.
+
+      Root.Traverse (Scan_Checks'Access);
    end Unit;
 
 end Ada_Tracer.Walk;
