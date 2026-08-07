@@ -93,6 +93,25 @@ rationale: |-
   processing and rendering, which the factor-of-two budget in T_SAMPLE's
   valuation absorbs (llr_1_states.30).
 
+  Where that same step also serves the crosswalk the frame carries the WALK
+  head instead, the bound holding the more strongly; hlr_6_pedestrian's
+  rationale records it.
+
+  The emit ordering has a second consequence, and it is a deficit. Statement 2
+  begins the iteration at Read_Sources, so no frame is published before the
+  first Step and that Step consumes a sampling period of the boot dwell before
+  emitting: the initialised state is displayed for one T_SAMPLE less than its
+  dwell, and the power-on all-red is lit for T_BARRIER - T_SAMPLE. Every state
+  a *step* enters is displayed for exactly its dwell; this is the one state no
+  step enters, and no statement here speaks of displayed duration, so neither
+  validate-reqs nor the suite can see it. Filed as #111, whose fix amends
+  statement 2 to publish the initialised projection *and hold it for one
+  sampling period* before the first Step — publishing alone is inert, Step #1
+  projecting the barrier anyway and Step #20 being what ends it. Either shape
+  also moves the first Read_Sources to t = T_SAMPLE, which statement 4 and
+  power-on fault detection want a glance at. #111 blocks whichever change
+  carries llr_4_controller.16's emit ordering to main.
+
   The durable record of the coalesced inputs kept in the main loop is the
   loop's local Controller_State itself: arming latches a seen press as
   PENDING_PEDESTRIAN_REQUEST or BUFFER_INTERVAL_LATCHED, so no separate

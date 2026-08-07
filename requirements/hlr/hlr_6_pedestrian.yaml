@@ -203,6 +203,15 @@ rationale: |-
   parallel through movement (§3.8): a crosswalk's pedestrian control machine leaves
   PENDING only when that crosswalk's adjacent through signal becomes GREEN.
 
+  One deviation from §4.2 follows from that concurrency, and is deliberate.
+  Where a press arrives on the very step whose boundary raises the adjacent
+  through to GREEN, the machine enters PENDING and leaves it within that one
+  step, so no frame is published while it is there and the request lamp never
+  illuminates for that actuation. Statement 7 goes vacuous rather than false;
+  5 and 15 still fire within T_ACK. Nothing is lost: the crosswalk is served
+  within T_ACK rather than told it is queued, which is what §4.1 asks the lamp
+  to stand in for. The mechanism is llr_4_controller.16.
+
   The clearance buffer (14-18) is §3.5's tail: after flashing DON'T WALK ends the
   head returns to steady DONT_WALK (14) for T_BUFFER before any conflicting
   movement may be released. It is modelled *inside* SERVING_PEDESTRIAN_REQUEST

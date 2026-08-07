@@ -27,17 +27,21 @@ code fix or a requirements change — decide direction before editing.
   `(Lead_Ran, Lag)` and subtracts only `T_YELLOW` when `Lag` is False, so the
   emitted dwell differs on the no-lag branch. Its `Post` proves only the
   `T_Both_Min`/`T_Axis` bounds, so `make prove` cannot see this.
-- [ ] **Emit precedes advance.** `llr_4_controller.16` (and the pedestrian
+- [x] **Emit precedes advance.** `llr_4_controller.16` (and the pedestrian
   `algorithm_aspects`) require outputs to project the state *after* this step's
-  transitions, but `Controller.Step` assigns `Outputs := Project_Outputs
-  (State)` before the advance and edge stages, so GREEN-edge couplings land one
-  display write late.
+  transitions, but `Controller.Step` assigned `Outputs := Project_Outputs
+  (State)` before the advance and edge stages, so GREEN-edge couplings landed
+  one display write late. Decided on #105 in the requirement's favour and fixed
+  in the code: the assignment is now the last thing `Step` does.
+  `Test_16_Outputs_Project_The_Resulting_State` is the oracle.
 
 ## Test-quality gaps
 
 - [ ] `tests/types/states-test_data-tests.adb` routines carry `--@covers
   llr_1_states.19/.20` tags but are unimplemented gnattest skeletons — the
   `test` marks on those two statements record vacuous evidence.
-- [ ] `Test_Step` cites `llr_4_controller.16` and `.22` and passes despite the
-  emit-ordering and lag-latch deviations above — the assertions are too shallow
-  to catch them.
+- [ ] `Test_Step` cited `llr_4_controller.16` and `.22` and passed despite the
+  emit-ordering and lag-latch deviations above — the assertions were too
+  shallow to catch them. The tag is now `--@covers none:` and `Test_16` owns
+  `.16` properly, so the `.16` half is closed; the `.22` half stands until the
+  lag-latch deviation is decided.

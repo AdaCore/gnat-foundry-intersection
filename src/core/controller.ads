@@ -132,14 +132,16 @@ is
    --
    --  One core-loop step, accounting for exactly one sampling period
    --  T_SAMPLE of logical time (llr_4_controller.17): arm the freshly
-   --  sampled inputs, emit the current composite state's outputs, then
-   --  advance every running timer (Veh_Timer; each serving Ped_Timer) by
-   --  exactly T_SAMPLE, firing the timed transition of any machine whose
-   --  remaining dwell is at most T_SAMPLE -- the step on whose boundary that
-   --  dwell elapses, exact by llr_1_states.31. The emitted outputs honour
-   --  the vehicle-conflict invariant hlr_0_safety.2.
+   --  sampled inputs, then advance every running timer (Veh_Timer; each
+   --  serving Ped_Timer) by exactly T_SAMPLE, firing the timed transition of
+   --  any machine whose remaining dwell is at most T_SAMPLE -- the step on
+   --  whose boundary that dwell elapses, exact by llr_1_states.31 -- then
+   --  derive the GREEN edges, and emit last. Outputs is therefore the Moore
+   --  projection of the state the step results in (llr_4_controller.16). The
+   --  emitted outputs honour the vehicle-conflict invariant hlr_0_safety.2.
    --  @param State The controller state, advanced in place by this step
    --  @param Sensors The input snapshot sampled for this step
-   --  @param Outputs The output signals emitted for the current state
+   --  @param Outputs The output signals emitted for the state this step
+   --  results in
 
 end Controller;

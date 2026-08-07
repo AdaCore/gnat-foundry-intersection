@@ -446,9 +446,10 @@ is
          return;
       end if;
 
-      --  2. Level-triggered input arming, done before emitting so a press this
-      --     tick lights the request lamp this tick. Guarded by the source
-      --     sub-state, so re-reading a held level is idempotent.
+      --  2. Level-triggered input arming, before the stages that consume it:
+      --     stage 3 reads a left demand at a barrier boundary, stage 4 serves
+      --     a press (`llr_4_controller.22`). Guarded by the source sub-state,
+      --     so re-reading a held level is idempotent.
       --     left-demand arm (`hlr_5_vehicle_1_left_demand.3`)
       for A in Approach loop
          if State.Left (A) = No_Left_Demand
@@ -471,10 +472,7 @@ is
          end if;
       end loop;
 
-      --  3. Emit the current (post-arm) composite state's outputs.
-      Outputs := Project_Outputs (State);
-
-      --  4. Advance every running timer by exactly one T_SAMPLE
+      --  3. Advance every running timer by exactly one T_SAMPLE
       --     (`llr_4_controller.17`); a machine whose remaining dwell is at
       --     most T_SAMPLE fires its timed transition on this step -- its
       --     exact boundary, since every dwell is a multiple of T_SAMPLE
@@ -497,7 +495,7 @@ is
          end if;
       end loop;
 
-      --  5. GREEN-edge derivations off the vehicle transition just made
+      --  4. GREEN-edge derivations off the vehicle transition just made
       --     (unchanged vehicle => no edges). A rising edge is a through face
       --     that is GREEN now and was not before.
       for A in Approach loop
@@ -524,6 +522,12 @@ is
             State.Ped_Timer (C) := T_Walk;
          end if;
       end loop;
+
+      --  5. Emit the projection of the state this step enters -- after
+      --     arming, the timed transition and the GREEN-edge derivations
+      --     (`llr_4_controller.16`, which names statements 18-20). The
+      --     emitted outputs honour hlr_0_safety.2.
+      Outputs := Project_Outputs (State);
    end Step;
 
 end Controller;
