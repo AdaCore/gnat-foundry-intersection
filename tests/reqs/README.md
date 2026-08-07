@@ -14,9 +14,9 @@ The rules below are the review criteria for adding one.
    agreeing with itself is not. Read `src/` for signatures, not for answers.
 
 2. **A faithful test that fails is a finding, not a test to fix.** Leave the
-   expectation alone, record the divergence in the statement's `verified_by`
-   block (`status:`), and raise it. Seven tests fail today for this reason: six
-   for #63, one for #105.
+   expectation alone, raise it, and say so in a comment where the routine falls,
+   naming the issue. Eight tests fail today for this reason: seven for #63, one
+   for #105.
 
 3. **One routine per statement**, named `Test_<nn>_<behaviour_phrase>` with the
    statement number zero-padded. The `--@covers <llr_file_stem>.<nn>` tag is the
@@ -85,5 +85,23 @@ The rules below are the review criteria for adding one.
       Route the value through something non-static — iterating the type, as
       `Test_15` does.
 
-`workflow/verification-means/classification.md` records which means was assigned
-to each of the 143 LLR statements, and why.
+## Where the means assignment lives
+
+Each LLR statement's `verification:` block in `requirements/llr/*.yaml` names
+the means that discharge it, and that data is the record — there is no separate
+classification document. `make trace-check` reads it in both directions: a
+`--@covers` here citing a statement that does not declare `test` is an error,
+and a `test`-declaring statement with no citing routine reports uncovered.
+
+Nine statements declare `test` and have no routine here, all of them blocked
+rather than overlooked:
+
+| Statements | Why | Issue |
+| --- | --- | --- |
+| `llr_4_controller_1_vehicle.7`, `.18`, `.31`, `.32`, `.44`, `.45` | name the two HOLD sequencer states, which `States.Vehicle_Sequencer_State` does not have — there is nothing to drive the machine into | #63 |
+| `llr_7_main.1-.3` | the instantiation wiring: system-level, and no unit test can observe which actual a generic was instantiated with | #17 |
+
+The six #63 casualties each carry a comment where they fall in
+`llr_4_controller_1_vehicle_tests.adb`. The three `llr_7_main` statements have
+no package of their own, since a package of three comments and no routines
+would not survive `gnattest`; this table is their marker.
