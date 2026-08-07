@@ -37,7 +37,46 @@ make prove
 
 # Build the bare-metal arm-eabi firmware (runs under QEMU xilinx-zynq-a9)
 make build-target
+
+# Boot the firmware under QEMU and check it reaches its first display frame
+make smoke-target
+
+# Run the requirements-based tests ON TARGET (arm-eabi, under QEMU)
+make test-target
 ```
+
+`make smoke-target` / `make test-target` (and `make run-target`) need
+`qemu-system-arm` on your PATH. No `setup-*` target provisions it: install it
+from your distribution (Debian/Ubuntu: `qemu-system-arm`). CI takes it
+from the `image:serotonic` runner image, and runs both targets on both
+toolchains. GNATemulator is not a substitute: it composes the same command line
+and then emits nothing for this image (issue #90, closed won't-fix — pro
+customers are not expected to have the cross toolchain that bundles it).
+
+The suite is verified across a wide span of QEMU versions: **6.2.0** in CI, what
+`image:serotonic` ships, on both toolchains; **8.2.2** locally, what Ubuntu
+24.04 ships. Worth keeping in mind — that span is what constrains
+which `qemu-system-arm` switches `scripts/qemu/run.sh` may use, and it is the
+baseline against which a future timing regression would be read.
+
+### Testing on target
+
+`make test` and `make test-target` run the *same* test bodies under `tests/`
+through two GNATtest harnesses — one native, one cross-compiled for arm-eabi
+and run on QEMU's `xilinx-zynq-a9` machine against the same
+`light-tasking-zynq7000` runtime the firmware ships with. Coverage is measured
+natively only (`make all-coverage`).
+
+The cross harness leaves out the `Display` / `Sources` / `Timings` tests, which
+are bound to the host profile by construction — they capture `Ada.Text_IO`
+streams and read `Ada.Calendar`, none of which a bare-metal runtime offers. The
+list lives in
+[`traffic_light_qemu/tests/host_only_sources.txt`](traffic_light_qemu/tests/host_only_sources.txt),
+with the per-unit rationale beside `TARGET_TEST_IGNORE` in the `Makefile`.
+
+All tests citing a requirement id run on target, and two checks keep it that
+way: `make check` fails if a unit on that list cites one, and `make test-target`
+fails unless the harness runs `QEMU_TEST_EXPECTED` tests.
 
 ### Staging the pro downloads for `make setup-pro`
 
@@ -72,7 +111,10 @@ mode.
 | `src/hal/qemu_zynq7000/` | Bare-metal arm-eabi HAL (Cortex-A9, QEMU xilinx-zynq-a9, light-tasking runtime)  |
 | `src/hal/host/`          | Stub HAL for desktop simulation and unit tests                                   |
 | `src/app/`               | Top-level application                                                            |
-| `tests/`                 | Nested Alire test crate (AUnit harness via gnattest, host-runnable)              |
+| `tests/`                 | Test bodies, plus the nested Alire crate for the native AUnit harness             |
+| `traffic_light_qemu/`    | Nested Alire crate for the bare-metal arm-eabi firmware build                     |
+| `traffic_light_qemu/tests/` | Nested Alire crate for the same tests cross-built and run under QEMU          |
+| `scripts/qemu/`          | Boot an arm-eabi ELF under QEMU and turn its UART output into an exit status      |
 
 ## Contributing
 

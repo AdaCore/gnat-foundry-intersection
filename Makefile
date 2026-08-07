@@ -8,7 +8,9 @@ SHELL := bash
         prove prove-report \
         format format-ada format-python check check-ada check-shell check-python \
         check-python-reqs check-python-report \
+        check-target-test-parity \
         generate-tests test \
+        generate-tests-target build-tests-target test-target smoke-target \
         validate-reqs trace trace-check test-reqs-engine \
         build-tracer \
         code-inventory test-inventory inventories \
@@ -154,6 +156,7 @@ run-native: build-native ## Run the host executable
 # served on 127.0.0.1:$(QEMU_UART1) for an optional client. Quit QEMU with
 # Ctrl-A x. Needs qemu-system-arm.
 run-target: build-target ## Run the firmware under QEMU (xilinx-zynq-a9)
+	scripts/qemu/require-qemu.sh
 	qemu-system-arm -M xilinx-zynq-a9 -m 1G -nographic \
 	  -serial mon:stdio \
 	  -serial tcp:127.0.0.1:$(QEMU_UART1),server,nowait \
@@ -184,7 +187,7 @@ prove-report: ## Proof run feeding `make report`
 # ----------------------------------------------------------------------------
 
 format: format-ada format-python ## Reformat all sources (Ada and Python)
-check: check-ada check-shell check-python ## Verify formatting and lint (Ada, shell, Python)
+check: check-ada check-shell check-python check-target-test-parity ## Verify formatting and lint (Ada, shell, Python)
 
 # With pro tools (pro/external), run gnatformat directly: `alr` would fetch
 # the community gnat_arm_elf/aunit crates for the nested crates instead.
@@ -196,11 +199,13 @@ ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
 	    -XBUILD_KIND=target -U --charset utf-8
 	gnatformat -P tests/tests.gpr -U --charset utf-8
+	gnatformat -P traffic_light_qemu/tests/target_tests.gpr -U --charset utf-8
 	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr -U --charset utf-8
 else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C tests exec -P -- gnatformat -U --charset utf-8
+	$(ALR) -C traffic_light_qemu/tests exec -P -- gnatformat -U --charset utf-8
 	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8
 endif
 
@@ -211,11 +216,13 @@ ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
 	    -XBUILD_KIND=target -U --charset utf-8 --check
 	gnatformat -P tests/tests.gpr -U --check --charset utf-8
+	gnatformat -P traffic_light_qemu/tests/target_tests.gpr -U --check --charset utf-8
 	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr -U --check --charset utf-8
 else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C tests exec -P -- gnatformat -U --check --charset utf-8
+	$(ALR) -C traffic_light_qemu/tests exec -P -- gnatformat -U --check --charset utf-8
 	# Temporary: exclude the tracer from the checks: it pulls Libadalang,
 	# which slows the CI down.
 	# cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8 --check
@@ -228,6 +235,14 @@ endif
 
 check-shell: ## Lint the shell scripts (shellcheck)
 	find scripts -type f -exec $(UV) tool run --from shellcheck-py shellcheck {} +
+
+# Keep every requirement-citing test on target: a unit left out of the cross
+# harness may cite a requirement id only if that id is one of the enumerated
+# waivers in the script, and each entry in the ignore list must name a real
+# source. Pure shell, so it runs wherever `check` does.
+check-target-test-parity: ## Check every requirement-citing test runs on target
+	scripts/check-target-test-parity.sh \
+	    $(TARGET_TEST_IGNORE) $(CURDIR)/src $(CURDIR)/tests
 
 format-python: ## Format the Python sources (ruff)
 	$(UV) --directory "$(REQS_ENGINE)" run ruff format
@@ -271,6 +286,115 @@ else
 	$(ALR) exec -- gprbuild -q -P $(HARNESS)/test_driver.gpr
 endif
 	$(HARNESS)/test_runner
+
+# ----------------------------------------------------------------------------
+##@ Test on target (arm-eabi firmware under QEMU)
+#
+# A second gnattest harness, cross-compiled for arm-eabi and run on QEMU's
+# xilinx-zynq-a9 machine, over the same test bodies under tests/ that `make
+# test` runs natively. Coverage stays native-only (see `all-coverage`).
+# ----------------------------------------------------------------------------
+
+TARGET_HARNESS := obj/target/gnattest/harness
+
+# The runtime the firmware itself ships with (src/shared.gpr).
+TARGET_RUNTIME := light-tasking-zynq7000
+
+# The only AUnit profile that compiles against light-tasking, which forbids
+# exception propagation. Keep in step with traffic_light_qemu/tests/alire.toml.
+# Alire path only: see GPRBUILD_TARGET_TEST_SWITCHES.
+TARGET_AUNIT_RUNTIME := zfp-cross
+
+# Kept under obj/ so `make clean` reaches it and worktrees stay independent;
+# AUnit's default is inside the shared Alire release cache.
+TARGET_AUNIT_LIBDIR := $(CURDIR)/obj/target/aunit/lib
+TARGET_AUNIT_OBJDIR := $(CURDIR)/obj/target/aunit/obj
+
+# GNATtest units left out of the cross harness; the native harness runs them
+# all. A unit qualifies only if its tests are bound to the host profile by
+# construction:
+#   display.ads  captures standard output into an Ada.Text_IO file
+#   sources.ads  redirects standard input from an Ada.Text_IO file
+#   timings.ads  measures Delay_For against Ada.Calendar.Clock
+# The file holds bare filenames: gnattest drops an entry it cannot match
+# without a word, so a comment line survives only by accident -- as would a
+# typo, which would silently shorten the on-target run.
+#
+# Of the three, only timings.ads cites a requirement (llr_6_hal.1), so only it
+# needs a waiver in check-target-test-parity.sh; every other requirement
+# citation in the suite runs on target.
+TARGET_TEST_IGNORE := $(CURDIR)/traffic_light_qemu/tests/host_only_sources.txt
+
+QEMU_TEST_TIMEOUT  ?= 120
+QEMU_SMOKE_TIMEOUT ?= 60
+
+# How many tests the cross harness must run: the 16 native ones less the units
+# in TARGET_TEST_IGNORE. A mismatch fails `test-target`, so the suite cannot
+# shrink unnoticed. Keep in step when adding tests or changing that list.
+QEMU_TEST_EXPECTED ?= 11
+
+# --no-command-line / --no-test-filtering: gnattest's default driver needs
+# Ada.Command_Line, GNAT.Command_Line and GNAT.OS_Lib, which bare metal lacks.
+GNATTEST_TARGET_SWITCHES := \
+    --target=arm-eabi --RTS=$(TARGET_RUNTIME) \
+    -XBUILD_KIND=target -XTICK_PERIOD_US=$(TICK_PERIOD_US) \
+    --harness-dir=$(CURDIR)/$(TARGET_HARNESS) \
+    --ignore=$(TARGET_TEST_IGNORE) \
+    --no-command-line --no-test-filtering --exit-status=off
+
+# --target / --RTS on the command line, not just `for Target` / `for Runtime` in
+# the project: only the switches put the runtime's own share/gpr on the project
+# search path, which is how the pro toolchain's prebuilt AUnit is found. Without
+# them a `make setup-pro` tree fails with `imported project file "aunit" not
+# found`. The -XAUNIT_* externals below govern the Alire path alone -- the pro
+# toolchain's aunit.gpr is Externally_Built and declares no external at all, so
+# it ignores them (and is already the zfp flavour these ask for).
+GPRBUILD_TARGET_TEST_SWITCHES := \
+    --target=arm-eabi --RTS=$(TARGET_RUNTIME) \
+    -XBUILD_KIND=target -XTICK_PERIOD_US=$(TICK_PERIOD_US) \
+    -XAUNIT_RUNTIME=$(TARGET_AUNIT_RUNTIME) \
+    -XAUNIT_PLATFORM=arm-eabi \
+    -XAUNIT_LIBDIR=$(TARGET_AUNIT_LIBDIR) \
+    -XAUNIT_OBJDIR=$(TARGET_AUNIT_OBJDIR)
+
+# Same community/other split as `generate-tests`, but through the
+# traffic_light_qemu/tests crate, which pairs aunit with the arm-eabi toolchain.
+generate-tests-target: generate-config ## Generate/refresh the cross harness skeletons
+ifeq ($(SETUP),community)
+	$(ALR) -C traffic_light_qemu/tests build --stop-after=sync  # Sync `aunit`
+	$(ALR) -C traffic_light_qemu/tests exec -- \
+	    gnattest -P $(CURDIR)/traffic_light.gpr $(GNATTEST_TARGET_SWITCHES)
+else
+	gnattest -P traffic_light.gpr $(GNATTEST_TARGET_SWITCHES)
+endif
+
+build-tests-target: generate-tests-target ## Cross-build the on-target AUnit harness
+ifeq ($(SETUP),community)
+	$(ALR) -C traffic_light_qemu/tests exec -- \
+	    gprbuild -q -p -P $(CURDIR)/$(TARGET_HARNESS)/test_driver.gpr \
+	        $(GPRBUILD_TARGET_TEST_SWITCHES)
+else
+	gprbuild -q -p -P $(TARGET_HARNESS)/test_driver.gpr \
+	    $(GPRBUILD_TARGET_TEST_SWITCHES)
+endif
+
+# Needs qemu-system-arm on PATH, as `run-target` does.
+test-target: build-tests-target ## Run the AUnit harness on target, under QEMU
+	scripts/qemu/test-target.sh \
+	    --timeout $(QEMU_TEST_TIMEOUT) \
+	    --expected $(QEMU_TEST_EXPECTED) \
+	    $(TARGET_HARNESS)/test_runner \
+	    obj/target/test-target.log
+
+# Boot the firmware and check it reaches its first complete display frame: the
+# only exercise of the target HAL, which the cross harness leaves out.
+smoke-target: build-target ## Boot the firmware under QEMU, check its first display frame
+	scripts/qemu/run.sh \
+	    --console uart0 \
+	    --until '^request WEST_SIDE ' \
+	    --timeout $(QEMU_SMOKE_TIMEOUT) \
+	    --log obj/target/smoke-target.log \
+	    bin/target/traffic_light
 
 # ----------------------------------------------------------------------------
 ##@ Requirements and traceability
