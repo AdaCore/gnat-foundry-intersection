@@ -59,8 +59,8 @@ package body Llr_5_Core_Loop_Tests is
    --  What the state after the barrier projects. With no north left-turn
    --  demand, llr_4_controller_1_vehicle.26 sends EW_BARRIER_ALLRED to
    --  NS_BOTH_THROUGH when T_BARRIER elapses, whose row (.6) is the N and S
-   --  throughs GREEN. Only the *target* of .26 is used here, not its dwell --
-   --  the dwell is the part #63 diverges on.
+   --  throughs GREEN. Only the *target* of .26 is used here, not its dwell,
+   --  which is .26's own routine to assert.
 
    Fault_Display : constant States.Display_State :=
      (Through  => (others => Flashing_Red),

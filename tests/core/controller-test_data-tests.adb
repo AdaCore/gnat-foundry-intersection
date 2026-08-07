@@ -34,7 +34,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Initialize_9cb2dc (Gnattest_T : in out Test) renames Test_Initialize;
 --  id:2.2/9cb2dc2f1d1660db/Initialize/1/0/
    procedure Test_Initialize (Gnattest_T : in out Test) is
-   --  controller.ads:90:4:Initialize
+   --  controller.ads:88:4:Initialize
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -93,7 +93,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Project_Outputs_229f82 (Gnattest_T : in out Test) renames Test_Project_Outputs;
 --  id:2.2/229f82fac868336c/Project_Outputs/1/0/
    procedure Test_Project_Outputs (Gnattest_T : in out Test) is
-   --  controller.ads:98:4:Project_Outputs
+   --  controller.ads:96:4:Project_Outputs
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -113,7 +113,6 @@ package body Controller.Test_Data.Tests is
         (Mode      => Normal_Operation,
          Vehicle   => NS_Both_Through,
          Veh_Timer => T_Both_Min,
-         Veh_Lag   => False,
          Left      => (West => Left_Demand_Pending, others => No_Left_Demand),
          Ped       =>
            (North_Side => Buffer_Interval_Latched,
@@ -226,7 +225,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Step_550f0c (Gnattest_T : in out Test) renames Test_Step;
 --  id:2.2/550f0cec4ac973af/Step/1/0/
    procedure Test_Step (Gnattest_T : in out Test) is
-   --  controller.ads:110:4:Step
+   --  controller.ads:108:4:Step
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -251,7 +250,6 @@ package body Controller.Test_Data.Tests is
       is ((Mode      => Normal_Operation,
            Vehicle   => EW_Barrier_Allred,
            Veh_Timer => Remaining,
-           Veh_Lag   => False,
            Left      => (others => No_Left_Demand),
            Ped       => (others => No_Pedestrian_Request),
            Ped_Timer => (others => 0)));

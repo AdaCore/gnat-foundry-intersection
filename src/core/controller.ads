@@ -77,8 +77,6 @@ is
       Mode      : States.Mode;                     --  hlr_1_modes
       Vehicle   : States.Vehicle_Sequencer_State;  --  hlr_5_vehicle
       Veh_Timer : States.Duration_Ms;              --  time left in Vehicle
-      Veh_Lag   : Boolean;                          --  lag-served decision,
-      --    latched on both-entry
       Left      : States.Left_Demand_Array;        --  hlr_5_vehicle_1
       Ped       : States.Pedestrian_Array;          --  hlr_6_pedestrian
       Ped_Timer : Pedestrian_Timers;               --  time left in Ped (c)

@@ -15,9 +15,9 @@ The rules below are the review criteria for adding one.
 
 2. **A faithful test that fails is a finding, not a test to fix.** Leave the
    expectation alone, raise it, and say so in a comment where the routine falls,
-   naming the issue. Seven tests fail today for this reason, all for #63. The
-   eighth was `Test_16`'s: #105 was settled in the requirement's favour and the
-   routine now passes, which is what rule 2 is for.
+   naming the issue. Nothing fails today, but eight routines did: #105 and #63
+   were both settled in the requirement's favour and the code moved to them,
+   which is what rule 2 is for.
 
 3. **One routine per statement**, named `Test_<nn>_<behaviour_phrase>` with the
    statement number zero-padded. The `--@covers <llr_file_stem>.<nn>` tag is the
@@ -100,15 +100,12 @@ classification document. `make trace-check` reads it in both directions: a
 `--@covers` here citing a statement that does not declare `test` is an error,
 and a `test`-declaring statement with no citing routine reports uncovered.
 
-Nine statements declare `test` and have no routine here, all of them blocked
-rather than overlooked:
+Three statements declare `test` and have no routine here, blocked rather than
+overlooked:
 
 | Statements | Why | Issue |
 | --- | --- | --- |
-| `llr_4_controller_1_vehicle.7`, `.18`, `.31`, `.32`, `.44`, `.45` | name the two HOLD sequencer states, which `States.Vehicle_Sequencer_State` does not have — there is nothing to drive the machine into | #63 |
 | `llr_7_main.1-.3` | the instantiation wiring: system-level, and no unit test can observe which actual a generic was instantiated with | #17 |
 
-The six #63 casualties each carry a comment where they fall in
-`llr_4_controller_1_vehicle_tests.adb`. The three `llr_7_main` statements have
-no package of their own, since a package of three comments and no routines
-would not survive `gnattest`; this table is their marker.
+They have no package of their own, since a package of three comments and no
+routines would not survive `gnattest`; this table is their marker.
