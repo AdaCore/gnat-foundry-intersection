@@ -1732,6 +1732,95 @@ package body Llr_4_Controller_Tests is
          & " E_DROP_YELLOW, but the sequencer went to "
          & States.Vehicle_Sequencer_State'Image (State.Vehicle));
 
+      --  The statement says "registered *before* the resulting through GREEN
+      --  onset", not "registered on the boundary step", so the boundary cases
+      --  above are its hardest instance and not the whole of it. The commit
+      --  interval is where the difference is worth money: it is the one dwell
+      --  long enough for a demand to arrive well inside it, and #63's whole
+      --  point is that such a demand is served this cycle.
+      --
+      --  So the detector is raised three sampling periods out and then
+      --  *dropped*. The vehicle is seen once, on a step that fires nothing,
+      --  and is gone by the time the exit runs -- so the boundary read cannot
+      --  be reading the detector, and the lag can only be taken off the
+      --  demand latched two steps earlier and carried through an intervening
+      --  sampling step. That discriminates against both ways of passing the
+      --  boundary cases by accident: sampling the detector only at the exit,
+      --  and dropping a latched demand on a step where nothing fires.
+
+      Cases_Loop :
+      declare
+         type Commit_Case is record
+            Both    : States.Vehicle_Sequencer_State;
+            Lagging : States.Approach;
+            Served  : States.Vehicle_Sequencer_State;
+         end record;
+         --  One per axis: the commit state, the approach whose demand its exit
+         --  reads, and the state a pending demand routes into
+         --  (llr_4_controller_1_vehicle.30 and .43).
+
+         Commit_Cases : constant array (1 .. 2) of Commit_Case :=
+           ((NS_Both_Through, South, N_Drop_Yellow),
+            (EW_Both_Through, West, E_Drop_Yellow));
+      begin
+         for K in Commit_Cases'Range loop
+            declare
+               C : Commit_Case renames Commit_Cases (K);
+            begin
+               State := Composite_State (C.Both, 3 * States.T_Sample);
+
+               --  Step 1: the vehicle arrives, well inside the interval.
+
+               Sensors := Reqs_Support.Quiet;
+               Sensors.Left_Turns (C.Lagging) := Vehicle_Present;
+
+               Controller.Step (State, Sensors, Outputs);
+
+               Assert
+                 (State.Left (C.Lagging) = Left_Demand_Pending,
+                  "a left-turn vehicle observed on "
+                  & States.Approach'Image (C.Lagging)
+                  & " during the commit interval must arm that approach, but"
+                  & " it is "
+                  & States.Left_Demand_State'Image (State.Left (C.Lagging)));
+               Assert
+                 (State.Vehicle = C.Both,
+                  "the arming step must fire no transition, but the sequencer"
+                  & " left "
+                  & States.Vehicle_Sequencer_State'Image (C.Both)
+                  & " for "
+                  & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+
+               --  Step 2: the vehicle is gone from the detector. Nothing
+               --  fires; the demand has to survive on its own.
+
+               Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+               Assert
+                 (State.Left (C.Lagging) = Left_Demand_Pending,
+                  "the demand latched on "
+                  & States.Approach'Image (C.Lagging)
+                  & " must survive an intervening sampling step with the"
+                  & " detector clear, but it is "
+                  & States.Left_Demand_State'Image (State.Left (C.Lagging)));
+
+               --  Step 3: the commit boundary, detector still clear.
+
+               Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+               Assert
+                 (State.Vehicle = C.Served,
+                  "a left-turn vehicle seen on "
+                  & States.Approach'Image (C.Lagging)
+                  & " during the commit interval and gone by its boundary"
+                  & " must still be served this cycle, entering "
+                  & States.Vehicle_Sequencer_State'Image (C.Served)
+                  & ", but the sequencer went to "
+                  & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+            end;
+         end loop;
+      end Cases_Loop;
+
    end Test_22_Boundary_Demand_Served_At_This_Onset;
 
 end Llr_4_Controller_Tests;
