@@ -171,17 +171,22 @@ is
          when NS_Both_Through | EW_Both_Through                         =>
            T_Both_Min);
 
-   --  The both-through commit interval, the residual T_BOTH of
-   --  `hlr_3_timing.8`: the axis slot T_AXIS left after the barrier, the lead
-   --  overhead that actually ran, and a *reserved* full lagging-left block --
-   --  so T_AXIS stays independent of left-turn demand (`hlr_3_timing.7`). The
-   --  lag is not a parameter: reserving its block unconditionally is what lets
-   --  the decision wait until the interval expires (see Advance_Vehicle), and
-   --  the two exits absorb the difference -- the lag block if the lag runs,
-   --  the HOLD interval plus the both-drop yellow if it does not, which sum to
-   --  the same span. The postcondition captures `hlr_3_timing.12` (never below
-   --  T_BOTH_MIN, which the Lead_Ran arm hits exactly) and proves the
-   --  subtraction cannot underflow, given the valued durations.
+   --  The both-through commit interval: the part of `hlr_3_timing.8`'s
+   --  residual T_BOTH that runs before the lag decision. It is the axis slot
+   --  T_AXIS left after the barrier, the lead overhead that actually ran, and
+   --  a *reserved* full lagging-left block -- so T_AXIS stays independent of
+   --  left-turn demand (`hlr_3_timing.7`). It is the whole of T_BOTH on the
+   --  lag branch only; on the no-lag branch the phase is this interval plus
+   --  the HOLD.
+   --
+   --  The lag is not a parameter: reserving its block unconditionally is what
+   --  lets the decision wait until the interval expires (see Advance_Vehicle),
+   --  and the two exits absorb the difference -- the lag block if the lag
+   --  runs, the HOLD interval plus the both-drop yellow if it does not, which
+   --  sum to the same span. The postcondition captures `hlr_3_timing.12`
+   --  (never below T_BOTH_MIN, which the Lead_Ran arm hits exactly -- and so
+   --  the claim holds of the whole phase, the HOLD only adding to it) and
+   --  proves the subtraction cannot underflow, given the valued durations.
    function Both_Duration (Lead_Ran : Boolean) return States.Duration_Ms
    is (((States.T_Axis - States.T_Barrier)
         - (if Lead_Ran
@@ -240,7 +245,8 @@ is
 
    --  Enter a both-through state: size the commit interval so the axis slot
    --  stays demand-independent. Nothing about the lag is decided here -- the
-   --  demand is read when the interval expires (.30/.31, .43/.44).
+   --  demand is read when the interval expires (.17/.18 and .40/.41, in this
+   --  section's hlr_5_vehicle numbering).
    procedure Enter_Both
      (State : in out Controller_State; NS : Boolean; Lead_Ran : Boolean) is
    begin
