@@ -22,9 +22,6 @@ procedure State_Machine_Loop is
    Outputs : States.Display_State;
 begin
    Controller.Initialize (State);
-   --  No frame is published before the first iteration, so the initialised
-   --  state is displayed for one T_SAMPLE less than its dwell: the power-on
-   --  all-red is lit for T_BARRIER - T_SAMPLE. Open, as #111.
    loop
       --  1. poll the external sources
       Read_Sources (Sensors);
