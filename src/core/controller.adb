@@ -24,82 +24,98 @@ is
    --  Moore output tables (pure functions of state)
    -----------------------------------------------------------------------
 
-   --  The vehicle face table: rows `hlr_5_vehicle.2`-.11 and .48 (NS), .25-.34
-   --  and .50 (EW), every unlisted face held RED. Written as explicit literal
-   --  aggregates per state (rather than a DRY axis-parameterized helper -- a
-   --  deferred cleanup in TODO.md) so gnatprove discharges the hlr_0_safety.2
-   --  postcondition by enumeration over constants. A HOLD row repeats its
-   --  parent both-through row rather than sharing an alternative with it: the
-   --  two are separate requirement statements, and one row per statement is
-   --  what makes the table reviewable against the numbered paragraphs.
+   --  The vehicle face table.
    function Vehicle_Face_Outputs
      (V : States.Vehicle_Sequencer_State) return Vehicle_Faces
    is (case V is
          --  ---- NS axis (.2-.11, .48) ----
-         when N_Lead               =>              --  .2  N_thru G, N_left G
+         --  .2  N_thru G, N_left G
+         when N_Lead =>
            (Through => (North => Green, others => Red),
             Left    => (North => Green, others => Red)),
-         when N_Lead_Yellow        =>       --  .3  N_thru G, N_left Y
+         --  .3  N_thru G, N_left Y
+         when N_Lead_Yellow =>
            (Through => (North => Green, others => Red),
             Left    => (North => Yellow, others => Red)),
-         when N_Lead_Clear         =>        --  .4  N_thru G
+         --  .4  N_thru G
+         when N_Lead_Clear =>
            (Through => (North => Green, others => Red),
             Left    => (others => Red)),
-         when NS_Both_Through      =>     --  .5  N_thru G, S_thru G
+         --  .5  N_thru G, S_thru G
+         when NS_Both_Through  =>
            (Through => (North => Green, South => Green, others => Red),
             Left    => (others => Red)),
-         when N_Drop_Yellow        =>       --  .6  N_thru Y, S_thru G
+         --  .6  N_thru Y, S_thru G
+         when N_Drop_Yellow =>
            (Through => (North => Yellow, South => Green, others => Red),
             Left    => (others => Red)),
-         when N_Drop_Clear         =>        --  .7  S_thru G
+         --  .7  S_thru G
+         when N_Drop_Clear  =>
            (Through => (South => Green, others => Red),
             Left    => (others => Red)),
-         when S_Lag                =>               --  .8  S_thru G, S_left G
+         --  .8  S_thru G, S_left G
+         when S_Lag  =>
            (Through => (South => Green, others => Red),
             Left    => (South => Green, others => Red)),
-         when S_Lag_Yellow         =>        --  .9  S_thru Y, S_left Y
+         --  .9  S_thru Y, S_left Y
+         when S_Lag_Yellow =>
            (Through => (South => Yellow, others => Red),
             Left    => (South => Yellow, others => Red)),
-         when NS_Both_Through_Hold => --  .48 N_thru G, S_thru G (as .5)
+         --  .48 N_thru G, S_thru G (as .5)
+         when NS_Both_Through_Hold =>
            (Through => (North => Green, South => Green, others => Red),
             Left    => (others => Red)),
-         when NS_Both_Drop_Yellow  => --  .10 N_thru Y, S_thru Y
+         --  .10 N_thru Y, S_thru Y
+         when NS_Both_Drop_Yellow =>
            (Through => (North => Yellow, South => Yellow, others => Red),
             Left    => (others => Red)),
-         when NS_Barrier_Allred    =>   --  .11 all RED
+         --  .11 all RED
+         when NS_Barrier_Allred =>
            (Through => (others => Red), Left => (others => Red)),
+
          --  ---- EW axis (.25-.34, .50), the exact N/S <-> E/W mirror ----
-         when E_Lead               =>              --  .25 E_thru G, E_left G
+         --  .25 E_thru G, E_left G
+         when E_Lead =>
            (Through => (East => Green, others => Red),
             Left    => (East => Green, others => Red)),
-         when E_Lead_Yellow        =>       --  .26 E_thru G, E_left Y
+         --  .26 E_thru G, E_left Y
+         when E_Lead_Yellow  =>
            (Through => (East => Green, others => Red),
             Left    => (East => Yellow, others => Red)),
-         when E_Lead_Clear         =>        --  .27 E_thru G
+         --  .27 E_thru G
+         when E_Lead_Clear =>
            (Through => (East => Green, others => Red),
             Left    => (others => Red)),
-         when EW_Both_Through      =>     --  .28 E_thru G, W_thru G
+         --  .28 E_thru G, W_thru G
+         when EW_Both_Through =>
            (Through => (East => Green, West => Green, others => Red),
             Left    => (others => Red)),
-         when E_Drop_Yellow        =>       --  .29 E_thru Y, W_thru G
+         --  .29 E_thru Y, W_thru G
+         when E_Drop_Yellow =>
            (Through => (East => Yellow, West => Green, others => Red),
             Left    => (others => Red)),
-         when E_Drop_Clear         =>        --  .30 W_thru G
+         --  .30 W_thru G
+         when E_Drop_Clear =>
            (Through => (West => Green, others => Red),
             Left    => (others => Red)),
-         when W_Lag                =>               --  .31 W_thru G, W_left G
+         --  .31 W_thru G, W_left G
+         when W_Lag =>
            (Through => (West => Green, others => Red),
             Left    => (West => Green, others => Red)),
-         when W_Lag_Yellow         =>        --  .32 W_thru Y, W_left Y
+         --  .32 W_thru Y, W_left Y
+         when W_Lag_Yellow =>
            (Through => (West => Yellow, others => Red),
             Left    => (West => Yellow, others => Red)),
-         when EW_Both_Through_Hold => --  .50 E_thru G, W_thru G (as .28)
+         --  .50 E_thru G, W_thru G (as .28)
+         when EW_Both_Through_Hold =>
            (Through => (East => Green, West => Green, others => Red),
             Left    => (others => Red)),
-         when EW_Both_Drop_Yellow  => --  .33 E_thru Y, W_thru Y
+         --  .33 E_thru Y, W_thru Y
+         when EW_Both_Drop_Yellow =>
            (Through => (East => Yellow, West => Yellow, others => Red),
             Left    => (others => Red)),
-         when EW_Barrier_Allred    =>   --  .34 all RED
+         --  .34 all RED
+         when EW_Barrier_Allred =>
            (Through => (others => Red), Left => (others => Red)));
 
    --  The through face for one approach in a given sequencer state -- the
@@ -140,12 +156,7 @@ is
    function Running_Ped (P : States.Pedestrian_State) return Boolean
    is (P in States.Serving_Pedestrian_State);
 
-   --  The fixed dwell of each timed vehicle state (`hlr_3_timing`). The
-   --  both-through commit states are excluded -- their dwell is the residual
-   --  T_BOTH computed by Both_Duration -- and map here to T_BOTH_MIN purely to
-   --  keep the function total; the value is never consulted for those states.
-   --  The HOLD states, by contrast, do carry their dwell here: the hold
-   --  interval is fixed (the reserved lag block less its closing yellow).
+   --  The fixed dwell of each timed vehicle state.
    function Fixed_Duration
      (V : States.Vehicle_Sequencer_State) return States.Duration_Ms
    is (case V is
@@ -171,22 +182,7 @@ is
          when NS_Both_Through | EW_Both_Through                         =>
            T_Both_Min);
 
-   --  The both-through commit interval: the part of `hlr_3_timing.8`'s
-   --  residual T_BOTH that runs before the lag decision. It is the axis slot
-   --  T_AXIS left after the barrier, the lead overhead that actually ran, and
-   --  a *reserved* full lagging-left block -- so T_AXIS stays independent of
-   --  left-turn demand (`hlr_3_timing.7`). It is the whole of T_BOTH on the
-   --  lag branch only; on the no-lag branch the phase is this interval plus
-   --  the HOLD.
-   --
-   --  The lag is not a parameter: reserving its block unconditionally is what
-   --  lets the decision wait until the interval expires (see Advance_Vehicle),
-   --  and the two exits absorb the difference -- the lag block if the lag
-   --  runs, the HOLD interval plus the both-drop yellow if it does not, which
-   --  sum to the same span. The postcondition captures `hlr_3_timing.12`
-   --  (never below T_BOTH_MIN, which the Lead_Ran arm hits exactly -- and so
-   --  the claim holds of the whole phase, the HOLD only adding to it) and
-   --  proves the subtraction cannot underflow, given the valued durations.
+   --  The both-through commit interval.
    function Both_Duration (Lead_Ran : Boolean) return States.Duration_Ms
    is (((States.T_Axis - States.T_Barrier)
         - (if Lead_Ran

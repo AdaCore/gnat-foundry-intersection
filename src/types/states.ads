@@ -124,12 +124,7 @@ is
       EW_Both_Through_Hold,
       EW_Both_Drop_Yellow,
       EW_Barrier_Allred);
-   --  The vehicle phase sequencer states, declared in cycle order: the NS
-   --  block then its EW mirror (hlr_5_vehicle.1, .24, .48, .50 and
-   --  requirements/state-machines.md §2). Each axis's *_BOTH_THROUGH_HOLD
-   --  sits immediately before its *_BOTH_DROP_YELLOW: it is the no-lag
-   --  continuation of the both-through phase, entered at the commit
-   --  boundary.
+   --  The vehicle phase sequencer states.
    --  @enum N_Lead North leading protected left
    --  @enum N_Lead_Yellow North lead-left yellow change
    --  @enum N_Lead_Clear North lead-left red clearance
