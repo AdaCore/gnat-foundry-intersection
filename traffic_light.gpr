@@ -14,12 +14,10 @@ with "src/hal.gpr";
 with "src/types.gpr";
 
 project Traffic_Light is
-   
+
    for Source_Dirs use ("src/app");
 
-   --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
-   --  Being the repo root, this takes Shared's fragments raw -- its own
-   --  attributes carry a "../" for src/. CI and docs reference these paths.
+   --  Default Alire layout
    for Object_Dir use Shared.Objdir_From_Root;
    for Exec_Dir use Shared.Execdir_From_Root;
    for Create_Missing_Dirs use "True";
@@ -43,18 +41,7 @@ project Traffic_Light is
       for Ignore use ".gnatformat_ignore.txt";
    end Format;
 
-   --  GNATtest configuration. Skeleton bodies land under <root>/tests/;
-   --  Tests_Root must be absolute, as gnattest resolves a relative one against
-   --  the object dir of the project *owning* each unit. `make generate-tests`
-   --  regenerates them after a src/ surface change.
-   --
-   --  An unimplemented skeleton FAILS: a generated body that asserts nothing
-   --  while claiming a requirement is the exact failure #51 was raised over, so
-   --  it must be loud rather than green. This attribute agrees with the
-   --  `--skeleton-default=fail` the Makefile passes; the switch wins where they
-   --  disagree (the generated `Default_Assert_Value` in the harness's
-   --  gnattest_generated.ads records which way it went), but they are kept in
-   --  step so dropping the switch cannot silently restore the old behaviour.
+   --  GNATtest configuration.
    package Gnattest is
       for Tests_Root        use Project'Project_Dir & "tests";
       for Skeletons_Default use "fail";

@@ -378,15 +378,6 @@ is
      Pre  => Running_Ped (State.Ped (C)),
      Post => State.Vehicle = State.Vehicle'Old
    is
-      --  The postcondition is the local half of the sequencer frame
-      --  (`llr_4_controller_1_vehicle.1`): the only other subprogram that
-      --  mutates the state in place must be shown not to move the sequencer.
-      --  Step's own frame contract catches most of what this one does, but
-      --  not a sequencer move made on a step where the vehicle dwell elapsed
-      --  too -- there Step is permitted to move it, and only this contract
-      --  says which subprogram was allowed to. Advance_Vehicle's helper
-      --  Enter_Both is deliberately unconstrained: it is called from nowhere
-      --  else, and moving the sequencer is exactly its job.
    begin
       case States.Serving_Pedestrian_State'(State.Ped (C)) is
          when Walk_Interval           =>
