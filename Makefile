@@ -492,8 +492,9 @@ REQS_ENGINE := $(CURDIR)/engine/requirements
 REQS_DIR    := $(CURDIR)/requirements
 TRACE_CHAIN := $(REQS_DIR)/trace_chain.yaml
 
-# The requirements-only portion of the traceability chain.
-REQUIREMENT_LAYERS  := CONOPS,HLR,LLR
+# Which layers of the chain `validate-reqs` traces. Defaults to the layers that
+# need no Ada toolchain; override to check a narrower part of it.
+TRACE_LAYERS := CONOPS,HLR,LLR
 
 # Split out because `make report` gates on this, not on the trace below.
 validate-reqs-corpus: ## Check the requirement files (structure, EARS)
@@ -501,7 +502,7 @@ validate-reqs-corpus: ## Check the requirement files (structure, EARS)
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
 
 validate-reqs: validate-reqs-corpus ## Check the requirement files (structure, EARS, requirements-layer trace)
-	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(TRACE_LAYERS) --chain "$(TRACE_CHAIN)"
 
 trace-check: inventories ## The traceability gate CI runs: exit status is the verdict
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(TRACE_CHAIN)"

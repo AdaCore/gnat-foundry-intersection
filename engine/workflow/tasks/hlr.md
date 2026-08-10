@@ -31,7 +31,7 @@ Record a brief summary in `workflow/<feature>/notes.md` as needed.
 ## Oracle
 
 ```bash
-make validate-reqs
+make validate-reqs TRACE_LAYERS=CONOPS,HLR
 ```
 
 **Done when it exits 0 with no diagnostics** — schema (`--complete`) + EARS +
