@@ -101,11 +101,12 @@ This cadence is what bounds pedestrian acknowledgment (T_ACK = 0.2 s,
 source bus's coalescing latch; the next `Read_Sources` — at most T_SAMPLE
 later — delivers it; the same iteration's `Step` arms it into the pedestrian
 machine; and the same iteration's `Write_Display` carries the lit request
-indicator. The durable record of the coalesced inputs is the loop-local
-`Controller_State` itself (arming latches a seen press as
-PENDING_PEDESTRIAN_REQUEST or BUFFER_INTERVAL_LATCHED) — there is no separate
-loop-side input record. Inter-read coalescing stays in the source-bus latch;
-across-read memory stays in the controller state.
+indicator — or, where that step's boundary also serves the crosswalk, the WALK
+head, `Step` emitting the state it results in. The durable record of the coalesced
+inputs is the loop-local `Controller_State` itself (arming latches a seen press
+as PENDING_PEDESTRIAN_REQUEST or BUFFER_INTERVAL_LATCHED) — there is no
+separate loop-side input record. Inter-read coalescing stays in the source-bus
+latch; across-read memory stays in the controller state.
 
 ## Project structure
 

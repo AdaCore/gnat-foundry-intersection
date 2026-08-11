@@ -15,8 +15,9 @@ The rules below are the review criteria for adding one.
 
 2. **A faithful test that fails is a finding, not a test to fix.** Leave the
    expectation alone, raise it, and say so in a comment where the routine falls,
-   naming the issue. Eight tests fail today for this reason: seven for #63, one
-   for #105.
+   naming the issue. Seven tests fail today for this reason, all for #63. The
+   eighth was `Test_16`'s: #105 was settled in the requirement's favour and the
+   routine now passes, which is what rule 2 is for.
 
 3. **One routine per statement**, named `Test_<nn>_<behaviour_phrase>` with the
    statement number zero-padded. The `--@covers <llr_file_stem>.<nn>` tag is the
@@ -34,8 +35,14 @@ The rules below are the review criteria for adding one.
    step wide. `Test_27` in `llr_4_controller_1_vehicle_tests.adb` is the shape.
 
 6. **Assert state, not emitted outputs, unless the statement is about
-   outputs.** `Controller.Step` emits before it advances (#105), so a state
-   claim read off the display fails for someone else's defect.
+   outputs.** `Step` emits last, so the display does now project the resulting
+   state (#105) — but reading a state claim off it routes the claim through
+   `Project_Outputs` and through `llr_4_controller.16`'s emit phase, so the
+   routine fails for someone else's defect. `Project_Outputs` is lossy besides:
+   BUFFER_INTERVAL and NO_PEDESTRIAN_REQUEST share DONT_WALK with NO_REQUEST,
+   and PENDING_PEDESTRIAN_REQUEST and BUFFER_INTERVAL_LATCHED share DONT_WALK
+   with REQUEST_PENDING, so the display cannot identify a pedestrian sub-state
+   at all.
 
 7. **Build states with `Reqs_Support`'s constructors** rather than driving the
    machine there through unrelated behaviour. That is what keeps each routine

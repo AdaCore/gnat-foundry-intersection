@@ -331,9 +331,11 @@ algorithm_aspects: |-
   there are emitted together, in the same step, as the loop begins that state's
   dwell.
 
-  Arming before emitting (16) still lights a request lamp in the same step as
-  the press that raised it (hlr_6_pedestrian.7): the lamp is a Moore function of
-  the post-arm state.
+  Arming precedes the emit (16), so a press lights the request lamp in the same
+  step as the press that raised it (hlr_6_pedestrian.7) — the lamp being a Moore
+  function of the resulting state. The exception is a press whose step also
+  serves the crosswalk, leaving WALK_INTERVAL and no PENDING frame; recorded in
+  hlr_6_pedestrian's rationale.
 
   FAULT needs no timing of its own (statement 15): it has no timed
   transitions and its outputs never change (the flash is realized HAL-side),

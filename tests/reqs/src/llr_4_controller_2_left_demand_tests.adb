@@ -221,8 +221,10 @@ package body Llr_4_Controller_2_Left_Demand_Tests is
             & States.Vehicle_Sequencer_State'Image (State.Vehicle));
 
          --  The resulting state is what the requirement constrains, so it is
-         --  what is asserted -- not this step's Outputs, which the code emits
-         --  before advancing (the known llr_4_controller.16 divergence).
+         --  what is asserted -- not this step's Outputs, whose phase is
+         --  llr_4_controller.16's claim and is checked by that statement's own
+         --  routine. (A cleared left demand has no output of its own to read
+         --  in any case.)
 
          Assert
            (State.Left (Cleared) = No_Left_Demand,

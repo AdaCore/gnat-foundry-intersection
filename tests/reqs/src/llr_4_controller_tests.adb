@@ -169,9 +169,25 @@ package body Llr_4_Controller_Tests is
       Assert (False, Where & ": the display is not Safe_Faces");
    end Check_Safe_Faces;
 
-   ------------------------------------------------------------------------
-   --  Statement .1 -- the composite state record
-   ------------------------------------------------------------------------
+   type Serve_Case is record
+      C     : States.Crosswalk;
+      Rises : States.Approach;
+      From  : States.Vehicle_Sequencer_State;
+   end record;
+
+   type Serve_Case_Array is array (1 .. 4) of Serve_Case;
+
+   Serve_Cases : constant Serve_Case_Array :=
+     (1 => (C => North_Side, Rises => West, From => E_Lead_Clear),
+      2 => (C => South_Side, Rises => East, From => NS_Barrier_Allred),
+      3 => (C => East_Side, Rises => North, From => EW_Barrier_Allred),
+      4 => (C => West_Side, Rises => South, From => N_Lead_Clear));
+   --  The four pedestrian service onsets, one per crosswalk since the geometry
+   --  map is a permutation. C is the crosswalk; Rises is
+   --  Conflicts.Adjacent_Through (C), transcribed from llr_3_conflicts.5;
+   --  From is a sequencer state whose timed exit raises that through to GREEN.
+   --  Shared by the routines of .16, .20 and .22, so the four onsets are
+   --  transcribed once. Only .20 reads Rises.
 
    procedure Test_01_Controller_State_Holds_The_Five_Machines
      (T : in out Test)
@@ -991,36 +1007,44 @@ package body Llr_4_Controller_Tests is
       Outputs : States.Display_State;
    begin
 
-      --  The statement names the state whose projection the outputs must be:
-      --  the one *resulting* from this step's arming and timed transition. The
-      --  file's context says the same twice ("... then emits the resulting
-      --  state"). So the expectation is Project_Outputs of the state Step
-      --  returns -- the requirement's own words, computed rather than
-      --  tabulated, which is also what keeps this routine independent of every
-      --  output row.
+      --  The expectation is Project_Outputs of the state Step returns: the
+      --  statement names the state *resulting* from this step's arming and
+      --  timed transition, so it is computed rather than tabulated, which
+      --  keeps this routine independent of every output row.
       --
-      --  Three groups, in ascending strength:
+      --  Four groups, in ascending strength:
       --
-      --  1. Pure sampling steps: nothing is armed and no dwell elapses, so the
-      --     resulting state is the state given, and the equality is the
-      --     unchanged re-emission the context describes.
-      --  2. Arming steps: every button pressed against idle crosswalks, so the
-      --     resulting state has requests pending and its projection has lit
-      --     lamps. This is the "arming (llr_4_controller_3_pedestrian.10-.11)"
-      --     half of the statement -- outputs emitted before arming would still
-      --     show NO_REQUEST.
-      --  3. Boundary steps: one sampling period of dwell left in each of the
-      --     twenty sequencer states, so each step fires a timed transition and
-      --     the resulting state's faces differ from the state's before it.
-      --     This is the "and timed transition (statements 18-20)" half.
+      --  1. Pure sampling steps: nothing armed, no dwell elapsed, so the
+      --     resulting state is the state given.
+      --  2. Arming steps, every button pressed against idle crosswalks. The
+      --     "arming (llr_4_controller_3_pedestrian.10-.11)" half; fails if
+      --     the emit is ever moved ahead of the arming.
+      --  3. Boundary steps, one sampling period of dwell left. The "timed
+      --     transition (statements 18-20)" half, swept over both machines
+      --     since .18 names Advance_Ped beside Advance_Vehicle: the twenty
+      --     sequencer states, then the four SERVING sub-states with the
+      --     vehicle dwell held clear. Two of those four are inert oracles --
+      --     BUFFER -> NO_REQUEST and LATCHED -> PENDING project identically
+      --     either side, the collapsing pairs of README rule 6 -- and are
+      --     swept for totality over Advance_Ped's precondition domain.
+      --  4. Both halves in one step: a press against an idle crosswalk on the
+      --     step whose boundary raises its adjacent through to GREEN, so
+      --     arming and the service edge write State.Ped (C) within the one
+      --     Step. The resulting state is WALK_INTERVAL, so the frame carries
+      --     the WALK head and not the request lamp.
       --
-      --  GROUP 3 IS EXPECTED TO FAIL, and is written faithfully anyway. The
-      --  implementation emits the outputs before it advances the timers and
-      --  fires the transition, and never recomputes them, so every Moore
-      --  output appears one sampling period after the state change that
-      --  produced it. The expectation here is the requirement's, not the
-      --  code's; weakening it (a tolerance, a one-step lag, skipping the
-      --  group) would delete the only place the divergence is visible.
+      --     The head and lamp are asserted concretely as well as against
+      --     Project_Outputs -- a departure from rule 6, and the only one
+      --     here. Check_Display alone is already a complete oracle for .16 in
+      --     this case; the concrete pair adds sensitivity to the service edge
+      --     (.20, .22) and to the projection rows
+      --     llr_4_controller_3_pedestrian.3 and .8, so a regression in any of
+      --     those fells this routine too.
+      --
+      --  Two of the four things .16 cites have no group and can have none:
+      --  the left-demand arm (llr_4_controller_2_left_demand.1) and .19's
+      --  clear edge both move State.Left, which has no projection. Group 2
+      --  arms every left demand and no oracle here can see it.
 
       for V in States.Vehicle_Sequencer_State loop
          State := Composite_State (V, Veh_Remaining => 3 * States.T_Sample);
@@ -1057,6 +1081,62 @@ package body Llr_4_Controller_Tests is
             & States.Vehicle_Sequencer_State'Image (V)
             & " dwell elapses");
       end loop;
+
+      for P in States.Serving_Pedestrian_State loop
+         State :=
+           Composite_State
+             (EW_Barrier_Allred,
+              Veh_Remaining => 3 * States.T_Sample,
+              P             => P,
+              Ped_Remaining => States.T_Sample);
+
+         Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+         Check_Display
+           (Outputs,
+            Controller.Project_Outputs (State),
+            "the step on whose boundary the "
+            & States.Pedestrian_State'Image (P)
+            & " dwell elapses");
+      end loop;
+
+      declare
+         Cases : Serve_Case_Array renames Serve_Cases;
+
+         Sensors : States.Sensors_State;
+      begin
+         for K in Cases'Range loop
+            State := Composite_State (Cases (K).From, States.T_Sample);
+
+            Sensors := Reqs_Support.Quiet;
+            Sensors.Buttons (Cases (K).C) := Pressed;
+
+            Controller.Step (State, Sensors, Outputs);
+
+            Check_Display
+              (Outputs,
+               Controller.Project_Outputs (State),
+               "a step that both arms and serves "
+               & States.Crosswalk'Image (Cases (K).C));
+
+            Assert
+              (Outputs.Heads (Cases (K).C) = Walk,
+               "a press on "
+               & States.Crosswalk'Image (Cases (K).C)
+               & " served at the same step must be emitted as the WALK head"
+               & " of the WALK_INTERVAL it results in, but the head is "
+               & States.Pedestrian_Head'Image (Outputs.Heads (Cases (K).C)));
+
+            Assert
+              (Outputs.Requests (Cases (K).C) = No_Request,
+               "the crosswalk served at the step it was armed must emit the"
+               & " NO_REQUEST indicator of WALK_INTERVAL, PENDING having"
+               & " been entered and left inside the step, but the indicator"
+               & " is "
+               & States.Request_Indicator'Image
+                   (Outputs.Requests (Cases (K).C)));
+         end loop;
+      end;
 
    end Test_16_Outputs_Project_The_Resulting_State;
 
@@ -1344,22 +1424,8 @@ package body Llr_4_Controller_Tests is
 
       pragma Unreferenced (T);
 
-      type Serve_Case is record
-         C     : States.Crosswalk;
-         Rises : States.Approach;
-         From  : States.Vehicle_Sequencer_State;
-      end record;
-      --  C is the crosswalk whose request is pending. Rises is
-      --  Conflicts.Adjacent_Through (C), transcribed from llr_3_conflicts.5:
-      --  NORTH_SIDE to WEST, SOUTH_SIDE to EAST, EAST_SIDE to NORTH,
-      --  WEST_SIDE to SOUTH. From is a sequencer state whose timed exit raises
-      --  that through from not-GREEN to GREEN.
-
-      Cases : constant array (1 .. 4) of Serve_Case :=
-        (1 => (C => North_Side, Rises => West, From => E_Lead_Clear),
-         2 => (C => South_Side, Rises => East, From => NS_Barrier_Allred),
-         3 => (C => East_Side, Rises => North, From => EW_Barrier_Allred),
-         4 => (C => West_Side, Rises => South, From => N_Lead_Clear));
+      Cases : Serve_Case_Array renames Serve_Cases;
+      --  The routine that reads all three components.
 
       State   : Controller.Controller_State;
       Outputs : States.Display_State;
@@ -1374,12 +1440,12 @@ package body Llr_4_Controller_Tests is
       --  says Step applies the service edge, and what the edge does is set the
       --  crosswalk's state (llr_4_controller_3_pedestrian.12), so the
       --  resulting state is where the claim lives. Reading the WALK head off
-      --  Outputs instead would also fail for statement .16's cause -- the
-      --  implementation emits before it advances, so the head trails the state
-      --  by a step -- and two requirements failing for one defect is what
-      --  one-routine-per-statement is meant to prevent. The dwell the edge
-      --  loads (T_WALK) is llr_4_controller_3_pedestrian.12's value and is not
-      --  asserted here.
+      --  Outputs instead would agree with State.Ped now that the emit is last
+      --  (#105), but it would make this routine fail for a defect in statement
+      --  .16's phase as readily as for one in its own, and two requirements
+      --  failing for one defect is what one-routine-per-statement is meant to
+      --  prevent. The dwell the edge loads (T_WALK) is
+      --  llr_4_controller_3_pedestrian.12's value and is not asserted here.
 
       for K in Cases'Range loop
          State := Composite_State (Cases (K).From, States.T_Sample);
@@ -1496,10 +1562,11 @@ package body Llr_4_Controller_Tests is
       --  FAULT; a display assembled from half of each is exactly the sort of
       --  thing this statement forbids.
       --
-      --  Unlike most of this file, .21 is insensitive to the emit-versus-
-      --  advance divergence of #105: the claim is that whatever is emitted is
-      --  safe, not which state it is the projection of, so it holds under
-      --  either phase. This routine is therefore expected to pass, and does.
+      --  Unlike most of this file, .21 is insensitive to where in Step the
+      --  emit happens: the claim is that whatever is emitted is safe, not
+      --  which state it is the projection of, so it held under the emit-
+      --  before-advance ordering #105 replaced and holds under the present
+      --  one. This routine passed before that change and passes after it.
       --
       --  As with .12, the `Post` at src/core/controller.ads:117 is the other
       --  declared means and covers the states no constructor here reaches.
@@ -1564,20 +1631,8 @@ package body Llr_4_Controller_Tests is
 
       pragma Unreferenced (T);
 
-      type Serve_Case is record
-         C    : States.Crosswalk;
-         From : States.Vehicle_Sequencer_State;
-      end record;
-      --  C is the crosswalk whose button is pressed on the boundary step, and
-      --  From a sequencer state whose timed exit raises Adjacent_Through (C)
-      --  to GREEN -- the same four pairings as statement .20's routine, from
-      --  llr_3_conflicts.5.
-
-      Cases : constant array (1 .. 4) of Serve_Case :=
-        (1 => (C => North_Side, From => E_Lead_Clear),
-         2 => (C => South_Side, From => NS_Barrier_Allred),
-         3 => (C => East_Side, From => EW_Barrier_Allred),
-         4 => (C => West_Side, From => N_Lead_Clear));
+      Cases : Serve_Case_Array renames Serve_Cases;
+      --  C's button is pressed on the boundary step that raises Rises.
 
       Sensors : States.Sensors_State;
 

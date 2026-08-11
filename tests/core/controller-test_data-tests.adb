@@ -369,20 +369,24 @@ package body Controller.Test_Data.Tests is
          & " dwell is T_SAMPLE (EW barrier -> NS both-through, no left"
          & " demand)");
       Assert
-        (Outputs = Barrier_Outputs,
-         "the boundary step still emits the pre-boundary Moore outputs");
+        (Outputs = Project_Outputs (State),
+         "the boundary step should emit the outputs of the state it"
+         & " enters, the emit being the last thing a Step does");
 
       Step (State, Quiet, Outputs);
 
       Assert
         (Outputs.Through (North) = Green
          and then Outputs.Through (South) = Green,
-         "the step after the boundary should emit the new state's outputs");
+         "the pure sampling step after the boundary should re-emit them");
 
-      --  Boundary exactness (llr_4_controller.16/.17): from power-on, each
-      --  Step accounts for exactly T_SAMPLE, so the steps to leave the
-      --  barrier sum to the barrier dwell exactly -- the fixed cadence
-      --  moves no timed boundary.
+      --  Boundary exactness (llr_4_controller.17): from power-on, each Step
+      --  accounts for exactly T_SAMPLE, so the steps to leave the barrier sum
+      --  to the barrier dwell exactly -- the fixed cadence moves no timed
+      --  boundary.
+      --
+      --  This counts *state* steps and asserts nothing about Outputs, so it
+      --  is not a displayed-duration check and cannot see #111.
 
       declare
          Total : Duration_Ms := 0;
@@ -500,8 +504,8 @@ package body Controller.Test_Data.Tests is
 
       --  A serving pedestrian timer at exactly one T_SAMPLE fires its
       --  boundary on this step (llr_4_controller.17/.18): WALK -> CHANGE
-      --  exactly, the boundary step still emits the WALK head, and the
-      --  vehicle timer advances by the same T_SAMPLE.
+      --  exactly, the boundary step emits the head of the state it enters,
+      --  and the vehicle timer advances by the same T_SAMPLE.
 
       State := Barrier_State (2_000);
       State.Ped (East_Side) := Walk_Interval;
@@ -510,8 +514,9 @@ package body Controller.Test_Data.Tests is
       Step (State, Quiet, Outputs);
 
       Assert
-        (Outputs.Heads (East_Side) = Walk,
-         "the boundary step still emits the WALK head");
+        (Outputs.Heads (East_Side) = Flash_Dont_Walk,
+         "the boundary step should emit the CHANGE_INTERVAL head it"
+         & " enters, not the WALK head it leaves");
       Assert
         (State.Ped (East_Side) = Change_Interval
          and then State.Ped_Timer (East_Side) = T_FDW,
