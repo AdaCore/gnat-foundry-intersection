@@ -271,7 +271,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
          when East | West => EW_Both_Through);
    --  The state that exit enters -- the target of .26 / .39. Only the target
    --  is used, never the commit interval those two statements load, which is
-   --  the part #63 diverges on.
+   --  their own routines' to assert.
    --  @param A The approach whose through face has risen
    --  @return The both-through state holding it GREEN
 

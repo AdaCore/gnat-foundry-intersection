@@ -39,9 +39,8 @@ package body Llr_1_States_Tests is
    --  by iterating it and asserts that count against the number written in
    --  the requirement. That assertion is the one that fails when the code
    --  and the requirement disagree, which is why it is a run-time check and
-   --  not a `pragma Compile_Time_Error`: llr_1_states.12 disagrees today
-   --  (#63), and a static witness for it would break the build rather than
-   --  report a finding (tests/reqs/README.md rule 2).
+   --  not a `pragma Compile_Time_Error`: a static witness would break the
+   --  build rather than report a finding (tests/reqs/README.md rule 2).
    --
    --  The tally is deliberately computed by reading the table rather than
    --  taken from `'Length`: iterating the type is what makes the count the
@@ -409,45 +408,33 @@ package body Llr_1_States_Tests is
 
       type Witness is array (States.Vehicle_Sequencer_State) of Boolean;
 
-      --  The states .12 names, in the order it names them. Two of the
-      --  twenty-two cannot appear: NS_BOTH_THROUGH_HOLD and
-      --  EW_BOTH_THROUGH_HOLD are not literals of the type, so naming them
-      --  here would not compile. They are marked where they fall, the same
-      --  way Reqs_Support.Expected_Faces marks the rows they would carry.
+      --  The states .12 names, in the order it names them.
       Named : constant Witness :=
-        (N_Lead              => True,
-         N_Lead_Yellow       => True,
-         N_Lead_Clear        => True,
-         NS_Both_Through     => True,
-         N_Drop_Yellow       => True,
-         N_Drop_Clear        => True,
-         S_Lag               => True,
-         S_Lag_Yellow        => True,
-         --  NS_BOTH_THROUGH_HOLD -- absent from the type (#63)
-         NS_Both_Drop_Yellow => True,
-         NS_Barrier_Allred   => True,
-         E_Lead              => True,
-         E_Lead_Yellow       => True,
-         E_Lead_Clear        => True,
-         EW_Both_Through     => True,
-         E_Drop_Yellow       => True,
-         E_Drop_Clear        => True,
-         W_Lag               => True,
-         W_Lag_Yellow        => True,
-         --  EW_BOTH_THROUGH_HOLD -- absent from the type (#63)
-         EW_Both_Drop_Yellow => True,
-         EW_Barrier_Allred   => True);
+        (N_Lead               => True,
+         N_Lead_Yellow        => True,
+         N_Lead_Clear         => True,
+         NS_Both_Through      => True,
+         N_Drop_Yellow        => True,
+         N_Drop_Clear         => True,
+         S_Lag                => True,
+         S_Lag_Yellow         => True,
+         NS_Both_Through_Hold => True,
+         NS_Both_Drop_Yellow  => True,
+         NS_Barrier_Allred    => True,
+         E_Lead               => True,
+         E_Lead_Yellow        => True,
+         E_Lead_Clear         => True,
+         EW_Both_Through      => True,
+         E_Drop_Yellow        => True,
+         E_Drop_Clear         => True,
+         W_Lag                => True,
+         W_Lag_Yellow         => True,
+         EW_Both_Through_Hold => True,
+         EW_Both_Drop_Yellow  => True,
+         EW_Barrier_Allred    => True);
 
       Counted : Natural := 0;
    begin
-
-      --  EXPECTED TO FAIL, and the failure is the finding: the requirement
-      --  gives the sequencer twenty-two states and the type has twenty. This
-      --  is #63 -- the code lags the requirements here deliberately -- and it
-      --  is the same divergence that keeps six statements of
-      --  llr_4_controller_1_vehicle untestable. The count below is
-      --  transcribed from .12 and is left alone until the type carries the
-      --  two HOLD states (tests/reqs/README.md rule 2).
 
       for V in States.Vehicle_Sequencer_State loop
          if Named (V) then

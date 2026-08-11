@@ -42,9 +42,7 @@ package body Llr_4_Controller_Tests is
    --  Reqs_Support's constructors set one machine at a time and are always
    --  NORMAL_OPERATION; the statements here quantify over all four approaches
    --  or all four crosswalks at once (.4, .5, .15, .17) and five of them
-   --  (.6-.8, .14, .15) need a FAULT state. Veh_Lag is a field of the record
-   --  that llr_4_controller.1 does not name, so no statement gives it a value:
-   --  it is set FALSE and never asserted.
+   --  (.6-.8, .14, .15) need a FAULT state.
    function Composite_State
      (V             : States.Vehicle_Sequencer_State;
       Veh_Remaining : States.Duration_Ms;
@@ -56,7 +54,6 @@ package body Llr_4_Controller_Tests is
    is (Mode      => M,
        Vehicle   => V,
        Veh_Timer => Veh_Remaining,
-       Veh_Lag   => False,
        Left      => (others => L),
        Ped       => (others => P),
        Ped_Timer => (others => Ped_Remaining));
@@ -204,21 +201,12 @@ package body Llr_4_Controller_Tests is
       --  have, so the component types are checked too: a Left component of
       --  any type other than Left_Demand_Array would not take Every_Approach.
       --
-      --  VEH_LAG IS NOT A COMPONENT .1 NAMES. It is a seventh field the
-      --  implementation carries, and it is listed here because omitting it
-      --  would make the aggregate incomplete and break the build rather than
-      --  report a finding. So what this routine establishes is the "holding"
-      --  clause -- the six components .1 names are present, with the types it
-      --  gives them -- plus a build-time gate on any *further* component. It
-      --  does not establish that the six are all there is; the one existing
-      --  surplus is admitted by name, deliberately and visibly.
-      --
-      --  The surplus is not cosmetic. Veh_Lag latches the lag decision at
-      --  both-through entry (src/core/controller.adb:237) and the exit guards
-      --  read the latch (:275, :333), whereas llr_4_controller_1_vehicle.30
-      --  and .43 require the demand to be read live at the commit boundary --
-      --  which is why those two statements fail today. Removing the field is
-      --  part of resolving that divergence, not a separate tidy-up.
+      --  The aggregate names the six components .1 names and no others, so
+      --  the routine establishes the whole statement and not only its
+      --  "holding" clause: a seventh field would leave this incomplete. The
+      --  one that used to be here, the lag flag Veh_Lag, went with #63 -- the
+      --  demand is read live at the commit boundary now, so there is nothing
+      --  to latch.
 
       Idle_Mode     : constant States.Mode := Normal_Operation;
       Idle_Vehicle  : constant States.Vehicle_Sequencer_State :=
@@ -235,7 +223,6 @@ package body Llr_4_Controller_Tests is
         (Mode      => Idle_Mode,
          Vehicle   => Idle_Vehicle,
          Veh_Timer => Idle_Timer,
-         Veh_Lag   => False,  --  not named by .1 -- see above
          Left      => Every_Approach,
          Ped       => Every_Crosswalk,
          Ped_Timer => Every_Ped_Timer);
@@ -431,7 +418,7 @@ package body Llr_4_Controller_Tests is
       --  "While State.Mode is FAULT" is unconditional on the rest of the
       --  state: the mode frame pre-empts every sub-machine, so the projection
       --  may not depend on where the pre-empted machines are parked. The
-      --  sequencer is therefore swept over its whole alphabet -- twenty
+      --  sequencer is therefore swept over its whole alphabet -- twenty-two
       --  states, all but two of whose NORMAL_OPERATION rows drive a GREEN or
       --  YELLOW face (Reqs_Support.Expected_Faces) -- and both faces of every
       --  approach are read in each. A projection that ignored the mode would
@@ -571,10 +558,10 @@ package body Llr_4_Controller_Tests is
       --
       --  What this routine adds, and what those rows do not claim, is that the
       --  forwarding is total over the sequencer alphabet and reads
-      --  State.Vehicle alone: every one of the twenty states is projected, and
-      --  the pedestrian half is held in a serving state rather than idle, so a
-      --  projection whose vehicle faces were disturbed by a pedestrian service
-      --  would fail here.
+      --  State.Vehicle alone: every one of the twenty-two states is projected,
+      --  and the pedestrian half is held in a serving state rather than idle,
+      --  so a projection whose vehicle faces were disturbed by a pedestrian
+      --  service would fail here.
 
       for V in States.Vehicle_Sequencer_State loop
          declare
@@ -747,8 +734,8 @@ package body Llr_4_Controller_Tests is
       --  return a Display_State for which Conflicts.Safe_Faces is TRUE",
       --  without a mode or a state to qualify it -- so the domain is the whole
       --  of Controller_State that this file's constructors can reach: both
-      --  modes, every one of the twenty sequencer states, and every pedestrian
-      --  state, two hundred and forty composite states in all.
+      --  modes, every one of the twenty-two sequencer states, and every
+      --  pedestrian state, two hundred and sixty-four composite states in all.
       --
       --  Safe_Faces quantifies over States.Movement, which is the eight
       --  *vehicle* movements; the pedestrian half of the display does not
@@ -859,11 +846,11 @@ package body Llr_4_Controller_Tests is
       --  given, so projecting before the step is projecting the same state.
       --
       --  Swept over the sequencer and pedestrian alphabets -- a hundred and
-      --  twenty composite states -- with every input asserted, so no parking
-      --  choice is what makes the equality hold. Note the outputs of a FAULT
-      --  step are unaffected by the emit-versus-advance phase this file's
-      --  statement .16 governs: FAULT has no timed transition to be out of
-      --  phase with.
+      --  thirty-two composite states -- with every input asserted, so no
+      --  parking choice is what makes the equality hold. Note the outputs of
+      --  a FAULT step are unaffected by the emit-versus-advance phase this
+      --  file's statement .16 governs: FAULT has no timed transition to be out
+      --  of phase with.
 
       for V in States.Vehicle_Sequencer_State loop
          for P in States.Pedestrian_State loop
@@ -918,9 +905,7 @@ package body Llr_4_Controller_Tests is
       --    couplings (.19, .20), so a sequencer that advanced would take the
       --    demand-clear and pedestrian-service edges with it.
       --
-      --  The whole state record is then read back field by field. Veh_Lag is
-      --  not read: llr_4_controller.1 does not give the record that field, so
-      --  no statement says what it holds.
+      --  The whole state record is then read back field by field.
 
       for V in States.Vehicle_Sequencer_State loop
          for P in States.Pedestrian_State loop
@@ -1021,9 +1006,10 @@ package body Llr_4_Controller_Tests is
       --     the emit is ever moved ahead of the arming.
       --  3. Boundary steps, one sampling period of dwell left. The "timed
       --     transition (statements 18-20)" half, swept over both machines
-      --     since .18 names Advance_Ped beside Advance_Vehicle: the twenty
-      --     sequencer states, then the four SERVING sub-states with the
-      --     vehicle dwell held clear. Two of those four are inert oracles --
+      --     since .18 names Advance_Ped beside Advance_Vehicle: the
+      --     twenty-two sequencer states, then the four SERVING sub-states
+      --     with the vehicle dwell held clear. Two of those four are inert
+      --     oracles --
       --     BUFFER -> NO_REQUEST and LATCHED -> PENDING project identically
       --     either side, the collapsing pairs of README rule 6 -- and are
       --     swept for totality over Advance_Ped's precondition domain.
@@ -1156,10 +1142,10 @@ package body Llr_4_Controller_Tests is
       --  The statement enumerates the running timers, so both are read: the
       --  sequencer's, which always runs in NORMAL_OPERATION, and each
       --  crosswalk's, which runs exactly while that crosswalk is in
-      --  Serving_Pedestrian_State. The sweep is the product of the sequencer's
-      --  twenty states and the four serving pedestrian states, with all four
-      --  crosswalks serving at once -- so "every running timer" is nine timers
-      --  advancing in the same step, not one at a time.
+      --  Serving_Pedestrian_State. The sweep is the product of the
+      --  sequencer's twenty-two states and the four serving pedestrian states,
+      --  with all four crosswalks serving at once -- so "every running timer"
+      --  is nine timers advancing in the same step, not one at a time.
       --
       --  "By exactly T_SAMPLE" is an equality against Start - T_SAMPLE, so the
       --  routine fails on an advance that is short, long, or absent. Whether a
@@ -1227,15 +1213,12 @@ package body Llr_4_Controller_Tests is
       --  early.
       --
       --  Both timed machines are swept: the sequencer over its whole alphabet
-      --  (every one of the twenty states has a timed exit, statements
+      --  (every one of the twenty-two states has a timed exit, statements
       --  llr_4_controller_1_vehicle.25-.50) and a crosswalk over the four
       --  serving states (llr_4_controller_3_pedestrian.13-.16).
       --
       --  What is asserted is that the machine left its state, not which state
-      --  it entered: the target is the child statement's claim, and two of the
-      --  twenty sequencer targets (llr_4_controller_1_vehicle.31 and .44, the
-      --  two HOLD states) do not exist in the implementation at all (#63).
-      --  Firing is observable without them.
+      --  it entered: the target is the child statement's claim.
       --
       --  The sentence's remaining clause -- that a fired transition's guard is
       --  evaluated against the inputs armed on that same step -- is the
@@ -1547,14 +1530,14 @@ package body Llr_4_Controller_Tests is
 
       --  Statement .21 is the same property as .12 on the other subprogram,
       --  and equally unquantified, so the sweep is over what a step can be:
-      --  both modes and all twenty sequencer states, at each of the three
+      --  both modes and all twenty-two sequencer states, at each of the three
       --  dwell positions, under three input snapshots -- quiet, every arming
-      --  input asserted, and the fault line raised. Three hundred and sixty
-      --  steps, of which forty fire a timed transition: a hundred and twenty
-      --  are taken at the boundary dwell, and of those the sixty already in
-      --  FAULT and the twenty meeting the fault snapshot return at stage 1
-      --  before any timer moves (controller.adb:452), leaving one mode times
-      --  twenty states times the two non-faulting snapshots.
+      --  input asserted, and the fault line raised. Three hundred and
+      --  ninety-six steps, of which forty-four fire a timed transition: a
+      --  hundred and thirty-two are taken at the boundary dwell, and of those
+      --  the sixty-six already in FAULT and the twenty-two meeting the fault
+      --  snapshot return at stage 1 before any timer moves, leaving one mode
+      --  times twenty-two states times the two non-faulting snapshots.
       --
       --  The fault snapshot is included because the FAULT *entry* is a step
       --  that changes mode while emitting (statements .13/.14), so it is the
@@ -1685,11 +1668,6 @@ package body Llr_4_Controller_Tests is
       --  pair of statements gives, which is the whole of what "served at that
       --  onset rather than deferred a cycle" means here.
       --
-      --  The lagging-left guards (llr_4_controller_1_vehicle.30/.31, .43/.44)
-      --  state the same property at the commit boundary and are not asserted:
-      --  the implementation decides the lag at both-through entry instead, the
-      --  divergence tracked by #63.
-
       State := Composite_State (EW_Barrier_Allred, States.T_Sample);
 
       Sensors := Reqs_Support.Quiet;
@@ -1717,6 +1695,131 @@ package body Llr_4_Controller_Tests is
          & " the barrier must be served by this axis, entering E_LEAD, but the"
          & " sequencer went to "
          & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+
+      --  Last the commit boundary, where the same claim is at its sharpest.
+      --  The lagging approach's demand is read by the both-through exit
+      --  (llr_4_controller_1_vehicle.30/.31 and .43/.44), and the detection
+      --  here arrives on that exit's own step -- the last instant a full lag
+      --  block still fits the axis slot. Under the entry-latch this branch
+      --  used to take, the flag was fixed a whole both-through phase earlier
+      --  and this vehicle waited a cycle; that is what #63 moved.
+
+      State := Composite_State (NS_Both_Through, States.T_Sample);
+
+      Sensors := Reqs_Support.Quiet;
+      Sensors.Left_Turns (South) := Vehicle_Present;
+
+      Controller.Step (State, Sensors, Outputs);
+
+      Assert
+        (State.Vehicle = N_Drop_Yellow,
+         "a SOUTH left-turn vehicle observed at the step whose boundary ends"
+         & " the NS commit interval must be served by this axis, entering"
+         & " N_DROP_YELLOW, but the sequencer went to "
+         & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+
+      State := Composite_State (EW_Both_Through, States.T_Sample);
+
+      Sensors := Reqs_Support.Quiet;
+      Sensors.Left_Turns (West) := Vehicle_Present;
+
+      Controller.Step (State, Sensors, Outputs);
+
+      Assert
+        (State.Vehicle = E_Drop_Yellow,
+         "a WEST left-turn vehicle observed at the step whose boundary ends"
+         & " the EW commit interval must be served by this axis, entering"
+         & " E_DROP_YELLOW, but the sequencer went to "
+         & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+
+      --  The statement says "registered *before* the resulting through GREEN
+      --  onset", not "registered on the boundary step", so the boundary cases
+      --  above are its hardest instance and not the whole of it. The commit
+      --  interval is where the difference is worth money: it is the one dwell
+      --  long enough for a demand to arrive well inside it, and #63's whole
+      --  point is that such a demand is served this cycle.
+      --
+      --  So the detector is raised three sampling periods out and then
+      --  *dropped*. The vehicle is seen once, on a step that fires nothing,
+      --  and is gone by the time the exit runs -- so the boundary read cannot
+      --  be reading the detector, and the lag can only be taken off the
+      --  demand latched two steps earlier and carried through an intervening
+      --  sampling step. That discriminates against both ways of passing the
+      --  boundary cases by accident: sampling the detector only at the exit,
+      --  and dropping a latched demand on a step where nothing fires.
+
+      Cases_Loop :
+      declare
+         type Commit_Case is record
+            Both    : States.Vehicle_Sequencer_State;
+            Lagging : States.Approach;
+            Served  : States.Vehicle_Sequencer_State;
+         end record;
+         --  One per axis: the commit state, the approach whose demand its exit
+         --  reads, and the state a pending demand routes into
+         --  (llr_4_controller_1_vehicle.30 and .43).
+
+         Commit_Cases : constant array (1 .. 2) of Commit_Case :=
+           ((NS_Both_Through, South, N_Drop_Yellow),
+            (EW_Both_Through, West, E_Drop_Yellow));
+      begin
+         for K in Commit_Cases'Range loop
+            declare
+               C : Commit_Case renames Commit_Cases (K);
+            begin
+               State := Composite_State (C.Both, 3 * States.T_Sample);
+
+               --  Step 1: the vehicle arrives, well inside the interval.
+
+               Sensors := Reqs_Support.Quiet;
+               Sensors.Left_Turns (C.Lagging) := Vehicle_Present;
+
+               Controller.Step (State, Sensors, Outputs);
+
+               Assert
+                 (State.Left (C.Lagging) = Left_Demand_Pending,
+                  "a left-turn vehicle observed on "
+                  & States.Approach'Image (C.Lagging)
+                  & " during the commit interval must arm that approach, but"
+                  & " it is "
+                  & States.Left_Demand_State'Image (State.Left (C.Lagging)));
+               Assert
+                 (State.Vehicle = C.Both,
+                  "the arming step must fire no transition, but the sequencer"
+                  & " left "
+                  & States.Vehicle_Sequencer_State'Image (C.Both)
+                  & " for "
+                  & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+
+               --  Step 2: the vehicle is gone from the detector. Nothing
+               --  fires; the demand has to survive on its own.
+
+               Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+               Assert
+                 (State.Left (C.Lagging) = Left_Demand_Pending,
+                  "the demand latched on "
+                  & States.Approach'Image (C.Lagging)
+                  & " must survive an intervening sampling step with the"
+                  & " detector clear, but it is "
+                  & States.Left_Demand_State'Image (State.Left (C.Lagging)));
+
+               --  Step 3: the commit boundary, detector still clear.
+
+               Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+               Assert
+                 (State.Vehicle = C.Served,
+                  "a left-turn vehicle seen on "
+                  & States.Approach'Image (C.Lagging)
+                  & " during the commit interval and gone by its boundary"
+                  & " must still be served this cycle, entering "
+                  & States.Vehicle_Sequencer_State'Image (C.Served)
+                  & ", but the sequencer went to "
+                  & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+            end;
+         end loop;
+      end Cases_Loop;
 
    end Test_22_Boundary_Demand_Served_At_This_Onset;
 

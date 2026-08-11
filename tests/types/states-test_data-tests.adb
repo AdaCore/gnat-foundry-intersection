@@ -34,7 +34,7 @@ package body States.Test_Data.Tests is
    procedure Test_Face_Of_e7c064 (Gnattest_T : in out Test) renames Test_Face_Of;
 --  id:2.2/e7c064a7a7c8aaee/Face_Of/1/0/
    procedure Test_Face_Of (Gnattest_T : in out Test) is
-   --  states.ads:230:4:Face_Of
+   --  states.ads:232:4:Face_Of
 --  end read only
 
       --@covers none: no-op placeholder. This skeleton asserted nothing while
@@ -57,7 +57,7 @@ package body States.Test_Data.Tests is
    procedure Test_Is_Go_f67b6e (Gnattest_T : in out Test) renames Test_Is_Go;
 --  id:2.2/f67b6e1a4950facc/Is_Go/1/0/
    procedure Test_Is_Go (Gnattest_T : in out Test) is
-   --  states.ads:246:4:Is_Go
+   --  states.ads:248:4:Is_Go
 --  end read only
 
       --@covers none: no-op placeholder. This skeleton asserted nothing while

@@ -6,7 +6,6 @@ package body Reqs_Support is
    is (Mode      => States.Normal_Operation,
        Vehicle   => V,
        Veh_Timer => Remaining,
-       Veh_Lag   => False,
        Left      => (others => States.No_Left_Demand),
        Ped       => (others => States.No_Pedestrian_Request),
        Ped_Timer => (others => 0));
@@ -21,7 +20,6 @@ package body Reqs_Support is
         (Mode      => States.Normal_Operation,
          Vehicle   => EW_Barrier_Allred,
          Veh_Timer => 2 * States.T_Sample,
-         Veh_Lag   => False,
          Left      => (others => States.No_Left_Demand),
          Ped       => (others => States.No_Pedestrian_Request),
          Ped_Timer => (others => 0));

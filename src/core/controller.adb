@@ -24,73 +24,98 @@ is
    --  Moore output tables (pure functions of state)
    -----------------------------------------------------------------------
 
-   --  The vehicle face table: rows `hlr_5_vehicle.2`-.11 (NS) and .25-.34 (EW),
-   --  every unlisted face held RED. Written as explicit literal aggregates per
-   --  state (rather than a DRY axis-parameterized helper -- a deferred cleanup
-   --  in TODO.md) so gnatprove discharges the hlr_0_safety.2 postcondition by
-   --  enumeration over constants.
+   --  The vehicle face table.
    function Vehicle_Face_Outputs
      (V : States.Vehicle_Sequencer_State) return Vehicle_Faces
    is (case V is
-         --  ---- NS axis (.2-.11) ----
-         when N_Lead              =>              --  .2  N_thru G, N_left G
+         --  ---- NS axis (.2-.11, .48) ----
+         --  .2  N_thru G, N_left G
+         when N_Lead =>
            (Through => (North => Green, others => Red),
             Left    => (North => Green, others => Red)),
-         when N_Lead_Yellow       =>       --  .3  N_thru G, N_left Y
+         --  .3  N_thru G, N_left Y
+         when N_Lead_Yellow =>
            (Through => (North => Green, others => Red),
             Left    => (North => Yellow, others => Red)),
-         when N_Lead_Clear        =>        --  .4  N_thru G
+         --  .4  N_thru G
+         when N_Lead_Clear =>
            (Through => (North => Green, others => Red),
             Left    => (others => Red)),
-         when NS_Both_Through     =>     --  .5  N_thru G, S_thru G
+         --  .5  N_thru G, S_thru G
+         when NS_Both_Through  =>
            (Through => (North => Green, South => Green, others => Red),
             Left    => (others => Red)),
-         when N_Drop_Yellow       =>       --  .6  N_thru Y, S_thru G
+         --  .6  N_thru Y, S_thru G
+         when N_Drop_Yellow =>
            (Through => (North => Yellow, South => Green, others => Red),
             Left    => (others => Red)),
-         when N_Drop_Clear        =>        --  .7  S_thru G
+         --  .7  S_thru G
+         when N_Drop_Clear  =>
            (Through => (South => Green, others => Red),
             Left    => (others => Red)),
-         when S_Lag               =>               --  .8  S_thru G, S_left G
+         --  .8  S_thru G, S_left G
+         when S_Lag  =>
            (Through => (South => Green, others => Red),
             Left    => (South => Green, others => Red)),
-         when S_Lag_Yellow        =>        --  .9  S_thru Y, S_left Y
+         --  .9  S_thru Y, S_left Y
+         when S_Lag_Yellow =>
            (Through => (South => Yellow, others => Red),
             Left    => (South => Yellow, others => Red)),
-         when NS_Both_Drop_Yellow => --  .10 N_thru Y, S_thru Y
+         --  .48 N_thru G, S_thru G (as .5)
+         when NS_Both_Through_Hold =>
+           (Through => (North => Green, South => Green, others => Red),
+            Left    => (others => Red)),
+         --  .10 N_thru Y, S_thru Y
+         when NS_Both_Drop_Yellow =>
            (Through => (North => Yellow, South => Yellow, others => Red),
             Left    => (others => Red)),
-         when NS_Barrier_Allred   =>   --  .11 all RED
+         --  .11 all RED
+         when NS_Barrier_Allred =>
            (Through => (others => Red), Left => (others => Red)),
-         --  ---- EW axis (.25-.34), the exact N/S <-> E/W mirror ----
-         when E_Lead              =>              --  .25 E_thru G, E_left G
+
+         --  ---- EW axis (.25-.34, .50), the exact N/S <-> E/W mirror ----
+         --  .25 E_thru G, E_left G
+         when E_Lead =>
            (Through => (East => Green, others => Red),
             Left    => (East => Green, others => Red)),
-         when E_Lead_Yellow       =>       --  .26 E_thru G, E_left Y
+         --  .26 E_thru G, E_left Y
+         when E_Lead_Yellow  =>
            (Through => (East => Green, others => Red),
             Left    => (East => Yellow, others => Red)),
-         when E_Lead_Clear        =>        --  .27 E_thru G
+         --  .27 E_thru G
+         when E_Lead_Clear =>
            (Through => (East => Green, others => Red),
             Left    => (others => Red)),
-         when EW_Both_Through     =>     --  .28 E_thru G, W_thru G
+         --  .28 E_thru G, W_thru G
+         when EW_Both_Through =>
            (Through => (East => Green, West => Green, others => Red),
             Left    => (others => Red)),
-         when E_Drop_Yellow       =>       --  .29 E_thru Y, W_thru G
+         --  .29 E_thru Y, W_thru G
+         when E_Drop_Yellow =>
            (Through => (East => Yellow, West => Green, others => Red),
             Left    => (others => Red)),
-         when E_Drop_Clear        =>        --  .30 W_thru G
+         --  .30 W_thru G
+         when E_Drop_Clear =>
            (Through => (West => Green, others => Red),
             Left    => (others => Red)),
-         when W_Lag               =>               --  .31 W_thru G, W_left G
+         --  .31 W_thru G, W_left G
+         when W_Lag =>
            (Through => (West => Green, others => Red),
             Left    => (West => Green, others => Red)),
-         when W_Lag_Yellow        =>        --  .32 W_thru Y, W_left Y
+         --  .32 W_thru Y, W_left Y
+         when W_Lag_Yellow =>
            (Through => (West => Yellow, others => Red),
             Left    => (West => Yellow, others => Red)),
-         when EW_Both_Drop_Yellow => --  .33 E_thru Y, W_thru Y
+         --  .50 E_thru G, W_thru G (as .28)
+         when EW_Both_Through_Hold =>
+           (Through => (East => Green, West => Green, others => Red),
+            Left    => (others => Red)),
+         --  .33 E_thru Y, W_thru Y
+         when EW_Both_Drop_Yellow =>
            (Through => (East => Yellow, West => Yellow, others => Red),
             Left    => (others => Red)),
-         when EW_Barrier_Allred   =>   --  .34 all RED
+         --  .34 all RED
+         when EW_Barrier_Allred =>
            (Through => (others => Red), Left => (others => Red)));
 
    --  The through face for one approach in a given sequencer state -- the
@@ -131,10 +156,7 @@ is
    function Running_Ped (P : States.Pedestrian_State) return Boolean
    is (P in States.Serving_Pedestrian_State);
 
-   --  The fixed dwell of each timed vehicle state (`hlr_3_timing`). The
-   --  both-through states are excluded -- their dwell is the residual T_BOTH
-   --  computed by Both_Duration -- and map here to T_BOTH_MIN purely to keep
-   --  the function total; the value is never consulted for those states.
+   --  The fixed dwell of each timed vehicle state.
    function Fixed_Duration
      (V : States.Vehicle_Sequencer_State) return States.Duration_Ms
    is (case V is
@@ -142,6 +164,8 @@ is
            T_Lead,
          when S_Lag | W_Lag                                             =>
            T_Lag,
+         when NS_Both_Through_Hold | EW_Both_Through_Hold               =>
+           T_Redclear + T_Lag + T_Yellow,
          when N_Lead_Yellow
             | S_Lag_Yellow
             | N_Drop_Yellow
@@ -158,25 +182,16 @@ is
          when NS_Both_Through | EW_Both_Through                         =>
            T_Both_Min);
 
-   --  The both-through residual T_BOTH (`hlr_3_timing.8`): the axis slot T_AXIS
-   --  left after the barrier, and the lead and lag overheads that actually run
-   --  in the slot -- so T_AXIS stays independent of left-turn demand
-   --  (`hlr_3_timing.7`). Decided once, on entering the both-through state
-   --  (see Enter_Both), from whether the lead ran and whether the lag will run.
-   --  The postcondition captures `hlr_3_timing.12` (never below T_BOTH_MIN) and
-   --  proves the subtraction cannot underflow, given the valued durations.
-   function Both_Duration (Lead_Ran, Lag : Boolean) return States.Duration_Ms
+   --  The both-through commit interval.
+   function Both_Duration (Lead_Ran : Boolean) return States.Duration_Ms
    is (((States.T_Axis - States.T_Barrier)
         - (if Lead_Ran
            then States.T_Lead + States.T_Yellow + States.T_Redclear
            else 0))
-       - (if Lag
-          then
-            States.T_Yellow
-            + States.T_Redclear
-            + States.T_Lag
-            + States.T_Yellow
-          else States.T_Yellow))
+       - (States.T_Yellow
+          + States.T_Redclear
+          + States.T_Lag
+          + States.T_Yellow))
    with
      Post =>
        Both_Duration'Result >= States.T_Both_Min
@@ -221,22 +236,18 @@ is
    end Project_Outputs;
 
    -----------------------------------------------------------------------
-   --  Vehicle sequencer transitions (hlr_5_vehicle .12-.47)
+   --  Vehicle sequencer transitions (hlr_5_vehicle .12-.51)
    -----------------------------------------------------------------------
 
-   --  Enter a both-through state: latch the lag decision from current demand
-   --  (so guard .17/.18 or .40/.41 uses it) and size the residual dwell so the
-   --  axis slot stays demand-independent.
+   --  Enter a both-through state: size the commit interval so the axis slot
+   --  stays demand-independent. Nothing about the lag is decided here -- the
+   --  demand is read when the interval expires (.17/.18 and .40/.41, in this
+   --  section's hlr_5_vehicle numbering).
    procedure Enter_Both
-     (State : in out Controller_State; NS : Boolean; Lead_Ran : Boolean)
-   is
-      Lag_Pending : constant Boolean :=
-        (if NS then State.Left (South) else State.Left (West))
-        = Left_Demand_Pending;
+     (State : in out Controller_State; NS : Boolean; Lead_Ran : Boolean) is
    begin
-      State.Veh_Lag := Lag_Pending;
       State.Vehicle := (if NS then NS_Both_Through else EW_Both_Through);
-      State.Veh_Timer := Both_Duration (Lead_Ran, Lag_Pending);
+      State.Veh_Timer := Both_Duration (Lead_Ran);
    end Enter_Both;
 
    --  Fire the elapsed-timer transition for the current vehicle state,
@@ -247,7 +258,7 @@ is
       case State.Vehicle is
          --  ---- NS axis ----
 
-         when EW_Barrier_Allred   =>
+         when EW_Barrier_Allred    =>
             --  .12/.13
             if State.Left (North) = Left_Demand_Pending then
                State.Vehicle := N_Lead;
@@ -256,56 +267,62 @@ is
                Enter_Both (State, NS => True, Lead_Ran => False);
             end if;
 
-         when N_Lead              =>
+         when N_Lead               =>
             --  .14
             State.Vehicle := N_Lead_Yellow;
             State.Veh_Timer := Fixed_Duration (N_Lead_Yellow);
 
-         when N_Lead_Yellow       =>
+         when N_Lead_Yellow        =>
             --  .15
             State.Vehicle := N_Lead_Clear;
             State.Veh_Timer := Fixed_Duration (N_Lead_Clear);
 
-         when N_Lead_Clear        =>
+         when N_Lead_Clear         =>
             --  .16
             Enter_Both (State, NS => True, Lead_Ran => True);
 
-         when NS_Both_Through     =>
-            --  .17/.18
-            if State.Veh_Lag then
+         when NS_Both_Through      =>
+            --  .17/.18  the commit boundary: the last instant a full lagging
+            --  left still fits the slot, so the demand is read live here.
+            if State.Left (South) = Left_Demand_Pending then
                State.Vehicle := N_Drop_Yellow;
             else
-               State.Vehicle := NS_Both_Drop_Yellow;
+               State.Vehicle := NS_Both_Through_Hold;
             end if;
             State.Veh_Timer := Fixed_Duration (State.Vehicle);
 
-         when N_Drop_Yellow       =>
+         when N_Drop_Yellow        =>
             --  .19
             State.Vehicle := N_Drop_Clear;
             State.Veh_Timer := Fixed_Duration (N_Drop_Clear);
 
-         when N_Drop_Clear        =>
+         when N_Drop_Clear         =>
             --  .20
             State.Vehicle := S_Lag;
             State.Veh_Timer := Fixed_Duration (S_Lag);
 
-         when S_Lag               =>
+         when S_Lag                =>
             --  .21
             State.Vehicle := S_Lag_Yellow;
             State.Veh_Timer := Fixed_Duration (S_Lag_Yellow);
 
-         when S_Lag_Yellow        =>
+         when S_Lag_Yellow         =>
             --  .22
             State.Vehicle := NS_Barrier_Allred;
             State.Veh_Timer := Fixed_Duration (NS_Barrier_Allred);
 
-         when NS_Both_Drop_Yellow =>
+         when NS_Both_Through_Hold =>
+            --  .49
+            State.Vehicle := NS_Both_Drop_Yellow;
+            State.Veh_Timer := Fixed_Duration (NS_Both_Drop_Yellow);
+
+         when NS_Both_Drop_Yellow  =>
             --  .23
             State.Vehicle := NS_Barrier_Allred;
             State.Veh_Timer := Fixed_Duration (NS_Barrier_Allred);
          --  ---- EW axis ----
 
-         when NS_Barrier_Allred   =>
+         when NS_Barrier_Allred    =>
             --  .35/.36
             if State.Left (East) = Left_Demand_Pending then
                State.Vehicle := E_Lead;
@@ -314,50 +331,55 @@ is
                Enter_Both (State, NS => False, Lead_Ran => False);
             end if;
 
-         when E_Lead              =>
+         when E_Lead               =>
             --  .37
             State.Vehicle := E_Lead_Yellow;
             State.Veh_Timer := Fixed_Duration (E_Lead_Yellow);
 
-         when E_Lead_Yellow       =>
+         when E_Lead_Yellow        =>
             --  .38
             State.Vehicle := E_Lead_Clear;
             State.Veh_Timer := Fixed_Duration (E_Lead_Clear);
 
-         when E_Lead_Clear        =>
+         when E_Lead_Clear         =>
             --  .39
             Enter_Both (State, NS => False, Lead_Ran => True);
 
-         when EW_Both_Through     =>
-            --  .40/.41
-            if State.Veh_Lag then
+         when EW_Both_Through      =>
+            --  .40/.41  the commit boundary, as .17/.18 for the NS axis.
+            if State.Left (West) = Left_Demand_Pending then
                State.Vehicle := E_Drop_Yellow;
             else
-               State.Vehicle := EW_Both_Drop_Yellow;
+               State.Vehicle := EW_Both_Through_Hold;
             end if;
             State.Veh_Timer := Fixed_Duration (State.Vehicle);
 
-         when E_Drop_Yellow       =>
+         when E_Drop_Yellow        =>
             --  .42
             State.Vehicle := E_Drop_Clear;
             State.Veh_Timer := Fixed_Duration (E_Drop_Clear);
 
-         when E_Drop_Clear        =>
+         when E_Drop_Clear         =>
             --  .43
             State.Vehicle := W_Lag;
             State.Veh_Timer := Fixed_Duration (W_Lag);
 
-         when W_Lag               =>
+         when W_Lag                =>
             --  .44
             State.Vehicle := W_Lag_Yellow;
             State.Veh_Timer := Fixed_Duration (W_Lag_Yellow);
 
-         when W_Lag_Yellow        =>
+         when W_Lag_Yellow         =>
             --  .45
             State.Vehicle := EW_Barrier_Allred;
             State.Veh_Timer := Fixed_Duration (EW_Barrier_Allred);
 
-         when EW_Both_Drop_Yellow =>
+         when EW_Both_Through_Hold =>
+            --  .51
+            State.Vehicle := EW_Both_Drop_Yellow;
+            State.Veh_Timer := Fixed_Duration (EW_Both_Drop_Yellow);
+
+         when EW_Both_Drop_Yellow  =>
             --  .46
             State.Vehicle := EW_Barrier_Allred;
             State.Veh_Timer := Fixed_Duration (EW_Barrier_Allred);
@@ -414,7 +436,6 @@ is
          Vehicle   => EW_Barrier_Allred,
          --  hlr_5_vehicle.47
          Veh_Timer => T_Barrier,
-         Veh_Lag   => False,
          Left      => (others => No_Left_Demand),
          --  ..._left_demand.2
          Ped       => (others => No_Pedestrian_Request),

@@ -14,8 +14,8 @@ package body Llr_4_Controller_1_Vehicle_Tests is
    procedure Check_Face_Row (V : States.Vehicle_Sequencer_State);
    --  Assert that the vehicle faces Project_Outputs emits in sequencer state V
    --  are the row llr_4_controller_1_vehicle transcribed into
-   --  Reqs_Support.Expected_Faces. Shared by the twenty row routines, so each
-   --  is a single call naming its own state.
+   --  Reqs_Support.Expected_Faces. Shared by the twenty-two row routines, so
+   --  each is a single call naming its own state.
    --
    --  Vehicle_Face_Outputs is private to the Controller body, so the row is
    --  observed through Project_Outputs -- which llr_4_controller.9 requires to
@@ -66,10 +66,9 @@ package body Llr_4_Controller_1_Vehicle_Tests is
    --
    --  Test_27 spells out the two-case argument every transition routine in
    --  this file rests on; it is not repeated per routine. Not shared by the
-   --  guarded exits (.25, .26, .30, .38, .39, .43) or by the two whose loaded
-   --  dwell is a both-through commit interval (.29, .42): those are written
-   --  out, because the guard each reads and the divergence each records are
-   --  particular to them.
+   --  guarded exits (.25, .26, .30, .31, .38, .39, .43, .44) or by the two
+   --  whose loaded dwell is a both-through commit interval (.29, .42): those
+   --  are written out, because the guard each reads is particular to it.
 
    procedure Check_Fixed_Dwell_Exit
      (Source      : States.Vehicle_Sequencer_State;
@@ -142,10 +141,10 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       --  sequencer state is left before its own dwell has elapsed, and the
       --  absence of vehicular demand never moves the sequencer.
       --
-      --  Vehicle_Sequencer_State is a twenty-value enumeration, so every state
-      --  is run rather than a few sampled, and the input snapshot is the quiet
-      --  one -- no left-turn detector present anywhere, which is the absence
-      --  of vehicular demand the statement names.
+      --  Vehicle_Sequencer_State is a twenty-two-value enumeration, so every
+      --  state is run rather than a few sampled, and the input snapshot is
+      --  the quiet one -- no left-turn detector present anywhere, which is the
+      --  absence of vehicular demand the statement names.
       --
       --  Two sampling periods of dwell remain, so the dwell has not elapsed
       --  (llr_4_controller.18 fires only at a remaining dwell of at most one),
@@ -213,11 +212,18 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       Check_Face_Row (NS_Both_Through);
    end Test_06_NS_Both_Through_Faces;
 
-   --  Statement .7 (NS_BOTH_THROUGH_HOLD) has no routine: the state it names
-   --  is not a literal of States.Vehicle_Sequencer_State, so there is no
-   --  argument for Check_Face_Row and no compilable rendering of the row
-   --  (#63). Reqs_Support.Expected_Faces carries the same gap in the same
-   --  place.
+   procedure Test_07_NS_Both_Through_Hold_Faces (T : in out Test) is
+      --@covers llr_4_controller_1_vehicle.7
+
+      pragma Unreferenced (T);
+   begin
+      --  The hold continues the both-through phase, so .7 gives the same faces
+      --  as .6 -- and the row is asserted separately from .6's for that reason
+      --  rather than in spite of it: they agree by requirement, not by sharing
+      --  a table entry, and code that dropped one of them would still pass the
+      --  other.
+      Check_Face_Row (NS_Both_Through_Hold);
+   end Test_07_NS_Both_Through_Hold_Faces;
 
    procedure Test_08_N_Drop_Yellow_Faces (T : in out Test) is
       --@covers llr_4_controller_1_vehicle.8
@@ -303,8 +309,14 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       Check_Face_Row (EW_Both_Through);
    end Test_17_EW_Both_Through_Faces;
 
-   --  Statement .18 (EW_BOTH_THROUGH_HOLD) has no routine, for the same reason
-   --  as .7: the state does not exist (#63).
+   procedure Test_18_EW_Both_Through_Hold_Faces (T : in out Test) is
+      --@covers llr_4_controller_1_vehicle.18
+
+      pragma Unreferenced (T);
+   begin
+      --  The mirror of .7.
+      Check_Face_Row (EW_Both_Through_Hold);
+   end Test_18_EW_Both_Through_Hold_Faces;
 
    procedure Test_19_E_Drop_Yellow_Faces (T : in out Test) is
       --@covers llr_4_controller_1_vehicle.19
@@ -429,10 +441,6 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       --  Their dwell is the commit interval with no lead spent,
       --  Reqs_Support.Commit_After_Barrier, transcribed there as the
       --  arithmetic over named durations this statement writes.
-      --
-      --  EXPECTED TO FAIL (#63). The expectation is the requirement's and
-      --  stays as written: the code reserves only the closing yellow rather
-      --  than a full lagging-left block, so it computes a longer interval.
 
       State :=
         Reqs_Support.Vehicle_State (EW_Barrier_Allred, 2 * States.T_Sample);
@@ -560,10 +568,6 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       --  that has just run, less a reserved full lagging-left block --
       --  Reqs_Support.Commit_After_Lead, transcribed there as the arithmetic
       --  this statement writes.
-      --
-      --  EXPECTED TO FAIL (#63). The expectation is the requirement's and
-      --  stays as written: the code reserves only the closing yellow rather
-      --  than a full lagging-left block, so it computes a longer interval.
 
       State := Reqs_Support.Vehicle_State (N_Lead_Clear, 2 * States.T_Sample);
 
@@ -620,13 +624,6 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       --  How long the commit interval itself is belongs to .26 and .29, not
       --  here: the two cases only need a state with more than one sampling
       --  period of dwell left and a state with exactly one.
-      --
-      --  EXPECTED TO FAIL (#63). The expectation is the requirement's and
-      --  stays as written: the requirement reads the lagging approach's live
-      --  demand at the commit boundary and carries no latched lag flag, while
-      --  the code decides the lag once, on entry to the both-through state,
-      --  from such a flag -- so this state, pending demand and no flag, takes
-      --  the other branch.
 
       State :=
         Reqs_Support.Vehicle_State (NS_Both_Through, 2 * States.T_Sample);
@@ -664,13 +661,75 @@ package body Llr_4_Controller_1_Vehicle_Tests is
 
    end Test_30_NS_Both_Through_To_N_Drop_Yellow_On_South_Demand;
 
-   --  Statement .31 (NS_BOTH_THROUGH -> NS_BOTH_THROUGH_HOLD) has no routine:
-   --  its target is not a literal of States.Vehicle_Sequencer_State, so there
-   --  is no state to assert the sequencer entered (#63).
+   procedure Test_31_NS_Both_Through_To_Hold_No_South_Demand (T : in out Test)
+   is
+      --@covers llr_4_controller_1_vehicle.31
 
-   --  Statement .32 (NS_BOTH_THROUGH_HOLD -> NS_BOTH_DROP_YELLOW) has no
-   --  routine, for the mirror reason: its source does not exist, so there is
-   --  no state to park the controller in (#63).
+      pragma Unreferenced (T);
+
+      use type States.Duration_Ms;
+
+      State   : Controller.Controller_State;
+      Outputs : States.Display_State;
+   begin
+
+      --  The other branch of the commit boundary from .30: State.Left (SOUTH)
+      --  is NO_LEFT_DEMAND -- the value Reqs_Support.Vehicle_State already
+      --  leaves every approach at -- so the reserved lag block is not spent on
+      --  a lag and the slot runs the hold interval instead,
+      --  Reqs_Support.Hold_Interval.
+
+      State :=
+        Reqs_Support.Vehicle_State (NS_Both_Through, 2 * States.T_Sample);
+
+      Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+      Assert
+        (State.Vehicle = NS_Both_Through,
+         "with two sampling periods of the commit interval left the sequencer"
+         & " must stay in NS_BOTH_THROUGH, but it moved to "
+         & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+      Assert
+        (State.Veh_Timer = States.T_Sample,
+         "the unfired step must leave exactly one sampling period of dwell,"
+         & " but left"
+         & States.Duration_Ms'Image (State.Veh_Timer));
+
+      State := Reqs_Support.Vehicle_State (NS_Both_Through, States.T_Sample);
+
+      Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+      Assert
+        (State.Vehicle = NS_Both_Through_Hold,
+         "on the step where the commit interval elapses with no SOUTH"
+         & " left-turn demand the sequencer must enter NS_BOTH_THROUGH_HOLD,"
+         & " but it is in "
+         & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+      Assert
+        (State.Veh_Timer = Reqs_Support.Hold_Interval,
+         "entering NS_BOTH_THROUGH_HOLD must load the hold interval T_REDCLEAR"
+         & " + T_LAG + T_YELLOW ="
+         & States.Duration_Ms'Image (Reqs_Support.Hold_Interval)
+         & " ms, but the timer holds"
+         & States.Duration_Ms'Image (State.Veh_Timer));
+
+   end Test_31_NS_Both_Through_To_Hold_No_South_Demand;
+
+   procedure Test_32_NS_Both_Through_Hold_To_NS_Both_Drop_Yellow
+     (T : in out Test)
+   is
+      --@covers llr_4_controller_1_vehicle.32
+
+      pragma Unreferenced (T);
+   begin
+      --  Unconditional: the hold has already declined the lag, so nothing is
+      --  read here and the slot closes on the both-drop yellow.
+      Check_Fixed_Dwell_Exit
+        (Source      => NS_Both_Through_Hold,
+         Target      => NS_Both_Drop_Yellow,
+         Loaded      => States.T_Yellow,
+         Loaded_Name => "T_YELLOW");
+   end Test_32_NS_Both_Through_Hold_To_NS_Both_Drop_Yellow;
 
    procedure Test_33_N_Drop_Yellow_To_N_Drop_Clear_On_Dwell_Elapse
      (T : in out Test)
@@ -815,10 +874,6 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       --  Reqs_Support.Vehicle_State already leaves every approach at -- so no
       --  lead runs and the dwell is Reqs_Support.Commit_After_Barrier, the
       --  mirror of .26.
-      --
-      --  EXPECTED TO FAIL (#63). The expectation is the requirement's and
-      --  stays as written: the code reserves only the closing yellow rather
-      --  than a full lagging-left block, so it computes a longer interval.
 
       State :=
         Reqs_Support.Vehicle_State (NS_Barrier_Allred, 2 * States.T_Sample);
@@ -900,10 +955,6 @@ package body Llr_4_Controller_1_Vehicle_Tests is
 
       --  The mirror of .29: the loaded dwell is the commit interval after a
       --  lead ran, Reqs_Support.Commit_After_Lead.
-      --
-      --  EXPECTED TO FAIL (#63). The expectation is the requirement's and
-      --  stays as written: the code reserves only the closing yellow rather
-      --  than a full lagging-left block, so it computes a longer interval.
 
       State := Reqs_Support.Vehicle_State (E_Lead_Clear, 2 * States.T_Sample);
 
@@ -956,13 +1007,6 @@ package body Llr_4_Controller_1_Vehicle_Tests is
       --  The mirror of .30. Guard: State.Left (WEST) is LEFT_DEMAND_PENDING at
       --  the commit boundary, which routes the slot into the west lag block --
       --  opened by the east through's closing yellow, T_YELLOW.
-      --
-      --  EXPECTED TO FAIL (#63). The expectation is the requirement's and
-      --  stays as written: the requirement reads the lagging approach's live
-      --  demand at the commit boundary and carries no latched lag flag, while
-      --  the code decides the lag once, on entry to the both-through state,
-      --  from such a flag -- so this state, pending demand and no flag, takes
-      --  the other branch.
 
       State :=
         Reqs_Support.Vehicle_State (EW_Both_Through, 2 * States.T_Sample);
@@ -1000,12 +1044,71 @@ package body Llr_4_Controller_1_Vehicle_Tests is
 
    end Test_43_EW_Both_Through_To_E_Drop_Yellow_On_West_Demand;
 
-   --  Statement .44 (EW_BOTH_THROUGH -> EW_BOTH_THROUGH_HOLD) has no routine,
-   --  for the same reason as .31: its target state does not exist (#63).
+   procedure Test_44_EW_Both_Through_To_Hold_No_West_Demand (T : in out Test)
+   is
+      --@covers llr_4_controller_1_vehicle.44
 
-   --  Statement .45 (EW_BOTH_THROUGH_HOLD -> EW_BOTH_DROP_YELLOW) has no
-   --  routine, for the same reason as .32: its source state does not exist
-   --  (#63).
+      pragma Unreferenced (T);
+
+      use type States.Duration_Ms;
+
+      State   : Controller.Controller_State;
+      Outputs : States.Display_State;
+   begin
+
+      --  The mirror of .31: no WEST demand at the commit boundary, so the slot
+      --  runs Reqs_Support.Hold_Interval rather than the west lag block.
+
+      State :=
+        Reqs_Support.Vehicle_State (EW_Both_Through, 2 * States.T_Sample);
+
+      Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+      Assert
+        (State.Vehicle = EW_Both_Through,
+         "with two sampling periods of the commit interval left the sequencer"
+         & " must stay in EW_BOTH_THROUGH, but it moved to "
+         & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+      Assert
+        (State.Veh_Timer = States.T_Sample,
+         "the unfired step must leave exactly one sampling period of dwell,"
+         & " but left"
+         & States.Duration_Ms'Image (State.Veh_Timer));
+
+      State := Reqs_Support.Vehicle_State (EW_Both_Through, States.T_Sample);
+
+      Controller.Step (State, Reqs_Support.Quiet, Outputs);
+
+      Assert
+        (State.Vehicle = EW_Both_Through_Hold,
+         "on the step where the commit interval elapses with no WEST left-turn"
+         & " demand the sequencer must enter EW_BOTH_THROUGH_HOLD, but it is"
+         & " in "
+         & States.Vehicle_Sequencer_State'Image (State.Vehicle));
+      Assert
+        (State.Veh_Timer = Reqs_Support.Hold_Interval,
+         "entering EW_BOTH_THROUGH_HOLD must load the hold interval T_REDCLEAR"
+         & " + T_LAG + T_YELLOW ="
+         & States.Duration_Ms'Image (Reqs_Support.Hold_Interval)
+         & " ms, but the timer holds"
+         & States.Duration_Ms'Image (State.Veh_Timer));
+
+   end Test_44_EW_Both_Through_To_Hold_No_West_Demand;
+
+   procedure Test_45_EW_Both_Through_Hold_To_EW_Both_Drop_Yellow
+     (T : in out Test)
+   is
+      --@covers llr_4_controller_1_vehicle.45
+
+      pragma Unreferenced (T);
+   begin
+      --  The mirror of .32, and unconditional for the same reason.
+      Check_Fixed_Dwell_Exit
+        (Source      => EW_Both_Through_Hold,
+         Target      => EW_Both_Drop_Yellow,
+         Loaded      => States.T_Yellow,
+         Loaded_Name => "T_YELLOW");
+   end Test_45_EW_Both_Through_Hold_To_EW_Both_Drop_Yellow;
 
    procedure Test_46_E_Drop_Yellow_To_E_Drop_Clear_On_Dwell_Elapse
      (T : in out Test)

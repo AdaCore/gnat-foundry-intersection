@@ -55,77 +55,78 @@ package Reqs_Support is
    --
    --  Every row carries the statement it was transcribed from, as `.<n>` in
    --  llr_4_controller_1_vehicle. Reviewing the table is then a row-at-a-time
-   --  comparison against a numbered paragraph, and the two gaps in the
-   --  sequence (.7 and .18) are visible where they fall rather than only in
-   --  the note below.
+   --  comparison against a numbered paragraph.
    Expected_Faces : constant Face_Table :=
    --  ---- NS axis ----
-     (N_Lead              =>  --  .3  N through GREEN, N left GREEN
+     (N_Lead               =>  --  .3  N through GREEN, N left GREEN
         (Through => (North => Green, others => Red),
          Left    => (North => Green, others => Red)),
-      N_Lead_Yellow       =>  --  .4  N through GREEN, N left YELLOW
+      N_Lead_Yellow        =>  --  .4  N through GREEN, N left YELLOW
         (Through => (North => Green, others => Red),
          Left    => (North => Yellow, others => Red)),
-      N_Lead_Clear        =>  --  .5  N through GREEN
+      N_Lead_Clear         =>  --  .5  N through GREEN
         (Through => (North => Green, others => Red), Left => No_Left),
-      NS_Both_Through     =>  --  .6  N and S through GREEN
+      NS_Both_Through      =>  --  .6  N and S through GREEN
         (Through => (North => Green, South => Green, others => Red),
          Left    => No_Left),
-      --  .7 NS_BOTH_THROUGH_HOLD -- no row: the state does not exist (#63)
-      N_Drop_Yellow       =>  --  .8  N through YELLOW, S through GREEN
+      NS_Both_Through_Hold =>  --  .7  N and S through GREEN
+        (Through => (North => Green, South => Green, others => Red),
+         Left    => No_Left),
+      N_Drop_Yellow        =>  --  .8  N through YELLOW, S through GREEN
         (Through => (North => Yellow, South => Green, others => Red),
          Left    => No_Left),
-      N_Drop_Clear        =>  --  .9  S through GREEN
+      N_Drop_Clear         =>  --  .9  S through GREEN
         (Through => (South => Green, others => Red), Left => No_Left),
-      S_Lag               =>  --  .10 S through GREEN, S left GREEN
+      S_Lag                =>  --  .10 S through GREEN, S left GREEN
         (Through => (South => Green, others => Red),
          Left    => (South => Green, others => Red)),
-      S_Lag_Yellow        =>  --  .11 S through YELLOW, S left YELLOW
+      S_Lag_Yellow         =>  --  .11 S through YELLOW, S left YELLOW
         (Through => (South => Yellow, others => Red),
          Left    => (South => Yellow, others => Red)),
-      NS_Both_Drop_Yellow =>  --  .12 N and S through YELLOW
+      NS_Both_Drop_Yellow  =>  --  .12 N and S through YELLOW
         (Through => (North => Yellow, South => Yellow, others => Red),
          Left    => No_Left),
-      NS_Barrier_Allred   =>  --  .13 every face RED
+      NS_Barrier_Allred    =>  --  .13 every face RED
         (Through => No_Through, Left => No_Left),
       --  ---- EW axis ----
-      E_Lead              =>  --  .14 E through GREEN, E left GREEN
+      E_Lead               =>  --  .14 E through GREEN, E left GREEN
         (Through => (East => Green, others => Red),
          Left    => (East => Green, others => Red)),
-      E_Lead_Yellow       =>  --  .15 E through GREEN, E left YELLOW
+      E_Lead_Yellow        =>  --  .15 E through GREEN, E left YELLOW
         (Through => (East => Green, others => Red),
          Left    => (East => Yellow, others => Red)),
-      E_Lead_Clear        =>  --  .16 E through GREEN
+      E_Lead_Clear         =>  --  .16 E through GREEN
         (Through => (East => Green, others => Red), Left => No_Left),
-      EW_Both_Through     =>  --  .17 E and W through GREEN
+      EW_Both_Through      =>  --  .17 E and W through GREEN
         (Through => (East => Green, West => Green, others => Red),
          Left    => No_Left),
-      --  .18 EW_BOTH_THROUGH_HOLD -- no row: the state does not exist (#63)
-      E_Drop_Yellow       =>  --  .19 E through YELLOW, W through GREEN
+      EW_Both_Through_Hold =>  --  .18 E and W through GREEN
+        (Through => (East => Green, West => Green, others => Red),
+         Left    => No_Left),
+      E_Drop_Yellow        =>  --  .19 E through YELLOW, W through GREEN
         (Through => (East => Yellow, West => Green, others => Red),
          Left    => No_Left),
-      E_Drop_Clear        =>  --  .20 W through GREEN
+      E_Drop_Clear         =>  --  .20 W through GREEN
         (Through => (West => Green, others => Red), Left => No_Left),
-      W_Lag               =>  --  .21 W through GREEN, W left GREEN
+      W_Lag                =>  --  .21 W through GREEN, W left GREEN
         (Through => (West => Green, others => Red),
          Left    => (West => Green, others => Red)),
-      W_Lag_Yellow        =>  --  .22 W through YELLOW, W left YELLOW
+      W_Lag_Yellow         =>  --  .22 W through YELLOW, W left YELLOW
         (Through => (West => Yellow, others => Red),
          Left    => (West => Yellow, others => Red)),
-      EW_Both_Drop_Yellow =>  --  .23 E and W through YELLOW
+      EW_Both_Drop_Yellow  =>  --  .23 E and W through YELLOW
         (Through => (East => Yellow, West => Yellow, others => Red),
          Left    => No_Left),
-      EW_Barrier_Allred   =>  --  .24 every face RED
+      EW_Barrier_Allred    =>  --  .24 every face RED
         (Through => No_Through, Left => No_Left));
-   --  NOTE: llr_4_controller_1_vehicle.7 (NS_BOTH_THROUGH_HOLD) and .18
-   --  (EW_BOTH_THROUGH_HOLD) have no row here because those two sequencer
-   --  states do not exist in States.Vehicle_Sequencer_State. That is the
-   --  known requirements-vs-code divergence tracked by #63, not an omission
-   --  in this table.
+   --  A HOLD row (.7, .18) is transcribed independently of its parent
+   --  both-through row (.6, .17) even though the two statements give the same
+   --  faces: they are separate paragraphs, and a table that derived one from
+   --  the other could not catch a code change that moved only one of them.
 
    --  ---------------------------------------------------------------------
-   --  Both-through commit intervals (llr_4_controller_1_vehicle.26, .29,
-   --  .39, .42)
+   --  Both-through commit and hold intervals
+   --  (llr_4_controller_1_vehicle.26, .29, .31, .39, .42, .44)
    --  ---------------------------------------------------------------------
 
    --  The one dwell the requirements give as an expression rather than a
@@ -136,12 +137,11 @@ package Reqs_Support is
    --  expression against an expression; a number would have to be recomputed
    --  to be checked, and a wrong number reads as plausible.
    --
-   --  The two differ only in whether the axis slot already spent a leading
-   --  left: entering both-through straight off the barrier, nothing has run
-   --  yet; entering it from the lead's red clearance, the lead block has.
-   --  Both reserve a full lagging-left block, which is the substance of #63 --
-   --  the code reserves only the closing yellow, so all four statements that
-   --  name these intervals fail today.
+   --  The two commit intervals differ only in whether the axis slot already
+   --  spent a leading left: entering both-through straight off the barrier,
+   --  nothing has run yet; entering it from the lead's red clearance, the lead
+   --  block has. Both reserve a full lagging-left block, which is what lets
+   --  the lag decision wait until the interval expires.
 
    Commit_After_Barrier : constant States.Duration_Ms :=
      States.T_Axis
@@ -155,6 +155,12 @@ package Reqs_Support is
      - (States.T_Lead + States.T_Yellow + States.T_Redclear)
      - (States.T_Yellow + States.T_Redclear + States.T_Lag + States.T_Yellow);
    --  .29 and .42: the commit interval after a leading left ran.
+
+   Hold_Interval : constant States.Duration_Ms :=
+     States.T_Redclear + States.T_Lag + States.T_Yellow;
+   --  .31 and .44: the hold interval the no-demand exit from the commit
+   --  boundary runs -- the reserved lagging-left block less its closing
+   --  yellow, which the both-drop yellow then supplies.
 
    --  ---------------------------------------------------------------------
    --  Pedestrian output rows (llr_4_controller_3_pedestrian.1-.9)

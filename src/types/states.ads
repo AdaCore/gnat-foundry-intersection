@@ -110,6 +110,7 @@ is
       N_Drop_Clear,
       S_Lag,
       S_Lag_Yellow,
+      NS_Both_Through_Hold,
       NS_Both_Drop_Yellow,
       NS_Barrier_Allred,
       E_Lead,
@@ -120,11 +121,10 @@ is
       E_Drop_Clear,
       W_Lag,
       W_Lag_Yellow,
+      EW_Both_Through_Hold,
       EW_Both_Drop_Yellow,
       EW_Barrier_Allred);
-   --  The vehicle phase sequencer states, declared in cycle order: the NS
-   --  block then its EW mirror (hlr_5_vehicle.1, .24 and
-   --  requirements/state-machines.md §2).
+   --  The vehicle phase sequencer states.
    --  @enum N_Lead North leading protected left
    --  @enum N_Lead_Yellow North lead-left yellow change
    --  @enum N_Lead_Clear North lead-left red clearance
@@ -133,6 +133,7 @@ is
    --  @enum N_Drop_Clear North through red clearance
    --  @enum S_Lag South lagging protected left
    --  @enum S_Lag_Yellow South lag-left yellow change
+   --  @enum NS_Both_Through_Hold Both NS throughs green, lag declined
    --  @enum NS_Both_Drop_Yellow Both NS movements yellow, ending the axis
    --  @enum NS_Barrier_Allred NS barrier all-red clearance
    --  @enum E_Lead East leading protected left
@@ -143,6 +144,7 @@ is
    --  @enum E_Drop_Clear East through red clearance
    --  @enum W_Lag West lagging protected left
    --  @enum W_Lag_Yellow West lag-left yellow change
+   --  @enum EW_Both_Through_Hold Both EW throughs green, lag declined
    --  @enum EW_Both_Drop_Yellow Both EW movements yellow, ending the axis
    --  @enum EW_Barrier_Allred EW barrier all-red clearance
 
@@ -307,7 +309,7 @@ is
    --  The set is chosen to satisfy the timing constraints the state machine
    --  relies on: hlr_3_timing.9 (T_LEAD, T_LAG <= T_AXIS / 2 = 20 s) and
    --  hlr_3_timing.12 (the both-through residual T_BOTH never drops below
-   --  T_BOTH_MIN -- with these values its minimum, both lefts served, is
+   --  T_BOTH_MIN -- with these values its minimum, the lead having run, is
    --  exactly 40 - 2 - (6+4+2) - (4+2+6+4) = 10 s = T_BOTH_MIN).
 
    --  Kinematic basis (hlr_3_timing.4-.6):
@@ -325,8 +327,9 @@ is
 
    --  T_Both (hlr_3_timing.8), the both-through residual, is intentionally
    --  NOT declared: it is computed each cycle as the slot remainder after the
-   --  lead/lag/yellow/red-clear/barrier intervals that actually run, so that
-   --  T_Axis is held independent of left-turn demand (see Controller).
+   --  barrier, the lead block that actually ran, and a reserved full lagging
+   --  left block, so that T_Axis is held independent of left-turn demand
+   --  (see Controller).
 
    --  Input sampling period (hlr_3_timing.13 realization): the LLR-chosen
    --  period realizing the acknowledgment bound T_ACK = 0.2 s. Each

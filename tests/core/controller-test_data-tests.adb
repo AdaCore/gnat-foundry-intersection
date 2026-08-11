@@ -34,7 +34,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Initialize_9cb2dc (Gnattest_T : in out Test) renames Test_Initialize;
 --  id:2.2/9cb2dc2f1d1660db/Initialize/1/0/
    procedure Test_Initialize (Gnattest_T : in out Test) is
-   --  controller.ads:90:4:Initialize
+   --  controller.ads:88:4:Initialize
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -93,7 +93,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Project_Outputs_229f82 (Gnattest_T : in out Test) renames Test_Project_Outputs;
 --  id:2.2/229f82fac868336c/Project_Outputs/1/0/
    procedure Test_Project_Outputs (Gnattest_T : in out Test) is
-   --  controller.ads:98:4:Project_Outputs
+   --  controller.ads:96:4:Project_Outputs
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -113,7 +113,6 @@ package body Controller.Test_Data.Tests is
         (Mode      => Normal_Operation,
          Vehicle   => NS_Both_Through,
          Veh_Timer => T_Both_Min,
-         Veh_Lag   => False,
          Left      => (West => Left_Demand_Pending, others => No_Left_Demand),
          Ped       =>
            (North_Side => Buffer_Interval_Latched,
@@ -226,7 +225,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Step_550f0c (Gnattest_T : in out Test) renames Test_Step;
 --  id:2.2/550f0cec4ac973af/Step/1/0/
    procedure Test_Step (Gnattest_T : in out Test) is
-   --  controller.ads:110:4:Step
+   --  controller.ads:108:4:Step
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -251,7 +250,6 @@ package body Controller.Test_Data.Tests is
       is ((Mode      => Normal_Operation,
            Vehicle   => EW_Barrier_Allred,
            Veh_Timer => Remaining,
-           Veh_Lag   => False,
            Left      => (others => No_Left_Demand),
            Ped       => (others => No_Pedestrian_Request),
            Ped_Timer => (others => 0)));
@@ -602,10 +600,12 @@ package body Controller.Test_Data.Tests is
         (State.Left (West) = No_Left_Demand,
          "the West demand should clear when the North through rises");
 
-      --  No-demand full cycle (hlr_5_vehicle.13/.18/.23/.36/.41/.46,
+      --  No-demand full cycle (hlr_5_vehicle.13/.18/.23/.36/.41/.46/.49/.51,
       --  hlr_3_timing.7): with no left demand latched the sequencer skips
-      --  every lead/lag state -- barrier -> both-through -> both-drop-yellow
-      --  on each axis -- and one full cycle takes exactly 2 x T_AXIS.
+      --  every lead/lag state -- barrier -> both-through -> both-through-hold
+      --  -> both-drop-yellow on each axis, the hold being where the declined
+      --  lag block is spent (#63) -- and one full cycle takes exactly
+      --  2 x T_AXIS.
 
       declare
          type Visit_Flags is array (Vehicle_Sequencer_State) of Boolean;
@@ -634,12 +634,14 @@ package body Controller.Test_Data.Tests is
             & " step bound");
          Assert
            (Visited (NS_Both_Through)
+            and then Visited (NS_Both_Through_Hold)
             and then Visited (NS_Both_Drop_Yellow)
             and then Visited (NS_Barrier_Allred)
             and then Visited (EW_Both_Through)
+            and then Visited (EW_Both_Through_Hold)
             and then Visited (EW_Both_Drop_Yellow),
             "the no-demand cycle should run both axes through the"
-            & " both-through / both-drop-yellow spine");
+            & " both-through / hold / both-drop-yellow spine");
          Assert
            (not Visited (N_Lead)
             and then not Visited (S_Lag)
@@ -723,6 +725,64 @@ package body Controller.Test_Data.Tests is
            (State.Ped (West_Side) = No_Pedestrian_Request,
             "an unlatched buffer expiry should release the crosswalk"
             & " to idle");
+      end;
+
+      --  Lead-then-hold full cycle (hlr_5_vehicle.12/.18/.35/.41/.49/.51,
+      --  hlr_3_timing.7): only the leading approaches have vehicles, so each
+      --  axis runs its lead block and then declines the lag at the commit
+      --  boundary. That is the one configuration in which the commit interval
+      --  is at its floor (T_BOTH_MIN) and the hold still has to run, and it is
+      --  the schedule the two preceding sweeps do not reach: the no-demand
+      --  cycle holds after no lead, the all-demand cycle leads and then lags.
+      --
+      --  The claim is the same one the other two make and the reason this
+      --  design is admissible at all -- commit + hold + both-drop yellow
+      --  spends exactly what commit + the lag block would have -- so the cycle
+      --  still takes 2 x T_AXIS with the slot filled a third way.
+
+      declare
+         type Visit_Flags is array (Vehicle_Sequencer_State) of Boolean;
+
+         Leads    : Sensors_State := Quiet;
+         Visited  : Visit_Flags := (others => False);
+         Total    : Duration_Ms := 0;
+         Steps    : Natural := 0;
+         Departed : Boolean := False;
+      begin
+         --  North and East lead their axes; South and West lag them, so
+         --  holding only the leading detectors present is what makes every
+         --  lead run and every lag be declined.
+         Leads.Left_Turns (North) := Vehicle_Present;
+         Leads.Left_Turns (East) := Vehicle_Present;
+
+         Initialize (State);
+
+         loop
+            Step (State, Leads, Outputs);
+            Total := Total + T_Sample;
+            Steps := Steps + 1;
+            Visited (State.Vehicle) := True;
+            Departed := Departed or else State.Vehicle /= EW_Barrier_Allred;
+            exit when
+              (Departed and then State.Vehicle = EW_Barrier_Allred)
+              or else Steps > 1_000;
+         end loop;
+
+         Assert
+           (Visited (N_Lead) and then Visited (E_Lead),
+            "a leading-approach demand should run each axis's lead block");
+         Assert
+           (Visited (NS_Both_Through_Hold)
+            and then Visited (EW_Both_Through_Hold),
+            "with no lagging demand the commit boundary should hold on both"
+            & " axes, even though a lead ran");
+         Assert
+           (not Visited (S_Lag) and then not Visited (W_Lag),
+            "no lagging left should run without a lagging demand");
+         Assert
+           (Total = 2 * T_Axis,
+            "the axis slot should be independent of which lefts run: lead"
+            & " then hold still takes exactly 2 x T_AXIS");
       end;
 
 --  begin read only
