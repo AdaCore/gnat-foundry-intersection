@@ -211,6 +211,45 @@ pro:trace-check:
     - make build-native
     - make trace-check
 
+pro:report:
+  extends: .pro
+  services:
+    # Restated in full (services replaces, it does not merge) for the internet
+    # access the report engine's pypi.org-only dependencies need.
+    - image:e3
+    - cpu:4
+    - security_group:GitLabRunnerTasksExecPrivilegedSG
+  script:
+    - for spec in gnat spark2014 gnatcov gnattest langkit_support libadalang ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+    - anod install libgpr2 --qualifier=bare,stable
+    - eval $(anod printenv libgpr2 --qualifier=bare,stable)
+
+    # As in check-report.
+    - unset PIP_INDEX_URL PIP_EXTRA_INDEX_URL UV_INDEX_URL UV_EXTRA_INDEX_URL
+        UV_INDEX
+    - export UV_DEFAULT_INDEX="https://pypi.org/simple"
+
+    - make report
+
+    # Publish the verification report alongside the Pro coverage HTML.
+    - verification_report_dir=$(pwd)/reports/report/html
+    - |
+      if [[ $CI_PIPELINE_SOURCE = "merge_request_event" ]]; then
+        target_subdir=MRs/$CI_MERGE_REQUEST_IID ;
+      else
+        target_subdir=$CI_COMMIT_BRANCH ;
+      fi
+    - publish-pages "$verification_report_dir" --target-subdir "$target_subdir/report" --expires 30
+
+  artifacts:
+    when: always #  Upload on errors too
+    paths:
+      - reports/
+      - obj/development/gnatprove/
+
 # Target build, and the on-target testsuite: cross-built with GNAT Pro and run
 # under QEMU. No coverage: gnatcov stays a native concern (see pro:x86_64-linux).
 pro:arm-elf:

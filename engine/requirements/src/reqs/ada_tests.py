@@ -56,7 +56,7 @@ if TYPE_CHECKING:
     from reqs.code_inventory import Inventory, Subprogram
     from reqs.core import SubKey
 
-# A GNATtest test routine is named `Test_<subprogram>`.
+# A test routine's name starts with `Test_`.
 ROUTINE_RE = re.compile(r"^Test_\w+$")
 
 # `none` (optionally followed by a reason after `:`/`-`/em-dash) marks the node
@@ -65,10 +65,8 @@ NONE_RE = re.compile(r"^\s*none\b[\s:\-\u2014]*", re.IGNORECASE)
 
 COVERS_TAG = "covers"
 
-# The profile GNATtest gives every test routine. Checked so that a helper named
-# `Test_Something` sitting in a test package is not mistaken for a test -- the
-# regex this module used to apply to the source text made the same check.
-GNATTEST_FORMAL = ("Gnattest_T", "in out", "Test")
+# A test routine's profile: `(<formal> : in out Test)`; the formal's name is free.
+TEST_PROFILE = ("in out", "Test")
 
 
 @dataclass
@@ -106,15 +104,14 @@ def _parse_covers(body: str) -> tuple[list[str], bool]:
 
 
 def _is_test_routine(sub: Subprogram) -> bool:
-    """Whether an inventory entry is a GNATtest test routine's body."""
-    # A routine appears three times -- forward declaration, `renames` alias and
-    # body -- and only the body can host a `--@covers` tag, the read-only
-    # regions around it being regenerated.
+    """Whether an inventory entry is a test routine's body."""
+    # Of a routine's three parts (declaration, `renames` alias, body), only the
+    # body can host a `--@covers` tag.
     if not sub.is_body or sub.is_renaming:
         return False
     if ROUTINE_RE.match(sub.name) is None:
         return False
-    return [(p.name, p.mode, p.type) for p in sub.parameters] == [GNATTEST_FORMAL]
+    return [(p.mode, p.type) for p in sub.parameters] == [TEST_PROFILE]
 
 
 def _node_of(sub: Subprogram) -> TestNode:
@@ -149,7 +146,7 @@ class TestSet:
     @classmethod
     def from_inventory(cls, inventory: Inventory, path: Path) -> tuple[TestSet, list[Diagnostic]]:
         """
-        Turn every GNATtest routine body in `inventory` into a trace node.
+        Turn every test routine body in `inventory` into a trace node.
 
         A node's id stem is its *file*'s unit (the stem up to the first ``-``)
         rather than its Ada package name, which keeps the ids what they have always

@@ -1,20 +1,34 @@
 """
-Collect the requirement-chain facts the report currently covers.
+Collect the requirement-chain evidence.
 
-Reads ``requirements/trace_waivers.yaml`` (CONOPS leaves waived from HLR
-coverage, each with a reason to review) and the ``derived: true`` statements
-in ``requirements/hlr/*.yaml`` (requirements with no CONOPS parent). Full
-requirement matrices are planned work (plan phase 4); the chain itself is
-validated by ``make validate-reqs``.
+Two kinds of source feed this collector. The trace report
+(``reports/trace/trace_report.json``, produced by ``make trace-report`` /
+``reqs trace --format json``) carries the machine-checked matrices over the
+whole chain — coverage per (parent, child) pair, the merged verification view,
+and the gate's diagnostics. The requirement tree itself supplies the pure
+human-judgement items: ``requirements/trace_waivers.yaml`` (CONOPS leaves
+waived from HLR coverage, each with a reason to review) and the
+``derived: true`` statements in ``requirements/hlr/*.yaml`` (requirements with
+no CONOPS parent).
 """
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 
 import yaml
+from pydantic import ValidationError
 
-from vreport.model import ArtifactParseError, DerivedRequirement, TraceabilityEvidence, Waiver
+from vreport.model import (
+    TRACE_REPORT_SCHEMA_VERSION,
+    ArtifactParseError,
+    DerivedRequirement,
+    MissingArtifactsError,
+    TraceabilityEvidence,
+    TraceReport,
+    Waiver,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -35,8 +49,33 @@ def _description_key(item: tuple[Any, Any]) -> tuple[int, str]:
     return (0, f"{int(key):09d}") if key.isdigit() else (1, key)
 
 
-def collect_traceability(root: Path) -> TraceabilityEvidence:
-    """Gather waivers and derived requirements from the requirements tree."""
+def collect_trace_report(path: Path) -> TraceReport:
+    """Parse the `reqs trace --format json` payload, naming the file in any error."""
+    if not path.is_file():
+        raise MissingArtifactsError(path, "trace report (reqs trace --format json)")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ArtifactParseError(path, str(exc)) from exc
+    if not isinstance(data, dict):
+        raise ArtifactParseError(path, "top level must be an object")
+    version = data.pop("schema_version", None)
+    if version != TRACE_REPORT_SCHEMA_VERSION:
+        raise ArtifactParseError(
+            path,
+            f"unsupported schema_version {version!r} (this reader supports "
+            f"{TRACE_REPORT_SCHEMA_VERSION}) — regenerate with `make trace-report`",
+        )
+    try:
+        return TraceReport.model_validate(data)
+    except ValidationError as exc:
+        raise ArtifactParseError(path, str(exc)) from exc
+
+
+def collect_traceability(root: Path, trace_report: Path | None = None) -> TraceabilityEvidence:
+    """Gather the trace report, waivers, and derived requirements under ROOT."""
+    report = collect_trace_report(trace_report or root / "reports" / "trace" / "trace_report.json")
+
     waivers: list[Waiver] = []
     derived: list[DerivedRequirement] = []
 
@@ -66,5 +105,9 @@ def collect_traceability(root: Path) -> TraceabilityEvidence:
             )
 
     return TraceabilityEvidence(
-        waivers=waivers, derived=derived, waivers_found=waivers_found, hlr_found=hlr_found
+        waivers=waivers,
+        derived=derived,
+        waivers_found=waivers_found,
+        hlr_found=hlr_found,
+        report=report,
     )

@@ -11,7 +11,8 @@ SHELL := bash
         check-target-test-parity \
         generate-tests test \
         generate-tests-target build-tests-target test-target smoke-target \
-        validate-reqs trace trace-check test-reqs-engine \
+        validate-reqs validate-reqs-corpus \
+        trace trace-check trace-report test-reqs-engine \
         build-tracer test-tracer \
         code-inventory test-inventory inventories \
         report report-pdf test-report-engine \
@@ -184,6 +185,7 @@ prove: ## SPARK proofs (silver level) across the default project
 # `prove` (the gate), unproved checks do not fail this target — the report
 # records them.
 GNATPROVE_ARTIFACTS := obj/development/gnatprove
+
 prove-report: ## Proof run feeding `make report`
 	$(ALR) exec -P -- gnatprove --clean
 	$(ALR) exec -P -- gnatprove -U -f --level=2 --report=statistics \
@@ -344,24 +346,14 @@ TARGET_AUNIT_OBJDIR := $(CURDIR)/obj/target/aunit/obj
 # Of the three, only timings.ads cites a requirement (llr_6_hal.1), so only it
 # needs a waiver in check-target-test-parity.sh.
 #
-# That waiver is NOT the only requirement citation off target. The 120 routines
-# under tests/reqs/ reach the native harness through --additional-tests below,
-# and GNATTEST_TARGET_SWITCHES carries no such switch, so none of them run under
-# QEMU. check-target-test-parity.sh cannot see them either -- it greps the
-# generated `<unit>-test_data*` files of the ignored units, a pattern nothing in
-# tests/reqs/ matches -- so it passes on a tree where most citations never reach
-# the target. This is #106's blind spot (an imported project the root project's
-# sources do not reach) at a second consumer; see #110.
+# tests/reqs/ is likewise off target and invisible to that script (#110).
 TARGET_TEST_IGNORE := $(CURDIR)/traffic_light_qemu/tests/host_only_sources.txt
 
 QEMU_TEST_TIMEOUT  ?= 120
 QEMU_SMOKE_TIMEOUT ?= 60
 
-# How many tests the cross harness must run: the 16 generated skeletons less
-# the units in TARGET_TEST_IGNORE. NOT the native total, which is 136 -- the
-# 120 routines under tests/reqs/ are native-only (see TARGET_TEST_IGNORE above
-# and #110). A mismatch fails `test-target`, so the suite cannot shrink
-# unnoticed. Keep in step when adding tests or changing that list.
+# The generated skeletons less TARGET_TEST_IGNORE (tests/reqs/ is native-only,
+# #110); a mismatch fails `test-target`. Keep in step when adding tests.
 QEMU_TEST_EXPECTED ?= 11
 
 # --no-command-line / --no-test-filtering: gnattest's default driver needs
@@ -438,9 +430,12 @@ TRACE_CHAIN := $(REQS_DIR)/trace_chain.yaml
 # The requirements-only portion of the traceability chain.
 REQUIREMENT_LAYERS  := CONOPS,HLR,LLR
 
-validate-reqs: ## Check the requirement files (structure, EARS, requirements-layer trace)
+# Split out because `make report` gates on this, not on the trace below.
+validate-reqs-corpus: ## Check the requirement files (structure, EARS)
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate schema --complete "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
 	$(UV) --directory "$(REQS_ENGINE)" run reqs validate ears "$(REQS_DIR)/hlr" "$(REQS_DIR)/llr"
+
+validate-reqs: validate-reqs-corpus ## Check the requirement files (structure, EARS, requirements-layer trace)
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers $(REQUIREMENT_LAYERS) --chain "$(TRACE_CHAIN)"
 
 trace-check: inventories ## The traceability gate CI runs: exit status is the verdict
@@ -450,6 +445,15 @@ trace-check: inventories ## The traceability gate CI runs: exit status is the ve
 # gap `trace-check` excludes.
 trace: inventories ## Show the traceability tables for development
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format table --chain "$(TRACE_CHAIN)"
+
+# Machine-readable trace report over the whole chain, consumed by `make
+# report`. Not a gate: it exits 0 with the gaps recorded in the payload, so
+# the verification report can render what is still open.
+TRACE_REPORT := $(CURDIR)/reports/trace/trace_report.json
+
+trace-report: inventories ## Write the machine-readable trace report `make report` reads
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format json \
+	    --chain "$(TRACE_CHAIN)" --output "$(TRACE_REPORT)"
 
 test-reqs-engine: ## Run the validation engine's own test suite
 	$(UV) --directory "$(REQS_ENGINE)" run pytest
@@ -461,9 +465,13 @@ test-reqs-engine: ## Run the validation engine's own test suite
 TRACER_DIR := $(CURDIR)/engine/ada_tracer
 TRACER     := $(TRACER_DIR)/bin/ada_tracer
 
+# `env -u OS`: CI exports OS=Linux, but dependency projects (libgpr2's
+# gpr2_shared.gpr) read `OS` as a Windows_NT/UNIX scenario variable and reject
+# other values. `-m2`: checksum-based minimal recompilation, so a restored CI
+# cache (fresh timestamps) is not rebuilt from scratch.
 build-tracer: ## Build the Ada tracer
 ifeq ($(SETUP),community)
-	cd $(TRACER_DIR) && alr -n build
+	cd $(TRACER_DIR) && env -u OS alr -n build -- -m2
 else
 	gprbuild -q -P $(TRACER_DIR)/ada_tracer.gpr
 endif
@@ -494,11 +502,7 @@ code-inventory: build-tracer generate-config ## Generate the CODE-layer inventor
 	mkdir -p "$(INVENTORY_DIR)"
 	$(TRACER_RUN) -U -o "$(CODE_INVENTORY)"
 
-# No -U: the root project's own sources *are* the test bodies, and its closure
-# (the application, aunit) has nothing to add to the TEST layer -- code-inventory
-# is where the application is reported.
-
-HARNESS_PROJECT := $(HARNESS)/test_traffic_light.gpr
+DRIVER_PROJECT := $(HARNESS)/test_driver.gpr
 
 # In the community setup aunit reaches the harness project through the `tests`
 # nested crate, as for `make test`.
@@ -508,11 +512,12 @@ else
 TEST_TRACER_RUN = $(ALR) exec -- $(TRACER)
 endif
 
-# --base-dir keeps the reported file names
-# relative to the repository root rather than to the harness directory.
+# --subproject: only these two projects hold test bodies (never -U).
+# --base-dir: report file names relative to the repository root.
 test-inventory: build-tracer generate-tests ## Generate the TEST-layer inventory
 	mkdir -p "$(INVENTORY_DIR)" "$(CURDIR)/$(HARNESS)/test_obj"
-	$(TEST_TRACER_RUN) -P "$(CURDIR)/$(HARNESS_PROJECT)" --base-dir "$(CURDIR)" \
+	$(TEST_TRACER_RUN) -P "$(CURDIR)/$(DRIVER_PROJECT)" --base-dir "$(CURDIR)" \
+	  --subproject test_traffic_light --subproject reqs_tests \
 	  -o "$(TEST_INVENTORY)"
 
 inventories: code-inventory test-inventory ## Generate both inventories
@@ -525,10 +530,12 @@ REPORT_ENGINE := $(CURDIR)/engine/report
 REPORT_OUT    := $(CURDIR)/reports/report
 
 # The prerequisites guarantee the report never describes stale artifacts:
-# `validate-reqs` gates the traceability claims, `prove-report` is a clean,
-# forced (-f) gnatprove run, and `all-coverage` re-runs the tests before
+# `validate-reqs-corpus` gates on a parseable corpus, `trace-report` regenerates
+# the trace matrices from fresh inventories, `prove-report` is a clean, forced
+# (-f) gnatprove run, and `all-coverage` re-runs the tests before
 # `coverage-report-xml` reads the traces.
-REPORT_EVIDENCE := validate-reqs prove-report all-coverage coverage-report-xml
+# Not `validate-reqs`: trace gaps are open items in the report, not a stop.
+REPORT_EVIDENCE := validate-reqs-corpus trace-report prove-report all-coverage coverage-report-xml
 
 report: $(REPORT_EVIDENCE) ## Regenerate the evidence, then the verification report
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \

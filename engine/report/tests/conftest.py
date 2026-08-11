@@ -15,8 +15,10 @@ from vreport.model import (
     GitInfo,
     ProofEvidence,
     TraceabilityEvidence,
+    TraceReport,
     Waiver,
 )
+from vreport.traceability import collect_trace_report
 
 FIXTURES = Path(__file__).parent / "fixtures"
 # The absolute prefix baked into the copied gnatcov XML fixtures.
@@ -36,7 +38,15 @@ def coverage() -> CoverageEvidence:
 
 
 @pytest.fixture(scope="session")
-def evidence(proof: ProofEvidence, coverage: CoverageEvidence) -> Evidence:
+def trace_report() -> TraceReport:
+    """Trace report parsed from the fixture JSON (with open gaps and review rows)."""
+    return collect_trace_report(FIXTURES / "trace" / "trace_report.json")
+
+
+@pytest.fixture(scope="session")
+def evidence(
+    proof: ProofEvidence, coverage: CoverageEvidence, trace_report: TraceReport
+) -> Evidence:
     """Build a complete Evidence value over the fixture artifacts."""
     return Evidence(
         generated_at="2026-07-29T00:00:00+00:00",
@@ -50,5 +60,6 @@ def evidence(proof: ProofEvidence, coverage: CoverageEvidence) -> Evidence:
             derived=[DerivedRequirement(ident="hlr_3_timing.8", text="Derived text.")],
             waivers_found=True,
             hlr_found=True,
+            report=trace_report,
         ),
     )

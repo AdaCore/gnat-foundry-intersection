@@ -15,6 +15,15 @@ uv run reqs validate schema --complete .     # complete set: unresolved parent_r
 # Lint the EARS grammar of every description statement
 uv run reqs validate ears docs/examples
 
+# Traceability across a chain config (see requirements/trace_chain.yaml)
+uv run reqs trace --chain <chain.yaml> --complete                 # the CI gate (text diagnostics)
+uv run reqs trace --chain <chain.yaml> --complete --format table  # dev tables
+uv run reqs trace --chain <chain.yaml> --complete --format json -o report.json
+# `--format json` writes the machine-readable trace report consumed by the
+# verification-report generator (engine/report). Unlike the text gate it exits
+# 0 once the report is written: the verdict (errors/warnings/corpus_valid) and
+# the same rows the tables render travel inside the payload.
+
 # Tests (prints a coverage report; configured in pyproject.toml)
 uv run pytest
 uv run pytest --cov-report=html   # browsable report in htmlcov/

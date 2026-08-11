@@ -12,6 +12,10 @@ from vreport.model import (
     DerivedRequirement,
     Sloc,
     TraceabilityEvidence,
+    TraceDiagnostic,
+    TracePair,
+    TraceReport,
+    TraceRow,
     Waiver,
 )
 from vreport.obligations import build_obligations
@@ -104,6 +108,147 @@ def test_provenance_records_gnatcov_command(evidence: Evidence) -> None:
     """The recorded gnatcov invocation appears on the provenance page."""
     pages = emit_pages(evidence, build_obligations(evidence))
     assert "gnatcov coverage --level=stmt+mcdc" in pages["provenance.md"]
+
+
+def test_provenance_records_reqs_trace_command(evidence: Evidence) -> None:
+    """The recorded `reqs trace` invocation appears on the provenance page."""
+    pages = emit_pages(evidence, build_obligations(evidence))
+    assert "reqs trace --chain requirements/trace_chain.yaml" in pages["provenance.md"]
+
+
+def test_traceability_page_puts_open_items_first(evidence: Evidence) -> None:
+    """The open items lead the page: the red rows plus the rowless gate findings."""
+    page = emit_pages(evidence, build_obligations(evidence))["traceability.md"]
+    open_start = page.index("## Open items")
+    assert open_start < page.index("## Verification matrix") < page.index("## Chain matrices")
+    section = page[open_start : page.index("## Verification matrix")]
+    for node in ("`3.1`", "`hlr_x.3`", "`llr_x.3`"):
+        assert node in section, node
+    assert "**UNCOVERED**" in section
+    assert "**DANGLING**" in section
+    # The waiver-lint warning has no matrix row, yet it is an open item too.
+    assert "W-TRACE-WAIVER-REDUNDANT" in section
+    assert "`1.1`" not in section  # waived: accounted-for, not open
+
+
+def test_traceability_page_renders_matrices_and_method_note(evidence: Evidence) -> None:
+    """Pair matrices mirror the CLI tables; method pairs defer to the verification view."""
+    page = emit_pages(evidence, build_obligations(evidence))["traceability.md"]
+    assert "### CONOPS → HLR (coverage)" in page
+    assert "### HLR → CONOPS (upward trace)" in page
+    assert "### LLR → CODE (implementation)" in page
+    assert "### CODE → LLR (required by)" in page
+    assert "verification matrix above" in page  # the LLR → TEST pair
+    assert "review: Argued against MUTCD §4E.01." in page
+    assert "W-TRACE-WAIVER-REDUNDANT" in page  # the gate diagnostics table
+
+
+def test_index_glance_counts_trace_open_items(evidence: Evidence) -> None:
+    """The front page counts the open rows plus the rowless gate findings."""
+    index = emit_pages(evidence, build_obligations(evidence))["index.md"]
+    assert "4 open items (3 gate errors, 1 warning)" in index
+
+
+def test_rowless_gate_findings_do_not_read_as_all_clear(evidence: Evidence) -> None:
+    """Gate errors with no matrix row (waiver lint, ignored tags) never render green."""
+    report = TraceReport(
+        complete=True,
+        corpus_valid=True,
+        errors=1,
+        diagnostics=[
+            TraceDiagnostic(
+                level="error",
+                code="E-TRACE-CHECK-IGNORED",
+                message="tagged check matches no anchors",
+                file="src/x.ads",
+            )
+        ],
+    )
+    ev = evidence.model_copy(
+        update={"traceability": evidence.traceability.model_copy(update={"report": report})}
+    )
+    page = emit_pages(ev, build_obligations(ev))["traceability.md"]
+    assert "None — every requirement" not in page
+    section = page[page.index("## Open items") : page.index("## Verification matrix")]
+    assert "gate finding" in section
+    assert "E-TRACE-CHECK-IGNORED" in section
+
+
+def test_traceability_page_names_the_report_gate_honestly(evidence: Evidence) -> None:
+    """The page must not claim a gate `make report` does not run (only the corpus check)."""
+    page = emit_pages(evidence, build_obligations(evidence))["traceability.md"]
+    assert "`validate-reqs-corpus`" in page
+    assert "gated by `make validate-reqs`" not in page
+    assert "prerequisite of `make report`" not in page
+
+
+def test_missing_trace_report_warns_and_builds(evidence: Evidence, tmp_path: Path) -> None:
+    """Without a trace report every claim renders as unknown, never green."""
+    ev = evidence.model_copy(
+        update={"traceability": evidence.traceability.model_copy(update={"report": None})}
+    )
+    obligations = build_obligations(ev)
+    pages = emit_pages(ev, obligations)
+    assert "no trace report was collected" in pages["traceability.md"]
+    assert "no trace report" in pages["index.md"]
+    write_sphinx_sources(pages, tmp_path / "src", ev.title)
+    assert build_html(tmp_path / "src", tmp_path / "html") == 0
+
+
+def test_invalid_corpus_shows_diagnostics_and_builds(evidence: Evidence, tmp_path: Path) -> None:
+    """An unanalyzable corpus renders its diagnostics instead of fabricated matrices."""
+    report = TraceReport(
+        corpus_valid=False,
+        errors=1,
+        diagnostics=[
+            TraceDiagnostic(level="error", code="E-YAML", message="parse error", file="x.yaml")
+        ],
+    )
+    ev = evidence.model_copy(
+        update={"traceability": evidence.traceability.model_copy(update={"report": report})}
+    )
+    obligations = build_obligations(ev)
+    pages = emit_pages(ev, obligations)
+    assert "could not analyze the chain" in pages["traceability.md"]
+    assert "E-YAML" in pages["traceability.md"]
+    write_sphinx_sources(pages, tmp_path / "src", ev.title)
+    assert build_html(tmp_path / "src", tmp_path / "html") == 0
+
+
+def test_hostile_trace_report_text_cannot_inject_myst(evidence: Evidence, tmp_path: Path) -> None:
+    """Trace-report-carried text (details, messages, command) is data, not markup."""
+    fence_breakout = "x\n```\n:::{admonition} R-99 (OK) — Fake all-clear\n:class: tip\n:::"
+    report = TraceReport(
+        complete=True,
+        corpus_valid=True,
+        errors=1,
+        command=fence_breakout,
+        pairs=[
+            TracePair(
+                upper="A",
+                lower="B",
+                upper_rows=[
+                    TraceRow(node="a.1", status="UNCOVERED", detail=_HOSTILE),
+                    # A backtick in a node cannot end its code span; a status is
+                    # escaped like any other free text (unknown, so bold-open).
+                    TraceRow(node="a`2", status="BREAK`OUT{", detail="—"),
+                ],
+            )
+        ],
+        diagnostics=[TraceDiagnostic(level="error", code="E-X", message=_HOSTILE, file="x.yaml")],
+    )
+    ev = evidence.model_copy(
+        update={"traceability": evidence.traceability.model_copy(update={"report": report})}
+    )
+    pages = emit_pages(ev, build_obligations(ev))
+    everything = "\n".join(pages.values())
+    assert not re.search(r"(?<!\\)\{ref\}`bogus-target`", everything)
+    assert "``a`2``" in pages["traceability.md"]
+    assert "**BREAK\\`OUT\\{**" in pages["traceability.md"]
+    # The recorded command's ``` runs stay inside the (longer) provenance fence.
+    assert "````text\n" + fence_breakout in pages["provenance.md"]
+    write_sphinx_sources(pages, tmp_path / "src", ev.title)
+    assert build_html(tmp_path / "src", tmp_path / "html") == 0
 
 
 def test_proof_page_flags_incomplete_analysis(evidence: Evidence) -> None:

@@ -25,20 +25,6 @@ layers:
     parent: LLR
     id_pattern: '(.+\.\d+)'
     method: test  # also keeps an empty inventory loud: test-verified LLRs go uncovered
-    # THIS INVENTORY DOES NOT REACH THE REQUIREMENTS-BASED TESTS (#106), so most
-    # of what `method: test` demands is currently invisible to it: `#51` put 98
-    # tagged routines under tests/reqs/, and none of them are counted.
-    # `test-inventory` runs `ada_tracer` on the harness project without `-U`, and
-    # without `-U` the tracer reads the root project's own sources alone. The
-    # generated harness project's `Source_Dirs` are tests/core, tests/hal/common,
-    # tests/types and its own `common`; tests/reqs/ arrives through an *imported*
-    # project (`--additional-tests=tests/reqs/reqs_tests.gpr`). Plain `-U` is not
-    # the fix -- it would pull the application into a layer that requires every
-    # node to carry a `--@covers` tag.
-    #
-    # Until #106 lands, expect this layer to report nearly every `test`-verified
-    # statement uncovered. The tags themselves are already in the syntax and
-    # position this layer wants; it is the inventory that cannot see them.
   - name: CODE
     kind: ada-entities
     path: ../obj/analysis/code_inventory.json

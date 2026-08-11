@@ -950,11 +950,16 @@ def test_check_citing_an_undeclared_method_is_drift(tmp_path: Path) -> None:
     ]
     assert summarize(check_trace(chain, complete=True)) == [
         (
+            "E-TRACE-UNSELECTED",
+            "error",
+            "LLR 'llr_x.1' declares verification 'test', but no selected layer verifies 'test'",
+        ),
+        (
             "E-TRACE-METHOD",
             "error",
             "PROOF 'src/core/x.ads:12' covers LLR 'llr_x.1', whose verification (test) "
             "does not include 'proof'",
-        )
+        ),
     ]
 
 
@@ -989,19 +994,17 @@ def test_check_tagged_none_is_derived_not_untraced(tmp_path: Path) -> None:
 def test_multi_method_statement_satisfies_each_layer(tmp_path: Path) -> None:
     """A statement declaring proof and test is enforced by both layers, cleanly."""
     llr_dir = write_proof_llr(tmp_path, also_test=True)
-    proof_chain = [
-        llr_layer(llr_dir),
-        make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]})),
-    ]
-    assert check_trace(proof_chain, complete=True) == []
-    test_chain = [
+    proof = make_proof_layer(write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]}))
+    chain = [
         llr_layer(llr_dir),
         make_test_layer(write_tests(tmp_path, "u", {"Test_A": ["llr_x.1"]}), method="test"),
+        proof,
     ]
-    assert check_trace(test_chain, complete=True) == []  # the test entry: no drift
+    assert check_trace(chain, complete=True) == []  # each method met, no drift
     uncovered = [
         llr_layer(llr_dir),
         make_test_layer(write_tests(tmp_path, "u", {}), method="test"),
+        proof,
     ]
     codes = [code for code, _l, _m in summarize(check_trace(uncovered, complete=True))]
     assert codes == ["E-TRACE-UNCOVERED"]  # ...and it still demands its test
@@ -1118,6 +1121,31 @@ def test_llr_declaring_no_method_is_unverified(tmp_path: Path) -> None:
             "(one of: test, proof, static_check, review)",
         )
     ]
+
+
+def test_llr_declaring_a_method_no_layer_verifies_is_unselected(tmp_path: Path) -> None:
+    """A declared method with no layer to verify it is an error, never silence."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.2"]},
+        method="test",
+        verifications=["proof", "test"],
+    )
+    assert summarize(check_trace(chain, complete=True)) == [
+        (
+            "E-TRACE-UNSELECTED",
+            "error",
+            "LLR 'llr_x.1' declares verification 'proof', but no selected layer verifies 'proof'",
+        )
+    ]
+
+
+def test_missing_conops_document_is_a_diagnostic_not_a_crash(tmp_path: Path) -> None:
+    """An absent CONOPS document is E-IO, like every other unreadable layer."""
+    chain = conops_hlr_chain(tmp_path, COVERING)
+    chain[0].path.unlink()
+    assert [(d.code, d.level) for d in check_trace(chain)] == [("E-IO", "error")]
 
 
 def test_test_covering_a_review_verified_llr_is_method_drift(tmp_path: Path) -> None:
@@ -1311,6 +1339,7 @@ def test_unknown_chain_key_is_a_config_error(tmp_path: Path) -> None:
     (tmp_path / "llr").mkdir()
     (tmp_path / "chain.yaml").write_text(
         "layers:\n"
+        "  - {name: HLR, kind: requirement-yaml, path: llr, id_pattern: '(.+\\.\\d+)'}\n"
         "  - {name: LLR, kind: requirement-yaml, path: llr, id_pattern: '(.+\\.\\d+)',"
         " min_nodes: 3}\n",
         encoding="utf-8",

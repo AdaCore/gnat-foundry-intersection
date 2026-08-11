@@ -40,6 +40,11 @@ _PROOF_DIR = typer.Option(
 _COVERAGE_DIR = typer.Option(
     None, "--coverage-dir", help="gnatcov XML dir (default: ROOT/reports/coverage/xml)."
 )
+_TRACE_REPORT = typer.Option(
+    None,
+    "--trace-report",
+    help="Trace-report JSON (default: ROOT/reports/trace/trace_report.json).",
+)
 _TITLE = typer.Option(None, "--title", help="Report title (default derives from ROOT).")
 _HTML = typer.Option(True, "--html/--no-html", help="Also build the HTML report.")
 _PDF = typer.Option(False, "--pdf/--no-pdf", help="Also build a PDF rendering (rst2pdf).")
@@ -59,6 +64,7 @@ def generate(
     root: Path = _ROOT,
     proof_dir: Path | None = _PROOF_DIR,
     coverage_dir: Path | None = _COVERAGE_DIR,
+    trace_report: Path | None = _TRACE_REPORT,
     title: str | None = _TITLE,
     html: bool = _HTML,
     pdf: bool = _PDF,
@@ -74,9 +80,9 @@ def generate(
     except (MissingArtifactsError, ArtifactParseError) as exc:
         _fail(str(exc), hint="make coverage-report-xml")
     try:
-        traceability = collect_traceability(root)
-    except ArtifactParseError as exc:
-        _fail(str(exc))
+        traceability = collect_traceability(root, trace_report)
+    except (MissingArtifactsError, ArtifactParseError) as exc:
+        _fail(str(exc), hint="make trace-report")
 
     evidence = Evidence(
         generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),

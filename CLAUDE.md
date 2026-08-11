@@ -30,13 +30,16 @@ make test-target    # Run the testsuite ON TARGET (arm-eabi, under QEMU)
 make report         # Generate the verification report
 ```
 
-The verification report (proof + coverage + review obligations) renders to
-`reports/report/html/`; `make report-pdf` also renders it to
-`reports/report/pdf/verification-report.pdf` (rst2pdf, no TeX needed). The
-generator lives in `engine/report/`. `report` regenerates its evidence first
-(`validate-reqs prove-report all-coverage coverage-report-xml`), so it never
-reports stale proof runs or test executions, and its traceability claims are
-gated on the requirements chain actually validating.
+The verification report (proof + coverage + traceability + review
+obligations) renders to `reports/report/html/`; `make report-pdf` also
+renders it to `reports/report/pdf/verification-report.pdf` (rst2pdf, no TeX
+needed). The generator lives in `engine/report/`. `report` regenerates its
+evidence first (`validate-reqs-corpus trace-report prove-report all-coverage
+coverage-report-xml`), so it never reports stale proof runs, trace matrices,
+or test executions, and it gates on the requirement files being parseable
+(schema + EARS). Trace gaps at any layer do not fail `report` (that is
+`trace-check`'s job): they render as open items, so a report is available
+part-way through a project, showing what is not yet done.
 
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same
@@ -131,9 +134,9 @@ generics, the `core` project carries a small in-SPARK instantiation harness
 - Trace each test to its requirement: every test routine carries a `--@covers`
   tag (first editable line of its body) naming the LLR statement id(s) it
   verifies, or `--@covers none: <reason>` for a boundary test. `make trace-check`
-  enforces this via the `TEST` layer of `requirements/trace_chain.yaml`; run
-  `make trace` to see the LLR↔test coverage tables. That gate does not currently
-  reach `tests/reqs/` (#106), so there review is the only check.
+  enforces this via the `TEST` layer of `requirements/trace_chain.yaml` — for
+  the generated skeletons and `tests/reqs/` alike; run `make trace` to see the
+  LLR↔test coverage tables.
 - Every LLR statement declares its `verification:` method(s). `make trace-check`
   requires a covering test for each `test`-verified statement and rejects a
   `--@covers` citing a statement not declaring `test` — add a `method: test`

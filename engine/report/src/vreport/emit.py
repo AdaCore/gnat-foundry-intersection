@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from vreport.mdtext import inline
+from vreport.mdtext import code_span, count, inline
 from vreport.model import (
     EXEMPTED,
     EXEMPTED_NO_VIOLATION,
@@ -26,14 +26,24 @@ from vreport.model import (
 from vreport.obligations import (
     classify_violation,
     open_claims,
+    open_trace_items,
     predicate_label,
+    rowless_trace_findings,
     toolchain_note,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from vreport.model import Evidence, Obligation
+    from vreport.model import (
+        Evidence,
+        Obligation,
+        TraceDiagnostic,
+        TracePair,
+        TraceReport,
+        TraceRow,
+        VerificationRow,
+    )
 
 _PAGE_ORDER = ("provenance", "proof", "coverage", "traceability")
 
@@ -64,8 +74,10 @@ def _target(name: str) -> str:
 
 
 def _code(text: str, lang: str = "text") -> str:
-    """Render a fenced code block."""
-    return f"```{lang}\n{text}\n```"
+    """Render a fenced code block, its fence sized past any backtick run in the text."""
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    fence = "`" * max(3, longest + 1)
+    return f"{fence}{lang}\n{text}\n{fence}"
 
 
 def _admonition(title: str, body: str, *, kind: str) -> str:
@@ -118,6 +130,17 @@ def _emit_index(ev: Evidence, obligations: list[Obligation]) -> str:
         state = "dirty" if ev.git.dirty else "clean"
         git_row = f"`{ev.git.commit[:12]}` on `{ev.git.branch}` ({state})"
 
+    report = ev.traceability.report
+    if report is None:
+        trace_row = "no trace report — regenerate with `make trace-report`"
+    elif not report.corpus_valid:
+        trace_row = "requirement corpus invalid — see the traceability page"
+    else:
+        n_open = len(open_trace_items(report)) + len(rowless_trace_findings(report))
+        trace_row = (count(n_open, "open item") if n_open else "no open items") + (
+            f" ({count(report.errors, 'gate error')}, {count(report.warnings, 'warning')})"
+        )
+
     glance_rows: list[Sequence[str]] = [
         (
             "Proof",
@@ -136,6 +159,7 @@ def _emit_index(ev: Evidence, obligations: list[Obligation]) -> str:
             )
             for o in ev.coverage.obligations
         ],
+        ("Traceability", trace_row),
         ("Review obligations", f"{len(review)} need review, {ok} machine-checked OK"),
         ("Sources", git_row),
     ]
@@ -224,6 +248,16 @@ def _emit_provenance(ev: Evidence) -> str:
         "with `make coverage-report-xml`."
     )
 
+    report = ev.traceability.report
+    if report is not None and report.command:
+        run_at = f"\n\n(run at {inline(report.generated_at)})" if report.generated_at else ""
+        trace_block = _code(report.command) + run_at
+    else:
+        trace_block = (
+            "**Warning:** no recorded `reqs trace` invocation — the trace matrices "
+            "cannot be tied to a command line; regenerate with `make trace-report`."
+        )
+
     return f"""{_target("provenance")}
 
 # Provenance
@@ -265,6 +299,10 @@ gnatcov analyzed at level `{ev.coverage.level}`, invoked as:
 from these test executions:
 
 {_table_or(("Program", "Date", "Trace"), trace_rows, "No trace information was recorded.")}
+
+The requirement-trace matrices were produced by:
+
+{trace_block}
 """
 
 
@@ -593,11 +631,260 @@ obligations on the index page for how to read it.
 """
 
 
+def _status(row: TraceRow | VerificationRow) -> str:
+    """Render a row's status cell, bold when the row is open work."""
+    return f"**{inline(row.status)}**" if row.is_open else inline(row.status)
+
+
+def _diag_detail(d: TraceDiagnostic) -> str:
+    """Render a gate diagnostic's code and message as one detail cell."""
+    return f"{code_span(d.code)}: {inline(d.message)}"
+
+
+def _trace_matrix(rows: Sequence[TraceRow], id_header: str, detail_header: str) -> str:
+    """Render one trace matrix as a table."""
+    return _table_or(
+        (id_header, "Status", detail_header),
+        [(code_span(r.node), _status(r), inline(r.detail)) for r in rows],
+        "No nodes.",
+    )
+
+
+def _pair_sections(pair: TracePair) -> list[str]:
+    """Render one (parent, child) pair's matrices, mirroring the `make trace` tables."""
+    up, lo = pair.upper, pair.lower
+    out: list[str] = []
+    if pair.refs_point_down:
+        field = pair.ref_field or "down refs"
+        # Mirror the CLI tables' labels (reqs `_REF_FIELD_LABELS`).
+        title, header = (
+            ("implementation", "Implemented by") if field == "implemented_by" else (field, field)
+        )
+        out.append(
+            f"### {up} → {lo} ({title})\n\n"
+            + _trace_matrix(pair.upper_rows, up, f"{header} ({lo})")
+        )
+        out.append(
+            f"### {lo} → {up} (required by)\n\n"
+            + _trace_matrix(pair.lower_rows, lo, f"Required by ({up})")
+        )
+        return out
+    if pair.method is None:
+        out.append(
+            f"### {up} → {lo} (coverage)\n\n"
+            + _trace_matrix(pair.upper_rows, up, f"Covered by ({lo})")
+        )
+    else:
+        out.append(
+            f"### {up} → {lo}\n\nA `{pair.method}` evidence layer: the {up} side "
+            f"of this pair is in the verification matrix above."
+        )
+    out.append(
+        f"### {lo} → {up} (upward trace)\n\n"
+        + _trace_matrix(pair.lower_rows, lo, f"Traces to ({up})")
+    )
+    return out
+
+
+def _emit_trace_report(r: TraceReport | None) -> str:
+    """Render the machine-checked portion of the traceability page."""
+    regenerate = "Regenerate with `make trace-report`."
+    if r is None:
+        missing = f"**Warning:** no trace report was collected. {regenerate}"
+        return f"""{missing}
+
+{_target("traceability-gaps")}
+
+## Open items
+
+Unknown — there is no trace report to enumerate them from.
+
+{_target("traceability-verification")}
+
+## Verification matrix
+
+Unknown — there is no trace report to enumerate it from.
+
+{_target("traceability-matrices")}
+
+## Chain matrices
+
+Unknown — there is no trace report to enumerate them from.
+
+{_target("traceability-diagnostics")}
+
+## Gate diagnostics
+
+Unknown — there is no trace report to enumerate them from.
+"""
+
+    layer_rows: list[Sequence[str]] = []
+    for layer in r.layers:
+        notes = [
+            note
+            for note, applies in (
+                (f"verifies `{layer.method}`", layer.method is not None),
+                ("partial coverage by design", layer.partial_coverage),
+                (f"cited by the parent's `{layer.ref_field}`", layer.refs_point_down),
+            )
+            if applies
+        ]
+        layer_rows.append(
+            (
+                layer.name,
+                f"`{layer.kind}`",
+                str(layer.node_count) if layer.node_count is not None else "—",
+                "; ".join(notes),
+            )
+        )
+
+    diag_rows: list[Sequence[str]] = [
+        (inline(d.level), code_span(d.code), code_span(d.location), inline(d.message))
+        for d in r.diagnostics
+    ]
+    diag_block = _table_or(("Level", "Code", "Location", "Message"), diag_rows, "None.")
+
+    if not r.corpus_valid:
+        broken = (
+            "**Warning:** `reqs trace` could not analyze the chain (broken chain "
+            "config or requirement corpus); the matrices below are omitted rather "
+            f"than fabricated. Fix the gate diagnostics, then regenerate. {regenerate}"
+        )
+        return f"""{broken}
+
+{_target("traceability-gaps")}
+
+## Open items
+
+Unknown — the corpus is invalid; see the gate diagnostics below.
+
+{_target("traceability-verification")}
+
+## Verification matrix
+
+Unknown — the corpus is invalid; see the gate diagnostics below.
+
+{_target("traceability-matrices")}
+
+## Chain matrices
+
+Omitted — the corpus is invalid; see the gate diagnostics below.
+
+{_target("traceability-diagnostics")}
+
+## Gate diagnostics
+
+{diag_block}
+"""
+
+    verdict = (
+        f"`reqs trace{' --complete' if r.complete else ''}` reported "
+        f"**{count(r.errors, 'error')}** and {count(r.warnings, 'warning')} over this chain"
+        + (f" (run: {inline(r.generated_at)})" if r.generated_at else "")
+        + "; the exact invocation is under {ref}`provenance-invocations`."
+    )
+
+    open_items = open_trace_items(r)
+    rowless = rowless_trace_findings(r)
+    open_rows: list[Sequence[str]] = [
+        (where, code_span(row.node), _status(row), inline(row.detail)) for where, row in open_items
+    ]
+    # Gate findings with no matrix row (waiver lint, ignored check tags) are
+    # open items all the same: absence of a row must not read as done.
+    open_rows.extend(
+        ("gate finding", code_span(d.location), f"**{inline(d.level)}**", _diag_detail(d))
+        for d in rowless
+    )
+    if open_rows:
+        open_block = _table(("Where", "Node", "Status", "Detail"), open_rows)
+    elif r.errors or r.warnings:
+        # Should be unreachable (a counted finding is a row or is rowless),
+        # but a drifted producer must still not read as all-clear.
+        open_block = (
+            f"No open matrix rows, but the gate reported {count(r.errors, 'error')} and "
+            f"{count(r.warnings, 'warning')} — see the gate diagnostics below."
+        )
+    else:
+        open_block = (
+            "None — every requirement of the chain is covered, traced, and verified as declared."
+        )
+
+    verification_blocks: list[str] = [
+        f"### {matrix.layer}\n\n"
+        + _table_or(
+            (matrix.layer, "Status", "Evidence"),
+            [(code_span(row.node), _status(row), inline(row.detail)) for row in matrix.rows],
+            "No statements.",
+        )
+        for matrix in r.verification
+    ]
+    verification_body = (
+        "\n\n".join(verification_blocks)
+        if verification_blocks
+        else "No evidence layer of the chain declares a verification method."
+    )
+
+    pair_blocks = [section for pair in r.pairs for section in _pair_sections(pair)]
+    pairs_body = "\n\n".join(pair_blocks) if pair_blocks else "The chain has no pairs."
+
+    return f"""{verdict}
+
+{_target("traceability-chain")}
+
+## The chain
+
+{_table(("Layer", "Kind", "Nodes", "Notes"), layer_rows)}
+
+{_target("traceability-gaps")}
+
+## Open items
+
+Matrix rows whose status is neither satisfied nor accounted-for — requirements
+without their declared evidence, dangling or untraced references, statements
+declaring no verification method — plus gate findings with no matrix row
+(waiver lint, ignored check tags). **Bold** statuses mark the open rows in
+the full matrices below.
+
+{open_block}
+
+{_target("traceability-verification")}
+
+## Verification matrix
+
+One row per statement, its declared verification methods' evidence side by
+side. `REVIEW` rows rest on a recorded human argument — they are review
+obligations on the index page, not gaps. `UNSELECTED` marks a declared method
+no layer of the traced chain verifies: unchecked, so open.
+
+{verification_body}
+
+{_target("traceability-matrices")}
+
+## Chain matrices
+
+Per-pair coverage and upward traces, as `make trace` prints them. Statuses:
+`OK` covered/resolved; `WAIVED` excused with a recorded reason; `DERIVED` no
+parent by design; `UNTESTED`/`UNIMPLEMENTED`/`UNREQUIRED` expected under a
+partial-coverage layer; anything **bold** is an open item listed above.
+
+{pairs_body}
+
+{_target("traceability-diagnostics")}
+
+## Gate diagnostics
+
+Verbatim findings of the `reqs trace` gate (`make trace-check` fails on
+errors; `make report` does not, so gaps stay visible here):
+
+{diag_block}
+"""
+
+
 def _emit_traceability(ev: Evidence) -> str:
-    """Render the (currently partial) requirements-chain page."""
+    """Render the requirements-chain page: matrices, gaps, and judgement items."""
     t = ev.traceability
     waiver_rows: list[Sequence[str]] = [(f"§{inline(w.leaf)}", inline(w.reason)) for w in t.waivers]
-    derived_rows: list[Sequence[str]] = [(f"`{d.ident}`", inline(d.text)) for d in t.derived]
+    derived_rows: list[Sequence[str]] = [(code_span(d.ident), inline(d.text)) for d in t.derived]
     absent = [
         note
         for note, is_absent in (
@@ -614,21 +901,19 @@ def _emit_traceability(ev: Evidence) -> str:
     ]
     missing = "".join(f"\n\n**{note}**" for note in absent) + ("\n" if absent else "")
 
-    status = _admonition(
-        "Partial",
-        "This page currently shows the human-judgement items of the requirements "
-        "chain (waivers and derived requirements). The CONOPS → HLR → LLR chain "
-        "itself is mechanically validated by `make validate-reqs`; requirement → "
-        "code → test matrices are planned work (plan phase 4) and are **not** yet "
-        "part of this report.",
-        kind="warning",
-    )
-
     return f"""{_target("traceability")}
 
 # Traceability
 
-{status}{missing}
+The requirement chain (CONOPS → HLR → LLR, with test, code, proof, and
+static-check evidence hanging off the LLRs) is checked mechanically by
+`reqs trace`; this page renders its report. `make report` gates only on the
+corpus being parseable (`validate-reqs-corpus`): the chain's own gates are
+`make validate-reqs` (CONOPS → HLR → LLR) and `make trace-check` (down to the
+code and evidence), and neither gates this report — their findings stay
+visible as the open items below.
+{missing}
+{_emit_trace_report(t.report)}
 
 {_target("traceability-waivers")}
 

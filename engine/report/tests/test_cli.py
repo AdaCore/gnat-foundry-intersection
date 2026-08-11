@@ -25,6 +25,8 @@ def _generate_args(tmp_path: Path, *extra: str) -> list[str]:
         str(FIXTURES / "gnatprove"),
         "--coverage-dir",
         str(FIXTURES / "gnatcov"),
+        "--trace-report",
+        str(FIXTURES / "trace" / "trace_report.json"),
         "--no-html",
         *extra,
     ]
@@ -64,7 +66,30 @@ def test_generate_missing_proof_dir_fails(tmp_path: Path) -> None:
             str(empty),
             "--coverage-dir",
             str(FIXTURES / "gnatcov"),
+            "--trace-report",
+            str(FIXTURES / "trace" / "trace_report.json"),
             "--no-html",
         ],
     )
     assert result.exit_code == 1
+
+
+def test_generate_missing_trace_report_fails(tmp_path: Path) -> None:
+    """A missing trace report aborts the run with the regenerating make target named."""
+    result = runner.invoke(
+        app,
+        [
+            "generate",
+            "--root",
+            str(tmp_path),
+            "--out",
+            str(tmp_path / "out"),
+            "--proof-dir",
+            str(FIXTURES / "gnatprove"),
+            "--coverage-dir",
+            str(FIXTURES / "gnatcov"),
+            "--no-html",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "make trace-report" in result.output
