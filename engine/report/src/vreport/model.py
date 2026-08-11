@@ -353,7 +353,18 @@ class CoverageEvidence(Frozen):
         return [v for v in self.violations if v.exempted]
 
 
-# --- Traceability (partial: waivers and derived requirements only) ----------
+# --- Traceability -------------------------------------------------------------
+
+TRACE_REPORT_SCHEMA_VERSION = 1
+
+# Matrix-row statuses that are accounted-for rather than open work: covered,
+# waived/derived (reviewed as their own obligations), review-verified (its own
+# obligation), or expected under a partial-coverage layer. Fail-safe mapping:
+# any status outside this set — including ones this consumer has never seen —
+# is treated as open, so the unknown surfaces as a finding rather than silence.
+SETTLED_TRACE_STATUSES = frozenset(
+    {"OK", "WAIVED", "DERIVED", "REVIEW", "UNTESTED", "UNIMPLEMENTED", "UNREQUIRED"}
+)
 
 
 class Waiver(Frozen):
@@ -370,13 +381,123 @@ class DerivedRequirement(Frozen):
     text: str
 
 
+class TraceRow(Frozen):
+    """One trace-matrix row: a node, its status, and the refs behind it."""
+
+    node: str
+    status: str
+    refs: list[str] = Field(default_factory=list)
+    detail: str = ""
+
+    @property
+    def is_open(self) -> bool:
+        """Whether this row is open work rather than accounted-for."""
+        return self.status not in SETTLED_TRACE_STATUSES
+
+
+class MethodFacet(Frozen):
+    """One verification method's evidence for one statement."""
+
+    method: str
+    status: str  # OK | UNCOVERED | REVIEW | MISMATCH | UNSELECTED
+    evidence: list[str] = Field(default_factory=list)
+
+
+class VerificationRow(Frozen):
+    """One statement of the verification matrix: worst status plus per-method facets."""
+
+    node: str
+    status: str
+    detail: str = ""
+    methods: list[MethodFacet] = Field(default_factory=list)
+
+    @property
+    def is_open(self) -> bool:
+        """Whether this row is open work rather than accounted-for."""
+        return self.status not in SETTLED_TRACE_STATUSES
+
+    @property
+    def review_facets(self) -> list[MethodFacet]:
+        """The review-method facets: human judgements standing in for evidence."""
+        return [m for m in self.methods if m.method == "review"]
+
+
+class TracePair(Frozen):
+    """One (parent, child) pair of the chain and its two matrices."""
+
+    upper: str
+    lower: str
+    refs_point_down: bool = False
+    partial_coverage: bool = False
+    method: str | None = None
+    ref_field: str | None = None
+    upper_rows: list[TraceRow] = Field(default_factory=list)
+    lower_rows: list[TraceRow] = Field(default_factory=list)
+
+
+class VerificationMatrix(Frozen):
+    """The merged per-method verification view of one parent layer."""
+
+    layer: str
+    rows: list[VerificationRow] = Field(default_factory=list)
+
+
+class TraceLayer(Frozen):
+    """One layer of the trace chain, as recorded in the report."""
+
+    name: str
+    kind: str
+    path: str = ""
+    parent: str | None = None
+    method: str | None = None
+    partial_coverage: bool = False
+    refs_point_down: bool = False
+    ref_field: str | None = None
+    node_count: int | None = None
+
+
+class TraceDiagnostic(Frozen):
+    """One located finding of the `reqs trace` gate."""
+
+    level: str  # "error" | "warning"
+    code: str
+    message: str
+    file: str = ""
+    line: int | None = None
+    path: list[str] = Field(default_factory=list)
+
+    @property
+    def location(self) -> str:
+        """Render the file:line location, dash when unrecorded."""
+        if not self.file:
+            return "—"
+        return f"{self.file}:{self.line}" if self.line is not None else self.file
+
+
+class TraceReport(Frozen):
+    """The `reqs trace --format json` payload (schema_version 1)."""
+
+    chain: str = ""
+    command: str | None = None
+    generated_at: str | None = None
+    complete: bool = False
+    corpus_valid: bool = False
+    errors: int = 0
+    warnings: int = 0
+    layers: list[TraceLayer] = Field(default_factory=list)
+    pairs: list[TracePair] = Field(default_factory=list)
+    verification: list[VerificationMatrix] = Field(default_factory=list)
+    diagnostics: list[TraceDiagnostic] = Field(default_factory=list)
+
+
 class TraceabilityEvidence(Frozen):
-    """The requirement-chain facts the report currently covers, tracked per source."""
+    """The requirement-chain facts the report covers, tracked per source."""
 
     waivers: list[Waiver] = Field(default_factory=list)
     derived: list[DerivedRequirement] = Field(default_factory=list)
     waivers_found: bool = False
     hlr_found: bool = False
+    report: TraceReport | None = None
 
 
 # --- Provenance / top level --------------------------------------------------

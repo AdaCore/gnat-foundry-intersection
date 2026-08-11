@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "chain": "/workspace/traffic-light-controller/requirements/trace_chain.yaml",
+  "command": "reqs trace --chain requirements/trace_chain.yaml --complete --format json --output reports/trace/trace_report.json",
+  "generated_at": "2026-08-07T00:00:00+00:00",
+  "complete": true,
+  "corpus_valid": true,
+  "errors": 3,
+  "warnings": 1,
+  "layers": [
+    {
+      "name": "CONOPS",
+      "kind": "markdown-leaves",
+      "path": "requirements/conops.md",
+      "parent": null,
+      "method": null,
+      "partial_coverage": false,
+      "refs_point_down": false,
+      "ref_field": null,
+      "node_count": 4
+    },
+    {
+      "name": "HLR",
+      "kind": "requirement-yaml",
+      "path": "requirements/hlr",
+      "parent": null,
+      "method": null,
+      "partial_coverage": false,
+      "refs_point_down": false,
+      "ref_field": null,
+      "node_count": 3
+    },
+    {
+      "name": "LLR",
+      "kind": "requirement-yaml",
+      "path": "requirements/llr",
+      "parent": null,
+      "method": null,
+      "partial_coverage": false,
+      "refs_point_down": false,
+      "ref_field": null,
+      "node_count": 3
+    },
+    {
+      "name": "TEST",
+      "kind": "ada-tests",
+      "path": "obj/analysis/test_inventory.json",
+      "parent": "LLR",
+      "method": "test",
+      "partial_coverage": false,
+      "refs_point_down": false,
+      "ref_field": null,
+      "node_count": 2
+    },
+    {
+      "name": "CODE",
+      "kind": "ada-entities",
+      "path": "obj/analysis/code_inventory.json",
+      "parent": "LLR",
+      "method": null,
+      "partial_coverage": true,
+      "refs_point_down": true,
+      "ref_field": "implemented_by",
+      "node_count": 3
+    }
+  ],
+  "pairs": [
+    {
+      "upper": "CONOPS",
+      "lower": "HLR",
+      "refs_point_down": false,
+      "partial_coverage": false,
+      "method": null,
+      "ref_field": null,
+      "upper_rows": [
+        {"node": "1.1", "status": "WAIVED", "refs": [], "detail": "Physical site assumption."},
+        {"node": "2.1", "status": "OK", "refs": ["hlr_x.1"], "detail": "hlr_x.1"},
+        {"node": "2.2", "status": "OK", "refs": ["hlr_x.2"], "detail": "hlr_x.2"},
+        {"node": "3.1", "status": "UNCOVERED", "refs": [], "detail": "—"}
+      ],
+      "lower_rows": [
+        {"node": "hlr_x.1", "status": "OK", "refs": ["2.1"], "detail": "2.1"},
+        {"node": "hlr_x.2", "status": "DERIVED", "refs": [], "detail": "—"},
+        {"node": "hlr_x.3", "status": "DANGLING", "refs": ["CONOPS §9.9"], "detail": "CONOPS §9.9"}
+      ]
+    },
+    {
+      "upper": "HLR",
+      "lower": "LLR",
+      "refs_point_down": false,
+      "partial_coverage": false,
+      "method": null,
+      "ref_field": null,
+      "upper_rows": [
+        {"node": "hlr_x.1", "status": "OK", "refs": ["llr_x.1"], "detail": "llr_x.1"},
+        {"node": "hlr_x.2", "status": "OK", "refs": ["llr_x.2"], "detail": "llr_x.2"},
+        {"node": "hlr_x.3", "status": "OK", "refs": ["llr_x.3"], "detail": "llr_x.3"}
+      ],
+      "lower_rows": [
+        {"node": "llr_x.1", "status": "OK", "refs": ["hlr_x.1"], "detail": "hlr_x.1"},
+        {"node": "llr_x.2", "status": "OK", "refs": ["hlr_x.2"], "detail": "hlr_x.2"},
+        {"node": "llr_x.3", "status": "OK", "refs": ["hlr_x.3"], "detail": "hlr_x.3"}
+      ]
+    },
+    {
+      "upper": "LLR",
+      "lower": "TEST",
+      "refs_point_down": false,
+      "partial_coverage": false,
+      "method": "test",
+      "ref_field": null,
+      "upper_rows": [],
+      "lower_rows": [
+        {"node": "u.Test_A", "status": "OK", "refs": ["llr_x.1"], "detail": "llr_x.1"},
+        {"node": "u.Test_B", "status": "OK", "refs": ["llr_x.2"], "detail": "llr_x.2"}
+      ]
+    },
+    {
+      "upper": "LLR",
+      "lower": "CODE",
+      "refs_point_down": true,
+      "partial_coverage": true,
+      "method": null,
+      "ref_field": "implemented_by",
+      "upper_rows": [
+        {"node": "llr_x.1", "status": "OK", "refs": ["Ctrl.Do_Thing"], "detail": "Ctrl.Do_Thing"},
+        {"node": "llr_x.2", "status": "UNIMPLEMENTED", "refs": [], "detail": "—"},
+        {"node": "llr_x.3", "status": "OK", "refs": ["Ctrl.Other"], "detail": "Ctrl.Other"}
+      ],
+      "lower_rows": [
+        {"node": "Ctrl.Do_Thing", "status": "OK", "refs": ["llr_x.1"], "detail": "llr_x.1"},
+        {"node": "Ctrl.Helper", "status": "UNREQUIRED", "refs": [], "detail": "—"},
+        {"node": "Ctrl.Other", "status": "OK", "refs": ["llr_x.3"], "detail": "llr_x.3"}
+      ]
+    }
+  ],
+  "verification": [
+    {
+      "layer": "LLR",
+      "rows": [
+        {
+          "node": "llr_x.1",
+          "status": "OK",
+          "detail": "test: u.Test_A",
+          "methods": [{"method": "test", "status": "OK", "evidence": ["u.Test_A"]}]
+        },
+        {
+          "node": "llr_x.2",
+          "status": "REVIEW",
+          "detail": "review: Argued against MUTCD §4E.01.; test: u.Test_B",
+          "methods": [
+            {"method": "review", "status": "REVIEW", "evidence": ["Argued against MUTCD §4E.01."]},
+            {"method": "test", "status": "OK", "evidence": ["u.Test_B"]}
+          ]
+        },
+        {
+          "node": "llr_x.3",
+          "status": "UNCOVERED",
+          "detail": "test: —",
+          "methods": [{"method": "test", "status": "UNCOVERED", "evidence": []}]
+        }
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "error",
+      "code": "E-TRACE-UNCOVERED",
+      "message": "CONOPS node '3.1' is covered by no HLR and no waiver",
+      "file": "requirements/conops.md",
+      "line": 12,
+      "path": []
+    },
+    {
+      "level": "error",
+      "code": "E-TRACE-DANGLING",
+      "message": "HLR 'hlr_x.3' up-ref 'CONOPS §9.9' resolves to no CONOPS node",
+      "file": "requirements/hlr/hlr_x.yaml",
+      "line": 20,
+      "path": ["description", "3", "source"]
+    },
+    {
+      "level": "error",
+      "code": "E-TRACE-UNCOVERED",
+      "message": "LLR node 'llr_x.3' declares verification 'test' but is covered by no TEST and no waiver",
+      "file": "requirements/llr/llr_x.yaml",
+      "line": 30,
+      "path": []
+    },
+    {
+      "level": "warning",
+      "code": "W-TRACE-WAIVER-REDUNDANT",
+      "message": "waiver names '2.1', but it is covered by hlr_x.1; remove the waiver",
+      "file": "requirements/trace_waivers.yaml",
+      "line": null,
+      "path": []
+    }
+  ]
+}

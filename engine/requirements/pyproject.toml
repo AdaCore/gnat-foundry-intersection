@@ -124,6 +124,8 @@ ignore = [
     "FBT001", # Boolean flags are how Typer declares CLI options
     "FBT002", # ... and their defaults are part of that declaration
     "FBT003", # typer.Option(False, ...) passes the default positionally by design
+    "PLR0913", # A command's parameters mirror its CLI options, however many
+    "TRY003", # Typer usage errors carry their message at the raise site
 ]
 
 [tool.ruff.lint.flake8-type-checking]

@@ -144,6 +144,33 @@ def test_helper_with_test_name_but_wrong_profile_is_not_a_node(tmp_path: Path) -
     assert set(nodes) == {"conflicts.Test_Compatible"}
 
 
+def test_formal_name_is_free_but_profile_is_not(tmp_path: Path) -> None:
+    """The formal may be named anything (tests/reqs/ uses `T`), but must be `in out Test`."""
+    file = "tests/reqs/src/llr_1_states_tests.adb"
+    nodes = load(
+        tmp_path,
+        package(
+            "LLR_1_States_Tests",
+            subprograms=[
+                gnattest_routine(
+                    "Test_01_Alphabet",
+                    file,
+                    line=79,
+                    covers=["llr_1_states.1"],
+                    parameters=[{"name": "T", "mode": "in out", "type": "Test"}],
+                ),
+                gnattest_routine(
+                    "Test_Counter",
+                    file,
+                    line=120,
+                    parameters=[{"name": "T", "mode": "in out", "type": "Natural"}],
+                ),
+            ],
+        ),
+    ).nodes
+    assert set(nodes) == {"llr_1_states_tests.Test_01_Alphabet"}
+
+
 def test_library_subprograms_are_searched_too(tmp_path: Path) -> None:
     """A routine outside any package is still a candidate node."""
     path = write_inventory(

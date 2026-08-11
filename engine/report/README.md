@@ -19,6 +19,7 @@ invoking `vreport` directly, produce them first):
 |---|---|---|
 | `obj/development/gnatprove/` | `make prove-report` | per-unit `*.spark` JSON, `gnatprove.out` (with `--output-header`/`--assumptions`), `gnatprove.sarif`, `gnatprove-version.txt` |
 | `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt`, `gnatcov-command.txt` (the recorded invocation) |
+| `reports/trace/trace_report.json` | `make trace-report` | `reqs trace --format json` over the whole chain: per-pair matrices, the merged verification view, gate diagnostics, recorded command |
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
@@ -78,9 +79,10 @@ evidence links.
   assumptions on called subprograms are reported); the report says so.
 - The traceability items report only what the requirements tree *records*
   (waivers, `derived:` flags); that the CONOPS → HLR → LLR chain actually
-  holds is `make validate-reqs`'s verdict, which `make report` runs as a
-  prerequisite — invoking `vreport` directly skips that gate. Each source is
-  tracked separately: a missing `trace_waivers.yaml` or `requirements/hlr/`
-  renders as a review item, never as a green "none".
-- Requirement-level traceability rendering is partial pending the trace-chain
-  work (`workflow/verification-report/plan.md`, phase 4).
+  holds is `make validate-reqs`'s verdict, and down to the code
+  `make trace-check`'s. Neither gates `make report` — gaps render as open items
+  with their diagnostics, so a report is available part-way through a project —
+  but `validate-reqs-corpus` (schema + EARS) does, since an unparseable corpus
+  yields `corpus_valid: false` and no matrices. Each source is tracked
+  separately: a missing `trace_waivers.yaml` or `requirements/hlr/` renders as a
+  review item, never as a green "none".

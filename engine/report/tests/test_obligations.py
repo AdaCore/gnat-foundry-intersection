@@ -15,6 +15,7 @@ from vreport.model import (
     Evidence,
     GitInfo,
     GnatproveHeader,
+    MethodFacet,
     Obligation,
     ObligationStats,
     ObligationStatus,
@@ -23,13 +24,21 @@ from vreport.model import (
     Sloc,
     SparkModeEntry,
     TraceabilityEvidence,
+    TraceDiagnostic,
+    TracePair,
+    TraceReport,
+    TraceRow,
     UnitAnalysis,
+    VerificationMatrix,
+    VerificationRow,
 )
 from vreport.obligations import (
     ViolationClass,
     build_obligations,
     classify_violation,
     open_claims,
+    open_trace_items,
+    review_verified_rows,
     toolchain_note,
 )
 
@@ -51,6 +60,9 @@ def _by_anchor(obligations: list[Obligation]) -> dict[str, Obligation]:
 _COMPLETE = UnitAnalysis(unit="pkg", progress="PROGRESS_PROOF", stop_reason="STOP_REASON_NONE")
 
 
+_CLEAN_REPORT = TraceReport(complete=True, corpus_valid=True)
+
+
 def _evidence(
     proof: ProofEvidence | None = None,
     coverage: CoverageEvidence | None = None,
@@ -62,7 +74,7 @@ def _evidence(
         coverage=coverage if coverage is not None else CoverageEvidence(level="stmt"),
         traceability=traceability
         if traceability is not None
-        else TraceabilityEvidence(waivers_found=True, hlr_found=True),
+        else TraceabilityEvidence(waivers_found=True, hlr_found=True, report=_CLEAN_REPORT),
         git=GitInfo(commit="abc", branch="main", dirty=False),
     )
 
@@ -169,9 +181,10 @@ def test_statuses_on_fixture_evidence(evidence: Evidence) -> None:
         "proof-claims",
         "coverage-violations",
         "coverage-exemptions",
+        "traceability-gaps",  # the fixture report carries open items
+        "traceability-verification",  # ...and a review-verified statement
         "traceability-waivers",
         "traceability-derived",
-        "traceability",
         "traceability-conops",
         "provenance-tools",
     }
@@ -197,13 +210,15 @@ def test_statuses_on_clean_evidence() -> None:
         "proof-claims",
         "coverage-violations",
         "coverage-exemptions",
+        "traceability-gaps",
+        "traceability-verification",
         "traceability-waivers",
         "traceability-derived",
         "provenance-git",
     }
     for anchor in machine_ok:
         assert by_anchor[anchor].status is ObligationStatus.ok, anchor
-    always_review = {"traceability", "traceability-conops", "provenance-tools"}
+    always_review = {"traceability-conops", "provenance-tools"}
     for anchor in always_review:
         assert by_anchor[anchor].status is ObligationStatus.review, anchor
     # No recorded command line means the forced-run claim cannot be made.
@@ -364,3 +379,118 @@ def test_items_are_capped(evidence: Evidence) -> None:
     ob = _by_anchor(build_obligations(ev))["coverage-violations"]
     assert len(ob.items) == 41
     assert "and 20 more" in ob.items[-1]
+
+
+def test_trace_fixture_open_items_and_review_rows(trace_report: TraceReport) -> None:
+    """The fixture report yields exactly its red rows as open, review rows as reviewed."""
+    opened = open_trace_items(trace_report)
+    assert [(where, row.node, row.status) for where, row in opened] == [
+        ("LLR verification", "llr_x.3", "UNCOVERED"),
+        ("CONOPS → HLR", "3.1", "UNCOVERED"),
+        ("HLR → CONOPS", "hlr_x.3", "DANGLING"),
+    ]
+    reviewed = review_verified_rows(trace_report)
+    assert [(layer, row.node) for layer, row in reviewed] == [("LLR", "llr_x.2")]
+
+
+def test_trace_gaps_obligation_flags_open_items(evidence: Evidence) -> None:
+    """Open matrix rows and rowless gate findings become one review obligation."""
+    ob = _by_anchor(build_obligations(evidence))["traceability-gaps"]
+    assert ob.status is ObligationStatus.review
+    assert "4 open items" in ob.title  # 3 open rows + the rowless waiver lint
+    assert "3 gate errors" in ob.title
+    for node in ("3.1", "hlr_x.3", "llr_x.3"):
+        assert any(f"`{node}`" in item for item in ob.items), node
+    assert any("W-TRACE-WAIVER-REDUNDANT" in item for item in ob.items)
+
+
+def test_review_verified_statements_become_review_items(evidence: Evidence) -> None:
+    """Review-verified statements are listed with their recorded justification."""
+    ob = _by_anchor(build_obligations(evidence))["traceability-verification"]
+    assert ob.status is ObligationStatus.review
+    assert ob.title == "Review-verified requirements: 1"
+    (item,) = ob.items
+    assert "llr_x.2" in item
+    assert "MUTCD" in item
+
+
+def test_missing_trace_report_forces_review() -> None:
+    """No trace report is absence of evidence, never a green tick."""
+    by_anchor = _by_anchor(
+        build_obligations(_evidence(traceability=TraceabilityEvidence(report=None)))
+    )
+    ob = by_anchor["traceability-gaps"]
+    assert ob.status is ObligationStatus.review
+    assert "not found" in ob.title
+    assert by_anchor["traceability-verification"].status is ObligationStatus.review
+
+
+def test_invalid_corpus_forces_review_with_diagnostics() -> None:
+    """An unanalyzable corpus surfaces its diagnostics instead of matrices."""
+    report = TraceReport(
+        corpus_valid=False,
+        errors=1,
+        diagnostics=[
+            TraceDiagnostic(level="error", code="E-YAML", message="parse error", file="llr_x.yaml")
+        ],
+    )
+    by_anchor = _by_anchor(
+        build_obligations(_evidence(traceability=TraceabilityEvidence(report=report)))
+    )
+    ob = by_anchor["traceability-diagnostics"]
+    assert ob.status is ObligationStatus.review
+    assert "corpus invalid" in ob.title
+    assert any("E-YAML" in item for item in ob.items)
+
+
+def test_gate_warnings_alone_keep_the_gaps_obligation_under_review() -> None:
+    """Warning-level gate findings (waiver lint) must not render green."""
+    report = TraceReport(
+        complete=True,
+        corpus_valid=True,
+        warnings=1,
+        diagnostics=[
+            TraceDiagnostic(
+                level="warning",
+                code="W-TRACE-WAIVER-REDUNDANT",
+                message="waiver names '2.1', but it is covered",
+                file="trace_waivers.yaml",
+            )
+        ],
+    )
+    ob = _by_anchor(build_obligations(_evidence(traceability=TraceabilityEvidence(report=report))))[
+        "traceability-gaps"
+    ]
+    assert ob.status is ObligationStatus.review
+    assert any("W-TRACE-WAIVER-REDUNDANT" in item for item in ob.items)
+
+
+def test_unknown_row_status_counts_as_open() -> None:
+    """A status this consumer has never seen surfaces as a finding, not silence."""
+    report = TraceReport(
+        corpus_valid=True,
+        pairs=[
+            TracePair(
+                upper="A",
+                lower="B",
+                upper_rows=[
+                    TraceRow(node="a.1", status="SOMETHING-NEW"),
+                    TraceRow(node="a.2", status="WAIVED", detail="reason"),
+                ],
+            )
+        ],
+        verification=[
+            VerificationMatrix(
+                layer="A",
+                rows=[
+                    VerificationRow(
+                        node="a.3",
+                        status="REVIEW",
+                        methods=[MethodFacet(method="review", status="REVIEW", evidence=["ok"])],
+                    )
+                ],
+            )
+        ],
+    )
+    opened = open_trace_items(report)
+    assert [(where, row.node) for where, row in opened] == [("A → B", "a.1")]

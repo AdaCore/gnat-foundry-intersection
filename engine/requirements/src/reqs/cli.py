@@ -5,6 +5,7 @@
     reqs validate ears   [PATHS...]            # EARS grammar
     reqs trace --chain FILE [--format table]   # traceability across the chain
     reqs trace --chain FILE --layers A,B       # ...over a subset of its layers
+    reqs trace --chain FILE --format json      # machine-readable trace report
 
 With no PATHS, a validate command targets the default requirement set (the
 curated examples for now). Future top-level commands (e.g. `reqs report`) attach
@@ -13,6 +14,10 @@ to the same app.
 
 from __future__ import annotations
 
+import json
+import shlex
+import sys
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 
@@ -29,6 +34,7 @@ class OutputFormat(StrEnum):
 
     text = "text"  # diagnostics (the CI gate)
     table = "table"  # coverage / upward-trace tables for development
+    json = "json"  # machine-readable report (for report generators)
 
 
 app = typer.Typer(help="Requirements tooling for the requirement YAML files.", no_args_is_help=True)
@@ -39,8 +45,14 @@ _PATHS = typer.Argument(..., help="Files or directories to check.")
 _QUIET = typer.Option(False, "--quiet", "-q", help="Suppress warnings.")
 _CHAIN = typer.Option(..., "--chain", help="Trace-chain config file (e.g. trace_chain.yaml).")
 _FORMAT = typer.Option(
-    OutputFormat.text, "--format", help="Output: 'text' (diagnostics) or 'table'."
+    OutputFormat.text,
+    "--format",
+    help=(
+        "Output: 'text' (diagnostics), 'table' (dev tables), or 'json' (machine-readable "
+        "report; exits 0 once written -- the verdict travels inside the payload)."
+    ),
 )
+_OUTPUT = typer.Option(None, "--output", "-o", help="Write the json report here instead of stdout.")
 _TRACE_COMPLETE = typer.Option(
     False, "--complete", help="Treat an uncovered upper-layer node as an error (the CI gate)."
 )
@@ -85,9 +97,12 @@ def trace(
     complete: bool = _TRACE_COMPLETE,
     layers_option: str | None = _TRACE_LAYERS,
     output: OutputFormat = _FORMAT,
+    output_path: Path | None = _OUTPUT,
     quiet: bool = _QUIET,
 ) -> None:
     """Check traceability across the chain: dangling/untraced refs and uncovered nodes."""
+    if output_path is not None and output is not OutputFormat.json:
+        raise typer.BadParameter("--output applies only to --format json")
     layers = load_chain(chain)
     select_diags: list[Diagnostic] = []
     if layers_option is not None:
@@ -97,6 +112,28 @@ def trace(
     if select_diags:
         raise typer.Exit(report(select_diags, req_paths, quiet=quiet))
     checker = TraceChecker(layers, complete=complete)
+    if output is OutputFormat.json:
+        # Producing the report is not the gate (`text` is): exit 0 once it is
+        # written, so a chain full of gaps still yields the evidence describing
+        # them. The verdict is in the payload (`errors`/`warnings`/`corpus_valid`).
+        argv = ["reqs", "trace", "--chain", str(chain)]
+        argv += ["--complete"] if complete else []
+        argv += ["--layers", layers_option] if layers_option is not None else []
+        argv += ["--quiet"] if quiet else []
+        argv += ["--format", "json"]
+        argv += ["--output", str(output_path)] if output_path is not None else []
+        payload = checker.to_report(
+            chain=chain,
+            command=shlex.join(argv),
+            generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),
+        )
+        text = json.dumps(payload, indent=2) + "\n"
+        if output_path is None:
+            sys.stdout.write(text)
+        else:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(text, encoding="utf-8")
+        raise typer.Exit(0)
     diags = checker.check()
     if output is OutputFormat.table:
         checker.print_tables()

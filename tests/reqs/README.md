@@ -21,8 +21,8 @@ The rules below are the review criteria for adding one.
 
 3. **One routine per statement**, named `Test_<nn>_<behaviour_phrase>` with the
    statement number zero-padded. The `--@covers <llr_file_stem>.<nn>` tag is the
-   first line of the body and names exactly one statement. Nothing enforces
-   these tags yet — see #106 — so review is the only gate.
+   first line of the body and names exactly one statement. `make trace-check`
+   resolves these tags (#106); review checks the one-statement rule.
 
 4. **Exhaustive over finite domains.** The state and input alphabets are
    enumerations; enumerate them. There is no sampling or partitioning to do.

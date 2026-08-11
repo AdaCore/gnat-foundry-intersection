@@ -13,7 +13,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from vreport.mdtext import inline
+from vreport.mdtext import code_span, count, inline
 from vreport.model import (
     PARTIALLY_COVERED,
     UNDETERMINED,
@@ -31,6 +31,10 @@ if TYPE_CHECKING:
         CoverageViolation,
         Evidence,
         ProofEvidence,
+        TraceDiagnostic,
+        TraceReport,
+        TraceRow,
+        VerificationRow,
     )
 
 _MAX_ITEMS = 40
@@ -402,8 +406,156 @@ def _coverage_obligations(ev: Evidence, b: _Builder) -> None:
     )
 
 
+def open_trace_items(report: TraceReport) -> list[tuple[str, TraceRow | VerificationRow]]:
+    """
+    Collect the open rows of every trace matrix, each with a where-label.
+
+    Open means a status outside `SETTLED_TRACE_STATUSES`: work the chain still
+    owes, as opposed to rows that are covered, waived, derived,
+    review-verified, or expected under a partial-coverage layer.
+    """
+    items: list[tuple[str, TraceRow | VerificationRow]] = []
+    for matrix in report.verification:
+        items.extend((f"{matrix.layer} verification", row) for row in matrix.rows if row.is_open)
+    for pair in report.pairs:
+        items.extend((f"{pair.upper} → {pair.lower}", r) for r in pair.upper_rows if r.is_open)
+        items.extend((f"{pair.lower} → {pair.upper}", r) for r in pair.lower_rows if r.is_open)
+    return items
+
+
+# Gate diagnostic codes whose finding is some matrix row's open status: the row
+# is the open item, and repeating its diagnostic would double-count the gap.
+# Fail-safe mapping: a code outside this set — including ones this consumer has
+# never seen — is treated as rowless and surfaces as an open item of its own.
+ROW_BACKED_TRACE_CODES = frozenset(
+    {
+        "E-TRACE-UNCOVERED",
+        "W-TRACE-UNCOVERED",
+        "E-TRACE-DANGLING",
+        "E-TRACE-UNTRACED",
+        "E-TRACE-UNVERIFIED",
+        "E-TRACE-UNSELECTED",
+        "E-TRACE-METHOD",
+    }
+)
+
+
+def rowless_trace_findings(report: TraceReport) -> list[TraceDiagnostic]:
+    """Gate findings with no matrix row (waiver lint, ignored check tags): open items too."""
+    return [d for d in report.diagnostics if d.code not in ROW_BACKED_TRACE_CODES]
+
+
+def review_verified_rows(report: TraceReport) -> list[tuple[str, VerificationRow]]:
+    """Statements whose declared verification includes `review`, with their layer."""
+    return [
+        (matrix.layer, row)
+        for matrix in report.verification
+        for row in matrix.rows
+        if row.review_facets
+    ]
+
+
+def _trace_item(where: str, row: TraceRow | VerificationRow) -> str:
+    """Render one open matrix row as a checklist item."""
+    detail = f" ({inline(row.detail)})" if row.detail and row.detail != "—" else ""
+    return f"{where}: {code_span(row.node)} — {inline(row.status)}{detail}"
+
+
+def _diag_item(diag: TraceDiagnostic) -> str:
+    """Render one gate diagnostic as a checklist item."""
+    return f"{code_span(diag.location)} — {inline(diag.code)}: {inline(diag.message)}"
+
+
+def _trace_gap_obligation(report: TraceReport | None, b: _Builder) -> None:
+    """Add the headline traceability obligation: what the chain still owes."""
+    # Missing or unanalyzable evidence must not render green.
+    if report is None:
+        b.add(
+            "Traceability gaps: trace report not found",
+            "traceability-gaps",
+            "No trace report was collected, so nothing can be claimed about the "
+            "requirement chain's coverage — regenerate with `make trace-report`.",
+            review=True,
+        )
+        return
+    if not report.corpus_valid:
+        b.add(
+            "Traceability gaps: unknown (corpus invalid)",
+            "traceability-diagnostics",
+            "`reqs trace` could not analyze the chain (broken chain config or "
+            "requirement corpus), so the matrices are omitted rather than "
+            "fabricated. Fix the diagnostics and regenerate with `make trace-report`.",
+            review=True,
+            items=[_diag_item(d) for d in report.diagnostics],
+        )
+        return
+    open_items = open_trace_items(report)
+    rowless = rowless_trace_findings(report)
+    counts = f"{count(report.errors, 'gate error')}, {count(report.warnings, 'warning')}"
+    clean = not (open_items or rowless or report.errors or report.warnings)
+    b.add(
+        f"Traceability gaps: {count(len(open_items) + len(rowless), 'open item')} ({counts})"
+        if not clean
+        else "Traceability gaps: none",
+        "traceability-gaps",
+        (
+            "Every requirement of the chain is covered, traced, and verified as "
+            "declared; the `reqs trace --complete` gate agrees (no errors or "
+            "warnings)."
+            if clean
+            else "These are open work: matrix rows without their declared "
+            "evidence, dangling or untraced references, statements declaring "
+            "no verification method — plus gate findings with no matrix row "
+            "(waiver lint, ignored check tags). Each must be closed (or waived "
+            "with a reason) before the chain's coverage claim stands."
+        ),
+        review=not clean,
+        items=(
+            [_trace_item(where, row) for where, row in open_items]
+            + [_diag_item(d) for d in rowless]
+            or [_diag_item(d) for d in report.diagnostics]
+        ),
+    )
+
+
 def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
-    """Obligations derived from the requirements chain (partial, see plan)."""
+    """Obligations derived from the requirements chain and its trace report."""
+    report = ev.traceability.report
+    _trace_gap_obligation(report, b)
+
+    if report is None or not report.corpus_valid:
+        b.add(
+            "Review-verified requirements: unknown",
+            "traceability-verification",
+            "Without an analyzable trace report the statements relying on human "
+            "review cannot be enumerated — regenerate with `make trace-report`.",
+            review=True,
+        )
+    else:
+        reviewed = review_verified_rows(report)
+        b.add(
+            f"Review-verified requirements: {len(reviewed)}"
+            if reviewed
+            else "Review-verified requirements: none",
+            "traceability-verification",
+            (
+                "These statements declare `review` as a verification method: a "
+                "recorded human argument stands in for machine evidence. Confirm "
+                "each justification still holds."
+                if reviewed
+                else "No statement substitutes human review for machine evidence."
+            ),
+            review=bool(reviewed),
+            items=[
+                f"{layer} `{row.node}` — review: "
+                + (
+                    inline("; ".join(e for m in row.review_facets for e in m.evidence))
+                    or "(no justification recorded)"
+                )
+                for layer, row in reviewed
+            ],
+        )
+
     # Empty-because-absent must not render as OK; each source vouches only for itself.
     waivers = ev.traceability.waivers
     waivers_missing = not ev.traceability.waivers_found
@@ -451,16 +603,6 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
         ),
         review=hlr_missing or bool(derived),
         items=[f"{inline(d.ident)} — {inline(d.text)}" for d in derived],
-    )
-
-    b.add(
-        "Traceability below LLR is not machine-checked",
-        "traceability",
-        "The mechanical chain covers CONOPS → HLR → LLR (`make validate-reqs`). "
-        "Requirement-to-code and requirement-to-test links are not yet verified: "
-        "treat `implemented_by` references and requirement IDs in code or test "
-        "comments as unchecked claims (planned work, plan phase 4).",
-        review=True,
     )
 
     b.add(

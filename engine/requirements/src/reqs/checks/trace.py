@@ -18,6 +18,8 @@ anything to say about the other. The engine runs the same checks over every
                              waiver excuses (warning; error under --complete).
                              A ``method`` layer covers only nodes declaring it.
   E-TRACE-UNVERIFIED       : a method-verified node declaring no method.
+  E-TRACE-UNSELECTED       : a node declaring a method no selected layer
+                             verifies -- its evidence cannot be checked here.
   E-TRACE-METHOD           : coverage contradicting the covered node's method.
   E-TRACE-CHECK-IGNORED    : a tagged check no ada-checks layer's anchors accept.
   E-TRACE-CHECK-EMPTY      : a ``--@covers`` tag on a check citing nothing at all.
@@ -246,18 +248,115 @@ class TraceChecker:
 
     def check(self) -> list[Diagnostic]:
         """Check every (parent, child) pair of the chain; return any diagnostics."""
+        diags, _loaded, _analyzed, _valid = self._gather()
+        return diags
+
+    def _gather(
+        self,
+    ) -> tuple[list[Diagnostic], list[_Loaded], list[tuple[_Loaded, _Pair]], bool]:
+        """
+        Load the chain, analyze every pair, and collect every diagnostic.
+
+        Returns ``(diags, loaded, analyzed, corpus_valid)``. When the chain
+        config or the corpus itself is invalid, analysis stops early and
+        ``analyzed`` is empty: traceability over a broken corpus would be
+        meaningless.
+        """
         diags = _config_diagnostics(self.layers)
         if diags:
-            return diags  # the chain config itself is wrong; don't guess at intent
+            return diags, [], [], False  # the chain config itself is wrong; don't guess at intent
         loaded = [self._load(layer, diags) for layer in self.layers]
         pairs = _pairs(loaded, diags)
         if any(d.level == "error" for d in diags):
-            return diags  # corpus isn't valid; traceability over it is meaningless
+            return diags, loaded, [], False
         diags.extend(self._unverified_diagnostics(pairs))
         diags.extend(self._check_diagnostics(loaded))
-        for upper, lower in pairs:
-            diags.extend(self._diagnostics(_analyze(upper, lower)))
-        return diags
+        analyzed = [(upper, _analyze(upper, lower)) for upper, lower in pairs]
+        for _upper, pair in analyzed:
+            diags.extend(self._diagnostics(pair))
+        return diags, loaded, analyzed, True
+
+    def to_report(
+        self, *, chain: Path, command: str | None = None, generated_at: str | None = None
+    ) -> dict[str, object]:
+        """
+        Build the machine-readable trace report (the ``--format json`` payload).
+
+        The rows are the very rows the tables render and the diagnostics the
+        very diagnostics `check` reports, so over a valid corpus the three
+        views cannot disagree (`print_tables` still draws best-effort tables
+        over an invalid one; this report omits them instead). The verdict
+        travels *inside* the payload (``errors`` / ``warnings`` /
+        ``corpus_valid``): a consumer renders the gaps, it does not re-judge
+        them.
+        """
+        diags, loaded, analyzed, corpus_valid = self._gather()
+        by_name = {item.layer.name: item for item in loaded}
+        layers: list[dict[str, object]] = [
+            {
+                "name": layer.name,
+                "kind": layer.kind,
+                "path": str(layer.path),
+                "parent": layer.parent,
+                "method": layer.method,
+                "partial_coverage": layer.partial_coverage,
+                "refs_point_down": layer.refs_point_down,
+                "ref_field": layer.ref_field,
+                "node_count": (
+                    sum(1 for _ in by_name[layer.name].reqset.all_statements())
+                    if layer.name in by_name
+                    else None
+                ),
+            }
+            for layer in self.layers
+        ]
+        pairs_out: list[dict[str, object]] = []
+        verification_out: list[dict[str, object]] = []
+        merged: set[str] = set()
+        for upper, pair in analyzed:
+            method = pair.lower.layer.method
+            if pair.refs_point_down:
+                upper_rows, lower_rows = _forward_rows(pair), _required_rows(pair)
+            elif method is not None:
+                # The upper side of a method pair lives in `verification`.
+                upper_rows, lower_rows = [], _upward_rows(pair)
+            else:
+                upper_rows, lower_rows = _coverage_rows(pair), _upward_rows(pair)
+            pairs_out.append(
+                {
+                    "upper": upper.layer.name,
+                    "lower": pair.lower.layer.name,
+                    "refs_point_down": pair.refs_point_down,
+                    "partial_coverage": pair.lower.layer.partial_coverage,
+                    "method": method,
+                    "ref_field": pair.lower.layer.ref_field,
+                    "upper_rows": [_row_dict(r) for r in upper_rows],
+                    "lower_rows": [_row_dict(r) for r in lower_rows],
+                }
+            )
+            if method is not None and upper.layer.name not in merged:
+                merged.add(upper.layer.name)
+                rows = _verification_rows(upper, _method_pairs(analyzed, upper.layer.name))
+                verification_out.append(
+                    {
+                        "layer": upper.layer.name,
+                        "rows": [_verification_row_dict(r) for r in rows],
+                    }
+                )
+        return {
+            "schema_version": TRACE_REPORT_SCHEMA_VERSION,
+            "chain": str(chain),
+            "command": command,
+            "generated_at": generated_at,
+            "complete": self.complete,
+            "corpus_valid": corpus_valid,
+            "errors": sum(1 for d in diags if d.level == "error"),
+            "warnings": sum(1 for d in diags if d.level == "warning"),
+            "layers": layers,
+            "pairs": pairs_out,
+            "verification": verification_out,
+            "diagnostics": [_diag_dict(d) for d in diags],
+        }
 
     @staticmethod
     def _check_diagnostics(loaded: list[_Loaded]) -> list[Diagnostic]:
@@ -305,7 +404,19 @@ class TraceChecker:
 
     @staticmethod
     def _unverified_diagnostics(pairs: list[tuple[_Loaded, _Loaded]]) -> list[Diagnostic]:
-        """Report nodes declaring no method, once per method-verified upper layer."""
+        """
+        Report unverifiable statements, once per method-verified upper layer.
+
+        Two ways a declaration can discharge nothing: the statement declares no
+        method at all (E-TRACE-UNVERIFIED), or it declares one that no selected
+        layer verifies (E-TRACE-UNSELECTED) -- without a layer for the method,
+        its evidence is never checked, and silence would read as verified.
+        `review` needs no layer: it carries no machine evidence.
+        """
+        provided: dict[str, set[str]] = {}
+        for upper, lower in pairs:
+            if lower.layer.method is not None:
+                provided.setdefault(upper.layer.name, set()).add(lower.layer.method)
         out: list[Diagnostic] = []
         checked: set[str] = set()
         for upper, lower in pairs:
@@ -313,19 +424,33 @@ class TraceChecker:
                 continue
             checked.add(upper.layer.name)
             for nid, statement in upper.reqset.all_statements():
-                if statement.verification_methods:
-                    continue
+                methods = statement.verification_methods
                 file, line, loc = upper.reqset.loc_of(nid)
-                out.append(
+                if not methods:
+                    out.append(
+                        Diagnostic(
+                            "error",
+                            "E-TRACE-UNVERIFIED",
+                            f"{upper.layer.name} {nid!r} declares no verification method "
+                            f"(one of: {', '.join(VERIFICATION_METHODS)})",
+                            file,
+                            line=line,
+                            path=loc,
+                        )
+                    )
+                    continue
+                out.extend(
                     Diagnostic(
                         "error",
-                        "E-TRACE-UNVERIFIED",
-                        f"{upper.layer.name} {nid!r} declares no verification method "
-                        f"(one of: {', '.join(VERIFICATION_METHODS)})",
+                        "E-TRACE-UNSELECTED",
+                        f"{upper.layer.name} {nid!r} declares verification {method!r}, "
+                        f"but no selected layer verifies {method!r}",
                         file,
                         line=line,
                         path=loc,
                     )
+                    for method in methods
+                    if method != "review" and method not in provided[upper.layer.name]
                 )
         return out
 
@@ -350,12 +475,7 @@ class TraceChecker:
                 continue
             if upper.layer.name not in merged:
                 merged.add(upper.layer.name)
-                method_pairs = [
-                    p
-                    for u, p in analyzed
-                    if p.lower.layer.method is not None and u.layer.name == upper.layer.name
-                ]
-                console.print(_verification_table(upper, method_pairs))
+                console.print(_verification_table(upper, _method_pairs(analyzed, upper.layer.name)))
             console.print(_upward_table(pair))
 
     # -- loading -------------------------------------------------------------
@@ -363,7 +483,14 @@ class TraceChecker:
     def _load(self, layer: Layer, diags: list[Diagnostic]) -> _Loaded:
         waived = self._load_waivers(layer, diags)
         if layer.kind == MARKDOWN_LEAVES:
-            return _Loaded(layer, ConopsSet.load(layer.path), waived, layer.waivers)
+            try:
+                leaves = ConopsSet.load(layer.path)
+            except (OSError, UnicodeDecodeError) as exc:
+                diags.append(
+                    Diagnostic("error", "E-IO", f"cannot read leaf document: {exc}", layer.path)
+                )
+                leaves = ConopsSet(layer.path, {})
+            return _Loaded(layer, leaves, waived, layer.waivers)
         if layer.kind == REQUIREMENT_YAML:
             reqset, load_diags = RequirementSet.load([layer.path])
             diags.extend(load_diags)
@@ -594,12 +721,28 @@ def _ref_field_messages(layers: list[Layer], index: int) -> list[str]:
     return out
 
 
+# A chain needs an upper and a lower layer before there is anything to trace.
+_MIN_CHAIN_LAYERS = 2
+
+
 def _config_diagnostics(layers: list[Layer]) -> list[Diagnostic]:
     """Reject inconsistent layer config, which would silently check less than intended."""
     out: list[Diagnostic] = []
 
     def bad(layer: Layer, message: str) -> None:
         out.append(Diagnostic("error", "E-TRACE-CONFIG", message, layer.path))
+
+    # A chain of fewer than two layers has no pair to check: passing it (or
+    # reporting it as fully traced) would be silently checking nothing.
+    if len(layers) < _MIN_CHAIN_LAYERS:
+        out.append(
+            Diagnostic(
+                "error",
+                "E-TRACE-CONFIG",
+                f"chain defines {len(layers)} layer(s); tracing needs at least two",
+                layers[0].path if layers else Path(),
+            )
+        )
 
     for index, layer in enumerate(layers):
         for message in _ref_field_messages(layers, index):
@@ -731,6 +874,227 @@ def _analyze_downward(upper: _Loaded, lower: _Loaded) -> _Pair:
     return pair
 
 
+# -- matrix rows (shared by the printed tables and the JSON report) -----------
+
+
+TRACE_REPORT_SCHEMA_VERSION = 1
+
+
+@dataclass
+class Row:
+    """One matrix row: a node, its status, and the refs or prose behind it."""
+
+    node: str
+    status: str
+    refs: list[str] = field(default_factory=list)
+    prose: str | None = None  # non-ref detail: a waiver reason
+
+    @property
+    def detail(self) -> str:
+        """The Detail cell of the rendered row."""
+        if self.prose is not None:
+            return self.prose
+        return ", ".join(self.refs) if self.refs else "—"
+
+
+@dataclass
+class MethodEvidence:
+    """One method's evidence cited for one statement (a verification-row facet)."""
+
+    method: str
+    status: str  # OK | UNCOVERED | REVIEW | MISMATCH | UNSELECTED
+    evidence: list[str] = field(default_factory=list)
+
+    @property
+    def detail(self) -> str:
+        """Render this facet's contribution to the row's Evidence cell."""
+        if self.status == "UNSELECTED":
+            return f"{self.method}: (layer not selected)"
+        if self.status == "MISMATCH":
+            return f"{self.method}: {', '.join(self.evidence)} (not declared)"
+        return f"{self.method}: {', '.join(self.evidence) or '—'}"
+
+
+@dataclass
+class VerificationRow:
+    """One statement's verification row: worst status plus per-method facets."""
+
+    node: str
+    status: str
+    methods: list[MethodEvidence] = field(default_factory=list)
+    prose: str | None = None  # non-evidence detail: a waiver reason
+
+    @property
+    def detail(self) -> str:
+        """The Evidence cell of the rendered row."""
+        if self.prose is not None:
+            return self.prose
+        return "; ".join(m.detail for m in self.methods) or "—"
+
+
+def _coverage_rows(pair: _Pair) -> list[Row]:
+    """Rows of the coverage table: each upper node and what covers it."""
+    rows: list[Row] = []
+    for nid, _statement in pair.upper.reqset.all_statements():
+        if nid in pair.coverage:
+            rows.append(Row(nid, "OK", refs=list(pair.coverage[nid])))
+        elif nid in pair.upper.waived:
+            rows.append(Row(nid, "WAIVED", prose=pair.upper.waived[nid] or "(waived)"))
+        elif pair.lower.layer.partial_coverage:
+            # Under partial coverage, uncovered is expected (accounted for elsewhere).
+            rows.append(Row(nid, "UNTESTED"))
+        else:
+            rows.append(Row(nid, "UNCOVERED"))
+    return rows
+
+
+def _upward_rows(pair: _Pair) -> list[Row]:
+    """Rows of the upward-trace table: each lower artifact and what it cites."""
+    rows: list[Row] = []
+    for nid, statement in pair.lower.reqset.all_statements():
+        if nid in pair.dangling:
+            rows.append(Row(nid, "DANGLING", refs=list(pair.dangling[nid])))
+        elif nid in pair.resolved:
+            rows.append(Row(nid, "OK", refs=list(pair.resolved[nid])))
+        elif statement.is_derived:
+            rows.append(Row(nid, "DERIVED"))
+        else:
+            rows.append(Row(nid, "UNTRACED"))
+    return rows
+
+
+def _forward_rows(pair: _Pair) -> list[Row]:
+    """Rows of a down pair's forward table: each upper node and the code it names."""
+    _title, _header, unimplemented = _ref_field_labels(pair)
+    rows: list[Row] = []
+    for nid, _statement in pair.upper.reqset.all_statements():
+        if nid in pair.dangling:
+            rows.append(Row(nid, "DANGLING", refs=list(pair.dangling[nid])))
+        elif nid in pair.coverage:
+            rows.append(Row(nid, "OK", refs=list(pair.coverage[nid])))
+        elif nid in pair.upper.waived:
+            rows.append(Row(nid, "WAIVED", prose=pair.upper.waived[nid] or "(waived)"))
+        elif pair.lower.layer.partial_coverage:
+            # The expected status only under partial coverage; anywhere else the
+            # gate flags the node UNCOVERED, and the row must say the same.
+            rows.append(Row(nid, unimplemented))
+        else:
+            rows.append(Row(nid, "UNCOVERED"))
+    return rows
+
+
+def _required_rows(pair: _Pair) -> list[Row]:
+    """Rows of a down pair's required-by table: each lower node and who names it."""
+    rows: list[Row] = []
+    for nid, _statement in pair.lower.reqset.all_statements():
+        if nid in pair.resolved:
+            rows.append(Row(nid, "OK", refs=list(pair.resolved[nid])))
+        else:
+            # Code no requirement names: a helper, the HAL, a test fixture.
+            rows.append(Row(nid, "UNREQUIRED"))
+    return rows
+
+
+def _verification_facets(
+    nid: str, statement: object, by_method: dict[str, _Pair]
+) -> tuple[str, list[MethodEvidence]]:
+    """Worst status and per-method facets of one statement's verification row."""
+    declared: tuple[str, ...] = statement.verification_methods  # type: ignore[attr-defined]
+    facets: list[MethodEvidence] = []
+    worst = "OK"
+
+    def bump(status: str) -> None:
+        nonlocal worst
+        if _VERIFICATION_SEVERITY.index(status) > _VERIFICATION_SEVERITY.index(worst):
+            worst = status
+
+    for method in declared:
+        pair = by_method.get(method)
+        if method == "review":
+            justification = statement.justification_for(method)  # type: ignore[attr-defined]
+            facets.append(
+                MethodEvidence(method, "REVIEW", [justification] if justification else [])
+            )
+            bump("REVIEW")
+        elif pair is None:
+            # No layer verifies this method here: unknown, which must not
+            # aggregate to OK (an unchecked declaration is not evidence).
+            facets.append(MethodEvidence(method, "UNSELECTED"))
+            bump("UNSELECTED")
+        elif nid in pair.coverage:
+            facets.append(MethodEvidence(method, "OK", list(pair.coverage[nid])))
+        else:
+            facets.append(MethodEvidence(method, "UNCOVERED"))
+            bump("UNCOVERED")
+    # Evidence in a layer whose method the statement does not declare: drift.
+    for stray, stray_pair in by_method.items():
+        if stray not in declared and nid in stray_pair.coverage:
+            facets.append(MethodEvidence(stray, "MISMATCH", list(stray_pair.coverage[nid])))
+            bump("MISMATCH")
+    if not declared:
+        return "UNVERIFIED", facets
+    return worst, facets
+
+
+def _verification_rows(upper: _Loaded, pairs: list[_Pair]) -> list[VerificationRow]:
+    """
+    Rows of the one verification table of a parent layer.
+
+    The method layers are facets of a single relation -- each statement versus
+    the evidence its declared methods require -- so they merge into one row per
+    statement instead of one table per method.
+    """
+    by_method: dict[str, _Pair] = {}
+    for pair in pairs:
+        if pair.lower.layer.method is not None:
+            by_method[pair.lower.layer.method] = pair
+    rows: list[VerificationRow] = []
+    for nid, statement in upper.reqset.all_statements():
+        if nid in upper.waived:
+            rows.append(VerificationRow(nid, "WAIVED", prose=upper.waived[nid] or "(waived)"))
+            continue
+        status, facets = _verification_facets(nid, statement, by_method)
+        rows.append(VerificationRow(nid, status, facets))
+    return rows
+
+
+def _method_pairs(analyzed: list[tuple[_Loaded, _Pair]], upper_name: str) -> list[_Pair]:
+    """Select the method pairs hanging off one parent layer (the verification facets)."""
+    return [
+        p for u, p in analyzed if p.lower.layer.method is not None and u.layer.name == upper_name
+    ]
+
+
+def _row_dict(row: Row) -> dict[str, object]:
+    """Serialize one matrix row for the JSON report."""
+    return {"node": row.node, "status": row.status, "refs": list(row.refs), "detail": row.detail}
+
+
+def _verification_row_dict(row: VerificationRow) -> dict[str, object]:
+    """Serialize one verification row, keeping the per-method facets."""
+    return {
+        "node": row.node,
+        "status": row.status,
+        "detail": row.detail,
+        "methods": [
+            {"method": m.method, "status": m.status, "evidence": list(m.evidence)}
+            for m in row.methods
+        ],
+    }
+
+
+def _diag_dict(diag: Diagnostic) -> dict[str, object]:
+    """Serialize one diagnostic for the JSON report."""
+    return {
+        "level": diag.level,
+        "code": diag.code,
+        "message": diag.message,
+        "file": str(diag.file),
+        "line": diag.line,
+        "path": list(diag.path),
+    }
+
+
 # -- rendering (point 2: colored, row-separated dev tables via rich) ----------
 
 
@@ -741,7 +1105,9 @@ def _terminal_width() -> int:
     return max(_MIN_WIDTH, shutil.get_terminal_size().columns)
 
 
-_RED_STATUSES = frozenset({"UNCOVERED", "UNTRACED", "DANGLING", "UNVERIFIED", "MISMATCH"})
+_RED_STATUSES = frozenset(
+    {"UNCOVERED", "UNTRACED", "DANGLING", "UNVERIFIED", "UNSELECTED", "MISMATCH"}
+)
 # Expected-and-accounted-for, not a gap (waived, derived, review-verified,
 # or partial coverage).
 _YELLOW_STATUSES = frozenset(
@@ -766,105 +1132,41 @@ def _new_table(title: str, id_header: str, detail_header: str) -> Table:
     return table
 
 
-def _coverage_status(pair: _Pair, nid: str) -> tuple[str, str]:
-    """Status and detail of one upper node's coverage row."""
-    if nid in pair.coverage:
-        return "OK", ", ".join(pair.coverage[nid])
-    if nid in pair.upper.waived:
-        return "WAIVED", pair.upper.waived[nid] or "(waived)"
-    # Under partial coverage, uncovered is expected (accounted for elsewhere).
-    return ("UNTESTED", "—") if pair.lower.layer.partial_coverage else ("UNCOVERED", "—")
+def _rows_table(title: str, id_header: str, detail_header: str, rows: list[Row]) -> Table:
+    """Render matrix rows into a rich table."""
+    table = _new_table(title, id_header, detail_header)
+    for row in rows:
+        table.add_row(row.node, row.status, row.detail, style=_severity_style(row.status))
+    return table
 
 
 def _upward_table(pair: _Pair) -> Table:
     """Build the lower layer's upward-trace table: what each artifact cites."""
     up, lo = pair.upper.layer.name, pair.lower.layer.name
-    upward = _new_table(f"{lo} → {up}  (upward trace)", lo, f"Traces to ({up})")
-    for nid, statement in pair.lower.reqset.all_statements():
-        if nid in pair.dangling:
-            status, detail = "DANGLING", ", ".join(pair.dangling[nid])
-        elif nid in pair.resolved:
-            status, detail = "OK", ", ".join(pair.resolved[nid])
-        elif statement.is_derived:
-            status, detail = "DERIVED", "—"
-        else:
-            status, detail = "UNTRACED", "—"
-        upward.add_row(nid, status, detail, style=_severity_style(status))
-    return upward
+    return _rows_table(f"{lo} → {up}  (upward trace)", lo, f"Traces to ({up})", _upward_rows(pair))
 
 
 # Aggregate row statuses of the verification table, worst last.
-_VERIFICATION_SEVERITY = ("OK", "REVIEW", "UNCOVERED", "MISMATCH")
-
-
-def _verification_status(
-    nid: str, statement: object, by_method: dict[str | None, _Pair]
-) -> tuple[str, str]:
-    """Status and per-method evidence of one statement's verification row."""
-    declared: tuple[str, ...] = statement.verification_methods  # type: ignore[attr-defined]
-    parts: list[str] = []
-    worst = "OK"
-
-    def bump(status: str) -> None:
-        nonlocal worst
-        if _VERIFICATION_SEVERITY.index(status) > _VERIFICATION_SEVERITY.index(worst):
-            worst = status
-
-    for method in declared:
-        pair = by_method.get(method)
-        if method == "review":
-            justification = statement.justification_for(method)  # type: ignore[attr-defined]
-            parts.append(f"review: {justification}")
-            bump("REVIEW")
-        elif pair is None:
-            parts.append(f"{method}: (layer not selected)")
-        elif nid in pair.coverage:
-            parts.append(f"{method}: {', '.join(pair.coverage[nid])}")
-        else:
-            parts.append(f"{method}: —")
-            bump("UNCOVERED")
-    # Evidence in a layer whose method the statement does not declare: drift.
-    for stray, pair in by_method.items():
-        if stray not in declared and nid in pair.coverage:
-            parts.append(f"{stray}: {', '.join(pair.coverage[nid])} (not declared)")
-            bump("MISMATCH")
-    if not declared:
-        return "UNVERIFIED", "; ".join(parts) or "—"
-    return worst, "; ".join(parts)
+_VERIFICATION_SEVERITY = ("OK", "REVIEW", "UNSELECTED", "UNCOVERED", "MISMATCH")
 
 
 def _verification_table(upper: _Loaded, pairs: list[_Pair]) -> Table:
-    """
-    Build the one verification table of a parent layer.
-
-    The method layers are facets of a single relation -- each statement versus
-    the evidence its declared methods require -- so they merge into one row per
-    statement instead of one table per method.
-    """
-    by_method = {pair.lower.layer.method: pair for pair in pairs}
+    """Build the one verification table of a parent layer (see `_verification_rows`)."""
     table = _new_table(
         f"{upper.layer.name} → VERIFICATION  (declared methods)", upper.layer.name, "Evidence"
     )
-    for nid, statement in upper.reqset.all_statements():
-        if nid in upper.waived:
-            status, detail = "WAIVED", upper.waived[nid] or "(waived)"
-        else:
-            status, detail = _verification_status(nid, statement, by_method)
-        table.add_row(nid, status, detail, style=_severity_style(status))
+    for row in _verification_rows(upper, pairs):
+        table.add_row(row.node, row.status, row.detail, style=_severity_style(row.status))
     return table
 
 
 def _pair_tables(pair: _Pair) -> list[Table]:
     if pair.refs_point_down:
         return _downward_tables(pair)
-
     up, lo = pair.upper.layer.name, pair.lower.layer.name
-
-    coverage = _new_table(f"{up} → {lo}  (coverage)", up, f"Covered by ({lo})")
-    for nid, _statement in pair.upper.reqset.all_statements():
-        status, detail = _coverage_status(pair, nid)
-        coverage.add_row(nid, status, detail, style=_severity_style(status))
-
+    coverage = _rows_table(
+        f"{up} → {lo}  (coverage)", up, f"Covered by ({lo})", _coverage_rows(pair)
+    )
     return [coverage, _upward_table(pair)]
 
 
@@ -873,6 +1175,12 @@ def _pair_tables(pair: _Pair) -> list[Table]:
 _REF_FIELD_LABELS = {
     "implemented_by": ("implementation", "Implemented by", "UNIMPLEMENTED"),
 }
+
+
+def _ref_field_labels(pair: _Pair) -> tuple[str, str, str]:
+    """Title suffix, detail header, and uncovered status of a down pair."""
+    field_name = pair.lower.layer.ref_field or "down refs"
+    return _REF_FIELD_LABELS.get(field_name, (field_name, field_name, "UNCOVERED"))
 
 
 def _downward_tables(pair: _Pair) -> list[Table]:
@@ -884,27 +1192,11 @@ def _downward_tables(pair: _Pair) -> list[Table]:
     directly.
     """
     up, lo = pair.upper.layer.name, pair.lower.layer.name
-    field = pair.lower.layer.ref_field or "down refs"
-    title, header, uncovered = _REF_FIELD_LABELS.get(field, (field, field, "UNCOVERED"))
-
-    forward = _new_table(f"{up} → {lo}  ({title})", up, f"{header} ({lo})")
-    for nid, _statement in pair.upper.reqset.all_statements():
-        if nid in pair.dangling:
-            status, detail = "DANGLING", ", ".join(pair.dangling[nid])
-        elif nid in pair.coverage:
-            status, detail = "OK", ", ".join(pair.coverage[nid])
-        else:
-            status, detail = uncovered, "—"
-        forward.add_row(nid, status, detail, style=_severity_style(status))
-
-    required = _new_table(f"{lo} → {up}  (required by)", lo, f"Required by ({up})")
-    for nid, _statement in pair.lower.reqset.all_statements():
-        if nid in pair.resolved:
-            status, detail = "OK", ", ".join(pair.resolved[nid])
-        else:
-            # Code no requirement names: a helper, the HAL, a test fixture.
-            status, detail = "UNREQUIRED", "—"
-        required.add_row(nid, status, detail, style=_severity_style(status))
+    title, header, _uncovered = _ref_field_labels(pair)
+    forward = _rows_table(f"{up} → {lo}  ({title})", up, f"{header} ({lo})", _forward_rows(pair))
+    required = _rows_table(
+        f"{lo} → {up}  (required by)", lo, f"Required by ({up})", _required_rows(pair)
+    )
     return [forward, required]
 
 

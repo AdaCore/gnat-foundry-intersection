@@ -26,7 +26,8 @@ must **never** reference the CONOPS.
   oracle actually checks it —
   - uncomment the `LLR` block in `requirements/trace_chain.yaml`, and
   - uncomment the `# "$(REQS_DIR)/llr"` paths on the two `validate schema` /
-    `validate ears` lines of the `validate-reqs` recipe in the `Makefile`, and
+    `validate ears` lines of the `validate-reqs-corpus` recipe in the
+    `Makefile`, and
   - create the `requirements/llr/` directory.
 
 ## Procedure
