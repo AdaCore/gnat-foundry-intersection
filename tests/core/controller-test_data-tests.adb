@@ -34,10 +34,12 @@ package body Controller.Test_Data.Tests is
    procedure Test_Initialize_9cb2dc (Gnattest_T : in out Test) renames Test_Initialize;
 --  id:2.2/9cb2dc2f1d1660db/Initialize/1/0/
    procedure Test_Initialize (Gnattest_T : in out Test) is
-   --  controller.ads:83:4:Initialize
+   --  controller.ads:90:4:Initialize
 --  end read only
 
-      --@covers llr_4_controller.2 llr_4_controller.3 llr_4_controller.4 llr_4_controller.5
+      --@covers none: unattributed controller scenario, retained for
+      --  regression coverage while the per-requirement tests under
+      --  tests/reqs/ are written (#51). Claims no requirement.
 
       pragma Unreferenced (Gnattest_T);
 
@@ -91,11 +93,12 @@ package body Controller.Test_Data.Tests is
    procedure Test_Project_Outputs_229f82 (Gnattest_T : in out Test) renames Test_Project_Outputs;
 --  id:2.2/229f82fac868336c/Project_Outputs/1/0/
    procedure Test_Project_Outputs (Gnattest_T : in out Test) is
-   --  controller.ads:91:4:Project_Outputs
+   --  controller.ads:98:4:Project_Outputs
 --  end read only
 
-      --@covers llr_4_controller.6 llr_4_controller.7 llr_4_controller.8 llr_4_controller.9
-      --@covers llr_4_controller.10 llr_4_controller.11 llr_4_controller.12
+      --@covers none: unattributed controller scenario, retained for
+      --  regression coverage while the per-requirement tests under
+      --  tests/reqs/ are written (#51). Claims no requirement.
 
       pragma Unreferenced (Gnattest_T);
 
@@ -223,16 +226,12 @@ package body Controller.Test_Data.Tests is
    procedure Test_Step_550f0c (Gnattest_T : in out Test) renames Test_Step;
 --  id:2.2/550f0cec4ac973af/Step/1/0/
    procedure Test_Step (Gnattest_T : in out Test) is
-   --  controller.ads:103:4:Step
+   --  controller.ads:110:4:Step
 --  end read only
 
-      --@covers llr_4_controller.13 llr_4_controller.14 llr_4_controller.15 llr_4_controller.16
-      --@covers llr_4_controller.17 llr_4_controller.18 llr_4_controller.19 llr_4_controller.20
-      --@covers llr_4_controller.21 llr_4_controller.22
-      --@covers llr_4_controller_2_left_demand.1 llr_4_controller_2_left_demand.2
-      --@covers llr_4_controller_2_left_demand.3
-      --@covers llr_4_controller_3_pedestrian.10 llr_4_controller_3_pedestrian.11
-      --@covers llr_4_controller_3_pedestrian.12
+      --@covers none: unattributed controller scenario, retained for
+      --  regression coverage while the per-requirement tests under
+      --  tests/reqs/ are written (#51). Claims no requirement.
 
       pragma Unreferenced (Gnattest_T);
 

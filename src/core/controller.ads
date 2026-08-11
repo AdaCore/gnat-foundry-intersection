@@ -61,6 +61,13 @@ package Controller
   with SPARK_Mode => On
 is
 
+   --  Operator visibility for the frame contract on Step below; no names are
+   --  imported beyond the predefined operators of these four types.
+   use type States.Duration_Ms;
+   use type States.Fault_Detection;
+   use type States.Mode;
+   use type States.Vehicle_Sequencer_State;
+
    type Pedestrian_Timers is array (States.Crosswalk) of States.Duration_Ms;
    --  Per-crosswalk remaining time in the current pedestrian sub-state; 0 and
    --  unused while the crosswalk is in NO_PEDESTRIAN_REQUEST or
@@ -104,8 +111,25 @@ is
      (State   : in out Controller_State;
       Sensors : States.Sensors_State;
       Outputs : out States.Display_State)
-     --@covers llr_4_controller.21
-   with Post => Conflicts.Safe_Faces (Outputs);
+     --@covers llr_4_controller.21, llr_4_controller_1_vehicle.1
+     --@covers llr_4_controller_1_vehicle.2
+   with
+     Post =>
+       Conflicts.Safe_Faces (Outputs)
+       and then (if State'Old.Mode = States.Fault
+                   or else Sensors.Fault = States.Asserted
+                   or else State'Old.Veh_Timer > States.T_Sample
+                 then State.Vehicle = State'Old.Vehicle);
+   --  The frame of the vehicle sequencer
+   --  (`llr_4_controller_1_vehicle.1`/`.2`, `llr_4_controller.15`): a step
+   --  moves State.Vehicle only on the one branch that calls Advance_Vehicle,
+   --  so it holds the sequencer whenever the step is pre-empted by FAULT or
+   --  the current state's dwell has more than one sampling period left. This
+   --  is the provable content of "assigns State.Vehicle only in
+   --  Advance_Vehicle": nothing else Step does can move it, quantified over
+   --  every state and every timer value rather than sampled. A test can only
+   --  show the sequencer held at the timer values it picks.
+   --
    --  One core-loop step, accounting for exactly one sampling period
    --  T_SAMPLE of logical time (llr_4_controller.17): arm the freshly
    --  sampled inputs, emit the current composite state's outputs, then

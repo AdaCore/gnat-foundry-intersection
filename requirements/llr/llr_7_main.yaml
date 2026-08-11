@@ -16,7 +16,7 @@ description:
       - hlr_4_signals.5
       - hlr_4_signals.6
     verification:
-      - method: static_check
+      - method: test
     implemented_by:
       - Main
 
@@ -29,7 +29,7 @@ description:
       - hlr_4_signals.2
       - hlr_4_signals.3
     verification:
-      - method: static_check
+      - method: test
     implemented_by:
       - Main
 
@@ -41,7 +41,7 @@ description:
     parent_req:
       - hlr_1_modes.2
     verification:
-      - method: static_check
+      - method: test
     implemented_by:
       - Main
 
@@ -53,7 +53,11 @@ description:
       - hlr_1_modes.2
     verification:
       - method: review
-        justification: Main is SPARK_Mode-off and never returns; no tool can observe the Display.Initialize call
+        justification: >-
+          no unit test can reach the call: Main is the executable's entry point and
+          runs the loop rather than returning to a harness. #17 observes it on
+          target, and #109 would discharge it by proof (Display.Initialize gaining
+          a Post the call site must establish), at which point this becomes proof.
     implemented_by:
       - Main
 
@@ -65,6 +69,11 @@ description:
       - hlr_1_modes.2
     verification:
       - method: review
-        justification: call ordering inside the non-returning Main is observable to no prover, compiler check, or test harness
+        justification: >-
+          the ordering of two calls inside Main's body is visible to no unit test,
+          and to no compiler check: nothing in the language pins one statement
+          before another. #17 observes the startup sequence on target, and #109
+          would make it a precondition on running the loop, at which point this
+          becomes proof.
     implemented_by:
       - Main

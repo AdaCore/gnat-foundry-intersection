@@ -442,6 +442,18 @@ is
      Compile_Time_Error
        (T_Axis - T_Barrier - T_Yellow - T_Lag < T_Walk + T_FDW + T_Buffer,
         "pedestrian service must fit the axis slot (llr_1_states.28)");
+   --  A compile-time claim about the constants, not about what Both_Duration
+   --  computes from them: the residual is fixed by the valuation.
+   --@covers llr_1_states.29
+   pragma
+     Compile_Time_Error
+       (T_Axis
+        - T_Barrier
+        - (T_Lead + T_Yellow + T_Redclear)
+        - (T_Yellow + T_Redclear + T_Lag + T_Yellow)
+        < T_Both_Min,
+        "the both-through residual must not fall below T_BOTH_MIN"
+        & " (llr_1_states.29)");
    --@covers llr_1_states.30
    pragma
      Compile_Time_Error

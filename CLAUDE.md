@@ -44,9 +44,13 @@ regardless of which one you ran.
 
 The `*-target` targets additionally need `qemu-system-arm` on PATH; the
 `setup-*` targets do not provision it (CI takes it from the `image:serotonic`
-runner image). `test-target` runs the same test bodies under `tests/` as `make
-test`, minus the host-profile HAL units listed in
-`traffic_light_qemu/tests/host_only_sources.txt`. Coverage is native-only.
+runner image). `test-target` runs the *generated* test bodies under `tests/`,
+minus the host-profile HAL units listed in
+`traffic_light_qemu/tests/host_only_sources.txt` — 11 of the 16 skeletons. It
+does **not** run the 120 requirements-based routines under `tests/reqs/`, which
+reach the native harness through `--additional-tests` and have no cross-harness
+equivalent (#110), so `make test` runs 136 and `make test-target` 11. Coverage
+is native-only.
 
 ## Feature workflow
 
@@ -128,10 +132,13 @@ generics, the `core` project carries a small in-SPARK instantiation harness
   tag (first editable line of its body) naming the LLR statement id(s) it
   verifies, or `--@covers none: <reason>` for a boundary test. `make trace-check`
   enforces this via the `TEST` layer of `requirements/trace_chain.yaml`; run
-  `make trace` to see the LLR↔test coverage tables.
+  `make trace` to see the LLR↔test coverage tables. That gate does not currently
+  reach `tests/reqs/` (#106), so there review is the only check.
 - Every LLR statement declares its `verification:` method(s). `make trace-check`
   requires a covering test for each `test`-verified statement and rejects a
   `--@covers` citing a statement not declaring `test` — add a `method: test`
   entry to that statement's `verification:` in the same change if the test is
   genuine.
+- Writing a requirements-based test under `tests/reqs/`: read
+  `tests/reqs/README.md` first — its rules are the review criteria.
 - If working on coverage augmentation, run `make all-coverage` to list uncovered code.

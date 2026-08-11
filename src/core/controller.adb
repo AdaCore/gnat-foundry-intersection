@@ -178,7 +178,6 @@ is
             + States.T_Yellow
           else States.T_Yellow))
    with
-     --@covers llr_1_states.29
      Post =>
        Both_Duration'Result >= States.T_Both_Min
        and then Both_Duration'Result <= States.T_Axis;
@@ -375,7 +374,9 @@ is
    --  sub-states with no dead alternative.
    procedure Advance_Ped
      (State : in out Controller_State; C : States.Crosswalk)
-   with Pre => Running_Ped (State.Ped (C))
+   with
+     Pre  => Running_Ped (State.Ped (C)),
+     Post => State.Vehicle = State.Vehicle'Old
    is
    begin
       case States.Serving_Pedestrian_State'(State.Ped (C)) is

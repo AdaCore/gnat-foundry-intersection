@@ -370,7 +370,7 @@ description:
     parent_req:
       - hlr_3_timing.12
     verification:
-      - method: proof
+      - method: static_check
     implemented_by:
       - States.T_Axis
 

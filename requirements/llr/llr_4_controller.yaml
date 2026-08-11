@@ -53,7 +53,7 @@ description:
       - hlr_5_vehicle_1_left_demand.1
       - hlr_6_pedestrian.1
     verification:
-      - method: static_check
+      - method: test
     implemented_by:
       - Controller.Controller_State
 
@@ -164,8 +164,8 @@ description:
 
   12:
     text: |-
-      The Project_Outputs function shall carry the postcondition
-      Conflicts.Safe_Faces (Project_Outputs'Result).
+      The Project_Outputs function shall return a Display_State for which
+      Conflicts.Safe_Faces is TRUE.
     parent_req:
       - hlr_0_safety.2
     verification:
@@ -272,8 +272,8 @@ description:
 
   21:
     text: |-
-      The Step procedure shall carry the postcondition
-      Conflicts.Safe_Faces (Outputs).
+      The Step procedure shall set Outputs to a Display_State for which
+      Conflicts.Safe_Faces is TRUE.
     parent_req:
       - hlr_0_safety.2
     verification:

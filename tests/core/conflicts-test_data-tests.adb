@@ -96,15 +96,15 @@ package body Conflicts.Test_Data.Tests is
    --  conflicts.ads:89:4:Conflicts
 --  end read only
 
-      --@covers llr_3_conflicts.2
+      --@covers none: no-op placeholder. This skeleton asserted nothing while
+      --  claiming llr_3_conflicts.2; the requirement is verified in
+      --  tests/reqs/ instead (#51).
 
       pragma Unreferenced (Gnattest_T);
 
    begin
 
-      AUnit.Assertions.Assert
-        (Gnattest_Generated.Default_Assert_Value,
-         "Test not implemented.");
+      null;
 
 --  begin read only
    end Test_Conflicts;
@@ -119,36 +119,15 @@ package body Conflicts.Test_Data.Tests is
    --  conflicts.ads:97:4:Safe_Faces
 --  end read only
 
-      --@covers llr_3_conflicts.3
+      --@covers none: no-op placeholder. This skeleton checked two cases while
+      --  claiming llr_3_conflicts.3; the requirement is verified exhaustively
+      --  over movement pairs in tests/reqs/ instead (#51).
 
       pragma Unreferenced (Gnattest_T);
 
-      --  The all-restrictive display: every face RED, every head steady
-      --  DONT WALK, every lamp dark. No movement is "go", so no conflicting
-      --  pair can be jointly released.
-      All_Red : constant States.Display_State :=
-        (Through  => (others => States.Red),
-         Left     => (others => States.Red),
-         Heads    => (others => States.Dont_Walk),
-         Requests => (others => States.No_Request));
-
-      Unsafe : States.Display_State := All_Red;
-
    begin
 
-      Assert
-        (Safe_Faces (All_Red),
-         "an all-red display should satisfy the conflict invariant");
-
-      --  Two crossing throughs driven GREEN at once is exactly what
-      --  hlr_0_safety.2 forbids: N_Thru and E_Thru conflict.
-      Unsafe.Through (States.North) := States.Green;
-      Unsafe.Through (States.East) := States.Green;
-
-      Assert
-        (not Safe_Faces (Unsafe),
-         "crossing throughs both GREEN should violate the conflict"
-         & " invariant");
+      null;
 
 --  begin read only
    end Test_Safe_Faces;
