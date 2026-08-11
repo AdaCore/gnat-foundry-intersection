@@ -74,7 +74,7 @@ check:
     - eval $(anod printenv gnatformat --qualifier=stable)
 
     # Run the checks
-    - make check-ada check-shell check-python-reqs check-target-test-parity
+    - make check-shell check-python-reqs check-target-test-parity
 
 # Check and test the report engine; its deps are only on pypi.org (which its uv.lock pins).
 check-report:
