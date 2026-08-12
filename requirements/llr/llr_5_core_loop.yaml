@@ -125,26 +125,12 @@ rationale: |-
   head instead, the bound holding the more strongly; hlr_6_pedestrian's
   rationale records it.
 
-  Statement 5 is what makes the power-on state obey the rule every other state
-  obeys: displayed for exactly its dwell. Statement 2 begins the iteration at
-  Read_Sources, so without a prologue no frame reaches the display before the
-  first Step, and that Step charges a sampling period of the boot dwell
-  (llr_4_controller.17) before emitting — leaving the initialised state
-  displayed for one T_SAMPLE less than its dwell. Every state a *step* enters
-  is entered and left by a step one dwell apart; the initialised state is the
-  one state no step enters, so it needs the publication and the hold stated
-  separately. The hold is the operative half: publishing alone is inert, Step
-  #1 projecting the boot state anyway and the step that ends the dwell being
-  what replaces it.
-
-  Statement 5 puts the first Read_Sources at t = T_SAMPLE rather than t = 0.
-  Statement 4 is unaffected — reads stay exactly T_SAMPLE apart, and the first
-  falls on the boundary of the first window — but power-on fault detection is
-  deferred one sample: an already-asserted fault line is read at t = T_SAMPLE,
-  so the boot frame is displayed before the FAULT projection replaces it.
-  The acknowledgment chain is likewise unaffected: the arming Step and the
-  publishing Write_Display stay adjacent, so the T_ACK argument above holds
-  verbatim.
+  Statement 5 exists because the initialised state is the one state no Step
+  enters, so it is not entered and left by a step one dwell apart: without the
+  prologue it is displayed for one T_SAMPLE less than its dwell. The hold is
+  the operative half — publishing alone is inert, Step #1 projecting the boot
+  state anyway. It also puts the first Read_Sources at t = T_SAMPLE, deferring
+  power-on fault detection by one sample.
 
   The durable record of the coalesced inputs kept in the main loop is the
   loop's local Controller_State itself: arming latches a seen press as
