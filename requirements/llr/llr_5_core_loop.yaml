@@ -62,6 +62,24 @@ description:
     implemented_by:
       - State_Machine_Loop
 
+  5:
+    text: |-
+      When the core loop starts, State_Machine_Loop shall Write_Display of
+      Controller.Project_Outputs of the initialised state and then Delay_For
+      the sampling period T_SAMPLE (llr_1_states.30), after
+      Controller.Initialize and before the first iteration.
+    parent_req:
+      - hlr_4_signals.1
+      - hlr_4_signals.2
+      - hlr_4_signals.3
+      - hlr_4_signals.4
+      - hlr_4_signals.5
+      - hlr_4_signals.6
+      - hlr_5_vehicle.47
+    verification: test
+    implemented_by:
+      - State_Machine_Loop
+
 algorithm_aspects: |-
   The four-stage order realizes the fixed-cadence sampled contract
   (llr_4_controller): each Step accounts for exactly one sampling period of
@@ -82,6 +100,12 @@ algorithm_aspects: |-
   statements are stated over logical time, whose wall-clock span is a
   build-time constant (Timings.Tick_Config).
 
+  Statement 5's prologue sets the phase of the whole run. It puts iteration N's
+  stages at logical time N * T_SAMPLE, so the step that charges the last
+  T_SAMPLE of a dwell lands on the dwell's boundary in elapsed time and not one
+  sample before it. Every published frame therefore stands for exactly the
+  dwell of the state it projects, the initialised state included.
+
 rationale: |-
   Statement 3's No_Return discharges "remain in FAULT" (hlr_1_modes.4) too:
   FAULT is a driven state — the loop keeps ticking and re-emitting the fault
@@ -101,20 +125,26 @@ rationale: |-
   head instead, the bound holding the more strongly; hlr_6_pedestrian's
   rationale records it.
 
-  The emit ordering has a second consequence, and it is a deficit. Statement 2
-  begins the iteration at Read_Sources, so no frame is published before the
-  first Step and that Step consumes a sampling period of the boot dwell before
-  emitting: the initialised state is displayed for one T_SAMPLE less than its
-  dwell, and the power-on all-red is lit for T_BARRIER - T_SAMPLE. Every state
-  a *step* enters is displayed for exactly its dwell; this is the one state no
-  step enters, and no statement here speaks of displayed duration, so neither
-  validate-reqs nor the suite can see it. Filed as #111, whose fix amends
-  statement 2 to publish the initialised projection *and hold it for one
-  sampling period* before the first Step — publishing alone is inert, Step #1
-  projecting the barrier anyway and Step #20 being what ends it. Either shape
-  also moves the first Read_Sources to t = T_SAMPLE, which statement 4 and
-  power-on fault detection want a glance at. #111 blocks whichever change
-  carries llr_4_controller.16's emit ordering to main.
+  Statement 5 is what makes the power-on state obey the rule every other state
+  obeys: displayed for exactly its dwell. Statement 2 begins the iteration at
+  Read_Sources, so without a prologue no frame reaches the display before the
+  first Step, and that Step charges a sampling period of the boot dwell
+  (llr_4_controller.17) before emitting — leaving the initialised state
+  displayed for one T_SAMPLE less than its dwell. Every state a *step* enters
+  is entered and left by a step one dwell apart; the initialised state is the
+  one state no step enters, so it needs the publication and the hold stated
+  separately. The hold is the operative half: publishing alone is inert, Step
+  #1 projecting the boot state anyway and the step that ends the dwell being
+  what replaces it.
+
+  Statement 5 puts the first Read_Sources at t = T_SAMPLE rather than t = 0.
+  Statement 4 is unaffected — reads stay exactly T_SAMPLE apart, and the first
+  falls on the boundary of the first window — but power-on fault detection is
+  deferred one sample: an already-asserted fault line is read at t = T_SAMPLE,
+  so the boot frame is displayed before the FAULT projection replaces it.
+  The acknowledgment chain is likewise unaffected: the arming Step and the
+  publishing Write_Display stay adjacent, so the T_ACK argument above holds
+  verbatim.
 
   The durable record of the coalesced inputs kept in the main loop is the
   loop's local Controller_State itself: arming latches a seen press as
