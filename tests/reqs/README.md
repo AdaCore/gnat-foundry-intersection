@@ -3,8 +3,13 @@
 One test package per LLR file, one routine per LLR statement. These are
 hand-written, unlike the generated skeletons under `tests/core`, `tests/types`
 and `tests/hal`: the layout mirrors `requirements/llr/`, not the code's package
-structure. `gnattest --additional-tests` folds them into the same `make test`
-and the same `make all-coverage`.
+structure. `gnattest --additional-tests` folds them into the same `make test`.
+
+They are also the whole of `make all-coverage`: structural coverage is
+measured from a second harness that carries these routines and no generated
+skeleton, so an uncovered line here means no requirement demonstrably exercises
+it. `make all-coverage-mixed` measures the whole suite instead — a diagnostic,
+not evidence.
 
 The rules below are the review criteria for adding one.
 
@@ -100,12 +105,4 @@ classification document. `make trace-check` reads it in both directions: a
 `--@covers` here citing a statement that does not declare `test` is an error,
 and a `test`-declaring statement with no citing routine reports uncovered.
 
-Three statements declare `test` and have no routine here, blocked rather than
-overlooked:
-
-| Statements | Why | Issue |
-| --- | --- | --- |
-| `llr_7_main.1-.3` | the instantiation wiring: system-level, and no unit test can observe which actual a generic was instantiated with | #17 |
-
-They have no package of their own, since a package of three comments and no
-routines would not survive `gnattest`; this table is their marker.
+Every `test`-declaring statement has a routine here.

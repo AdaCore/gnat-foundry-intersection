@@ -39,7 +39,7 @@ package body Sources.Test_Data.Tests is
    --  sources.ads:9:4:Sample
 --  end read only
 
-      --@covers none: input sampling is out of requirement scope (llr_6_hal sample assumption)
+      --@covers none: input sampling is out of scope (README "Verification scope")
 
       pragma Unreferenced (Gnattest_T);
 

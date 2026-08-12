@@ -5,9 +5,10 @@ context: |-
   (Write_Display), and time forward (Delay_For of the fixed sampling period
   T_SAMPLE every iteration). It is
   generic over exactly those three procedures, so the core never names a HAL
-  unit (wiring in llr_7_main), and it owns the Controller_State locally, so
-  the composite state exists nowhere else. The proof-only harness
-  State_Machine_Loop_Proof carries no requirements.
+  unit — the wiring is done by Main, which is outside the verification scope
+  along with the HAL it wires (README "Verification scope") — and it owns the
+  Controller_State locally, so the composite state exists nowhere else. The
+  proof-only harness State_Machine_Loop_Proof carries no requirements.
 
 description:
   1:
@@ -76,7 +77,10 @@ algorithm_aspects: |-
   construction — Read_Sources runs exactly once per T_SAMPLE on every path
   and in both modes — and the loop still carries no clock and no second code
   path: the cadence is the single constant it passes to Delay_For. The
-  accuracy of the sleep itself is the HAL contract (llr_6_hal.1).
+  accuracy of the sleep itself is a HAL property, and the HAL is a simulator
+  outside the verification scope (README "Verification scope"): these
+  statements are stated over logical time, whose wall-clock span is a
+  build-time constant (Timings.Tick_Config).
 
 rationale: |-
   Statement 3's No_Return discharges "remain in FAULT" (hlr_1_modes.4) too:

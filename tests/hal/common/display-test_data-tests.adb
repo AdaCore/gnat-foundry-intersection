@@ -81,7 +81,7 @@ package body Display.Test_Data.Tests is
    --  display.ads:9:4:Initialize
 --  end read only
 
-      --@covers none: display bring-up is out of requirement scope (llr_6_hal show assumption)
+      --@covers none: display bring-up is out of scope (README "Verification scope")
 
       pragma Unreferenced (Gnattest_T);
 
@@ -120,7 +120,7 @@ package body Display.Test_Data.Tests is
    --  display.ads:12:4:Show
 --  end read only
 
-      --@covers none: display rendering is out of requirement scope (llr_6_hal show assumption)
+      --@covers none: display rendering is out of scope (README "Verification scope")
 
       pragma Unreferenced (Gnattest_T);
 
@@ -369,7 +369,7 @@ package body Display.Test_Data.Tests is
    --  display.ads:24:4:Diag_Write_Line
 --  end read only
 
-      --@covers none: diagnostic line output is out of requirement scope (llr_6_hal)
+      --@covers none: diagnostic output is out of scope (README "Verification scope")
 
       pragma Unreferenced (Gnattest_T);
 
