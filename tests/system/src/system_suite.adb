@@ -23,6 +23,8 @@ package body System_Suite is
    Red_Clearance    : aliased Timing_Caller.Test_Case;
    Power_On_Barrier : aliased Timing_Caller.Test_Case;
    Axis_Barriers    : aliased Timing_Caller.Test_Case;
+   Axis_Slot        : aliased Timing_Caller.Test_Case;
+   Crosswalk_Margin : aliased Timing_Caller.Test_Case;
    Acknowledgment   : aliased Timing_Caller.Test_Case;
    Full_Cycle_Fits  : aliased Timeline_Caller.Test_Case;
    Demand_Windows   : aliased Demand_Caller.Test_Case;
@@ -61,6 +63,17 @@ package body System_Suite is
            Access);
 
       Timing_Caller.Create
+        (Axis_Slot,
+         "hlr_3_timing: the axis slot is T_AXIS whatever the demand",
+         Hlr_3_Timing_Tests.Test_Axis_Slot_Is_Demand_Independent'Access);
+
+      Timing_Caller.Create
+        (Crosswalk_Margin,
+         "hlr_3_timing: crosswalk conflicts stay RED for the margin",
+         Hlr_3_Timing_Tests.Test_Crosswalk_Conflicts_Held_Red_For_The_Margin'
+           Access);
+
+      Timing_Caller.Create
         (Acknowledgment,
          "hlr_3_timing: a press is acknowledged within T_ACK",
          Hlr_3_Timing_Tests.Test_Request_Acknowledged_Within_T_Ack'Access);
@@ -81,6 +94,8 @@ package body System_Suite is
       Add_Test (Result'Access, Red_Clearance'Access);
       Add_Test (Result'Access, Power_On_Barrier'Access);
       Add_Test (Result'Access, Axis_Barriers'Access);
+      Add_Test (Result'Access, Axis_Slot'Access);
+      Add_Test (Result'Access, Crosswalk_Margin'Access);
       Add_Test (Result'Access, Acknowledgment'Access);
       Add_Test (Result'Access, Full_Cycle_Fits'Access);
       Add_Test (Result'Access, Demand_Windows'Access);

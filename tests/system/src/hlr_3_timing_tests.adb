@@ -1,5 +1,6 @@
 with AUnit.Assertions; use AUnit.Assertions;
 
+with Conflicts;
 with States;
 with System_Support.Demand;
 with System_Support.Timeline;
@@ -8,6 +9,7 @@ package body Hlr_3_Timing_Tests is
 
    use type States.Duration_Ms;
    use type States.Pedestrian_Head;
+   use type States.Vehicle_Face;
 
    package Demand renames System_Support.Demand;
    package Timeline renames System_Support.Timeline;
@@ -60,6 +62,50 @@ package body Hlr_3_Timing_Tests is
    --  @param Held_For The duration the requirement gives it
    --  @param Named How the requirement names that duration
    --  @param Pattern The pattern observed, for the message
+
+   procedure Check_Conflicts_Red
+     (C      : States.Crosswalk;
+      Rise   : Timeline.Interval_Index;
+      Margin : States.Duration_Ms);
+   --  Assert every movement conflicting with C is held at RED from the frame
+   --  at Rise until Margin has passed since that frame opened.
+   --  @param C The crosswalk whose conflicts are held
+   --  @param Rise The frame whose publication greened C's adjacent through
+   --  @param Margin How long the requirement holds them
+
+   procedure Check_Conflicts_Red
+     (C      : States.Crosswalk;
+      Rise   : Timeline.Interval_Index;
+      Margin : States.Duration_Ms)
+   is
+      Greened : constant States.Duration_Ms := Timeline.Nth (Rise).Opened_At;
+   begin
+      for N in Rise .. Timeline.Count loop
+         declare
+            Held : constant Timeline.Interval := Timeline.Nth (N);
+         begin
+            exit when Held.Opened_At >= Greened + Margin;
+
+            for M in States.Movement loop
+               Assert
+                 (not Conflicts.Crosswalk_Conflicts (C, M)
+                  or else States.Face_Of (Held.Frame, M) = States.Red,
+                  States.Movement'Image (M)
+                  & " must be held at RED until"
+                  & States.Duration_Ms'Image (Margin)
+                  & " ms after "
+                  & States.Crosswalk'Image (C)
+                  & "'s adjacent through greened at"
+                  & States.Duration_Ms'Image (Greened)
+                  & " ms, but was "
+                  & States.Vehicle_Face'Image (States.Face_Of (Held.Frame, M))
+                  & " in the frame published at"
+                  & States.Duration_Ms'Image (Held.Opened_At)
+                  & " ms");
+            end loop;
+         end;
+      end loop;
+   end Check_Conflicts_Red;
 
    procedure Observe_Pedestrian_Service (Pattern : Demand_Case) is
    begin
@@ -394,6 +440,179 @@ package body Hlr_3_Timing_Tests is
          end;
       end loop;
    end Test_Axis_Change_Barriers_Hold_For_T_Barrier;
+
+   procedure Test_Axis_Slot_Is_Demand_Independent (T : in out Test) is
+      --@observes hlr_3_timing.7 hlr_3_timing.8 hlr_3_timing.11
+
+      pragma Unreferenced (T);
+
+      type Arrival is record
+         From   : States.Duration_Ms;
+         Before : States.Duration_Ms;
+      end record;
+      --  When an approach's detector holds a vehicle.
+      --  @field From The first read that sees it
+      --  @field Before The first read that does not
+
+      Absent : constant Arrival :=
+        (From => Demand.Forever, Before => Demand.Forever);
+      Held   : constant Arrival := (From => 0, Before => Demand.Forever);
+      Early  : constant Arrival :=
+        (From => 20_000, Before => Demand.Forever);
+      Late   : constant Arrival :=
+        (From => 30_000, Before => Demand.Forever);
+      Brief  : constant Arrival :=
+        (From => 0, Before => States.T_Sample + 1);
+
+      type Pattern is array (States.Approach) of Arrival;
+
+      Patterns : constant array (1 .. 11) of Pattern :=
+        ((others => Absent),
+         (States.North => Held, others => Absent),
+         (States.South => Held, others => Absent),
+         (States.North | States.South => Held, others => Absent),
+         (States.East => Held, others => Absent),
+         (States.West => Held, others => Absent),
+         (States.East | States.West => Held, others => Absent),
+         (others => Held),
+         (States.South => Early, others => Absent),
+         (States.South => Late, others => Absent),
+         (States.North => Brief, others => Absent));
+      --  Each axis with neither protected left, its lead alone, its lag alone
+      --  and both; then every left; then a lag demanded before the NS
+      --  both-through commit boundary, one demanded after it, and a lead
+      --  demanded for a single read.
+
+      Expected : constant Natural := 2;
+      --  The slots a cycle bounds: power-on to the first axis change, and that
+      --  change to the second.
+   begin
+      for K in Patterns'Range loop
+         Demand.Clear;
+
+         for A in States.Approach loop
+            Demand.Left_Turn
+              (A,
+               From   => Patterns (K) (A).From,
+               Before => Patterns (K) (A).Before);
+         end loop;
+
+         Timeline.Observe (For_Ms => Cycle, Demand => Demand.Snapshot'Access);
+
+         Assert
+           (not Timeline.Truncated,
+            "the observation dropped frames, so the timeline is a prefix");
+
+         declare
+            Slots   : Natural := 0;
+            Started : States.Duration_Ms := 0;
+            Running : Boolean := False;
+         begin
+            for N in 1 .. Timeline.Count loop
+               declare
+                  Barrier : constant Timeline.Interval := Timeline.Nth (N);
+                  Service : States.Duration_Ms;
+               begin
+                  if System_Support.All_Vehicle_Red (Barrier.Frame) then
+                     Assert
+                       (Barrier.Closed,
+                        "the all-red frame published at"
+                        & States.Duration_Ms'Image (Barrier.Opened_At)
+                        & " ms was never replaced, so the slot it opens has no"
+                        & " measurable start");
+
+                     Service := Barrier.Opened_At + Barrier.Span;
+
+                     if Running then
+                        Slots := Slots + 1;
+
+                        Assert
+                          (Service - Started = States.T_Axis,
+                           "the service slot starting at"
+                           & States.Duration_Ms'Image (Started)
+                           & " ms must run T_AXIS ="
+                           & States.Duration_Ms'Image (States.T_Axis)
+                           & " ms whatever the left-turn demand, but ran"
+                           & States.Duration_Ms'Image (Service - Started)
+                           & " ms under pattern"
+                           & Integer'Image (K));
+                     end if;
+
+                     Started := Service;
+                     Running := True;
+                  end if;
+               end;
+            end loop;
+
+            Assert
+              (Slots = Expected,
+               "a cycle must bound"
+               & Integer'Image (Expected)
+               & " service slots, but pattern"
+               & Integer'Image (K)
+               & " bounded"
+               & Integer'Image (Slots));
+         end;
+      end loop;
+   end Test_Axis_Slot_Is_Demand_Independent;
+
+   procedure Test_Crosswalk_Conflicts_Held_Red_For_The_Margin
+     (T : in out Test)
+   is
+      --@observes hlr_3_timing.10
+
+      pragma Unreferenced (T);
+
+      Margin : constant States.Duration_Ms := 7_000 + 7_000 + 2_000;
+      --  T_WALK + T_FDW + T_BUFFER (hlr_3_timing.1/.2/.3).
+   begin
+      for Pattern in Demand_Case loop
+         Observe_Cycle (Pattern);
+
+         for C in States.Crosswalk loop
+            declare
+               Adjacent : constant States.Approach :=
+                 Conflicts.Adjacent_Through (C);
+               Windows  : Natural := 0;
+            begin
+               for N in 1 .. Timeline.Count loop
+                  declare
+                     Rise : constant Timeline.Interval := Timeline.Nth (N);
+
+                     Greened : constant Boolean :=
+                       Rise.Frame.Through (Adjacent) = States.Green
+                       and then (N = 1
+                                 or else Timeline.Nth (N - 1).Frame.Through
+                                           (Adjacent)
+                                         /= States.Green);
+                  begin
+                     --  A window running past the end of the observation is
+                     --  skipped.
+
+                     if Greened
+                       and then Rise.Opened_At + Margin
+                                <= Timeline.Observed_Ms
+                     then
+                        Windows := Windows + 1;
+                        Check_Conflicts_Red (C, N, Margin);
+                     end if;
+                  end;
+               end loop;
+
+               Assert
+                 (Windows = 1,
+                  States.Approach'Image (Adjacent)
+                  & "'s through must green once early enough in a cycle to"
+                  & " scan a whole margin window for "
+                  & States.Crosswalk'Image (C)
+                  & ", but did so"
+                  & Integer'Image (Windows)
+                  & " time(s) under "
+                  & Demand_Case'Image (Pattern));
+            end;
+         end loop;
+      end loop;
+   end Test_Crosswalk_Conflicts_Held_Red_For_The_Margin;
 
    procedure Test_Request_Acknowledged_Within_T_Ack (T : in out Test) is
       --@observes hlr_3_timing.13
