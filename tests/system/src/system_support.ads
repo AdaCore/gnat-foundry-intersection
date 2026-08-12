@@ -17,6 +17,12 @@ package System_Support is
    --  @param Frame The published frame to examine
    --  @return True when the frame releases no vehicular movement
 
+   function Any_Yellow (Frame : States.Display_State) return Boolean;
+   --  Whether any through or left face of Frame is YELLOW -- the output
+   --  condition of every vehicle change interval.
+   --  @param Frame The published frame to examine
+   --  @return True when the frame is ending a release
+
    function Released_Movements (Frame : States.Display_State) return String;
    --  The movements Frame does not hold at RED, as an approach list for a
    --  failure message; the empty string when it holds every one of them.

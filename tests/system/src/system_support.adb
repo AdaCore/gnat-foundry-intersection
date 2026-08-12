@@ -13,6 +13,17 @@ package body System_Support is
       return True;
    end All_Vehicle_Red;
 
+   function Any_Yellow (Frame : States.Display_State) return Boolean is
+   begin
+      for A in States.Approach loop
+         if Frame.Through (A) = Yellow or else Frame.Left (A) = Yellow then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Any_Yellow;
+
    function Released_Movements (Frame : States.Display_State) return String is
       Listed : String (1 .. 256);
       Length : Natural := 0;

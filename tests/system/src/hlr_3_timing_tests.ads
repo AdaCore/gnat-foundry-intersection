@@ -13,6 +13,12 @@ package Hlr_3_Timing_Tests is
 
    type Test is new AUnit.Test_Fixtures.Test_Fixture with null record;
 
+   procedure Test_Yellow_Holds_For_T_Yellow (T : in out Test);
+
+   procedure Test_Red_Clearance_Holds_For_T_Redclear (T : in out Test);
+
    procedure Test_Power_On_Barrier_Holds_For_T_Barrier (T : in out Test);
+
+   procedure Test_Axis_Change_Barriers_Hold_For_T_Barrier (T : in out Test);
 
 end Hlr_3_Timing_Tests;
