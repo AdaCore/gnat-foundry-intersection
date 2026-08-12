@@ -29,4 +29,7 @@ package Llr_5_Core_Loop_Tests is
 
    procedure Test_04_Sources_Read_Once_Per_Sampling_Period (T : in out Test);
 
+   procedure Test_05_Startup_Publishes_And_Holds_Before_First_Step
+     (T : in out Test);
+
 end Llr_5_Core_Loop_Tests;
