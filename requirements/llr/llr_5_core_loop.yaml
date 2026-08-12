@@ -64,10 +64,9 @@ description:
 
   5:
     text: |-
-      When the core loop starts, State_Machine_Loop shall Write_Display of
-      Controller.Project_Outputs of the initialised state and then Delay_For
-      the sampling period T_SAMPLE (llr_1_states.30), after
-      Controller.Initialize and before the first iteration.
+      When the core loop starts, State_Machine_Loop shall initialise and
+      perform Write_Display of the outputs, and then Delay_For the sampling
+      period T_SAMPLE (llr_1_states.30), before the first loop iteration.
     parent_req:
       - hlr_4_signals.1
       - hlr_4_signals.2
