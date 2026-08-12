@@ -144,13 +144,15 @@ pro:x86_64-linux:
     # Test (test w/ non-instrumented harness build)
     - make test
 
-    # Test with coverage
+    # Coverage. `coverage-test` runs the requirements-based harness only, over
+    # the verification scope only.
     - make coverage-instrumentation
     - make coverage-build
     - make coverage-test
     - make coverage-report-html
     - make coverage-report-cobertura
     - make coverage-report-text
+    - make check-coverage
 
     # Publish the HTML coverage report
     - gnatcov_report_dir=$(pwd)/reports/coverage/
@@ -304,13 +306,14 @@ community:x86_64-linux:
     # Build
     - make build-native
 
-    # Test with coverage
+    # Coverage: the requirements-based harness only
     - make coverage-rts
     - make coverage-instrumentation
     - make coverage-build
     - make coverage-test
     - make coverage-report-cobertura
     - make coverage-report-text
+    - make check-coverage
 
     # Target build and test
     - make build-target

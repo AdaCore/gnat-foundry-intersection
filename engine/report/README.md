@@ -57,7 +57,8 @@ evidence links.
   mixing runs with different switches produces inconsistent evidence. The
   report checks the recorded command line for `-f` and flags its absence.
 - The coverage XML reflects whatever traces were on disk when it was
-  generated — run the test suite under gnatcov first (`make all-coverage`).
+  generated — run the requirements-based tests under gnatcov first
+  (`make all-coverage`).
   The report shows the trace dates so a reviewer can spot stale executions.
 - The coverage-violation classification matches proved-check locations by
   source-file **basename**, per file (not per line); two files with the same

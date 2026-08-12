@@ -25,11 +25,7 @@ ID_RE='(hlr|llr)_[a-z0-9_]*\.[0-9]+'
 # Every entry carries its reason and its follow-up, and an entry that stops being
 # needed is itself an error -- so this list cannot outlive what justifies it, and
 # it stays the only way a citation escapes the target run.
-WAIVED_CITATIONS=(
-  llr_6_hal.1 # Delay_For's wall-clock floor reads Ada.Calendar.Clock, which the
-              # bare-metal profile does not provide. A target-profile HAL suite
-              # is new units, not a shorter ignore list -- see #86.
-)
+WAIVED_CITATIONS=()
 
 declare -A waiver_used=()
 

@@ -9,7 +9,7 @@ SHELL := bash
         format format-ada format-python check check-ada check-shell check-python \
         check-python-reqs check-python-report \
         check-target-test-parity \
-        generate-tests test \
+        generate-tests generate-tests-reqs test \
         generate-tests-target build-tests-target test-target smoke-target \
         validate-reqs validate-reqs-corpus \
         trace trace-check trace-report test-reqs-engine \
@@ -18,7 +18,7 @@ SHELL := bash
         report report-pdf test-report-engine \
         setup-community setup-pro reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
-        coverage-test all-coverage \
+        coverage-test all-coverage all-coverage-mixed check-coverage \
         coverage-report-cobertura coverage-report-html coverage-report-text \
         coverage-report-xml
 
@@ -279,12 +279,21 @@ check-python-report: ## Python checks for engine/report
 # When `SETUP=community`, run in the context of the `tests/` nested crate,
 # which provides AUnit through `alr`. Otherwise run in the root crate
 # context: AUnit ships with GNAT Pro, and gnattest/gprbuild resolve on PATH.
+# Paths passed through $(TESTS_EXEC) are absolute: `-C tests` also moves the
+# working directory.
 HARNESS := obj/development/gnattest/harness
+
+ifeq ($(SETUP),community)
+TESTS_SYNC := $(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
+TESTS_EXEC := $(ALR) -C tests exec --
+else
+TESTS_SYNC := true
+TESTS_EXEC := $(ALR) exec --
+endif
 
 # The requirements-based tests (#51): hand-written AUnit fixtures under
 # tests/reqs/, one package per LLR file. `--additional-tests` folds them into
-# the same generated harness as the skeletons, so they share `make test` and
-# the `make all-coverage` instrumentation.
+# the same generated harness as the skeletons, so they share `make test`.
 REQS_TESTS := $(CURDIR)/tests/reqs/reqs_tests.gpr
 
 # `--skeleton-default=fail` makes an unimplemented skeleton fail rather than
@@ -295,20 +304,46 @@ GNATTEST_FLAGS := --exit-status=on --skeleton-default=fail \
 	--additional-tests=$(REQS_TESTS)
 
 generate-tests: generate-config ## Generate/refresh the GNATtest skeletons
-ifeq ($(SETUP),community)
-	$(ALR) -C tests build --stop-after=sync  # Sync `aunit` sources
-	$(ALR) -C tests exec -- gnattest -P ../traffic_light.gpr $(GNATTEST_FLAGS)
-else
-	$(ALR) exec -P -- gnattest $(GNATTEST_FLAGS)
-endif
+	$(TESTS_SYNC)
+	$(TESTS_EXEC) gnattest -P $(CURDIR)/traffic_light.gpr $(GNATTEST_FLAGS)
 
 test: generate-tests ## Build and run the AUnit harness
-ifeq ($(SETUP),community)
-	$(ALR) -C tests exec -- gprbuild -q -P ../$(HARNESS)/test_driver.gpr
-else
-	$(ALR) exec -- gprbuild -q -P $(HARNESS)/test_driver.gpr
-endif
+	$(TESTS_EXEC) gprbuild -q -P $(CURDIR)/$(HARNESS)/test_driver.gpr
 	$(HARNESS)/test_runner
+
+# ----------------------------------------------------------------------------
+# The requirements-based harness: the same `--additional-tests`, with every
+# application source ignored, so its generated main suite holds the tests/reqs/
+# suites and nothing else. Structural coverage is measured from this harness
+# alone.
+# ----------------------------------------------------------------------------
+REQS_HARNESS := obj/development/gnattest/reqs-harness
+
+# gnattest's `--ignore` takes bare file names and silently drops an entry it
+# cannot match, so this list is generated from the tree rather than kept by
+# hand.
+REQS_IGNORE := $(CURDIR)/obj/development/gnattest/reqs-ignore.txt
+
+# Overwrites the generated driver of the same name; see its header comment.
+REQS_DRIVER := $(CURDIR)/tests/reqs/driver/test_runner.adb
+
+# No `--skeleton-default`: this harness generates no skeletons.
+GNATTEST_REQS_FLAGS := --exit-status=on \
+	--additional-tests=$(REQS_TESTS) \
+	--ignore=$(REQS_IGNORE) \
+	--harness-dir=$(CURDIR)/$(REQS_HARNESS)
+
+generate-tests-reqs: generate-config ## Generate/refresh the requirements-based harness
+	$(TESTS_SYNC)
+	mkdir -p $(dir $(REQS_IGNORE))
+	find $(CURDIR)/src $(CURDIR)/config \( -name '*.ads' -o -name '*.adb' \) \
+	    -printf '%f\n' | sort -u > $(REQS_IGNORE)
+	$(TESTS_EXEC) gnattest -P $(CURDIR)/traffic_light.gpr $(GNATTEST_REQS_FLAGS)
+	test -f $(CURDIR)/$(REQS_HARNESS)/test_runner.adb  # the file we replace
+	cp $(REQS_DRIVER) $(CURDIR)/$(REQS_HARNESS)/test_runner.adb
+	scripts/check-reqs-harness.sh \
+	    $(CURDIR)/$(REQS_HARNESS)/gnattest_main_suite.adb $(REQS_IGNORE) \
+	    $(CURDIR)/tests/reqs/src
 
 # ----------------------------------------------------------------------------
 ##@ Test on target (arm-eabi firmware under QEMU)
@@ -532,8 +567,8 @@ REPORT_OUT    := $(CURDIR)/reports/report
 # The prerequisites guarantee the report never describes stale artifacts:
 # `validate-reqs-corpus` gates on a parseable corpus, `trace-report` regenerates
 # the trace matrices from fresh inventories, `prove-report` is a clean, forced
-# (-f) gnatprove run, and `all-coverage` re-runs the tests before
-# `coverage-report-xml` reads the traces.
+# (-f) gnatprove run, and `all-coverage` re-runs the requirements-based tests
+# before `coverage-report-xml` reads the traces.
 # Not `validate-reqs`: trace gaps are open items in the report, not a stop.
 REPORT_EVIDENCE := validate-reqs-corpus trace-report prove-report all-coverage coverage-report-xml
 
@@ -595,36 +630,67 @@ reset-hard: ## Remove install/ entirely -- everything the setup-* targets instal
 # ----------------------------------------------------------------------------
 
 # Where the traces will be emitted
-GNATCOV_TRACES := $$(pwd)/obj/gnatcov-traces
+GNATCOV_TRACES := $(CURDIR)/obj/gnatcov-traces
 
 # The RTS project
-GNATCOV_RTS := $$(pwd)/obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
+GNATCOV_RTS := $(CURDIR)/obj/gnatcov-rts/share/gpr/gnatcov_rts.gpr
 
 # The coverage reports directory
-COVERAGE_REPORTS := $$(pwd)/reports/coverage
+COVERAGE_REPORTS := $(CURDIR)/reports/coverage
+
+# Which harness `coverage-test` instruments, builds and runs.
+COVERAGE_HARNESS      := $(REQS_HARNESS)
+COVERAGE_HARNESS_DEPS := generate-tests-reqs
+
+# The verification scope (README "Verification scope"): the controller, and
+# not the HAL simulator, the composition or the entry point that wire it.
+COVERAGE_SCOPE := --projects core --projects types
 
 $(COVERAGE_REPORTS):
 	mkdir -p $(COVERAGE_REPORTS)
 
-# "quiet" all-in-one coverage, for use by agents. Only NON-exempted violations
-# count as errors.
+# The `file:line:col:` findings of a text report, above the exempted regions.
+COVERAGE_FINDINGS = awk '/^== 3\. EXEMPTED REGIONS ==/ {exit} {print}' \
+    $(COVERAGE_REPORTS)/report.txt | grep -e '^.*:[0-9]\+:[0-9]\+: .*$$'
+
+# "quiet" all-in-one coverage, for use by agents.
 COVERAGE_LOG := coverage.log
-all-coverage: ## Instrument, build, test, and print the coverage violations only
-	@make coverage-instrumentation coverage-build coverage-test > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
-	@make coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
-	@awk '/^== 3\. EXEMPTED REGIONS ==/ {exit} {print}' $(COVERAGE_REPORTS)/report.txt \
-		| grep -e '^.*:[0-9]\+:[0-9]\+: .*$$' || true
+all-coverage: ## Instrument, build, run the requirements-based tests, print the violations
+	@$(MAKE) coverage-instrumentation coverage-build coverage-test > $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
+	@$(MAKE) coverage-report-text >> $(COVERAGE_LOG) 2>&1 || (cat $(COVERAGE_LOG) ; exit 1)
+	@$(COVERAGE_FINDINGS) || true
+
+check-coverage: ## Fail if the coverage report holds a non-exempted violation
+	@test -f $(COVERAGE_REPORTS)/report.txt || { \
+	    echo "$(COVERAGE_REPORTS)/report.txt: no report -- run make all-coverage" ; \
+	    exit 1 ; }
+	@if $(COVERAGE_FINDINGS) ; then \
+	    echo "" ; \
+	    echo "coverage gate: the findings above are uncovered code in scope." ; \
+	    echo "Close them with routines under tests/reqs/, or -- if no" ; \
+	    echo "requirement governs the code -- raise that as the finding." ; \
+	    exit 1 ; \
+	fi
+	@echo "coverage gate: no non-exempted violations"
+
+all-coverage-mixed: ## Same, from the full test suite -> reports/coverage-mixed/
+	@$(MAKE) all-coverage \
+	    COVERAGE_HARNESS=$(HARNESS) \
+	    COVERAGE_HARNESS_DEPS=generate-tests \
+	    GNATCOV_TRACES=$(CURDIR)/obj/gnatcov-traces-mixed \
+	    COVERAGE_REPORTS=$(CURDIR)/reports/coverage-mixed \
+	    COVERAGE_LOG=coverage-mixed.log
 
 # Named alias for the file rule below.
 coverage-rts: $(GNATCOV_RTS) ## Provision the local gnatcov RTS
 
 # Local gnatcov RTS
 $(GNATCOV_RTS):
-	$(ALR) exec -- gnatcov setup --prefix=$$(pwd)/obj/gnatcov-rts
+	$(ALR) exec -- gnatcov setup --prefix=$(CURDIR)/obj/gnatcov-rts
 
-coverage-instrumentation: $(GNATCOV_RTS) ## Create the instrumented sources
+coverage-instrumentation: generate-config $(GNATCOV_RTS) ## Create the instrumented sources
 	$(ALR) exec -P2 -- gnatcov instrument \
-		--level=stmt+mcdc \
+		--level=stmt+mcdc $(COVERAGE_SCOPE) \
 	    --runtime-project $(GNATCOV_RTS)
 
 coverage-build: ## Build the instrumented sources
@@ -632,34 +698,24 @@ coverage-build: ## Build the instrumented sources
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
 
-# Same community/other split as `test` above.
-coverage-test: generate-tests ## Instrument, build and run the tests for coverage
+coverage-test: $(COVERAGE_HARNESS_DEPS) ## Instrument, build and run the tests for coverage
 	rm -rf $(GNATCOV_TRACES)
 	mkdir -p $(GNATCOV_TRACES)
-ifeq ($(SETUP),community)
-	$(ALR) -C tests exec -- gnatcov instrument -P ../$(HARNESS)/test_driver.gpr \
-		--level=stmt+mcdc \
+	$(TESTS_EXEC) gnatcov instrument \
+	    -P $(CURDIR)/$(COVERAGE_HARNESS)/test_driver.gpr \
+		--level=stmt+mcdc $(COVERAGE_SCOPE) \
 	    --runtime-project $(GNATCOV_RTS)
-	$(ALR) -C tests exec -- gprbuild -P ../$(HARNESS)/test_driver.gpr \
+	$(TESTS_EXEC) gprbuild -p -P $(CURDIR)/$(COVERAGE_HARNESS)/test_driver.gpr \
 	    -g -O0 -m2 \
 	    --src-subdirs=gnatcov-instr \
 	    --implicit-with=$(GNATCOV_RTS)
-else
-	$(ALR) exec -- gnatcov instrument -P $(HARNESS)/test_driver.gpr \
-		--level=stmt+mcdc \
-	    --runtime-project $(GNATCOV_RTS)
-	$(ALR) exec -- gprbuild -P $(HARNESS)/test_driver.gpr \
-	    -g -O0 -m2 \
-	    --src-subdirs=gnatcov-instr \
-	    --implicit-with=$(GNATCOV_RTS)
-endif
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
-	    $(HARNESS)/test_runner
+	    $(COVERAGE_HARNESS)/test_runner
 
 coverage-report-cobertura: $(COVERAGE_REPORTS) ## Coverage report: cobertura XML
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
-	    --level=stmt+mcdc \
+	    --level=stmt+mcdc $(COVERAGE_SCOPE) \
 		--annotate=cobertura \
 		--output-dir $(COVERAGE_REPORTS)/cobertura \
 		$(GNATCOV_TRACES)/
@@ -667,7 +723,7 @@ coverage-report-cobertura: $(COVERAGE_REPORTS) ## Coverage report: cobertura XML
 coverage-report-html: $(COVERAGE_REPORTS) ## Coverage report: HTML (not with community gnatcov)
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
-	    --level=stmt+mcdc \
+	    --level=stmt+mcdc $(COVERAGE_SCOPE) \
 		--annotate=html \
 		--output-dir $(COVERAGE_REPORTS)/html \
 		$(GNATCOV_TRACES)/
@@ -675,7 +731,7 @@ coverage-report-html: $(COVERAGE_REPORTS) ## Coverage report: HTML (not with com
 coverage-report-text: $(COVERAGE_REPORTS) ## Coverage report: text
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \
 	$(ALR) exec -P2 -- gnatcov coverage \
-	    --level=stmt+mcdc \
+	    --level=stmt+mcdc $(COVERAGE_SCOPE) \
 		--annotate=report \
 		-o $(COVERAGE_REPORTS)/report.txt \
 		$(GNATCOV_TRACES)/
@@ -685,7 +741,7 @@ coverage-report-text: $(COVERAGE_REPORTS) ## Coverage report: text
 # consumes whatever traces are under $(GNATCOV_TRACES) — run `coverage-test`
 # (or `all-coverage`) first for fresh ones. The exact command is recorded next
 # to the XML, only after a zero exit.
-GNATCOV_XML_CMD = gnatcov coverage --level=stmt+mcdc --annotate=xml \
+GNATCOV_XML_CMD = gnatcov coverage --level=stmt+mcdc $(COVERAGE_SCOPE) --annotate=xml \
     --output-dir $(COVERAGE_REPORTS)/xml $(GNATCOV_TRACES)/
 coverage-report-xml: $(COVERAGE_REPORTS) ## Coverage report: machine-readable XML, parsed by `make report`
 	export GNATCOV_TRACE_FILE=$(GNATCOV_TRACES)/ && \

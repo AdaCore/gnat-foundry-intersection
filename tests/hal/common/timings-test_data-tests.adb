@@ -40,7 +40,9 @@ package body Timings.Test_Data.Tests is
    --  timings.ads:9:4:Delay_For
 --  end read only
 
-      --@covers llr_6_hal.1
+      --@covers none: the HAL is a simulator, outside the verification scope
+      --  (README "Verification scope"); this is a sanity check on the host
+      --  delay, not requirements evidence.
 
       pragma Unreferenced (Gnattest_T);
 

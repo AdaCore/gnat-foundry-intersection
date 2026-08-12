@@ -21,7 +21,7 @@ make build-native   # Build the native app
 make test           # Run the testsuite
 make prove          # Run the prover
 
-make all-coverage   # Generate a coverage report
+make all-coverage   # Generate a coverage report (requirements-based tests only)
 
 make build-target   # Build the bare-metal arm-eabi firmware
 make smoke-target   # Boot the firmware under QEMU, check its first display frame
@@ -50,10 +50,9 @@ The `*-target` targets additionally need `qemu-system-arm` on PATH; the
 runner image). `test-target` runs the *generated* test bodies under `tests/`,
 minus the host-profile HAL units listed in
 `traffic_light_qemu/tests/host_only_sources.txt` — 11 of the 16 skeletons. It
-does **not** run the 120 requirements-based routines under `tests/reqs/`, which
+does **not** run the requirements-based routines under `tests/reqs/`, which
 reach the native harness through `--additional-tests` and have no cross-harness
-equivalent (#110), so `make test` runs 136 and `make test-target` 11. Coverage
-is native-only.
+equivalent. Coverage is native-only.
 
 ## Feature workflow
 
@@ -144,4 +143,7 @@ generics, the `core` project carries a small in-SPARK instantiation harness
   genuine.
 - Writing a requirements-based test under `tests/reqs/`: read
   `tests/reqs/README.md` first — its rules are the review criteria.
-- If working on coverage augmentation, run `make all-coverage` to list uncovered code.
+- If working on coverage augmentation, run `make all-coverage` to list uncovered
+  code, and close the gaps with routines under `tests/reqs/` — nothing else is
+  in the measured run. If no LLR statement governs the uncovered code, that is
+  the finding: raise it rather than transcribing an expectation from the code.

@@ -13,6 +13,25 @@ functional-safety standard.
 
 Early scaffold.
 
+## Verification scope
+
+**The HAL is a simulator, not a production artifact.** Neither profile drives
+signal hardware: the host profile renders the intersection to a terminal and
+simulates the sensors from keystrokes; the QEMU profile renders it over a UART,
+because the emulated machine has no GPIO, and its sensor producer is a stub. A
+production system would replace that layer with device drivers carrying their
+own requirements and their own hardware/software integration verification, for
+which nothing here substitutes.
+
+The HAL realizations (`Display`, `Sources`, `Timings`), the composition that
+wires them and the `Main` entry point are therefore the demonstration's
+*harness*: excluded from the requirements, from the V&V activities, and from
+the structural-coverage denominator. What is verified is the controller —
+`src/types` and `src/core` — by SPARK proof at Silver and by the
+requirements-based tests under [`tests/reqs/`](tests/reqs/README.md), whose
+structural coverage is measured over exactly that scope (`make all-coverage`)
+and is complete — `make check-coverage` holds CI to it.
+
 ## Quick start
 
 ```bash
@@ -65,7 +84,9 @@ baseline against which a future timing regression would be read.
 through two GNATtest harnesses — one native, one cross-compiled for arm-eabi
 and run on QEMU's `xilinx-zynq-a9` machine against the same
 `light-tasking-zynq7000` runtime the firmware ships with. Coverage is measured
-natively only (`make all-coverage`).
+natively only, and from the requirements-based tests under `tests/reqs/` alone
+(`make all-coverage`); `make all-coverage-mixed` measures the whole suite as a
+diagnostic.
 
 The cross harness leaves out the `Display` / `Sources` / `Timings` tests, which
 are bound to the host profile by construction — they capture `Ada.Text_IO`
