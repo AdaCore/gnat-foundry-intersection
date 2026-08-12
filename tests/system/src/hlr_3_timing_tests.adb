@@ -7,6 +7,7 @@ with System_Support.Timeline;
 package body Hlr_3_Timing_Tests is
 
    use type States.Duration_Ms;
+   use type States.Pedestrian_Head;
 
    package Demand renames System_Support.Demand;
    package Timeline renames System_Support.Timeline;
@@ -40,6 +41,145 @@ package body Hlr_3_Timing_Tests is
         (not Timeline.Truncated,
          "the observation dropped frames, so the timeline is a prefix");
    end Observe_Cycle;
+
+   procedure Observe_Pedestrian_Service (Pattern : Demand_Case);
+   --  Press every button for one read at power-on and observe a full cycle
+   --  under Pattern: each crosswalk is then served once, when its adjacent
+   --  through greens (hlr_6_pedestrian.8).
+   --  @param Pattern Which left-turn detectors are held
+
+   procedure Check_Head_Interval
+     (Head     : States.Pedestrian_Head;
+      Held_For : States.Duration_Ms;
+      Named    : String;
+      Pattern  : Demand_Case);
+   --  Assert every crosswalk displayed Head over exactly one run of frames in
+   --  the last observation, for Held_For in total. A vehicle change during the
+   --  interval opens a frame of its own, so the run is what carries it.
+   --  @param Head The head value bounding the interval
+   --  @param Held_For The duration the requirement gives it
+   --  @param Named How the requirement names that duration
+   --  @param Pattern The pattern observed, for the message
+
+   procedure Observe_Pedestrian_Service (Pattern : Demand_Case) is
+   begin
+      Demand.Clear;
+
+      if Pattern = All_Lefts then
+         for A in States.Approach loop
+            Demand.Left_Turn (A, From => 0);
+         end loop;
+      end if;
+
+      for C in States.Crosswalk loop
+         Demand.Press (C, From => 0, Before => States.T_Sample + 1);
+      end loop;
+
+      Timeline.Observe (For_Ms => Cycle, Demand => Demand.Snapshot'Access);
+
+      Assert
+        (not Timeline.Truncated,
+         "the observation dropped frames, so the timeline is a prefix");
+   end Observe_Pedestrian_Service;
+
+   procedure Check_Head_Interval
+     (Head     : States.Pedestrian_Head;
+      Held_For : States.Duration_Ms;
+      Named    : String;
+      Pattern  : Demand_Case) is
+   begin
+      for C in States.Crosswalk loop
+         declare
+            Runs : Natural := 0;
+            Span : States.Duration_Ms := 0;
+         begin
+            for N in 1 .. Timeline.Count loop
+               declare
+                  Served : constant Timeline.Interval := Timeline.Nth (N);
+
+                  Shown : constant Boolean :=
+                    Served.Frame.Heads (C) = Head;
+               begin
+                  if Shown
+                    and then (N = 1
+                              or else Timeline.Nth (N - 1).Frame.Heads (C)
+                                      /= Head)
+                  then
+                     Runs := Runs + 1;
+                     Span := 0;
+                  end if;
+
+                  if Shown then
+                     Assert
+                       (Served.Closed,
+                        States.Crosswalk'Image (C)
+                        & "'s "
+                        & States.Pedestrian_Head'Image (Head)
+                        & " frame published at"
+                        & States.Duration_Ms'Image (Served.Opened_At)
+                        & " ms was never replaced, so the interval is only a"
+                        & " lower bound");
+
+                     Span := Span + Served.Span;
+                  end if;
+               end;
+            end loop;
+
+            Assert
+              (Runs = 1,
+               States.Crosswalk'Image (C)
+               & " must be served once in a cycle, but displayed "
+               & States.Pedestrian_Head'Image (Head)
+               & " over"
+               & Integer'Image (Runs)
+               & " run(s) under "
+               & Demand_Case'Image (Pattern));
+
+            Assert
+              (Span = Held_For,
+               States.Crosswalk'Image (C)
+               & " must display "
+               & States.Pedestrian_Head'Image (Head)
+               & " for "
+               & Named
+               & " ="
+               & States.Duration_Ms'Image (Held_For)
+               & " ms, but displayed it for"
+               & States.Duration_Ms'Image (Span)
+               & " ms under "
+               & Demand_Case'Image (Pattern));
+         end;
+      end loop;
+   end Check_Head_Interval;
+
+   procedure Test_Walk_Holds_For_T_Walk (T : in out Test) is
+      --@observes hlr_3_timing.1
+
+      pragma Unreferenced (T);
+
+      T_Walk : constant States.Duration_Ms := 7_000;
+      --  hlr_3_timing.1: a WALK interval of 7 seconds.
+   begin
+      for Pattern in Demand_Case loop
+         Observe_Pedestrian_Service (Pattern);
+         Check_Head_Interval (States.Walk, T_Walk, "T_WALK", Pattern);
+      end loop;
+   end Test_Walk_Holds_For_T_Walk;
+
+   procedure Test_Flash_Dont_Walk_Holds_For_T_FDW (T : in out Test) is
+      --@observes hlr_3_timing.2
+
+      pragma Unreferenced (T);
+
+      T_FDW : constant States.Duration_Ms := 7_000;
+      --  hlr_3_timing.2: a pedestrian change interval of 7 seconds.
+   begin
+      for Pattern in Demand_Case loop
+         Observe_Pedestrian_Service (Pattern);
+         Check_Head_Interval
+           (States.Flash_Dont_Walk, T_FDW, "T_FDW", Pattern);
+      end loop;
+   end Test_Flash_Dont_Walk_Holds_For_T_FDW;
 
    procedure Test_Yellow_Holds_For_T_Yellow (T : in out Test) is
       --@observes hlr_3_timing.4
@@ -254,5 +394,92 @@ package body Hlr_3_Timing_Tests is
          end;
       end loop;
    end Test_Axis_Change_Barriers_Hold_For_T_Barrier;
+
+   procedure Test_Request_Acknowledged_Within_T_Ack (T : in out Test) is
+      --@observes hlr_3_timing.13
+
+      pragma Unreferenced (T);
+
+      T_Ack : constant States.Duration_Ms := 200;
+      --  hlr_3_timing.13: an acknowledgment bound of 0.2 seconds.
+
+      procedure Check_Ack
+        (C : States.Crosswalk; After : States.Duration_Ms; Context : String);
+      --  Press C's button just past the read at After, and assert the frame
+      --  taking the request reaches the display within T_ACK of the press.
+      --  @param C The crosswalk pressed
+      --  @param After The last read the press misses
+      --  @param Context What the intersection is doing
+
+      procedure Check_Ack
+        (C : States.Crosswalk; After : States.Duration_Ms; Context : String)
+      is
+         Taken : Natural := 0;
+      begin
+         Demand.Clear;
+         Demand.Press (C, From => After + 1);
+
+         Timeline.Observe (For_Ms => Cycle, Demand => Demand.Snapshot'Access);
+
+         Assert
+           (not Timeline.Truncated,
+            "the observation dropped frames, so the timeline is a prefix");
+
+         for N in 1 .. Timeline.Count loop
+            if System_Support.Acknowledged (Timeline.Nth (N).Frame, C) then
+
+               Assert
+                 (Timeline.Nth (N).Opened_At > After,
+                  "the frame published at"
+                  & States.Duration_Ms'Image (Timeline.Nth (N).Opened_At)
+                  & " ms acknowledges a request at "
+                  & States.Crosswalk'Image (C)
+                  & " that the press "
+                  & Context
+                  & " had not yet made");
+
+               Taken := N;
+               exit;
+            end if;
+         end loop;
+
+         Assert
+           (Taken > 0,
+            "the press "
+            & Context
+            & " was never acknowledged at "
+            & States.Crosswalk'Image (C));
+
+         Assert
+           (Timeline.Nth (Taken).Opened_At <= After + T_Ack,
+            "the press "
+            & Context
+            & " must be acknowledged at "
+            & States.Crosswalk'Image (C)
+            & " within T_ACK ="
+            & States.Duration_Ms'Image (T_Ack)
+            & " ms of"
+            & States.Duration_Ms'Image (After)
+            & " ms, but the frame taking it was published at"
+            & States.Duration_Ms'Image (Timeline.Nth (Taken).Opened_At)
+            & " ms");
+      end Check_Ack;
+
+   begin
+      Check_Ack
+        (C       => States.East_Side,
+         After   => 1_000,
+         Context => "while the barrier holds all-red");
+
+      Check_Ack
+        (C       => States.East_Side,
+         After   => States.T_Barrier - States.T_Sample,
+         Context => "on the last read of the barrier");
+
+      Check_Ack
+        (C       => States.North_Side,
+         After   => 10_000,
+         Context => "mid-service of the other axis");
+   end Test_Request_Acknowledged_Within_T_Ack;
 
 end Hlr_3_Timing_Tests;

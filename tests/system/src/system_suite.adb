@@ -17,15 +17,28 @@ package body System_Suite is
 
    Result : aliased Test_Suite;
 
+   Walk             : aliased Timing_Caller.Test_Case;
+   Flash_Dont_Walk  : aliased Timing_Caller.Test_Case;
    Yellow           : aliased Timing_Caller.Test_Case;
    Red_Clearance    : aliased Timing_Caller.Test_Case;
    Power_On_Barrier : aliased Timing_Caller.Test_Case;
    Axis_Barriers    : aliased Timing_Caller.Test_Case;
+   Acknowledgment   : aliased Timing_Caller.Test_Case;
    Full_Cycle_Fits  : aliased Timeline_Caller.Test_Case;
    Demand_Windows   : aliased Demand_Caller.Test_Case;
 
    function Suite return Access_Test_Suite is
    begin
+      Timing_Caller.Create
+        (Walk,
+         "hlr_3_timing: WALK holds for T_WALK",
+         Hlr_3_Timing_Tests.Test_Walk_Holds_For_T_Walk'Access);
+
+      Timing_Caller.Create
+        (Flash_Dont_Walk,
+         "hlr_3_timing: FLASHING DONT WALK holds for T_FDW",
+         Hlr_3_Timing_Tests.Test_Flash_Dont_Walk_Holds_For_T_FDW'Access);
+
       Timing_Caller.Create
         (Yellow,
          "hlr_3_timing: every yellow holds for T_YELLOW",
@@ -47,6 +60,11 @@ package body System_Suite is
          Hlr_3_Timing_Tests.Test_Axis_Change_Barriers_Hold_For_T_Barrier'
            Access);
 
+      Timing_Caller.Create
+        (Acknowledgment,
+         "hlr_3_timing: a press is acknowledged within T_ACK",
+         Hlr_3_Timing_Tests.Test_Request_Acknowledged_Within_T_Ack'Access);
+
       Timeline_Caller.Create
         (Full_Cycle_Fits,
          "timeline: a full cycle under full demand fits",
@@ -57,10 +75,13 @@ package body System_Suite is
          "demand: a window bounds the reads that see it",
          Demand_Tests.Test_Windows_Bound_The_Scripted_Reads'Access);
 
+      Add_Test (Result'Access, Walk'Access);
+      Add_Test (Result'Access, Flash_Dont_Walk'Access);
       Add_Test (Result'Access, Yellow'Access);
       Add_Test (Result'Access, Red_Clearance'Access);
       Add_Test (Result'Access, Power_On_Barrier'Access);
       Add_Test (Result'Access, Axis_Barriers'Access);
+      Add_Test (Result'Access, Acknowledgment'Access);
       Add_Test (Result'Access, Full_Cycle_Fits'Access);
       Add_Test (Result'Access, Demand_Windows'Access);
 
