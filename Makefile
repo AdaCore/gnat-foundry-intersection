@@ -316,16 +316,10 @@ test: generate-tests ## Build and run the AUnit harness
 	$(TESTS_EXEC) gprbuild -q -P $(CURDIR)/$(HARNESS)/test_driver.gpr
 	$(HARNESS)/test_runner
 
-# ----------------------------------------------------------------------------
-# The system-level tests (#111): hand-written AUnit fixtures under
-# tests/system/, one package per HLR file, observing the composed program over
-# spans of logical time. Neither generated nor folded into a generated harness
-# -- their suite and driver are written out, so `gnattest` is not involved.
-#
-# Their separation from the two harnesses above is what keeps them outside the
-# TEST layer of requirements/trace_chain.yaml and outside the measured coverage
-# run; tests/system/system_tests.gpr records what that buys.
-# ----------------------------------------------------------------------------
+# The system-level tests: hand-written AUnit fixtures under tests/system/, with
+# their own suite and driver. Outside both generated harnesses, and so outside
+# the TEST layer and the measured coverage run; tests/system/system_tests.gpr
+# says what that buys.
 SYSTEM_TESTS := $(CURDIR)/tests/system/system_tests.gpr
 
 test-system: generate-config ## Build and run the system-level tests

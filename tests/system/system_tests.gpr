@@ -1,4 +1,4 @@
---  System-level tests (#111).
+--  System-level tests.
 --
 --  Hand-written AUnit fixtures, one package per HLR file, with a hand-written
 --  suite and driver: `gnattest` is not involved. It generates skeletons keyed
