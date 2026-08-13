@@ -177,7 +177,7 @@ run-target: build-target ## Run the firmware under QEMU (xilinx-zynq-a9)
 
 # Only SPARK_Mode units are analyzed; the rest are skipped. gnatprove resolves
 # via the local prefix (on PATH) under `alr exec`.
-prove: ## SPARK proofs (silver level) across the default project
+prove: generate-config ## SPARK proofs (silver level) across the default project
 	$(ALR) exec -P -- gnatprove -U --level=2 --report=statistics --checks-as-errors=on
 
 # A clean, forced re-analysis so every unit's artifacts come from this one run
@@ -186,7 +186,7 @@ prove: ## SPARK proofs (silver level) across the default project
 # records them.
 GNATPROVE_ARTIFACTS := obj/development/gnatprove
 
-prove-report: ## Proof run feeding `make report`
+prove-report: generate-config ## Proof run feeding `make report`
 	$(ALR) exec -P -- gnatprove --clean
 	$(ALR) exec -P -- gnatprove -U -f --level=2 --report=statistics \
 	    --assumptions --output-header
