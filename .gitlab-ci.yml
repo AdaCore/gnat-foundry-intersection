@@ -39,7 +39,6 @@ default:
   services:
     - image:serotonic
     - cpu:4
-    # Allow connecting to the internet
     - security_group:GitLabRunnerTasksExecPrivilegedSG
 
 .uv:
@@ -52,8 +51,7 @@ default:
     - pip install uv
     - unset VIRTUAL_ENV
 
-# Test the `reqs` requirements validation tool, then validate the requirements
-# with it.
+# Test the `reqs` requirements validation tool, then validate the requirements.
 validate-requirements:
   stage: validate
   extends:
@@ -62,13 +60,12 @@ validate-requirements:
     - make test-reqs-engine
     - make validate-reqs
 
-# Lint, type-check and check formatting (the report engine has its own job).
+# Lint, type-check and check formatting
 check:
   stage: validate
   extends:
     - .uv
   script:
-    # Install `alr` and `gnatformat` with `anod`
     - !reference [.pro, before_script]
     - anod install gnatformat --qualifier=stable
     - eval $(anod printenv gnatformat --qualifier=stable)
@@ -76,7 +73,7 @@ check:
     # Run the checks
     - make check-shell check-python-reqs check-target-test-parity
 
-# Check and test the report engine; its deps are only on pypi.org (which its uv.lock pins).
+# Check and test the report engine.
 check-report:
   stage: validate
   extends:
@@ -86,7 +83,6 @@ check-report:
     - cpu:1
     - security_group:GitLabRunnerTasksExecPrivilegedSG
   script:
-    # The env vars outrank the runner image's system-level uv configuration.
     - unset PIP_INDEX_URL PIP_EXTRA_INDEX_URL UV_INDEX_URL UV_EXTRA_INDEX_URL
         UV_INDEX
     - export UV_DEFAULT_INDEX="https://pypi.org/simple"
@@ -99,15 +95,10 @@ check-report:
      - .x86_64-linux-pro
      - .default_rules
   before_script:
-    # Install uv
     - pip install uv
     - unset VIRTUAL_ENV
-
-    # Deploy a sandbox
     - anod init wave
     - export ANOD_DEFAULT_SANDBOX_DIR=$(pwd)/wave
-
-    # Install alire
     - anod install alire
     - eval $(anod printenv alire)
 
@@ -126,7 +117,6 @@ check-report:
 pro:x86_64-linux:
   extends: .pro
   script:
-    # Install stable specs
     - for spec in gnat gnatformat spark2014 gnatcov gnattest langkit_support libadalang ; do
         anod install $spec --qualifier=stable ;
         eval $(anod printenv $spec --qualifier=stable) ;
@@ -177,22 +167,17 @@ pro:x86_64-linux:
 
   coverage: '/^Line Coverage:\s+(\d+\.\d+)$/'
   artifacts:
-    when: always #  Upload on errors too
+    when: always
     reports:
       coverage_report:
         coverage_format: cobertura
         path: reports/coverage/cobertura/cobertura.xml
     paths:
-      # Upload the entire reports/ directory as an artifact
       - reports/
 
-# The tracer's own integration test. A job of its own, and *not* allow_failure:
-# `pro:trace-check` below is red on purpose while the work list is burned down,
-# so a regression in the check extraction it reads would hide there.
 pro:tracer-test:
   extends: .pro
   script:
-    # Install the specs the tracer needs to build
     - for spec in gnat langkit_support libadalang ; do
         anod install $spec --qualifier=stable ;
         eval $(anod printenv $spec --qualifier=stable) ;
@@ -204,9 +189,7 @@ pro:tracer-test:
 
 pro:trace-check:
   extends: .pro
-  allow_failure: true  # Drop allow_failure after the tracing becomes green
   script:
-    # Install the specs the tracer and the harness generator need
     - for spec in gnat gnattest langkit_support libadalang ; do
         anod install $spec --qualifier=stable ;
         eval $(anod printenv $spec --qualifier=stable) ;
@@ -214,14 +197,21 @@ pro:trace-check:
     - anod install libgpr2 --qualifier=bare,stable
     - eval $(anod printenv libgpr2 --qualifier=bare,stable)
 
-    - make build-native
     - make trace-check
+
+pro:prove:
+  extends: .pro
+  script:
+    - for spec in gnat spark2014 ; do
+        anod install $spec --qualifier=stable ;
+        eval $(anod printenv $spec --qualifier=stable) ;
+      done
+
+    - make prove
 
 pro:report:
   extends: .pro
   services:
-    # Restated in full (services replaces, it does not merge) for the internet
-    # access the report engine's pypi.org-only dependencies need.
     - image:e3
     - cpu:4
     - security_group:GitLabRunnerTasksExecPrivilegedSG
@@ -232,8 +222,6 @@ pro:report:
       done
     - anod install libgpr2 --qualifier=bare,stable
     - eval $(anod printenv libgpr2 --qualifier=bare,stable)
-
-    # As in check-report.
     - unset PIP_INDEX_URL PIP_EXTRA_INDEX_URL UV_INDEX_URL UV_EXTRA_INDEX_URL
         UV_INDEX
     - export UV_DEFAULT_INDEX="https://pypi.org/simple"
@@ -251,20 +239,18 @@ pro:report:
     - publish-pages "$verification_report_dir" --target-subdir "$target_subdir/report" --expires 30
 
   artifacts:
-    when: always #  Upload on errors too
+    when: always
     paths:
       - reports/
       - obj/development/gnatprove/
 
-# Target build, and the on-target testsuite: cross-built with GNAT Pro and run
-# under QEMU. No coverage: gnatcov stays a native concern (see pro:x86_64-linux).
+# Target build, and the on-target testsuite using QEMU.
 pro:arm-elf:
   extends: .pro
   services:
     - image:serotonic
     - cpu:4
   script:
-    # The cross compiler, and gnattest to generate the cross harness.
     - anod install gnat --qualifier=stable --target=arm-elf
     - eval $(anod printenv gnat --qualifier=stable --target=arm-elf)
     - anod install gnattest --qualifier=stable
@@ -275,12 +261,8 @@ pro:arm-elf:
     - gnattest --version
     - qemu-system-arm --version
 
-    # Build (SETUP=none: gprbuild runs directly against the anod toolchain,
-    # so the qemu crate's community `gnat_arm_elf` dependency is not fetched)
+    # Build and smoke test
     - make build-target
-
-    # Boot the firmware first: it is the only exercise of the target HAL, and it
-    # fails faster and more legibly than the harness if the image cannot boot.
     - make smoke-target
 
     # Cross-build and run the on-target harness
@@ -288,10 +270,9 @@ pro:arm-elf:
     - make test-target
 
   artifacts:
-    when: always #  Upload on errors too
+    when: always
     paths:
-      # The UART captures. Bare-metal firmware has no exit status, so on failure
-      # these logs are the only evidence of what the guest did.
+      # The UART captures.
       - obj/target/*.log
       - obj/target/*.log.other
 
@@ -301,14 +282,9 @@ community:x86_64-linux:
      - .x86_64-linux-community
      - .default_rules
   script:
-    # Setup
     - make setup-community
-
-    # Sanity check
-    - qemu-system-arm --version
-
-    # Build
     - make build-native
+    - make test
 
     # Coverage: the requirements-based harness only
     - make coverage-rts
@@ -319,18 +295,38 @@ community:x86_64-linux:
     - make coverage-report-text
     - make check-coverage
 
-    # Target build and test
+  artifacts:
+    when: always
+    paths:
+      - reports/
+
+community:arm-elf:
+  stage: build
+  extends:
+     - .x86_64-linux-community
+     - .default_rules
+  script:
+    - make setup-community
+
+    - qemu-system-arm --version
+
     - make build-target
     - make smoke-target
     - make build-tests-target
     - make test-target
 
   artifacts:
-    when: always #  Upload on errors too
+    when: always
     paths:
-      # Upload the entire reports/ directory as an artifact
-      - reports/
-      # The UART captures. Bare-metal firmware has no exit status, so on failure
-      # these logs are the only evidence of what the guest did.
+      # The UART captures.
       - obj/target/*.log
       - obj/target/*.log.other
+
+community:prove:
+  stage: build
+  extends:
+     - .x86_64-linux-community
+     - .default_rules
+  script:
+    - make setup-community
+    - make prove
