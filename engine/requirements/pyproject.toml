@@ -125,6 +125,7 @@ ignore = [
     "FBT002", # ... and their defaults are part of that declaration
     "FBT003", # typer.Option(False, ...) passes the default positionally by design
     "PLR0913", # A command's parameters mirror its CLI options, however many
+    "PLR0917", # ... and Typer passes them positionally
     "TRY003", # Typer usage errors carry their message at the raise site
 ]
 

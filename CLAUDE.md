@@ -89,6 +89,9 @@ As the orchestrating (main) session:
    has an unanswered `Q`, relay it to the human via `AskUserQuestion`, write the
    `A:` back, and re-dispatch so the sub-agent resumes.
 5. Update `plan.md`. Done when every task in the chain is `oracle-passed`.
+6. Once the feature is done, run `make report` to produce the final report.
+   Include a summary of the results in your concluding message, and direct the
+   user to where they can read it in full.
 
 Sub-agents cannot prompt the human directly — the **shared questions file**
 (`workflow/<feature>/questions.md`, append-only) is the only escalation channel;
@@ -99,6 +102,10 @@ Unless specifically asked, do not look at git branches other than the one you're
 ## When editing any artifact
 
 - Read the section on commentary conventions in code conventions: `design/code_conventions.md`
+- With the exception of explicit records of history (change logs etc.), do not
+  document how things used to be; artifacts should read as if they were written
+  from scratch the way they are now. When something is moved, there is no
+  obligation to leave breadcrumbs where it was previously.
 
 ## When editing code
 
