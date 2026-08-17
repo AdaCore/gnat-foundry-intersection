@@ -77,6 +77,20 @@ The core loop is implemented as a generic subprogram, which is parameterized by:
   latch when the value is read
 - a procedure which is used to write the traffic light outputs
 
+### The startup prologue
+
+Before its first iteration the loop publishes the initialised state and holds
+it for one sampling period (`llr_5_core_loop.5`). This sets the phase of the
+whole run: iteration N's stages fall at logical time N × T_SAMPLE, so the step
+that charges the last T_SAMPLE of a dwell lands on that dwell's boundary in
+elapsed time rather than one sample before it, and every published frame stands
+for exactly the dwell of the state it projects. Without the prologue the
+initialised state — the one state no `Step` enters, so the one state not both
+entered and left by a step one dwell apart — is displayed for one sampling
+period less than its dwell. The publication alone does not fix that; the hold
+is the operative half. The prologue also puts the first `Read_Sources` at
+t = T_SAMPLE, which defers power-on fault detection by one sample.
+
 ### Sampled cadence and the acknowledgment chain
 
 The delay slept at the end of each iteration is the **fixed sensor sampling

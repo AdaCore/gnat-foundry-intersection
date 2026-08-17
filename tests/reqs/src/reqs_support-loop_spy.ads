@@ -11,6 +11,8 @@
 --  The escape is raised from the spy Delay_For, the last of the four stages
 --  (llr_5_core_loop.2), so an escaped run ends on an iteration boundary with
 --  every stage of the final iteration already recorded, rather than mid-cycle.
+--  The startup prologue's delay (llr_5_core_loop.5) precedes the first read and
+--  closes no iteration, so it neither counts toward Iterations nor escapes.
 --
 --  What the run leaves behind is the loop's observable trace: which stage ran,
 --  in what order, the snapshot each Read_Sources delivered, the outputs each
@@ -30,7 +32,13 @@ package Reqs_Support.Loop_Spy is
 
    Max_Events : constant := 256;
    --  The trace is a fixed array rather than a container, so a run's length is
-   --  bounded and Run's precondition can say so. Three events per iteration.
+   --  bounded and Run's precondition can say so. Three events per iteration,
+   --  after the prologue's two.
+
+   Prologue_Events : constant := 2;
+   --  The startup prologue's Write_Display and Delay_For (llr_5_core_loop.5)
+   --  stand at the head of every trace, before iteration one's Read_Sources.
+   --  A routine indexing the trace by iteration counts from here.
 
    subtype Event_Index is Positive range 1 .. Max_Events;
 
@@ -68,10 +76,10 @@ package Reqs_Support.Loop_Spy is
    --  never reach a test.
 
    procedure Run (Iterations : Positive; Inputs : Sensor_Script := All_Quiet)
-   with Pre => 3 * Iterations <= Max_Events;
-   --  Drive State_Machine_Loop for exactly Iterations complete iterations,
-   --  delivering Inputs (N) on the Nth Read_Sources, then escape. Discards the
-   --  previous run's trace.
+   with Pre => Prologue_Events + 3 * Iterations <= Max_Events;
+   --  Drive State_Machine_Loop for the startup prologue and then exactly
+   --  Iterations complete iterations, delivering Inputs (N) on the Nth
+   --  Read_Sources, then escape. Discards the previous run's trace.
    --  @param Iterations How many complete iterations to observe
    --  @param Inputs The snapshot to deliver on each successive read
 

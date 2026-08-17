@@ -13,6 +13,12 @@
 --  re-read the inputs and re-emit the unchanged Moore outputs. The loop
 --  itself owns the cadence: it sleeps exactly T_SAMPLE every iteration, in
 --  every mode.
+--
+--  Startup runs a prologue before the first iteration: the initialised state
+--  is published and held for one sampling period. It puts iteration N's stages
+--  at logical time N * T_SAMPLE, so a dwell's last charged sample lands on the
+--  dwell's boundary and every frame stands for exactly the dwell of the state
+--  it projects -- the initialised state, which no Step enters, included.
 
 with Controller;
 
@@ -22,6 +28,13 @@ procedure State_Machine_Loop is
    Outputs : States.Display_State;
 begin
    Controller.Initialize (State);
+
+   --  The startup prologue (llr_5_core_loop.5): publish the initialised state,
+   --  then hold it for one sampling period.
+   Outputs := Controller.Project_Outputs (State);
+   Write_Display (Outputs);
+   Delay_For (States.T_Sample);
+
    loop
       --  1. poll the external sources
       Read_Sources (Sensors);

@@ -145,7 +145,7 @@ package body Llr_5_Core_Loop_Tests is
    end Check_Display;
 
    function Write_Of (Iteration : Positive) return Spy.Event
-   is (Spy.Nth (3 * Iteration - 1));
+   is (Spy.Nth (Spy.Prologue_Events + 3 * Iteration - 1));
 
    function Same (Left, Right : States.Display_State) return Boolean
    is (Left.Through = Right.Through
@@ -206,8 +206,9 @@ package body Llr_5_Core_Loop_Tests is
       Spy.Run (Iterations => Window);
 
       Assert
-        (Spy.Count = 3 * Window,
-         "the spy must record three events for each of the"
+        (Spy.Count = Spy.Prologue_Events + 3 * Window,
+         "the spy must record the prologue's two events and three more for"
+         & " each of the"
          & Integer'Image (Window)
          & " iterations, but recorded"
          & Integer'Image (Spy.Count));
@@ -278,15 +279,18 @@ package body Llr_5_Core_Loop_Tests is
       Spy.Run (Iterations => Iterations, Inputs => Inputs);
 
       Assert
-        (Spy.Count = 3 * Iterations,
-         "the spy must record three events per iteration, but recorded"
+        (Spy.Count = Spy.Prologue_Events + 3 * Iterations,
+         "the spy must record three events per iteration after the"
+         & " prologue's two, but recorded"
          & Integer'Image (Spy.Count));
 
       for K in 1 .. Iterations loop
          declare
-            Read  : constant Spy.Event := Spy.Nth (3 * K - 2);
-            Write : constant Spy.Event := Spy.Nth (3 * K - 1);
-            Sleep : constant Spy.Event := Spy.Nth (3 * K);
+            Base : constant Positive := Spy.Prologue_Events + 3 * K;
+
+            Read  : constant Spy.Event := Spy.Nth (Base - 2);
+            Write : constant Spy.Event := Spy.Nth (Base - 1);
+            Sleep : constant Spy.Event := Spy.Nth (Base);
 
             Where : constant String := "iteration" & Integer'Image (K);
          begin
@@ -375,10 +379,11 @@ package body Llr_5_Core_Loop_Tests is
          & " the loop returned to its caller instead");
 
       Assert
-        (Spy.Count = 3 * Iterations,
+        (Spy.Count = Spy.Prologue_Events + 3 * Iterations,
          "the loop must keep iterating until it is escaped, so"
          & Integer'Image (Iterations)
-         & " iterations must leave three events each, but the trace holds"
+         & " iterations must leave three events each after the prologue's"
+         & " two, but the trace holds"
          & Integer'Image (Spy.Count));
 
    end Test_03_Loop_Never_Returns_To_Its_Caller;
@@ -458,5 +463,73 @@ package body Llr_5_Core_Loop_Tests is
          & " ms of logical time since the last read, which exceeds T_SAMPLE");
 
    end Test_04_Sources_Read_Once_Per_Sampling_Period;
+
+   ------------------------------------------------------------------------
+   --  Statement .5 -- the startup prologue: publish, then hold
+   ------------------------------------------------------------------------
+
+   procedure Test_05_Startup_Publishes_And_Holds_Before_First_Step
+     (T : in out Test)
+   is
+      --@covers llr_5_core_loop.5
+
+      pragma Unreferenced (T);
+
+      Publish : Spy.Event;
+      Hold    : Spy.Event;
+   begin
+
+      --  The prologue is what the trace opens with, so it is read off the head
+      --  of the trace: a Write_Display, a Delay_For of one sampling period, and
+      --  only then iteration one's Read_Sources. Controller.Initialize leaves
+      --  no event of its own (statement .1's routine says why), so what shows
+      --  it ran before the publication is that the frame published is the
+      --  power-on one.
+      --
+      --  The hold is the operative half of the statement and the assertion on
+      --  Ms is what carries it: a publication with no delay after it leaves the
+      --  boot state displayed for one sampling period less than its dwell,
+      --  which is what the displayed-duration test in tests/system observes at
+      --  the whole-run level.
+
+      Spy.Run (Iterations => 1);
+
+      Assert
+        (Spy.Count = Spy.Prologue_Events + 3,
+         "one iteration after the prologue must leave"
+         & Integer'Image (Spy.Prologue_Events + 3)
+         & " events, but the trace holds"
+         & Integer'Image (Spy.Count));
+
+      Publish := Spy.Nth (1);
+      Hold := Spy.Nth (2);
+
+      Assert
+        (Publish.Stage = Write_Display_Stage,
+         "the loop must publish before its first iteration, but the trace"
+         & " opens with "
+         & Spy.Loop_Stage'Image (Publish.Stage));
+
+      Check_Display (Publish.Outputs, Power_On_Display, "the prologue");
+
+      Assert
+        (Hold.Stage = Delay_For_Stage,
+         "the published frame must be held, but the publication was followed"
+         & " by "
+         & Spy.Loop_Stage'Image (Hold.Stage));
+
+      Assert
+        (Hold.Ms = States.T_Sample,
+         "the hold must be exactly T_SAMPLE, but was"
+         & States.Duration_Ms'Image (Hold.Ms)
+         & " ms");
+
+      Assert
+        (Spy.Nth (Spy.Prologue_Events + 1).Stage = Read_Sources_Stage,
+         "the first iteration must begin only after the hold, but the event"
+         & " following it was "
+         & Spy.Loop_Stage'Image (Spy.Nth (Spy.Prologue_Events + 1).Stage));
+
+   end Test_05_Startup_Publishes_And_Holds_Before_First_Step;
 
 end Llr_5_Core_Loop_Tests;

@@ -1,0 +1,44 @@
+--  System-level tests.
+--
+--  Hand-written AUnit fixtures, one package per HLR file, with a hand-written
+--  suite and driver: `gnattest` is not involved. It generates skeletons keyed
+--  to the code's package structure, and there is nothing here for it to
+--  generate -- the subject is the composed program at its output boundary over
+--  spans of logical time, so the layout mirrors requirements/hlr/ instead. Its
+--  `--additional-tests` slot is single-valued and tests/reqs/ holds it.
+--
+--  Two scoping properties follow from this project standing outside both
+--  generated harnesses, and both are the point rather than a side effect:
+--
+--  * `test-inventory` names its subprojects (`test_traffic_light`,
+--    `reqs_tests`) and never scans a whole closure, so nothing here enters the
+--    TEST layer of requirements/trace_chain.yaml. The `--@observes` tags carry
+--    no machine evidence; they are a record of intent, and `--@covers` is left
+--    to mean exactly one thing repo-wide.
+--
+--  * Structural coverage is measured from the requirements-based harness
+--    alone, which holds the tests/reqs/ suites and nothing else. Code these
+--    tests reach earns no coverage credit: a gap closed here is a finding for
+--    tests/reqs/, not evidence.
+
+with "aunit";
+with "../../traffic_light.gpr";
+with "../../src/shared.gpr";
+
+project System_Tests is
+
+   for Source_Dirs use ("src", "driver");
+   for Object_Dir use "obj";
+   for Exec_Dir use "bin";
+   for Main use ("test_runner.adb");
+   for Languages use ("Ada");
+
+   --  The same switches as tests/reqs, including the one deliberate
+   --  subtraction: `-gnatyc` requires two spaces after `--`, which the
+   --  traceability tag spelling does not have.
+   package Compiler is
+      for Default_Switches ("Ada") use
+        Shared.Ada_Compiler_Switches & ("-gnaty-c");
+   end Compiler;
+
+end System_Tests;
