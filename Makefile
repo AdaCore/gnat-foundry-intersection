@@ -12,7 +12,8 @@ SHELL := bash
         generate-tests generate-tests-reqs test \
         generate-tests-target build-tests-target test-target smoke-target \
         validate-reqs validate-reqs-corpus \
-        trace trace-check trace-report test-reqs-engine \
+        trace trace-check trace-check-code trace-check-proof trace-report \
+        test-reqs-engine \
         build-tracer test-tracer \
         code-inventory test-inventory inventories \
         report report-pdf test-report-engine \
@@ -506,6 +507,14 @@ validate-reqs: validate-reqs-corpus ## Check the requirement files (structure, E
 
 trace-check: inventories ## The traceability gate CI runs: exit status is the verdict
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --chain "$(TRACE_CHAIN)"
+
+trace-check-code: code-inventory ## Trace gate for the workflow's implementation step (CODE + STATIC)
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers CONOPS,HLR,LLR,CODE,STATIC \
+	    --allow-unselected test,proof --chain "$(TRACE_CHAIN)"
+
+trace-check-proof: code-inventory ## Trace gate for the workflow's proof step (CODE + STATIC + PROOF)
+	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --layers CONOPS,HLR,LLR,CODE,STATIC,PROOF \
+	    --allow-unselected test --chain "$(TRACE_CHAIN)"
 
 # Coverage + upward trace per pair, over the whole chain -- including the CODE
 # gap `trace-check` excludes.

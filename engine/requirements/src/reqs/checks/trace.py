@@ -20,6 +20,7 @@ anything to say about the other. The engine runs the same checks over every
   E-TRACE-UNVERIFIED       : a method-verified node declaring no method.
   E-TRACE-UNSELECTED       : a node declaring a method no selected layer
                              verifies -- its evidence cannot be checked here.
+                             Disable explicitly with ``--allow-unselected``.
   E-TRACE-METHOD           : coverage contradicting the covered node's method.
   E-TRACE-CHECK-IGNORED    : a tagged check no ada-checks layer's anchors accept.
   E-TRACE-CHECK-EMPTY      : a ``--@covers`` tag on a check citing nothing at all.
@@ -34,6 +35,8 @@ anything to say about the other. The engine runs the same checks over every
                              cannot be ``partial_coverage``; ``anchors`` only,
                              and well-formed, on ``ada-checks``).
   E-TRACE-LAYER            : ``--layers`` named a layer that is not in the chain.
+  E-TRACE-ALLOW            : ``--allow-unselected`` named something that is not
+                             a machine verification method.
   E-INVENTORY-*            : the code inventory a layer reads is missing, stale
                              or malformed (see :mod:`reqs.code_inventory`).
 
@@ -82,6 +85,7 @@ from __future__ import annotations
 
 import re
 import shutil
+from collections import defaultdict
 from dataclasses import dataclass, field
 from io import StringIO
 from itertools import pairwise
@@ -208,6 +212,33 @@ def select_layers(
     return [layer for layer in layers if layer.name in wanted], diags
 
 
+def select_allowed_methods(
+    names: Iterable[str], chain: Path
+) -> tuple[frozenset[str], list[Diagnostic]]:
+    """
+    Validate ``--allow-unselected``'s method names.
+
+    Only the machine-evidence methods can be deferred: `review` never raises
+    E-TRACE-UNSELECTED (it needs no layer), so allowing it would be a
+    misunderstanding worth surfacing, and a typo'd name would silence nothing
+    while looking deliberate -- E-TRACE-ALLOW either way, for the same reason
+    an unknown ``--layers`` name is E-TRACE-LAYER.
+    """
+    machine = tuple(m for m in VERIFICATION_METHODS if m != "review")
+    wanted = list(names)
+    diags = [
+        Diagnostic(
+            "error",
+            "E-TRACE-ALLOW",
+            f"{name!r} is not a machine verification method (one of: {', '.join(machine)})",
+            chain,
+        )
+        for name in wanted
+        if name not in machine
+    ]
+    return frozenset(name for name in wanted if name in machine), diags
+
+
 @dataclass
 class _Loaded:
     layer: Layer
@@ -240,11 +271,34 @@ class _Pair:
 
 
 class TraceChecker:
-    """Run the traceability checks over every adjacent pair of a chain."""
+    """
+    Run the traceability checks over every adjacent pair of a chain.
 
-    def __init__(self, layers: list[Layer], *, complete: bool = False) -> None:
-        self.layers = layers
+    ``selected_layers`` names the layers to check (default: all of them).
+    ``chain`` contains the full chain, including unselected layers.
+    """
+
+    def __init__(
+        self,
+        chain: list[Layer],
+        *,
+        selected_layers: Iterable[str] | None = None,
+        complete: bool = False,
+        allow_unselected: Iterable[str] = (),
+    ) -> None:
+        self.chain = chain
         self.complete = complete
+        self.allow_unselected = frozenset(allow_unselected)
+        if selected_layers is None:
+            self.layers = chain
+        else:
+            names = set(selected_layers)
+            unknown = names - {layer.name for layer in chain}
+            if unknown:
+                # `cli.trace()` should have already raised `E-TRACE-LAYER`.
+                msg = f"selected layer(s) not in the chain: {', '.join(sorted(unknown))}"
+                raise ValueError(msg)
+            self.layers = [layer for layer in chain if layer.name in names]
 
     def check(self) -> list[Diagnostic]:
         """Check every (parent, child) pair of the chain; return any diagnostics."""
@@ -358,8 +412,7 @@ class TraceChecker:
             "diagnostics": [_diag_dict(d) for d in diags],
         }
 
-    @staticmethod
-    def _check_diagnostics(loaded: list[_Loaded]) -> list[Diagnostic]:
+    def _check_diagnostics(self, loaded: list[_Loaded]) -> list[Diagnostic]:
         """
         Report tagged checks whose ``--@covers`` tag discharges nothing.
 
@@ -367,16 +420,16 @@ class TraceChecker:
         at all (E-TRACE-CHECK-EMPTY, a broken tag wherever it sits), or no
         ada-checks layer's anchors accept the construct it sits on
         (E-TRACE-CHECK-IGNORED). Either way the author opted in, and a citation
-        that vanishes looks done while verifying nothing. Anchors are unioned
-        per inventory, so select all of its ada-checks layers or none.
+        that vanishes looks done while verifying nothing.
         """
-        by_path: dict[Path, tuple[list[str], CheckSet]] = {}
-        for item in loaded:
-            if isinstance(item.reqset, CheckSet):
-                anchors, _ = by_path.setdefault(item.layer.path, ([], item.reqset))
-                anchors.extend(item.layer.anchors)
+        checksets_by_path = {
+            item.layer.path: item.reqset for item in loaded if isinstance(item.reqset, CheckSet)
+        }
+        anchors_by_path: defaultdict[Path, list[str]] = defaultdict(list)
+        for layer in self.chain:
+            anchors_by_path[layer.path].extend(layer.anchors)
         out: list[Diagnostic] = []
-        for anchors, checkset in by_path.values():
+        for path, checkset in checksets_by_path.items():
             out.extend(
                 Diagnostic(
                     "error",
@@ -398,12 +451,11 @@ class TraceChecker:
                     Path(check.location.file),
                     line=check.location.line,
                 )
-                for check in checkset.unmatched(anchors)
+                for check in checkset.unmatched(anchors_by_path[path])
             )
         return out
 
-    @staticmethod
-    def _unverified_diagnostics(pairs: list[tuple[_Loaded, _Loaded]]) -> list[Diagnostic]:
+    def _unverified_diagnostics(self, pairs: list[tuple[_Loaded, _Loaded]]) -> list[Diagnostic]:
         """
         Report unverifiable statements, once per method-verified upper layer.
 
@@ -411,7 +463,9 @@ class TraceChecker:
         method at all (E-TRACE-UNVERIFIED), or it declares one that no selected
         layer verifies (E-TRACE-UNSELECTED) -- without a layer for the method,
         its evidence is never checked, and silence would read as verified.
-        `review` needs no layer: it carries no machine evidence.
+        `review` needs no layer: it carries no machine evidence. A method in
+        ``allow_unselected`` does not trigger `E-TRACE-UNSELECTED`, but still
+        renders as UNSELECTED in the tables and the report.
         """
         provided: dict[str, set[str]] = {}
         for upper, lower in pairs:
@@ -450,7 +504,9 @@ class TraceChecker:
                         path=loc,
                     )
                     for method in methods
-                    if method != "review" and method not in provided[upper.layer.name]
+                    if method != "review"
+                    and method not in provided[upper.layer.name]
+                    and method not in self.allow_unselected
                 )
         return out
 
@@ -1200,9 +1256,18 @@ def _downward_tables(pair: _Pair) -> list[Table]:
     return [forward, required]
 
 
-def check_trace(layers: list[Layer], *, complete: bool = False) -> list[Diagnostic]:
+def check_trace(
+    chain: list[Layer],
+    *,
+    selected: Iterable[str] | None = None,
+    complete: bool = False,
+    allow_unselected: Iterable[str] = (),
+) -> list[Diagnostic]:
     """Programmatic entry point (used by the tests and the CLI)."""
-    return TraceChecker(layers, complete=complete).check()
+    checker = TraceChecker(
+        chain, selected_layers=selected, complete=complete, allow_unselected=allow_unselected
+    )
+    return checker.check()
 
 
 def render_tables(layers: list[Layer], width: int | None = None) -> str:

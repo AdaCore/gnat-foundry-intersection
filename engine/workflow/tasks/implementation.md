@@ -26,8 +26,7 @@ so the app builds, lints clean, and the existing test suite stays green.
    check this next; don't introduce constructs that block proof).
 3. If a compile-time check you add is the evidence for a `static_check` LLR
    statement, tag it: a `--@covers <llr id>` comment on the line directly
-   before the pragma / aspect (see `engine/requirements/docs/README.md`) —
-   `make trace-check` resolves it; the statement stays uncovered until then.
+   before the pragma / aspect (see `engine/requirements/docs/README.md`).
 4. Document specs per the conventions.
 5. Build, lint, and run the tests (the oracle).
 6. Edit `workflow/<feature>/notes.md` to remove any entries that are now addressed or captured in the
@@ -37,11 +36,17 @@ so the app builds, lints clean, and the existing test suite stays green.
 ## Oracle
 
 ```bash
-make check && make build-native && make test
+make check && make build-native && make test && make trace-check-code
 ```
 
-**Done when all three succeed** — lint clean, native build succeeds, and the
-AUnit suite passes (0 failures).
+**Done when all four succeed** — lint clean, native build succeeds, the AUnit
+suite passes (0 failures), and there are no traceability gaps.
+
+In a fresh checkout the first `trace-check-code` run builds the Ada tracer,
+which pulls in Libadalang — expect a long build, not a hang. If it dies with
+`gcc: fatal error: Killed signal terminated program gnat1`, the compiler was
+killed for running out of memory: cap the parallelism of the Makefile's
+`build-tracer` recipe (e.g. pass `-j6`).
 
 ## Escalation
 

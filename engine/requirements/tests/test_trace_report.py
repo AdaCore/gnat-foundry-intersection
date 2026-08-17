@@ -37,9 +37,12 @@ runner = CliRunner()
 CHAIN = Path("trace_chain.yaml")
 
 
-def report_for(layers: Sequence[Layer], *, complete: bool = False) -> dict[str, Any]:
+def report_for(
+    layers: Sequence[Layer], *, complete: bool = False, allow_unselected: Sequence[str] = ()
+) -> dict[str, Any]:
     """Build the report payload for a chain, as the CLI would."""
-    return TraceChecker(list(layers), complete=complete).to_report(chain=CHAIN)
+    checker = TraceChecker(list(layers), complete=complete, allow_unselected=allow_unselected)
+    return checker.to_report(chain=CHAIN)
 
 
 def rows_by_node(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -196,6 +199,23 @@ def test_declared_method_without_its_layer_is_open_not_verified(tmp_path: Path) 
     ]
     assert [d["code"] for d in report["diagnostics"]] == ["E-TRACE-UNSELECTED"]
     assert report["errors"] == 1
+
+
+def test_allow_unselected_keeps_the_open_status_but_not_the_error(tmp_path: Path) -> None:
+    """A deferred method still renders UNSELECTED -- visible open work, not a verdict."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.2"]},
+        method="test",
+        verifications=["proof", "test"],
+    )
+    report = report_for(chain, complete=True, allow_unselected=["proof"])
+    (verification,) = report["verification"]
+    rows = rows_by_node(verification["rows"])
+    assert rows["llr_x.1"]["status"] == "UNSELECTED"
+    assert report["diagnostics"] == []
+    assert report["errors"] == 0
 
 
 def test_missing_conops_document_reports_invalid_corpus(tmp_path: Path) -> None:

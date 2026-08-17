@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from inventory_fixture import check, gnattest_routine, package, subprogram, write_inventory
 from typer.testing import CliRunner
 
@@ -32,6 +33,7 @@ from reqs.checks.trace import (
     check_trace,
     load_chain,
     render_tables,
+    select_allowed_methods,
     select_layers,
 )
 from reqs.cli import app
@@ -1141,6 +1143,66 @@ def test_llr_declaring_a_method_no_layer_verifies_is_unselected(tmp_path: Path) 
     ]
 
 
+def test_allow_unselected_defers_the_named_method(tmp_path: Path) -> None:
+    """`allow_unselected` silences exactly the deferred method's E-TRACE-UNSELECTED."""
+    chain = llr_test_chain(
+        tmp_path,
+        TWO_LLRS,
+        {"Test_A": ["llr_x.2"]},
+        method="test",
+        verifications=["proof", "test"],
+    )
+    assert check_trace(chain, complete=True, allow_unselected=("proof",)) == []
+
+
+def test_deselected_sibling_anchors_still_accept_tagged_checks(tmp_path: Path) -> None:
+    """A tag anchored only by a deselected ada-checks layer is deferred, not orphaned."""
+    inventory = write_checks(tmp_path, {**POST_CHECK, "covers": ["llr_x.1"]})
+    llr = llr_layer(write_proof_llr(tmp_path))
+    static = Layer(
+        "STATIC",
+        "ada-checks",
+        inventory,
+        parent="LLR",
+        id_pattern=r"(.+\.\d+)",
+        method="static_check",
+        anchors=["pragma:Compile_Time_Error"],
+    )
+    chain = [llr, static, make_proof_layer(inventory)]
+    # In a chain that truly lacks PROOF, the Post tag is orphaned...
+    codes = [d.code for d in check_trace([llr, static], complete=True, allow_unselected=("proof",))]
+    assert "E-TRACE-CHECK-IGNORED" in codes
+    # ...but merely deselecting PROOF defers it: the chain still anchors the tag.
+    diags = check_trace(
+        chain, selected=("LLR", "STATIC"), complete=True, allow_unselected=("proof",)
+    )
+    assert diags == []
+
+
+def test_selecting_an_unknown_layer_name_is_refused(tmp_path: Path) -> None:
+    """The checker never silently checks less than asked; the CLI pre-validates names."""
+    chain = llr_test_chain(tmp_path, TWO_LLRS, {"Test_A": ["llr_x.1"]}, partial=True)
+    with pytest.raises(ValueError, match="TESTS"):
+        check_trace(chain, selected=("LLR", "TESTS"))
+
+
+def test_allow_unselected_leaves_other_methods_loud(tmp_path: Path) -> None:
+    """Deferring one method does not blanket-silence the rest."""
+    chain = llr_test_chain(
+        tmp_path, TWO_LLRS, {}, method="test", verifications=["proof", "static_check"]
+    )
+    assert summarize(check_trace(chain, complete=True, allow_unselected=("proof",))) == [
+        (
+            "E-TRACE-UNSELECTED",
+            "error",
+            (
+                "LLR 'llr_x.2' declares verification 'static_check', but no selected layer "
+                "verifies 'static_check'"
+            ),
+        )
+    ]
+
+
 def test_missing_conops_document_is_a_diagnostic_not_a_crash(tmp_path: Path) -> None:
     """An absent CONOPS document is E-IO, like every other unreadable layer."""
     chain = conops_hlr_chain(tmp_path, COVERING)
@@ -1440,6 +1502,19 @@ def test_select_layers_rejects_an_unknown_name(tmp_path: Path) -> None:
     assert summarize(diags) == [("E-TRACE-LAYER", "error", "no layer named 'TESTS' in this chain")]
 
 
+def test_select_allowed_methods_rejects_a_non_method(tmp_path: Path) -> None:
+    """A typo'd name would silence nothing, and `review` is never unselected: loud, not no-op."""
+    allowed, diags = select_allowed_methods(["proof", "review"], tmp_path / "trace_chain.yaml")
+    assert allowed == frozenset({"proof"})
+    assert summarize(diags) == [
+        (
+            "E-TRACE-ALLOW",
+            "error",
+            "'review' is not a machine verification method (one of: test, proof, static_check)",
+        )
+    ]
+
+
 def test_cli_layers_skips_the_layer_left_out(tmp_path: Path) -> None:
     """`--layers` omitting TEST passes even though the TEST inventory is missing."""
     chain = write_chain_file(tmp_path, [("1.1", "ok")])
@@ -1465,6 +1540,16 @@ def test_cli_layers_reports_an_unknown_layer(tmp_path: Path) -> None:
     )
     assert result.exit_code != 0
     assert "E-TRACE-LAYER" in result.output
+
+
+def test_cli_allow_unselected_rejects_an_unknown_method(tmp_path: Path) -> None:
+    """`--allow-unselected tests` fails with E-TRACE-ALLOW rather than silencing nothing."""
+    chain = write_chain_file(tmp_path, [("1.1", "ok")])
+    result = runner.invoke(
+        app, ["trace", "--chain", str(chain), "--complete", "--allow-unselected", "tests"]
+    )
+    assert result.exit_code != 0
+    assert "E-TRACE-ALLOW" in result.output
 
 
 def test_cli_layers_orphaning_a_parent_is_reported(tmp_path: Path) -> None:

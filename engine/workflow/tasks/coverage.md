@@ -38,14 +38,13 @@ exercises. Extending a generated skeleton under `tests/core`, `tests/types` or
 ## Oracle
 
 ```bash
-make all-coverage && make check-coverage
+make all-coverage && make check-coverage && make trace-check
 ```
 
 The first instruments, builds, runs the requirements-based harness under
 GNATcov, and greps the report for findings; the second is the gate CI runs over
-that report. **Done when `check-coverage` exits zero** — equivalently, when
-`all-coverage` prints no `file:line:col:` lines (`no SID file found` warnings
-for un-instrumented units are benign).
+that report; the third re-checks full traceability. **Done
+when `trace-check` exits zero**.
 
 ## Escalation
 

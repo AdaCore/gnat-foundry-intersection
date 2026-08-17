@@ -43,16 +43,17 @@ in meaningful test bodies, so the suite builds and passes.
    declare it is an error — add a `method: test` entry to that statement's
    `verification:` in the same change if the test is genuine.
 4. Build and run (the oracle). Coverage-to-100% is the *next* task, not this one;
-   here the bar is "harness builds and all tests pass".
+   here the bar is "harness builds, all tests pass, full traceability
+   closes".
 
 ## Oracle
 
 ```bash
-make generate-tests && make build-native && make test
+make generate-tests && make build-native && make test && make trace-check
 ```
 
-**Done when all succeed** — the harness regenerates, the app builds, and the
-AUnit runner reports 0 failures.
+**Done when all succeed** — the harness regenerates, the app builds, the AUnit
+runner reports 0 failures, and the full trace gate is clean.
 
 ## Escalation
 

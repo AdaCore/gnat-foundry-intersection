@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Implement the LLRs in Ada for a feature. Use for the Implementation task of the feature workflow — writes src/*.ads/.adb per the architecture and code conventions. Oracle is `make check && make build-native && make test`.
+description: Implement the LLRs in Ada for a feature. Use for the Implementation task of the feature workflow — writes src/*.ads/.adb per the architecture and code conventions. Oracle is `make check && make build-native && make test && make trace-check-code`.
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 

@@ -36,10 +36,9 @@ errors.
 ## Oracle
 
 ```bash
-make prove
+make prove && make trace-check-proof
 ```
 
-(= `gnatprove -U --level=2 --report=statistics --checks-as-errors=on`.)
 **Done when it exits 0 with no unproved checks.**
 
 **Hard rule (from CLAUDE.md — never violate):** do **not** discharge a proof

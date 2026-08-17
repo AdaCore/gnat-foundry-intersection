@@ -36,15 +36,6 @@ may run `Prove` + `Coverage` alone; a pure requirements clarification may run
 Every spec follows the same shape — **Purpose / Inputs / Outputs / Procedure /
 Oracle / Escalation**.
 
-## TODO: the evidence layers are un-oracled
-
-No task's oracle runs `make trace-check`, so the `--@covers` tags and
-`implemented_by` names the Implementation, Prove and Test-generation tasks are
-told to write are gated by nothing in the chain.
-
-This is intentional, as `make trace-check` fails on the baseline sources; MRs
-to resolve this are currently pending.
-
 ## Orchestration
 
 The workflow is driven by a **main (orchestrating) session**, human-in-the-loop.

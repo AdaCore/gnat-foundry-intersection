@@ -5,6 +5,7 @@
     reqs validate ears   [PATHS...]            # EARS grammar
     reqs trace --chain FILE [--format table]   # traceability across the chain
     reqs trace --chain FILE --layers A,B       # ...over a subset of its layers
+    reqs trace ... --allow-unselected M,N      # ...deferring these methods' evidence
     reqs trace --chain FILE --format json      # machine-readable trace report
 
 With no PATHS, a validate command targets the default requirement set (the
@@ -25,7 +26,13 @@ import typer
 
 from reqs.checks.ears import EarsChecker
 from reqs.checks.schema import RequirementChecker
-from reqs.checks.trace import REQUIREMENT_YAML, TraceChecker, load_chain, select_layers
+from reqs.checks.trace import (
+    REQUIREMENT_YAML,
+    TraceChecker,
+    load_chain,
+    select_allowed_methods,
+    select_layers,
+)
 from reqs.core import Diagnostic, report
 
 
@@ -64,6 +71,14 @@ _TRACE_LAYERS = typer.Option(
         "Only pairs wholly inside the selection are checked."
     ),
 )
+_TRACE_ALLOW_UNSELECTED = typer.Option(
+    None,
+    "--allow-unselected",
+    help=(
+        "Comma-separated verification methods whose declared-but-unselected "
+        "statements are tolerated (no E-TRACE-UNSELECTED)."
+    ),
+)
 
 
 @validate_app.command("schema")
@@ -96,6 +111,7 @@ def trace(
     chain: Path = _CHAIN,
     complete: bool = _TRACE_COMPLETE,
     layers_option: str | None = _TRACE_LAYERS,
+    allow_unselected_option: str | None = _TRACE_ALLOW_UNSELECTED,
     output: OutputFormat = _FORMAT,
     output_path: Path | None = _OUTPUT,
     quiet: bool = _QUIET,
@@ -103,15 +119,27 @@ def trace(
     """Check traceability across the chain: dangling/untraced refs and uncovered nodes."""
     if output_path is not None and output is not OutputFormat.json:
         raise typer.BadParameter("--output applies only to --format json")
-    layers = load_chain(chain)
+    chain_layers = load_chain(chain)
+    selected_layers = chain_layers
+    selected_names: list[str] | None = None
     select_diags: list[Diagnostic] = []
     if layers_option is not None:
-        names = [name.strip() for name in layers_option.split(",") if name.strip()]
-        layers, select_diags = select_layers(layers, names, chain)
-    req_paths = [layer.path for layer in layers if layer.kind == REQUIREMENT_YAML]
+        selected_names = [name.strip() for name in layers_option.split(",") if name.strip()]
+        selected_layers, select_diags = select_layers(chain_layers, selected_names, chain)
+    allow_unselected: frozenset[str] = frozenset()
+    if allow_unselected_option is not None:
+        methods = [m.strip() for m in allow_unselected_option.split(",") if m.strip()]
+        allow_unselected, allow_diags = select_allowed_methods(methods, chain)
+        select_diags += allow_diags
+    req_paths = [layer.path for layer in selected_layers if layer.kind == REQUIREMENT_YAML]
     if select_diags:
         raise typer.Exit(report(select_diags, req_paths, quiet=quiet))
-    checker = TraceChecker(layers, complete=complete)
+    checker = TraceChecker(
+        chain_layers,
+        selected_layers=selected_names,
+        complete=complete,
+        allow_unselected=allow_unselected,
+    )
     if output is OutputFormat.json:
         # Producing the report is not the gate (`text` is): exit 0 once it is
         # written, so a chain full of gaps still yields the evidence describing
@@ -119,6 +147,11 @@ def trace(
         argv = ["reqs", "trace", "--chain", str(chain)]
         argv += ["--complete"] if complete else []
         argv += ["--layers", layers_option] if layers_option is not None else []
+        argv += (
+            ["--allow-unselected", allow_unselected_option]
+            if allow_unselected_option is not None
+            else []
+        )
         argv += ["--quiet"] if quiet else []
         argv += ["--format", "json"]
         argv += ["--output", str(output_path)] if output_path is not None else []
