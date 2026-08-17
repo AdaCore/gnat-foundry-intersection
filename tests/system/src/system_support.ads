@@ -1,9 +1,16 @@
---  Shared vocabulary for the system-level tests: the idle input snapshot and
---  the frame predicates the HLR output statements are phrased over.
+--  Shared vocabulary for the system-level tests: the observation window, the
+--  idle input snapshot, and the frame predicates the HLR output statements are
+--  phrased over.
 
 with States;
 
 package System_Support is
+
+   use type States.Duration_Ms;
+
+   Cycle : constant States.Duration_Ms :=
+     2 * States.T_Axis + 2 * States.T_Barrier;
+   --  Both axis slots and the barrier that closes the second.
 
    Quiet : constant States.Sensors_State :=
      (Buttons    => (others => States.Released),
@@ -16,6 +23,14 @@ package System_Support is
    --  condition hlr_5_vehicle.11 and .34 give for the barrier states.
    --  @param Frame The published frame to examine
    --  @return True when the frame releases no vehicular movement
+
+   function Acknowledged
+     (Frame : States.Display_State; C : States.Crosswalk) return Boolean;
+   --  Whether Frame acknowledges a request at C: its indicator is lit, or the
+   --  crosswalk is already being served.
+   --  @param Frame The published frame to examine
+   --  @param C The crosswalk whose request was registered
+   --  @return True when the frame shows the request taken
 
    function Any_Yellow (Frame : States.Display_State) return Boolean;
    --  Whether any through or left face of Frame is YELLOW -- the output

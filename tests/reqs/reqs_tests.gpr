@@ -26,9 +26,8 @@ project Reqs_Tests is
    --  Reqs_Support.Loop_Spy are dead text. Run's precondition is the whole
    --  reason its trace is a bounded array, and the spy degrades a violation
    --  into a silently truncated trace rather than a diagnosis, so the check has
-   --  to be live. The warning and style switches come along, which is the only
-   --  automated static gate this code has: `make format` and `make check` do
-   --  not reach test sources (#108).
+   --  to be live. The warning and style switches come along, alongside the
+   --  `make format` / `make check` pass this project is named in.
    --
    --  `-gnaty-c` is the one deliberate subtraction. The comment-format check
    --  requires two spaces after `--`, and the traceability tag does not have

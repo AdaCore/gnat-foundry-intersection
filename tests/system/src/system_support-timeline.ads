@@ -19,8 +19,6 @@ with States;
 
 package System_Support.Timeline is
 
-   use type States.Duration_Ms;
-
    Max_Intervals : constant := 128;
    --  Entries a single observation can hold. One entry per published frame,
    --  so a full two-axis cycle is well inside this.
