@@ -134,6 +134,10 @@ pro:x86_64-linux:
     # Test (test w/ non-instrumented harness build)
     - make test
 
+    # The system-level tests: their own harness, outside the generated ones and
+    # outside the measured coverage run below.
+    - make test-system
+
     # Coverage. `coverage-test` runs the requirements-based harness only, over
     # the verification scope only.
     - make coverage-instrumentation

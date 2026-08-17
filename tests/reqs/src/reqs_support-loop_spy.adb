@@ -85,9 +85,12 @@ package body Reqs_Support.Loop_Spy is
             Ms      => Ms));
 
       --  The delay closes the iteration, so the count is complete here and
-      --  the escape leaves a whole number of iterations in the trace.
+      --  the escape leaves a whole number of iterations in the trace. The
+      --  prologue's delay runs before any read and closes no iteration.
 
-      Done := Done + 1;
+      if Reads > 0 then
+         Done := Done + 1;
+      end if;
 
       if Done >= Wanted then
          raise Escape;

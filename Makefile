@@ -300,6 +300,11 @@ REQS_TESTS := $(CURDIR)/tests/reqs/reqs_tests.gpr
 # pass: the generated "Test not implemented" assertion reads
 # `Gnattest_Generated.Default_Assert_Value`, and defaulting that to True let
 # three empty skeletons sit green while claiming requirements (#51).
+#
+# `--additional-tests` takes a single project: passing it twice keeps only the
+# last, silently dropping the first project's suites from the generated main
+# suite. tests/reqs/ holds that slot; tests/system/ has its own runner
+# (`test-system`).
 GNATTEST_FLAGS := --exit-status=on --skeleton-default=fail \
 	--additional-tests=$(REQS_TESTS)
 
@@ -310,6 +315,17 @@ generate-tests: generate-config ## Generate/refresh the GNATtest skeletons
 test: generate-tests ## Build and run the AUnit harness
 	$(TESTS_EXEC) gprbuild -q -P $(CURDIR)/$(HARNESS)/test_driver.gpr
 	$(HARNESS)/test_runner
+
+# The system-level tests: hand-written AUnit fixtures under tests/system/, with
+# their own suite and driver. Outside both generated harnesses, and so outside
+# the TEST layer and the measured coverage run; tests/system/system_tests.gpr
+# says what that buys.
+SYSTEM_TESTS := $(CURDIR)/tests/system/system_tests.gpr
+
+test-system: generate-config ## Build and run the system-level tests
+	$(TESTS_SYNC)
+	$(TESTS_EXEC) gprbuild -q -P $(SYSTEM_TESTS)
+	tests/system/bin/test_runner
 
 # ----------------------------------------------------------------------------
 # The requirements-based harness: the same `--additional-tests`, with every
