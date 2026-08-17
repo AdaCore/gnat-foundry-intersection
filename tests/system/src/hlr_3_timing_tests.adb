@@ -14,9 +14,7 @@ package body Hlr_3_Timing_Tests is
    package Demand renames System_Support.Demand;
    package Timeline renames System_Support.Timeline;
 
-   Cycle : constant States.Duration_Ms :=
-     2 * States.T_Axis + 2 * States.T_Barrier;
-   --  Both axis slots and the barrier that closes the second.
+   Cycle : States.Duration_Ms renames System_Support.Cycle;
 
    type Demand_Case is (No_Lefts, All_Lefts);
    --  The two left-turn demand patterns a cycle is observed under: no
@@ -333,7 +331,8 @@ package body Hlr_3_Timing_Tests is
    end Test_Red_Clearance_Holds_For_T_Redclear;
 
    procedure Test_Power_On_Barrier_Holds_For_T_Barrier (T : in out Test) is
-      --@observes hlr_3_timing.6 hlr_5_vehicle.34 hlr_5_vehicle.47
+      --@observes hlr_3_timing.6 hlr_5_vehicle.13 hlr_5_vehicle.34
+      --@observes hlr_5_vehicle.47
 
       pragma Unreferenced (T);
 
@@ -392,7 +391,9 @@ package body Hlr_3_Timing_Tests is
    end Test_Power_On_Barrier_Holds_For_T_Barrier;
 
    procedure Test_Axis_Change_Barriers_Hold_For_T_Barrier (T : in out Test) is
-      --@observes hlr_3_timing.6 hlr_5_vehicle.11 hlr_5_vehicle.34
+      --@observes hlr_3_timing.6 hlr_5_vehicle.11 hlr_5_vehicle.12
+      --@observes hlr_5_vehicle.13 hlr_5_vehicle.34 hlr_5_vehicle.35
+      --@observes hlr_5_vehicle.36
 
       pragma Unreferenced (T);
 
