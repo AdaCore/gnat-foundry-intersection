@@ -2,8 +2,6 @@
 
 package body System_Support.Demand is
 
-   use type States.Duration_Ms;
-
    type Window is record
       From   : States.Duration_Ms;
       Before : States.Duration_Ms;

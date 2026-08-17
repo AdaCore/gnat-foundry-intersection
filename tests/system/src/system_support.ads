@@ -1,9 +1,16 @@
---  Shared vocabulary for the system-level tests: the idle input snapshot and
---  the frame predicates the HLR output statements are phrased over.
+--  Shared vocabulary for the system-level tests: the observation window, the
+--  idle input snapshot, and the frame predicates the HLR output statements are
+--  phrased over.
 
 with States;
 
 package System_Support is
+
+   use type States.Duration_Ms;
+
+   Cycle : constant States.Duration_Ms :=
+     2 * States.T_Axis + 2 * States.T_Barrier;
+   --  Both axis slots and the barrier that closes the second.
 
    Quiet : constant States.Sensors_State :=
      (Buttons    => (others => States.Released),
