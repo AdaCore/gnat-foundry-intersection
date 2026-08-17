@@ -203,6 +203,12 @@ check: check-ada check-shell check-python check-target-test-parity ## Verify for
 # the community gnat_arm_elf/aunit crates for the nested crates instead.
 # Otherwise alr provides those crates (community) or resolves them from the
 # configured index (the SETUP=none CI check job).
+#
+# tests/tests.gpr is a wiring shim with no sources of its own, so the two
+# hand-written harnesses under it are named outright: the requirements-based
+# tests and the system-level tests are formatted like any other source. Both
+# import `aunit`, whose sources belong to that crate and not to this tree, so
+# they are the one pair that needs --no-subprojects to stay off them.
 format-ada: generate-config ## Reformat all Ada sources in place (gnatformat)
 ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light.gpr -U --charset utf-8
@@ -218,6 +224,10 @@ else
 	$(ALR) -C traffic_light_qemu/tests exec -P -- gnatformat -U --charset utf-8
 	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8
 endif
+	$(TESTS_EXEC) gnatformat -P $(REQS_TESTS) --no-subprojects -U \
+	    --charset utf-8
+	$(TESTS_EXEC) gnatformat -P $(SYSTEM_TESTS) --no-subprojects -U \
+	    --charset utf-8
 
 # Same split as `format-ada` above.
 check-ada: generate-config ## Verify Ada formatting; non-zero if any file would change
@@ -237,6 +247,10 @@ else
 	# which slows the CI down.
 	# cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 endif
+	$(TESTS_EXEC) gnatformat -P $(REQS_TESTS) --no-subprojects -U --check \
+	    --charset utf-8
+	$(TESTS_EXEC) gnatformat -P $(SYSTEM_TESTS) --no-subprojects -U --check \
+	    --charset utf-8
 	# Commented for now, pending
 	#   eng/ide/gnatdoc#189
 	#   eng/ide/gnatdoc#190

@@ -1,6 +1,8 @@
 package body System_Support is
 
    use all type States.Vehicle_Face;
+   use type States.Pedestrian_Head;
+   use type States.Request_Indicator;
 
    function All_Vehicle_Red (Frame : States.Display_State) return Boolean is
    begin
@@ -12,6 +14,22 @@ package body System_Support is
 
       return True;
    end All_Vehicle_Red;
+
+   function Acknowledged
+     (Frame : States.Display_State; C : States.Crosswalk) return Boolean
+   is (Frame.Requests (C) = States.Request_Pending
+       or else Frame.Heads (C) = States.Walk);
+
+   function Any_Yellow (Frame : States.Display_State) return Boolean is
+   begin
+      for A in States.Approach loop
+         if Frame.Through (A) = Yellow or else Frame.Left (A) = Yellow then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Any_Yellow;
 
    function Released_Movements (Frame : States.Display_State) return String is
       Listed : String (1 .. 256);
