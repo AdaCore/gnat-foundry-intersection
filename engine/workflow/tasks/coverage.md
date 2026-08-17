@@ -43,8 +43,8 @@ make all-coverage && make check-coverage && make trace-check
 
 The first instruments, builds, runs the requirements-based harness under
 GNATcov, and greps the report for findings; the second is the gate CI runs over
-that report; the third re-checks full traceability. **Done
-when `trace-check` exits zero**.
+that report; the third re-checks full traceability. **Done when all exit zero**
+(`no SID file found` warnings for un-instrumented units are benign).
 
 ## Escalation
 

@@ -29,8 +29,7 @@ errors.
 3. If a contract you add or change is the evidence for a `proof`-verified LLR
    statement, tag it: a `--@covers <llr id>` comment on the line directly
    before the aspect (or above the `with` opening a one-line aspect list) —
-   see `engine/requirements/docs/README.md`. `make trace-check` resolves the
-   tag; without it the statement stays on the uncovered list.
+   see `engine/requirements/docs/README.md`.
 4. Re-run until clean.
 
 ## Oracle
@@ -39,7 +38,7 @@ errors.
 make prove && make trace-check-proof
 ```
 
-**Done when it exits 0 with no unproved checks.**
+**Done when it exits 0 with no unproved checks or traceability gaps.**
 
 **Hard rule (from CLAUDE.md — never violate):** do **not** discharge a proof
 obligation with a manual escape hatch — no `pragma Annotate ... Assume`, no

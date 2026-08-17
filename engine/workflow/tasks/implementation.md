@@ -36,14 +36,14 @@ so the app builds, lints clean, and the existing test suite stays green.
 ## Oracle
 
 ```bash
-make check && make build-native && make test && make trace-check-code
+make check && make build-native && make trace-check-code && make test
 ```
 
 **Done when all four succeed** — lint clean, native build succeeds, the AUnit
 suite passes (0 failures), and there are no traceability gaps.
 
-In a fresh checkout the first `trace-check-code` run builds the Ada tracer,
-which pulls in Libadalang — expect a long build, not a hang. If it dies with
+In a fresh checkout the first `trace-check-code` run builds the Ada tracer (and
+with it, Libadalang) which may take a long time. If it dies with
 `gcc: fatal error: Killed signal terminated program gnat1`, the compiler was
 killed for running out of memory: cap the parallelism of the Makefile's
 `build-tracer` recipe (e.g. pass `-j6`).

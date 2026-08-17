@@ -43,8 +43,7 @@ in meaningful test bodies, so the suite builds and passes.
    declare it is an error — add a `method: test` entry to that statement's
    `verification:` in the same change if the test is genuine.
 4. Build and run (the oracle). Coverage-to-100% is the *next* task, not this one;
-   here the bar is "harness builds, all tests pass, full traceability
-   closes".
+   here the bar is "harness builds, all tests pass and no traceability gaps".
 
 ## Oracle
 
