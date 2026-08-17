@@ -9,7 +9,8 @@
 --
 --  T_BUFFER (hlr_3_timing.3) has no routine: BUFFER_INTERVAL and
 --  NO_PEDESTRIAN_REQUEST publish the same frame, so the buffer's end is not
---  observable here. It shows only in the margin of statement 10.
+--  observable here. It shows only in the margin of statement 10. Statements 9
+--  and 12 relate constants, which states.ads checks at compile time.
 
 with AUnit.Test_Fixtures;
 
@@ -28,6 +29,11 @@ package Hlr_3_Timing_Tests is
    procedure Test_Power_On_Barrier_Holds_For_T_Barrier (T : in out Test);
 
    procedure Test_Axis_Change_Barriers_Hold_For_T_Barrier (T : in out Test);
+
+   procedure Test_Axis_Slot_Is_Demand_Independent (T : in out Test);
+
+   procedure Test_Crosswalk_Conflicts_Held_Red_For_The_Margin
+     (T : in out Test);
 
    procedure Test_Request_Acknowledged_Within_T_Ack (T : in out Test);
 

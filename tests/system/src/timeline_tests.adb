@@ -11,9 +11,7 @@ package body Timeline_Tests is
    package Demand renames System_Support.Demand;
    package Timeline renames System_Support.Timeline;
 
-   Cycle : constant States.Duration_Ms :=
-     2 * States.T_Axis + 2 * States.T_Barrier;
-   --  Both axis slots and the barrier that closes the second.
+   Cycle : States.Duration_Ms renames System_Support.Cycle;
 
    procedure Test_Full_Cycle_Fits_The_Timeline (T : in out Test) is
       --@observes none: the observer's capacity, not a requirement

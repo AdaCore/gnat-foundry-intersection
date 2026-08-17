@@ -207,8 +207,9 @@ package body Llr_5_Core_Loop_Tests is
 
       Assert
         (Spy.Count = Spy.Prologue_Events + 3 * Window,
-         "the spy must record the prologue's two events and three more for"
-         & " each of the"
+         "the spy must record the prologue's"
+         & Integer'Image (Spy.Prologue_Events)
+         & " events and three more for each of the"
          & Integer'Image (Window)
          & " iterations, but recorded"
          & Integer'Image (Spy.Count));
@@ -281,7 +282,9 @@ package body Llr_5_Core_Loop_Tests is
       Assert
         (Spy.Count = Spy.Prologue_Events + 3 * Iterations,
          "the spy must record three events per iteration after the"
-         & " prologue's two, but recorded"
+         & " prologue's"
+         & Integer'Image (Spy.Prologue_Events)
+         & ", but recorded"
          & Integer'Image (Spy.Count));
 
       for K in 1 .. Iterations loop
@@ -383,7 +386,8 @@ package body Llr_5_Core_Loop_Tests is
          "the loop must keep iterating until it is escaped, so"
          & Integer'Image (Iterations)
          & " iterations must leave three events each after the prologue's"
-         & " two, but the trace holds"
+         & Integer'Image (Spy.Prologue_Events)
+         & ", but the trace holds"
          & Integer'Image (Spy.Count));
 
    end Test_03_Loop_Never_Returns_To_Its_Caller;
