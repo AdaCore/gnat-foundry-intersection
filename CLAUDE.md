@@ -99,6 +99,10 @@ Unless specifically asked, do not look at git branches other than the one you're
 ## When editing any artifact
 
 - Read the section on commentary conventions in code conventions: `design/code_conventions.md`
+- With the exception of explicit records of history (change logs etc.), do not
+  document how things used to be; artifacts should read as if they were written
+  from scratch the way they are now. When something is moved, there is no
+  obligation to leave breadcrumbs where it was previously.
 
 ## When editing code
 
