@@ -89,6 +89,9 @@ As the orchestrating (main) session:
    has an unanswered `Q`, relay it to the human via `AskUserQuestion`, write the
    `A:` back, and re-dispatch so the sub-agent resumes.
 5. Update `plan.md`. Done when every task in the chain is `oracle-passed`.
+6. Once the feature is done, run `make report` to produce the final report.
+   Include a summary of the results in your concluding message, and direct the
+   user to where they can read it in full.
 
 Sub-agents cannot prompt the human directly — the **shared questions file**
 (`workflow/<feature>/questions.md`, append-only) is the only escalation channel;

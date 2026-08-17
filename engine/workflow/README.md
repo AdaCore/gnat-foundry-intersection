@@ -53,6 +53,9 @@ There is no orchestration engine — the loop is:
       back into the file, and re-dispatch the sub-agent so it can resume.
    d. Update the task's status in `workflow/<feature>/plan.md`.
 4. The feature is done when every task in the chain is `oracle-passed`.
+5. Once the feature is done, run `make report` to produce the final report.
+   Include a summary of the results in your concluding message, and direct the
+   user to where they can read it in full.
 
 ## Run state
 
