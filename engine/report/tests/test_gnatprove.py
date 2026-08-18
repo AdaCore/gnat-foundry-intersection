@@ -234,6 +234,12 @@ def test_nested_generic_instance_evidence(proof: ProofEvidence) -> None:
     assert not host.generic
     assert not [c for c in proof.checks if c.unit == "buses"]
     assert proof.instance_units("buses") == ["buses_proof"]
+    # Only Source_Bus contributes a check; nothing in Display_Bus.Bus_Write
+    # can fail, so its entity's SPARK mode is the whole record that the
+    # instance brought that body into the analysis.
+    analyzed = {m.entity: m.mode for m in proof.spark_modes if m.unit == "buses_proof"}
+    assert analyzed["Buses_Proof.Source_Wire.Bus_Read"] == "all"
+    assert analyzed["Buses_Proof.Display_Wire.Bus_Write"] == "all"
 
 
 def test_generic_without_an_instance(tmp_path: Path) -> None:
