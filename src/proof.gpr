@@ -15,9 +15,9 @@ with "types.gpr";
 
 project Proof is
 
-   --  In-SPARK instantiation harnesses for the generic units of `core`:
-   --  gnatprove analyses generic *instances*, so a generic that nothing
-   --  instantiates contributes no proof obligations at all.
+   --  In-SPARK instantiation harnesses for the generics of `core` and
+   --  `types`: gnatprove analyses generic *instances*, so a generic that
+   --  nothing instantiates contributes no proof obligations at all.
    for Source_Dirs use ("proof");
 
    --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
