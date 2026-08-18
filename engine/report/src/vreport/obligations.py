@@ -309,10 +309,17 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
         "located (the coverage classification does this per file)."
     )
     outside = ev.proof.non_spark_entities
+    # "None" here means none *within the analyzed scope*: code the run never
+    # reached is absent from the evidence, not cleared by it.
+    scope_note = (
+        " This covers the analyzed scope and nothing wider: code the run did not "
+        "reach is absent from this report rather than cleared by it — see "
+        "{ref}`proof-scope`."
+    )
     b.add(
         f"Code outside the proof: {len(outside)} entities"
         if outside
-        else "Code outside the proof: none",
+        else f"Code outside the proof: none of the {len(ev.proof.units)} analyzed units",
         "proof-spark-modes",
         (
             "These entities are not fully analyzed by gnatprove (`spec`: only the "
@@ -321,7 +328,8 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
             if outside
             else "Every analyzed entity is fully in SPARK."
         )
-        + generic_note,
+        + generic_note
+        + scope_note,
         review=bool(outside),
         items=[f"{m.entity} — SPARK_Mode `{m.mode}` (unit {m.unit})" for m in outside],
     )

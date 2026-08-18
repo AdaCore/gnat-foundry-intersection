@@ -176,10 +176,21 @@ run-target: build-target ## Run the firmware under QEMU (xilinx-zynq-a9)
 ##@ Proof
 # ----------------------------------------------------------------------------
 
+# `gnatprove -U` analyses every unit of every project in the tree it is rooted
+# at, so the root is what sets the proof scope. src/proof.gpr's tree is `core`,
+# `types` and the instantiation harnesses that give their generics something to
+# analyse — the verification scope of README "Verification scope", the same one
+# COVERAGE_SCOPE measures. Rooting at the crate instead would drag in the HAL
+# simulator and the entry point, which carry no SPARK_Mode and so yield nothing
+# but a list of code that was never meant to be proved.
+#
 # Only SPARK_Mode units are analyzed; the rest are skipped. gnatprove resolves
 # via the local prefix (on PATH) under `alr exec`.
-prove: generate-config ## SPARK proofs (silver level) across the default project
-	$(ALR) exec -P -- gnatprove -U --level=2 --report=statistics --checks-as-errors=on
+PROOF_SCOPE := $(CURDIR)/src/proof.gpr
+
+prove: generate-config ## SPARK proofs (silver level) across the proof scope
+	$(ALR) exec -- gnatprove -P $(PROOF_SCOPE) -U --level=2 \
+	    --report=statistics --checks-as-errors=on
 
 # A clean, forced re-analysis so every unit's artifacts come from this one run
 # under one switch set, plus proof assumptions and a provenance header. Unlike
@@ -188,9 +199,9 @@ prove: generate-config ## SPARK proofs (silver level) across the default project
 GNATPROVE_ARTIFACTS := obj/development/gnatprove
 
 prove-report: generate-config ## Proof run feeding `make report`
-	$(ALR) exec -P -- gnatprove --clean
-	$(ALR) exec -P -- gnatprove -U -f --level=2 --report=statistics \
-	    --assumptions --output-header
+	$(ALR) exec -- gnatprove -P $(PROOF_SCOPE) --clean
+	$(ALR) exec -- gnatprove -P $(PROOF_SCOPE) -U -f --level=2 \
+	    --report=statistics --assumptions --output-header
 	$(ALR) exec -- gnatprove --version > $(GNATPROVE_ARTIFACTS)/gnatprove-version.txt
 
 # ----------------------------------------------------------------------------
@@ -229,6 +240,8 @@ endif
 	    --charset utf-8
 	$(TESTS_EXEC) gnatformat -P $(SYSTEM_TESTS) --no-subprojects -U \
 	    --charset utf-8
+	$(ALR) exec -- gnatformat -P $(PROOF_SCOPE) --no-subprojects -U \
+	    --charset utf-8
 
 # Same split as `format-ada` above.
 check-ada: generate-config ## Verify Ada formatting; non-zero if any file would change
@@ -251,6 +264,8 @@ endif
 	$(TESTS_EXEC) gnatformat -P $(REQS_TESTS) --no-subprojects -U --check \
 	    --charset utf-8
 	$(TESTS_EXEC) gnatformat -P $(SYSTEM_TESTS) --no-subprojects -U --check \
+	    --charset utf-8
+	$(ALR) exec -- gnatformat -P $(PROOF_SCOPE) --no-subprojects -U --check \
 	    --charset utf-8
 	# Commented for now, pending
 	#   eng/ide/gnatdoc#189

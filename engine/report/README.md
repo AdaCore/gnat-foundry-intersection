@@ -70,12 +70,20 @@ evidence links.
   warnings item (falling back to the `.spark` `warn_error` records), and a
   unit whose `.spark` records an early analysis stop is flagged as
   incomplete.
+- Every "none" in the proof sections is bounded by the **analyzed scope**: the
+  units the run reached, listed on the proof page. `gnatprove -U` analyzes the
+  tree of the project it is rooted at, so code outside that tree is absent from
+  the report rather than cleared by it, and the boundary obligation says so.
 - A generic unit is not an early stop: gnatprove skips generics and analyses
   their *instances*, so a generic's own artifact is empty by construction. The
   evidence that one was analysed at all is a check **located** in its sources
   but attributed to the instantiating unit, and a generic with no such check
   is reported as having no analyzed instance — unproved code that no other
   section names. Matched by source-file stem, with the same basename caveat.
+  This is a **unit-level** check: it sees only what gnatprove reports as a
+  generic unit, so a generic package *nested* inside an ordinary unit is not
+  covered by it. Such a unit shows in the scope table with its true check count
+  (often zero), which is the signal to read.
 - Evidence-carried free text (justifications, waiver reasons, tool messages)
   is escaped before interpolation into the MyST sources, so it cannot break
   the report structure or plant cross-references that fail the strict build.

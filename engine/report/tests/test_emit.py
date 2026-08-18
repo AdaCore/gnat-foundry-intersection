@@ -258,6 +258,21 @@ def test_proof_page_flags_incomplete_analysis(evidence: Evidence) -> None:
     assert "STOP_REASON_CHECK_MODE" in pages["proof.md"]
 
 
+def test_proof_page_lists_the_analyzed_scope(evidence: Evidence) -> None:
+    """The scope table bounds every "none" on the page to the units in the run."""
+    page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
+    assert "## Analysis scope" in page
+    assert "| Unit | Analysis |" in page
+    assert "| state_machine_loop | generic, through state_machine_loop_proof |" in page
+    assert "| controller | " in page
+
+
+def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None:
+    """A clean boundary must not read as "no unproved code exists anywhere"."""
+    ob = {o.anchor: o for o in build_obligations(evidence)}["proof-spark-modes"]
+    assert "{ref}`proof-scope`" in ob.detail
+
+
 def test_proof_page_names_each_generic_instance(evidence: Evidence) -> None:
     """The generics table says which unit stands behind each generic."""
     page = emit_pages(evidence, build_obligations(evidence))["proof.md"]

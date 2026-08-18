@@ -26,14 +26,16 @@ which nothing here substitutes.
 The HAL realizations (`Display`, `Sources`, `Timings`), the composition that
 wires them and the `Main` entry point are therefore the demonstration's
 *harness*: excluded from the requirements, from the V&V activities, and from
-the structural-coverage denominator. So is `src/proof`, which holds the
-instantiation harnesses that give the generic units of `core` something for
-gnatprove to analyse: nothing calls them, so nothing about them is measurable.
-What is verified is the controller —
-`src/types` and `src/core` — by SPARK proof at Silver and by the
-requirements-based tests under [`tests/reqs/`](tests/reqs/README.md), whose
-structural coverage is measured over exactly that scope (`make all-coverage`)
-and is complete — `make check-coverage` holds CI to it.
+the structural-coverage denominator, and outside the proof: `make prove` is
+rooted at `src/proof.gpr`, whose tree is `src/types`, `src/core` and the
+instantiation harnesses that give their generics something for gnatprove to
+analyse. What is verified is the controller — `src/types` and `src/core` — by
+SPARK proof at Silver and by the requirements-based tests under
+[`tests/reqs/`](tests/reqs/README.md), whose structural coverage is measured
+over exactly that scope (`make all-coverage`) and is complete — `make
+check-coverage` holds CI to it. Proof and coverage therefore answer for the
+same code, and the verification report records that scope explicitly: what it
+reports clean, it reports clean *within* it.
 
 ## Quick start
 

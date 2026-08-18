@@ -128,15 +128,20 @@ like). If a change means the core can no longer be proven without such an
 escape hatch, stop and raise a flag rather than papering over it — that broken
 invariant is a signal worth surfacing.
 
-Because `gnatprove` analyses generic *instances* and not uninstantiated
-generics, `src/proof.gpr` carries small in-SPARK instantiation harnesses
-(`state_machine_loop_proof`) so the generic core loop is actually exercised by
-`make prove`. That project holds nothing but proof scaffolding — code written
-to be analyzed and never run — so it stays outside the measured coverage scope
-(`core` and `types`) and needs no coverage exemptions. The crate root `with`s
-it purely to put it in the tree `gnatprove -U` sweeps. Keep such harnesses in
-step when the generic surface changes: a generic no analyzed instance reaches
-is unproved code, and `make report` says so under "Generic units".
+`make prove` is rooted at `src/proof.gpr`, and `gnatprove -U` analyses the tree
+it is rooted at — so that project's tree *is* the proof scope: `core`, `types`,
+and the harnesses below. It is the same scope the coverage run measures; the HAL
+simulator and the entry point are outside both, and the report records the scope
+rather than implying there is nothing beyond it.
+
+The project also holds the proof scaffolding — code written to be analyzed and
+never run. Because `gnatprove` analyses generic *instances* and not
+uninstantiated generics, `state_machine_loop_proof` instantiates the generic
+core loop against in-SPARK stubs so the loop is actually exercised by `make
+prove`. Keeping it out of `core` is what keeps it out of the measured coverage
+denominator, so it needs no coverage exemptions. Keep such harnesses in step
+when the generic surface changes: a generic no analyzed instance reaches is
+unproved code, and `make report` says so under "Generic units".
 
 ## When editing tests
 

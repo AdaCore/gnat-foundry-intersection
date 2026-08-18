@@ -1,8 +1,13 @@
 with "../config/traffic_light_config.gpr";
---  NOTE: this project holds proof scaffolding only -- code written to be
---  analyzed, never to run. Nothing may depend on it: the crate root `with`s it
---  solely to put its sources in the tree gnatprove sweeps, and no unit here is
---  in any executable's closure. See design/architecture.md.
+--  The root of the proof scope, and the home of the proof scaffolding -- code
+--  written to be analyzed, never to run. Nothing depends on this project and
+--  no unit of it is in any executable's closure.
+--
+--  `make prove` roots gnatprove here, so this project's tree IS the scope of
+--  the proof: `core`, `types`, and the harnesses below. That is the same
+--  verification scope COVERAGE_SCOPE measures (README "Verification scope") --
+--  the HAL simulator and the entry point are outside both. See
+--  design/architecture.md.
 
 with "shared.gpr";
 with "core.gpr";

@@ -173,19 +173,23 @@ contain annotations necessary to support the proof of the `core.gpr` and
 
 The dependencies are as follows:
 
-- traffic_light.gpr depends on core.gpr, hal.gpr, proof.gpr, types.gpr
+- traffic_light.gpr depends on core.gpr, hal.gpr, types.gpr
 - core.gpr depends on types.gpr
 - hal.gpr depends on types.gpr
 - proof.gpr depends on core.gpr, types.gpr
 - types.gpr has no dependencies
 
-Nothing depends on `proof.gpr`, and no unit of it is in any executable's
-closure. The crate root `with`s it for one reason: `gnatprove -U` analyses the
-project tree it is given, so a harness outside that tree would prove nothing.
-Keeping it out of `core.gpr` is what keeps the measured coverage scope
-(`--projects core --projects types`) to code that ships: coverage of a unit
-nothing calls would say nothing, so the harness sits outside the denominator
-rather than exempted inside it.
+Nothing depends on `proof.gpr` and no unit of it is in any executable's closure;
+it is a root, not a leaf. `make prove` roots gnatprove there, and `gnatprove -U`
+analyses the tree it is given, so `proof.gpr`'s tree is exactly the proof scope:
+`core`, `types` and the harnesses. That matches the scope the coverage run
+measures (`--projects core --projects types`), so one declared verification
+scope governs both forms of evidence, and the HAL simulator and the entry point
+fall outside both.
+
+Keeping the harnesses out of `core.gpr` is what keeps the coverage denominator
+to code that ships: coverage of a unit nothing calls would say nothing, so a
+harness sits outside the denominator rather than exempted inside it.
 
 The `core.gpr` project does not depend on the `hal.gpr` project. This allows the
 core logic to be tested and proven independently of the hardware abstraction layer.
