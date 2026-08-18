@@ -275,6 +275,18 @@ def test_proof_page_lists_the_analyzed_scope(evidence: Evidence) -> None:
     assert "| main | " in section
 
 
+def test_proof_page_credits_a_nested_generic_to_its_instance(evidence: Evidence) -> None:
+    """
+    A unit hosting a nested generic must not read as a bare zero.
+
+    `buses` records no check of its own — its two bus generics are analyzed
+    through the instance in `buses_proof` — and that cell is the only place the
+    page can say so, since the generics table sees whole generic units only.
+    """
+    page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
+    assert "| buses | 0 checks; instances analyzed through buses_proof |" in page
+
+
 def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None:
     """A clean boundary must not read as "no unproved code exists anywhere"."""
     ob = {o.anchor: o for o in build_obligations(evidence)}["proof-spark-modes"]

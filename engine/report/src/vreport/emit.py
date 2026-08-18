@@ -317,7 +317,13 @@ def _scope_cell(p: ProofEvidence, unit: str) -> str:
         return f"generic, through {through}" if through else "generic, **no instance analyzed**"
     if not analysis.complete:
         return f"stopped: `{analysis.stop_reason or 'unrecorded'}`"
-    return count(sum(1 for c in p.checks if c.unit == unit), "check")
+    own = count(sum(1 for c in p.checks if c.unit == unit), "check")
+    # A generic nested in an ordinary unit is reached only through an instance,
+    # whose checks are recorded under the instantiating unit: naming it is what
+    # separates "this unit hosts proved generic bodies" from the bare "0
+    # checks" an unreached nested generic would leave here.
+    through = ", ".join(p.instance_units(unit))
+    return f"{own}; instances analyzed through {through}" if through else own
 
 
 def _emit_proof(ev: Evidence) -> str:
@@ -432,7 +438,10 @@ exact command is under {{ref}}`provenance-invocations`. Code outside the list is
 **not** described by this report — neither proved nor reported unproved — so
 read "none" in the sections that follow as "none among these units". Whether
 this is the right scope to verify is a human judgement, made where the scope is
-declared and not re-derived here.
+declared and not re-derived here. A cell counts the checks recorded under its
+unit; checks from a generic's body are recorded under whichever unit
+instantiates it ({{ref}}`proof-generics`), so where that happens inside a unit's
+own sources the cell names the instantiating unit too.
 
 {scope_block}
 
