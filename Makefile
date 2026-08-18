@@ -176,16 +176,11 @@ run-target: build-target ## Run the firmware under QEMU (xilinx-zynq-a9)
 ##@ Proof
 # ----------------------------------------------------------------------------
 
-# `gnatprove -U` analyses every unit of every project in the tree it is rooted
-# at, so the root is what sets the proof scope. src/proof.gpr's tree is `core`,
-# `types` and the instantiation harnesses that give their generics something to
-# analyse — the verification scope of README "Verification scope", the same one
-# COVERAGE_SCOPE measures. Rooting at the crate instead would drag in the HAL
-# simulator and the entry point, which carry no SPARK_Mode and so yield nothing
-# but a list of code that was never meant to be proved.
-#
-# Only SPARK_Mode units are analyzed; the rest are skipped. gnatprove resolves
-# via the local prefix (on PATH) under `alr exec`.
+# The root project sets the scope: `gnatprove -U` analyses its whole tree, and
+# src/proof.gpr's is the verification scope COVERAGE_SCOPE also measures
+# (README "Verification scope"). Only SPARK_Mode units are analyzed; the rest
+# are skipped. gnatprove resolves via the local prefix (on PATH) under
+# `alr exec`.
 PROOF_SCOPE := $(CURDIR)/src/proof.gpr
 
 prove: generate-config ## SPARK proofs (silver level) across the proof scope
