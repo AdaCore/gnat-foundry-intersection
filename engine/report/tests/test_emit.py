@@ -259,12 +259,20 @@ def test_proof_page_flags_incomplete_analysis(evidence: Evidence) -> None:
 
 
 def test_proof_page_lists_the_analyzed_scope(evidence: Evidence) -> None:
-    """The scope table bounds every "none" on the page to the units in the run."""
+    """
+    The scope table is the run's unit list — every unit, and nothing else.
+
+    A "none" elsewhere on the page means "none among these", so a table that
+    silently dropped or invented a unit would misstate what the page covers.
+    Which units *should* be in a run is the project's declaration, not this
+    generator's business: the fixture models a wide run on purpose.
+    """
     page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
-    assert "## Analysis scope" in page
-    assert "| Unit | Analysis |" in page
-    assert "| state_machine_loop | generic, through state_machine_loop_proof |" in page
-    assert "| controller | " in page
+    section = page.split("## Analysis scope", 1)[1].split("(proof-completeness)=", 1)[0]
+    rows = [ln.split("|")[1].strip() for ln in section.splitlines() if ln.startswith("| ")]
+    assert rows == ["Unit", *evidence.proof.units]
+    assert "| state_machine_loop | generic, through state_machine_loop_proof |" in section
+    assert "| main | " in section
 
 
 def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None:
