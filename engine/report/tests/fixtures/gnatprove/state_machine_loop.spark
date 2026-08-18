@@ -1,0 +1,18 @@
+{
+  "assumptions": [
+  ],
+  "entities": {
+  },
+  "progress": "PROGRESS_NONE",
+  "skip_flow_proof": [
+  ],
+  "skip_proof": [
+  ],
+  "spark": {
+  },
+  "stop_reason": "STOP_REASON_GENERIC_UNIT",
+  "timings": {
+  },
+  "warn_error": [
+  ]
+}

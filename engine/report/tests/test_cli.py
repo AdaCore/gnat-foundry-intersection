@@ -42,6 +42,7 @@ def test_generate_writes_evidence_and_sources(tmp_path: Path) -> None:
         "conflicts",
         "controller",
         "main",
+        "state_machine_loop",
         "state_machine_loop_proof",
         "synthetic",
     ]

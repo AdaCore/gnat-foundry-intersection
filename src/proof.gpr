@@ -1,0 +1,25 @@
+with "../config/traffic_light_config.gpr";
+--  NOTE: this project holds proof scaffolding only -- code written to be
+--  analyzed, never to run. Nothing may depend on it: the crate root `with`s it
+--  solely to put its sources in the tree gnatprove sweeps, and no unit here is
+--  in any executable's closure. See design/architecture.md.
+
+with "shared.gpr";
+with "core.gpr";
+with "types.gpr";
+
+project Proof is
+
+   --  In-SPARK instantiation harnesses for the generic units of `core`:
+   --  gnatprove analyses generic *instances*, so a generic that nothing
+   --  instantiates contributes no proof obligations at all.
+   for Source_Dirs use ("proof");
+
+   --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
+   for Object_Dir use Shared'Object_Dir;
+   for Create_Missing_Dirs use "True";
+
+   package Compiler renames Shared.Compiler;
+   package Binder renames Shared.Binder;
+
+end Proof;

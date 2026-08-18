@@ -24,6 +24,7 @@ def test_units(proof: ProofEvidence) -> None:
         "conflicts",
         "controller",
         "main",
+        "state_machine_loop",
         "state_machine_loop_proof",
         "synthetic",
     ]
@@ -200,6 +201,31 @@ def test_instance_analysis_locations(proof: ProofEvidence) -> None:
     """Checks proved at the generic's own lines live in the instantiating unit."""
     harness = [c for c in proof.checks if c.unit == "state_machine_loop_proof"]
     assert any(c.location.file == "state_machine_loop.adb" for c in harness)
+
+
+def test_generic_units_are_not_incomplete(proof: ProofEvidence) -> None:
+    """A skipped generic is the normal outcome, not an early stop."""
+    generic = next(a for a in proof.analyses if a.unit == "state_machine_loop")
+    assert generic.generic
+    assert not generic.complete
+    assert generic not in proof.incomplete_analyses
+    assert [a.unit for a in proof.generic_analyses] == ["state_machine_loop"]
+
+
+def test_generic_instance_evidence(proof: ProofEvidence) -> None:
+    """A generic counts as analyzed through whichever unit located checks in it."""
+    assert proof.instance_units("state_machine_loop") == ["state_machine_loop_proof"]
+    assert proof.uninstantiated_generics == []
+
+
+def test_generic_without_an_instance(tmp_path: Path) -> None:
+    """Drop the instantiating unit and the generic stands alone, unanalyzed."""
+    src = Path(__file__).parent / "fixtures" / "gnatprove"
+    for name in ("gnatprove.out", "state_machine_loop.spark"):
+        (tmp_path / name).write_text((src / name).read_text())
+    proof = collect_proof(tmp_path)
+    assert [a.unit for a in proof.uninstantiated_generics] == ["state_machine_loop"]
+    assert proof.instance_units("state_machine_loop") == []
 
 
 def test_missing_artifacts(tmp_path: Path) -> None:

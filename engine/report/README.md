@@ -70,6 +70,12 @@ evidence links.
   warnings item (falling back to the `.spark` `warn_error` records), and a
   unit whose `.spark` records an early analysis stop is flagged as
   incomplete.
+- A generic unit is not an early stop: gnatprove skips generics and analyses
+  their *instances*, so a generic's own artifact is empty by construction. The
+  evidence that one was analysed at all is a check **located** in its sources
+  but attributed to the instantiating unit, and a generic with no such check
+  is reported as having no analyzed instance — unproved code that no other
+  section names. Matched by source-file stem, with the same basename caveat.
 - Evidence-carried free text (justifications, waiver reasons, tool messages)
   is escaped before interpolation into the MyST sources, so it cannot break
   the report structure or plant cross-references that fail the strict build.

@@ -6,11 +6,17 @@
 --  lands in this project's bin/ as `traffic_light`. NOT a proof target:
 --  main.adb carries no SPARK_Mode, so gnatprove skips it. The bare-metal
 --  arm-eabi build lives in its own Alire crate, traffic_light_qemu/.
+--
+--  It is also the root gnatprove analyses (`gnatprove -U` sweeps the whole
+--  project tree), which is why it `with`s src/proof.gpr: nothing links that
+--  project, but its instantiation harnesses have to be in the tree for the
+--  generic units of `core` to be proved at all.
 
 with "config/traffic_light_config.gpr";
 with "src/shared.gpr";
 with "src/core.gpr";
 with "src/hal.gpr";
+with "src/proof.gpr";
 with "src/types.gpr";
 
 project Traffic_Light is

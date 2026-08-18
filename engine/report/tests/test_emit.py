@@ -258,6 +258,14 @@ def test_proof_page_flags_incomplete_analysis(evidence: Evidence) -> None:
     assert "STOP_REASON_CHECK_MODE" in pages["proof.md"]
 
 
+def test_proof_page_names_each_generic_instance(evidence: Evidence) -> None:
+    """The generics table says which unit stands behind each generic."""
+    page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
+    assert "## Generic units" in page
+    assert "| state_machine_loop | state_machine_loop_proof |" in page
+    assert "STOP_REASON_GENERIC_UNIT" not in page
+
+
 def test_provenance_strips_local_tool_paths(evidence: Evidence) -> None:
     """Prover version lines show tool basenames, not this machine's layout."""
     pages = emit_pages(evidence, build_obligations(evidence))

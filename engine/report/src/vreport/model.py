@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 SCHEMA_VERSION = 1
 
@@ -169,6 +166,11 @@ class UnitAnalysis(Frozen):
         """Whether the analysis reached the proof phase's end (unknown counts as incomplete)."""
         return self.stop_reason == "STOP_REASON_NONE" and self.progress == "PROGRESS_PROOF"
 
+    @property
+    def generic(self) -> bool:
+        """Whether gnatprove skipped the unit because it is an uninstantiated generic."""
+        return self.stop_reason == "STOP_REASON_GENERIC_UNIT"
+
 
 class GnatproveHeader(Frozen):
     """The `--output-header` block of gnatprove.out."""
@@ -214,8 +216,45 @@ class ProofEvidence(Frozen):
 
     @property
     def incomplete_analyses(self) -> list[UnitAnalysis]:
-        """Unit analyses that did not run to the end of the proof phase."""
-        return [a for a in self.analyses if not a.complete]
+        """
+        Unit analyses that did not run to the end of the proof phase.
+
+        Generic units are not among them: gnatprove analyzes generic
+        *instances*, so a generic's own artifact is empty by construction and
+        stopping on it is the normal outcome, not an early stop. The risk a
+        generic carries is a different one — see `uninstantiated_generics`.
+        """
+        return [a for a in self.analyses if not a.complete and not a.generic]
+
+    @property
+    def generic_analyses(self) -> list[UnitAnalysis]:
+        """Units gnatprove skipped as uninstantiated generics."""
+        return [a for a in self.analyses if a.generic]
+
+    def instance_units(self, unit: str) -> list[str]:
+        """
+        Units whose analysis produced checks located in `unit`'s sources.
+
+        Analyzing an instance attributes the generic body's checks to the
+        instantiating unit while leaving them *located* in the generic's own
+        source file, so this is where the evidence that a generic was actually
+        analyzed lives. Heuristic caveat: the match is by source-file stem, so
+        two same-named files in different directories would be conflated.
+        """
+        return sorted(
+            {c.unit for c in self.checks if Path(c.location.file).stem == unit and c.unit != unit}
+        )
+
+    @property
+    def uninstantiated_generics(self) -> list[UnitAnalysis]:
+        """
+        Generic units that no analyzed instance exercises.
+
+        A generic with no check located in its own sources was never
+        instantiated in a unit this run analyzed: nothing in its body is
+        proved, and no table below says so.
+        """
+        return [a for a in self.generic_analyses if not self.instance_units(a.unit)]
 
     @property
     def unproved_checks(self) -> list[ProofCheck]:

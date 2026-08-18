@@ -11,7 +11,7 @@ errors.
 - `workflow/<feature>/notes.md` — if this exists, it may contain notes relevant to this task.
 - `src/core/*` and `src/types/*` — the proof targets (contracts, invariants,
   loop invariants, ghost code as needed).
-- `src/core/state_machine_loop_proof.{ads,adb}` — the in-SPARK instantiation
+- `src/proof/state_machine_loop_proof.{ads,adb}` — the in-SPARK instantiation
   harness that exercises the generic core loop under proof.
 - `CLAUDE.md` — the "Keeping `core` proven" rules.
 

@@ -375,10 +375,15 @@ def _emit_proof(ev: Evidence) -> str:
     completeness_block = (
         _table(("Unit", "Progress", "Stop reason"), incomplete_rows)
         if incomplete_rows
-        else f"All {len(p.analyses)} unit analyses ran to the end of the proof phase."
+        else f"All {len(p.analyses) - len(p.generic_analyses)} non-generic unit "
+        "analyses ran to the end of the proof phase."
         if p.analyses
         else "The `.spark` artifacts carry no completion records."
     )
+
+    generic_rows: list[Sequence[str]] = [
+        (a.unit, ", ".join(p.instance_units(a.unit)) or "**none**") for a in p.generic_analyses
+    ]
 
     warnings_note = (
         ""
@@ -405,6 +410,24 @@ Units whose recorded analysis stopped early list only part of their checks;
 every table below is qualified by this one.
 
 {completeness_block}
+
+{_target("proof-generics")}
+
+## Generic units
+
+gnatprove analyzes generic *instances*, not generics: a generic's own artifact
+records no checks, and the checks from its body are attributed to the
+instantiating unit while staying located in the generic's source. A generic
+reached by no analyzed instance is therefore unproved code that no other table
+names.
+
+{
+        _table_or(
+            ("Generic unit", "Analyzed through"),
+            generic_rows,
+            "The run analyzed no generic units.",
+        )
+    }
 
 {_target("proof-summary")}
 
