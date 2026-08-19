@@ -564,11 +564,17 @@ class RequirementsDocument(Frozen):
     corpus_valid: bool = False
     layers: list[RequirementLayer] = Field(default_factory=list)
     nodes: dict[str, dict[str, RequirementStatement]] = Field(default_factory=dict)
+    sources: list[str] = Field(default_factory=list)  # listings of the sources the chain cites
+
+    @property
+    def requirement_pages(self) -> list[str]:
+        """The requirement pages, in chain then file order."""
+        return [page for layer in self.layers for page in layer.pages]
 
     @property
     def pages(self) -> list[str]:
-        """Every rendered page, in chain then file order."""
-        return [page for layer in self.layers for page in layer.pages]
+        """Every rendered page: the requirements, then the source listings."""
+        return self.requirement_pages + self.sources
 
     def statement(self, layer: str, node: str) -> RequirementStatement | None:
         """Resolve one node of one layer to its rendered statement, if it has one."""

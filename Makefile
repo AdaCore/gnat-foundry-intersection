@@ -549,7 +549,7 @@ REQS_DOC := $(CURDIR)/reports/requirements
 
 requirements-doc: inventories ## Render the requirements as a document `make report` reads
 	$(UV) --directory "$(REQS_ENGINE)" run reqs document \
-	    --chain "$(TRACE_CHAIN)" --out "$(REQS_DOC)"
+	    --chain "$(TRACE_CHAIN)" --out "$(REQS_DOC)" --source-root "$(CURDIR)"
 
 test-reqs-engine: ## Run the validation engine's own test suite
 	$(UV) --directory "$(REQS_ENGINE)" run pytest

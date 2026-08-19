@@ -15,7 +15,13 @@ from typing import NoReturn
 
 import typer
 
-from vreport.build import build_html, build_pdf, copy_requirement_pages, write_sphinx_sources
+from vreport.build import (
+    PDF_NAME,
+    build_html,
+    build_pdf,
+    copy_requirement_pages,
+    write_sphinx_sources,
+)
 from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.gnatcov import collect_coverage
 from vreport.gnatprove import collect_proof
@@ -129,7 +135,7 @@ def generate(
         rc = build_pdf(out / "src", out / "pdf")
         if rc != 0:
             _fail("sphinx pdf build failed (see warnings above)")
-        typer.echo(f"pdf:      {out / 'pdf' / 'verification-report.pdf'}")
+        typer.echo(f"pdf:      {out / 'pdf' / f'{PDF_NAME}.pdf'}")
 
     review = sum(1 for o in obligations if o.status is ObligationStatus.review)
     typer.echo(f"obligations: {review} of {len(obligations)} need human review")

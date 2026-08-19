@@ -1109,7 +1109,19 @@ def _emit_requirements(ev: Evidence) -> str:
         if doc.generated_at
         else "Rendered by `reqs document`"
     )
-    pages = "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in doc.pages)
+    pages = "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in doc.requirement_pages)
+    # The listing pages belong to both renderings, because the evidence links
+    # into them and a link that resolves in one rendering only is a broken
+    # document. Each page carries the source itself as HTML-only content.
+    listings = (
+        ""
+        if not doc.sources
+        else f"The evidence links into these {count(len(doc.sources), 'source listing')}, "
+        "which carry the cited source in the HTML rendering:\n\n"
+        "```{toctree}\n:maxdepth: 1\n\n"
+        + "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in doc.sources)
+        + "\n```\n"
+    )
     return f"""{_target("requirements")}
 
 # Requirements
@@ -1129,6 +1141,8 @@ Regenerate with `make requirements-doc`.
 
 {pages}
 ```
+
+{listings}
 """
 
 

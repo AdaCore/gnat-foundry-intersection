@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from reqs.checks.trace import (
@@ -37,7 +38,6 @@ from reqs.requirement_set import RequirementSet, parse_req_id
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
-    from pathlib import Path
 
     from reqs.checks.trace import Layer, NodeView
     from reqs.core import Diagnostic
@@ -49,14 +49,18 @@ INDEX_SCHEMA_VERSION = 1
 
 INDEX_NAME = "index.json"
 PAGES_DIR = "pages"
+SOURCES_DIR = "sources"  # page subdirectory for the source listings
+
+# Highlighting language per source suffix; anything else is listed as plain text.
+_LANGUAGES = {".ads": "ada", ".adb": "ada", ".gpr": "ada", ".c": "c", ".h": "c", ".py": "python"}
 
 # The kinds of layer this module renders as prose. The rest of the chain -- code,
 # tests, tagged checks -- is linked to, never rendered as a requirement.
 RENDERED_KINDS = (REQUIREMENT_YAML, MARKDOWN_LEAVES)
 
-# A markdown leaf bullet, split so its `**<id> <marker>**` span can carry an
-# anchor: `- [**4.1 ◆**]{#conops-4-1} ...`. An inline attribute, because a block
-# target between two bullets would break the run of leaves into separate lists.
+# A markdown leaf bullet, split so a target can be planted inside the bullet,
+# above its `**<id> <marker>**` span. Inside, because a target between two
+# bullets would break the run of leaves into a series of one-item lists.
 _LEAF_SPAN_RE = re.compile(r"^(\s*-\s+)(\*\*[^*]+\*\*)(.*)$")
 
 # What a statement's `verification:` method means to a reader, spelled out once.
@@ -81,10 +85,38 @@ def anchor_of(node_id: str, prefix: str | None = None) -> str:
     return re.sub(r"[^a-z0-9]+", "-", ident.lower()).strip("-")
 
 
+def source_page_of(path: str) -> str:
+    """Return the page a source file is listed on, under the sources directory."""
+    return f"{SOURCES_DIR}/{re.sub(r'[^a-z0-9]+', '-', path.lower()).strip('-')}"
+
+
+def source_anchor_of(path: str, line: int) -> str:
+    """Return the cross-reference target of one line of one source file."""
+    return f"{_source_slug(path)}-l{line}"
+
+
+def source_page_anchor_of(path: str) -> str:
+    """Return the cross-reference target of a source listing as a whole."""
+    return f"{_source_slug(path)}-listing"
+
+
+def _source_slug(path: str) -> str:
+    """Reduce a source path to the stem its anchors are built on."""
+    return re.sub(r"[^a-z0-9]+", "-", path.lower()).strip("-")
+
+
 def page_of(node_id: str) -> str:
     """Return the page a statement is rendered on: its container, which owns the file."""
     parsed = parse_req_id(node_id)
     return parsed[0] if parsed is not None else node_id
+
+
+@dataclass(frozen=True)
+class RunInfo:
+    """How one render was produced, recorded in its index for the reader."""
+
+    command: str | None = None
+    generated_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -104,7 +136,14 @@ class DocumentRenderer:
     nothing -- see `valid`.
     """
 
-    def __init__(self, chain: list[Layer], *, selected_layers: Iterable[str] | None = None) -> None:
+    def __init__(
+        self,
+        chain: list[Layer],
+        *,
+        selected_layers: Iterable[str] | None = None,
+        source_root: Path | None = None,
+    ) -> None:
+        self.source_root = source_root
         self.view, self.diagnostics = TraceChecker(chain, selected_layers=selected_layers).view()
         self.rendered = [
             layer.name
@@ -132,10 +171,47 @@ class DocumentRenderer:
             if (parent := self.view.parents.get(layer.name)) is not None:
                 self.children.setdefault(parent, []).append(layer.name)
 
+        # Where the evidence below the requirements lives, and what cites it: the
+        # source listings exist because a requirement points into them, and the
+        # lines a requirement points *at* are the ones that carry an anchor.
+        self.citations: dict[str, dict[int, list[str]]] = {}
+        self.locations: dict[tuple[str, str], tuple[str, int]] = {}
+        for name, nodes in self.view.nodes.items():
+            if name in self.rendered:
+                continue
+            for node_id, node in nodes.items():
+                # `up` is the requirements this node answers to; a node no
+                # requirement reaches is not part of the traceable surface.
+                if not node.up or node.file is None or node.line is None:
+                    continue
+                path = node.file.as_posix()
+                self.citations.setdefault(path, {}).setdefault(node.line, []).append(node_id)
+                self.locations[name, node_id] = (path, node.line)
+        self.sources = self._read_sources()
+
     @property
     def valid(self) -> bool:
         """Whether the corpus analysed; nothing is rendered when it did not."""
         return self.view.valid
+
+    def _read_sources(self) -> dict[str, list[str]]:
+        """
+        Read every cited source file, keyed by its inventory-relative path.
+
+        A file that cannot be read is left out rather than fatal: the inventories
+        are generated, and a stale one must not stop the requirements rendering.
+        Its citations then render as plain text, exactly as an unlisted layer's do.
+        """
+        if self.source_root is None:
+            return {}
+        out: dict[str, list[str]] = {}
+        for path in sorted(self.citations):
+            try:
+                text = (self.source_root / path).read_text(encoding="utf-8")
+            except OSError:
+                continue
+            out[path] = text.splitlines()
+        return out
 
     def files_of(self, layer: str) -> Iterator[RequirementFile]:
         """Yield the containers of a requirement layer, in file order."""
@@ -153,6 +229,7 @@ class DocumentRenderer:
                 out.append(self._leaves_page(layer))
             else:
                 out.extend(self._page(layer, file) for file in self.files_of(layer))
+        out.extend(self._source_pages())
         return out
 
     def pages_of(self, layer: str) -> list[str]:
@@ -171,9 +248,7 @@ class DocumentRenderer:
         node_set = self.view.sets[layer]
         return node_set.path.stem if isinstance(node_set, ConopsSet) else page_of(node_id)
 
-    def index(
-        self, *, command: str | None = None, generated_at: str | None = None
-    ) -> dict[str, Any]:
+    def index(self, run: RunInfo | None = None) -> dict[str, Any]:
         """
         Describe the render: which pages exist, and where each statement sits.
 
@@ -181,10 +256,11 @@ class DocumentRenderer:
         rather than deriving them, so how an anchor is spelled stays this
         module's business.
         """
+        run = run or RunInfo()
         return {
             "schema_version": INDEX_SCHEMA_VERSION,
-            "command": command,
-            "generated_at": generated_at,
+            "command": run.command,
+            "generated_at": run.generated_at,
             "corpus_valid": self.view.valid,
             "layers": [
                 {
@@ -204,19 +280,34 @@ class DocumentRenderer:
                     for node_id, text in self._texts(layer)
                 }
                 for layer in self.rendered
-            },
+            }
+            | self._source_nodes(),
+            "sources": [source_page_of(path) for path in sorted(self.sources)],
         }
 
-    def write(
-        self, out: Path, *, command: str | None = None, generated_at: str | None = None
-    ) -> list[RenderedPage]:
+    def _source_nodes(self) -> dict[str, dict[str, dict[str, str]]]:
+        """Index the cited evidence: which listing line each node of it is rendered at."""
+        out: dict[str, dict[str, dict[str, str]]] = {}
+        for (layer, node_id), (path, line) in self.locations.items():
+            if path not in self.sources:
+                continue
+            out.setdefault(layer, {})[node_id] = {
+                "page": source_page_of(path),
+                "anchor": source_anchor_of(path, line),
+                "text": f"{path}:{line}",
+            }
+        return out
+
+    def write(self, out: Path, run: RunInfo | None = None) -> list[RenderedPage]:
         """Write the pages and the index under `out`, returning what was written."""
         pages = self.pages()
         pages_dir = out / PAGES_DIR
         pages_dir.mkdir(parents=True, exist_ok=True)
         for page in pages:
-            (pages_dir / f"{page.name}.md").write_text(page.text, encoding="utf-8")
-        index = self.index(command=command, generated_at=generated_at)
+            target = pages_dir / f"{page.name}.md"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(page.text, encoding="utf-8")
+        index = self.index(run)
         (out / INDEX_NAME).write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
         return pages
 
@@ -240,6 +331,56 @@ class DocumentRenderer:
             for number, statement in file.description.items()
         ]
         return RenderedPage(name=file.stem, text="\n\n".join(p for p in parts if p) + "\n")
+
+    def _source_pages(self) -> list[RenderedPage]:
+        """Render one page per cited source file, in path order."""
+        return [self._source_page(path, lines) for path, lines in sorted(self.sources.items())]
+
+    def _source_page(self, path: str, lines: list[str]) -> RenderedPage:
+        """
+        List one source file whole, split so each cited line can be a target.
+
+        A target has to attach to something a reader's renderer will draw: the
+        PDF builder resolves one on a paragraph or a heading, but not one on a
+        code block. So each cited line is introduced by a paragraph that carries
+        its anchor and says what cites it, and the listing follows.
+
+        The listings themselves are marked HTML-only -- they are a browsing aid,
+        not part of the argument, and thousands of lines of source do not belong
+        in a printed report. Their anchors are not: a link that resolves in one
+        rendering and dangles in the other is a broken document.
+        """
+        cited = sorted(self.citations.get(path, {}))
+        language = _LANGUAGES.get(Path(path).suffix, "text")
+        blocks: list[str] = []
+        for start, end in _spans(cited, len(lines)):
+            listing = _html_only(
+                _fenced(
+                    language,
+                    f":lineno-start: {start}\n"
+                    + (":emphasize-lines: 1\n" if start in cited else ""),
+                    "\n".join(lines[start - 1 : end]),
+                )
+            )
+            if start not in cited:
+                blocks.append(listing)
+                continue
+            citers = ", ".join(f"`{node}`" for node in self.citations[path][start])
+            blocks.append(
+                f"({source_anchor_of(path, start)})=\n\n"
+                f"**Line {start}** -- cited by {citers}\n\n{listing}"
+            )
+        return RenderedPage(
+            name=source_page_of(path),
+            text=(
+                f"({source_page_anchor_of(path)})=\n"
+                f"# {path}\n\n"
+                f"{_count(len(cited), 'line')} of this file "
+                f"{'is' if len(cited) == 1 else 'are'} cited by the requirements; the "
+                f"listing below each is the file from that line on. The source is "
+                f"listed in the HTML rendering only.\n\n" + "\n\n".join(blocks) + "\n"
+            ),
+        )
 
     def _leaves_page(self, layer: str) -> RenderedPage:
         """
@@ -359,9 +500,17 @@ class DocumentRenderer:
             yield label, covering or "*nothing yet*"
 
     def _down_ref(self, layer: str, node_id: str) -> str:
-        """Render one covering node: linked when its layer is rendered as prose."""
+        """Render one covering node: linked to its statement, or to its source line."""
         if self._is_rendered(layer, node_id):
             return f"[`{node_id}`](#{self.anchor(layer, node_id)})"
+        if (located := self.locations.get((layer, node_id))) is not None:
+            path, line = located
+            if path in self.sources:
+                where = f"{path}:{line}"
+                # A check node is named by its location, so naming it twice says
+                # nothing; anything else is worth locating for the reader.
+                suffix = "" if node_id == where else f" ({where})"
+                return f"[`{node_id}`](#{source_anchor_of(path, line)}){suffix}"
         return f"`{node_id}`"
 
     def _is_rendered(self, layer: str | None, node_id: str) -> bool:
@@ -369,16 +518,45 @@ class DocumentRenderer:
         return layer in self.rendered and node_id in self.view.nodes[layer]
 
 
+def _spans(boundaries: list[int], last: int) -> Iterator[tuple[int, int]]:
+    """Yield the 1-based (start, end) line spans of a file split at `boundaries`."""
+    starts = sorted({1, *(b for b in boundaries if 1 < b <= last)})
+    for index, start in enumerate(starts):
+        yield start, (starts[index + 1] - 1 if index + 1 < len(starts) else last)
+
+
+def _count(n: int, noun: str) -> str:
+    """Render a count with its naively pluralized noun ("1 line", "2 lines")."""
+    return f"{n} {noun}" + ("" if n == 1 else "s")
+
+
+def _html_only(body: str) -> str:
+    """Wrap a block so only the HTML rendering carries it."""
+    return f":::{{only}} html\n\n{body}\n\n:::"
+
+
+def _fenced(language: str, options: str, body: str) -> str:
+    """Render a code-block directive, its fence sized past any backtick run inside."""
+    longest = max((len(run) for run in re.findall(r"`+", body)), default=0)
+    fence = "`" * max(3, longest + 1)
+    return f"{fence}{{code-block}} {language}\n{options}\n{body}\n{fence}"
+
+
 def _anchor_leaf(line: str, anchor: str) -> str | None:
     """
-    Attach `anchor` to a leaf bullet's `**<id> <marker>**` span; None if it has none.
+    Plant `anchor` inside a leaf bullet, above its text; None if it is not one.
 
-    An inline attribute rather than a block target: a target line between two
-    bullets ends the list, so a run of leaves would render as a series of
-    one-item lists instead of the list the author wrote.
+    A block target as the bullet's first block, rather than an inline attribute
+    on its text: an inline target is not a destination the PDF builder can
+    resolve, and a target *between* bullets would end the list. This keeps the
+    run of leaves one list and puts the anchor on the leaf's own paragraph, at
+    the cost of rendering that list loose.
     """
     m = _LEAF_SPAN_RE.match(line)
-    return f"{m.group(1)}[{m.group(2)}]{{#{anchor}}}{m.group(3)}" if m else None
+    if m is None:
+        return None
+    indent = " " * len(m.group(1))
+    return f"{m.group(1)}({anchor})=\n\n{indent}{m.group(2)}{m.group(3)}"
 
 
 def _leaf_prose(line: str) -> str:
@@ -424,8 +602,8 @@ def render_document(
     out: Path,
     *,
     selected_layers: Iterable[str] | None = None,
-    command: str | None = None,
-    generated_at: str | None = None,
+    source_root: Path | None = None,
+    run: RunInfo | None = None,
 ) -> tuple[list[RenderedPage], list[Diagnostic], bool]:
     """
     Render a chain's requirement layers into `out`.
@@ -434,8 +612,8 @@ def render_document(
     does not analyse: a document whose every link is silently absent would
     misrepresent a corpus that simply failed to load.
     """
-    renderer = DocumentRenderer(chain, selected_layers=selected_layers)
+    renderer = DocumentRenderer(chain, selected_layers=selected_layers, source_root=source_root)
     if not renderer.valid:
         return [], renderer.diagnostics, False
-    pages = renderer.write(out, command=command, generated_at=generated_at)
+    pages = renderer.write(out, run)
     return pages, renderer.diagnostics, True

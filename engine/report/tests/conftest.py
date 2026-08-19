@@ -89,7 +89,13 @@ def requirements_document() -> RequirementsDocument:
             RequirementLayer(name="HLR", kind="requirement-yaml", pages=["hlr_x"]),
             RequirementLayer(name="LLR", kind="requirement-yaml", pages=["llr_x"]),
         ],
+        sources=["sources/src-x-ads"],
         nodes={
+            "CODE": {
+                "Ctrl.Do_Thing": RequirementStatement(
+                    page="sources/src-x-ads", anchor="src-x-ads-l10", text="src/x.ads:10"
+                )
+            },
             "CONOPS": {
                 leaf: RequirementStatement(
                     page="conops", anchor=f"conops-{leaf.replace('.', '-')}", text=f"Leaf {leaf}."

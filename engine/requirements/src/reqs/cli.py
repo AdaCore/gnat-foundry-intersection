@@ -8,6 +8,7 @@
     reqs trace ... --allow-unselected M,N      # ...deferring these methods' evidence
     reqs trace --chain FILE --format json      # machine-readable trace report
     reqs document --chain FILE --out DIR       # the requirements as a document
+    reqs document ... --source-root DIR        # ...listing the sources it cites
 
 With no PATHS, a validate command targets the default requirement set (the
 curated examples for now). Future top-level commands (e.g. `reqs report`) attach
@@ -35,7 +36,7 @@ from reqs.checks.trace import (
     select_layers,
 )
 from reqs.core import Diagnostic, report
-from reqs.render import render_document
+from reqs.render import RunInfo, render_document
 
 
 class OutputFormat(StrEnum):
@@ -75,6 +76,15 @@ _TRACE_LAYERS = typer.Option(
 )
 _DOC_OUT = typer.Option(
     ..., "--out", help="Directory to write the rendered pages and their index into."
+)
+_DOC_SOURCE_ROOT = typer.Option(
+    None,
+    "--source-root",
+    help=(
+        "Directory the inventories' file paths are relative to (the repo root). "
+        "Given, the cited sources are listed as pages and the evidence links into "
+        "them; omitted, evidence renders as plain ids."
+    ),
 )
 _DOC_LAYERS = typer.Option(
     None,
@@ -192,6 +202,7 @@ def document(
     chain: Path = _CHAIN,
     out: Path = _DOC_OUT,
     layers_option: str | None = _DOC_LAYERS,
+    source_root: Path | None = _DOC_SOURCE_ROOT,
     quiet: bool = _QUIET,
 ) -> None:
     """Render the requirement layers of the chain as a linked document."""
@@ -206,12 +217,16 @@ def document(
         raise typer.Exit(report(select_diags, req_paths, quiet=quiet))
     argv = ["reqs", "document", "--chain", str(chain), "--out", str(out)]
     argv += ["--layers", layers_option] if layers_option is not None else []
+    argv += ["--source-root", str(source_root)] if source_root is not None else []
     pages, diags, valid = render_document(
         chain_layers,
         out,
         selected_layers=selected_names,
-        command=shlex.join(argv),
-        generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),
+        source_root=source_root,
+        run=RunInfo(
+            command=shlex.join(argv),
+            generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),
+        ),
     )
     if not valid:
         # Nothing was written: the corpus did not analyse, so there is no

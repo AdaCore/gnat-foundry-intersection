@@ -403,6 +403,7 @@ def test_the_report_builds_with_the_requirement_pages(
     for layer, nodes in ev.requirements.nodes.items() if ev.requirements else []:
         for node, statement in nodes.items():
             page = render / f"{statement.page}.md"
+            page.parent.mkdir(parents=True, exist_ok=True)
             head = f"# {statement.page}\n\n" if not page.exists() else ""
             with page.open("a", encoding="utf-8") as fh:
                 fh.write(
@@ -430,3 +431,31 @@ def test_copying_the_pages_drops_a_container_that_went_away(tmp_path: Path) -> N
 
     assert (srcdir / REQUIREMENTS_SUBDIR / "hlr_x.md").is_file()
     assert not (srcdir / REQUIREMENTS_SUBDIR / "hlr_gone.md").exists()
+
+
+def test_evidence_ids_link_into_the_source_listings(evidence_with_requirements: Evidence) -> None:
+    """A code id the render located is linked to the line it is listed at."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert "[`Ctrl.Do_Thing`](#src-x-ads-l10)" in pages["traceability.md"]
+
+
+def test_the_listings_are_in_the_toctree_of_both_renderings(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """The evidence links into them, so a link must not resolve in one rendering only."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    requirements = pages["requirements.md"]
+
+    assert "1 source listing" in requirements
+    assert f"{REQUIREMENTS_SUBDIR}/sources/src-x-ads" in requirements
+    listings = requirements.split("source listing")[1]
+    assert "{only}" not in listings  # gating the pages would dangle the PDF's links
+
+
+def test_an_empty_pdf_is_reported_as_a_failure(tmp_path: Path) -> None:
+    """rst2pdf logs a failed document and exits 0; an empty PDF is still a failure."""
+    src = tmp_path / "src"
+    write_sphinx_sources({"index.md": "# T\n\n[nowhere](#missing-target)\n"}, src, "T")
+
+    assert build_pdf(src, tmp_path / "pdf") != 0

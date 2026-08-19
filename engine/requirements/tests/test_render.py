@@ -36,6 +36,8 @@ from reqs.render import (
     DocumentRenderer,
     RenderedPage,
     anchor_of,
+    source_anchor_of,
+    source_page_of,
 )
 
 if TYPE_CHECKING:
@@ -325,17 +327,18 @@ def test_the_conops_is_rendered_as_written_with_anchored_leaves(tmp_path: Path) 
 
     assert "# 1. The Intersection" in conops  # the author's own headings
     assert "Some explanatory prose, not a leaf." in conops
-    assert "- [**1.1 ◆**]{#conops-1-1} Four approaches meet at 90°." in conops
+    assert "- (conops-1-1)=\n\n  **1.1 ◆** Four approaches meet at 90°." in conops
     assert "- not a leaf bullet" in conops  # a non-leaf bullet is left alone
 
 
 def test_conops_leaf_anchors_do_not_split_the_run_of_leaves(tmp_path: Path) -> None:
-    """Anchors are inline, so consecutive leaves stay one list."""
+    """Each anchor sits inside its bullet, so consecutive leaves stay one list."""
     conops = page_text(DocumentRenderer(req_chain(tmp_path)).pages(), "conops")
 
     block = conops.split("# 2. Vehicle Signals")[1]
-    assert "(conops-2-1)=" not in block  # a block target would end the list
-    assert block.count("- [**2.") == 2
+    assert block.count("- (conops-2-") == 2
+    # A target at column 0 between two bullets would end the list there.
+    assert not [line for line in block.splitlines() if line.startswith("(conops-")]
 
 
 def test_hlr_sources_link_to_the_conops_leaf_they_name(tmp_path: Path) -> None:
@@ -394,3 +397,120 @@ def test_a_leaf_bullet_of_an_unexpected_shape_still_gets_an_anchor(tmp_path: Pat
     conops = page_text(DocumentRenderer(chain).pages(), "conops")
 
     assert "(conops-1-1)=\n- **1.1 Four approaches." in conops
+
+
+# --- the sources the requirements cite ---------------------------------------
+
+
+SOURCE = """package Controller is
+   --  A comment.
+   procedure Step (S : in out State)
+     with Post => Safe (S);
+end Controller;
+"""
+
+
+def cited_chain(tmp_path: Path) -> list[Layer]:
+    """Build a chain whose LLR names an entity, with the source on disk to list."""
+    chain = req_chain(tmp_path)
+    llr_dir = chain[2].path
+    write_req(llr_dir, "llr_a.yaml", "parent_req", [["hlr_a.1"]], ["test"])
+    llr_file = llr_dir / "llr_a.yaml"
+    llr_file.write_text(
+        llr_file.read_text(encoding="utf-8") + "    implemented_by:\n      - Controller.Step\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "src").mkdir(exist_ok=True)
+    (tmp_path / "src" / "controller.ads").write_text(SOURCE, encoding="utf-8")
+    inventory = tmp_path / "code_inventory.json"
+    write_inventory(
+        inventory,
+        packages=[
+            package(
+                "Controller",
+                spec_file="src/controller.ads",
+                subprograms=[
+                    subprogram(
+                        "Step",
+                        qualified_name="Controller.Step",
+                        file="src/controller.ads",
+                        line=3,
+                    )
+                ],
+            )
+        ],
+    )
+    chain.append(make_code_layer(inventory))
+    return chain
+
+
+def test_a_cited_source_is_listed_as_its_own_page(tmp_path: Path) -> None:
+    """A file the requirements point into is listed, whole, on a page of its own."""
+    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
+    listing = page_text(pages, source_page_of("src/controller.ads"))
+
+    assert "# src/controller.ads" in listing
+    assert "package Controller is" in listing  # the lines before the citation
+    assert "procedure Step (S : in out State)" in listing
+    assert "end Controller;" in listing
+
+
+def test_the_cited_line_carries_the_anchor_on_a_paragraph(tmp_path: Path) -> None:
+    """The anchor sits on prose, which is what a PDF builder can resolve."""
+    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
+    listing = page_text(pages, source_page_of("src/controller.ads"))
+
+    anchor = source_anchor_of("src/controller.ads", 3)
+    assert f"({anchor})=\n\n**Line 3** -- cited by `Controller.Step`" in listing
+
+
+def test_the_listing_itself_is_html_only(tmp_path: Path) -> None:
+    """The source is a browsing aid: the HTML carries it, the PDF does not."""
+    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
+    listing = page_text(pages, source_page_of("src/controller.ads"))
+
+    assert ":::{only} html" in listing
+    # The anchor is *not* gated: a link that resolves in one rendering only
+    # would be a broken document.
+    anchor_at = listing.index(f"({source_anchor_of('src/controller.ads', 3)})=")
+    assert listing.rindex(":::{only} html", 0, anchor_at) < anchor_at
+    assert listing.index(":::", anchor_at) > anchor_at
+
+
+def test_the_evidence_links_into_the_listing(tmp_path: Path) -> None:
+    """`implemented_by` reaches the declaration's line, and says where it is."""
+    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
+    llr = page_text(pages, "llr_a")
+
+    anchor = source_anchor_of("src/controller.ads", 3)
+    assert f"[`Controller.Step`](#{anchor}) (src/controller.ads:3)" in llr
+
+
+def test_without_a_source_root_nothing_is_listed(tmp_path: Path) -> None:
+    """Listing sources is opt-in; without it the evidence renders as plain ids."""
+    pages = DocumentRenderer(cited_chain(tmp_path)).pages()
+
+    assert not [p for p in pages if p.name.startswith("sources/")]
+    assert "- **Implemented by:** `Controller.Step`" in page_text(pages, "llr_a")
+
+
+def test_a_source_the_inventory_names_but_disk_lacks_is_skipped(tmp_path: Path) -> None:
+    """A stale inventory must not stop the requirements rendering."""
+    chain = cited_chain(tmp_path)
+    (tmp_path / "src" / "controller.ads").unlink()
+    pages = DocumentRenderer(chain, source_root=tmp_path).pages()
+
+    assert not [p for p in pages if p.name.startswith("sources/")]
+    assert "- **Implemented by:** `Controller.Step`" in page_text(pages, "llr_a")
+
+
+def test_the_index_names_the_listings_and_locates_the_evidence(tmp_path: Path) -> None:
+    """A consumer can link a matrix's code id to the line it is listed at."""
+    index = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).index()
+
+    assert index["sources"] == [source_page_of("src/controller.ads")]
+    assert index["nodes"]["CODE"]["Controller.Step"] == {
+        "page": source_page_of("src/controller.ads"),
+        "anchor": source_anchor_of("src/controller.ads", 3),
+        "text": "src/controller.ads:3",
+    }
