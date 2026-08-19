@@ -28,7 +28,9 @@ uv run reqs trace --chain <chain.yaml> --complete --format json -o report.json
 # Render the requirement layers of a chain as a linked document
 uv run reqs document --chain <chain.yaml> --out <dir>
 # Writes `<dir>/pages/<container>.md` (one MyST page per container, one anchored
-# subsection per statement, each carrying its resolved trace neighbourhood) and
+# subsection per statement, each carrying its resolved trace neighbourhood; a
+# markdown layer like the CONOPS is carried through as written, its leaves
+# anchored in place and a closing table naming what realizes each) and
 # `<dir>/index.json` (schema_version, every statement's page and anchor). The
 # verification-report generator folds the pages into its own tree and links its
 # trace matrices through the index. Trace gaps render into the document as open

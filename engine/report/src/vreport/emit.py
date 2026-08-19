@@ -40,6 +40,7 @@ if TYPE_CHECKING:
         Evidence,
         Obligation,
         ProofEvidence,
+        RequirementLayer,
         RequirementsDocument,
         TraceDiagnostic,
         TracePair,
@@ -1083,17 +1084,26 @@ only by human review.
 """
 
 
+# A markdown layer's nodes are leaves of one document; a requirement layer's are
+# statements spread over its containers. Named as what they are, per kind.
+MARKDOWN_LEAVES_KIND = "markdown-leaves"
+
+
+def _layer_count(doc: RequirementsDocument, layer: RequirementLayer) -> str:
+    """Say how much of one layer the document renders, in that layer's own terms."""
+    nodes = len(doc.nodes.get(layer.name, {}))
+    if layer.kind == MARKDOWN_LEAVES_KIND:
+        return f"{count(nodes, 'leaf statement')} ({layer.name})"
+    return f"{count(nodes, 'statement')} in {count(len(layer.pages), 'container')} ({layer.name})"
+
+
 def _emit_requirements(ev: Evidence) -> str:
     """Render the requirements section: what it is, then a toctree of the containers."""
     doc = ev.requirements
     if doc is None:  # pragma: no cover - emitted only when a render was collected
         msg = "no rendered requirement document to emit"
         raise ValueError(msg)
-    counts = ", ".join(
-        f"{count(len(doc.nodes.get(layer.name, {})), 'statement')} in "
-        f"{count(len(layer.pages), 'container')} ({layer.name})"
-        for layer in doc.layers
-    )
+    counts = ", ".join(_layer_count(doc, layer) for layer in doc.layers)
     provenance = (
         f"Rendered {inline(doc.generated_at)} by `reqs document`"
         if doc.generated_at

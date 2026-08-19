@@ -544,6 +544,7 @@ class RequirementLayer(Frozen):
     """One rendered layer of the chain and the pages it rendered as."""
 
     name: str
+    kind: str = ""  # the chain layer's kind, so a consumer can name its nodes correctly
     pages: list[str] = Field(default_factory=list)
 
 

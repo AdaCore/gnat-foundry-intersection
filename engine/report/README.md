@@ -21,7 +21,7 @@ invoking `vreport` directly, produce them first):
 | `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt`, `gnatcov-command.txt` (the recorded invocation) |
 | `reports/trace/trace_report.json` | `make trace-report` | `reqs trace --format json` over the whole chain: per-pair matrices, the merged verification view, gate diagnostics, recorded command |
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
-| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` plus `index.json` (each statement's page and anchor) |
+| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` (the CONOPS, HLR and LLR) plus `index.json` (each node's page and anchor) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
 downstream tooling), `src/` (generated MyST sources), `html/` (the report),

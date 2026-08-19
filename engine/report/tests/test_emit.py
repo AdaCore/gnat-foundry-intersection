@@ -342,13 +342,19 @@ def test_matrix_ids_link_to_the_requirement_text(evidence_with_requirements: Evi
 
 
 def test_ids_of_unrendered_layers_stay_plain(evidence_with_requirements: Evidence) -> None:
-    """A CONOPS leaf and a test routine have no rendered statement, so no link."""
+    """A test routine has no rendered statement, so it carries no link."""
     pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
     traceability = pages["traceability.md"]
 
-    assert "`3.1`" in traceability
-    assert "[`3.1`]" not in traceability
+    assert "`u.Test_A`" in traceability
     assert "[`u.Test_A`]" not in traceability
+
+
+def test_conops_leaves_link_to_the_rendered_document(evidence_with_requirements: Evidence) -> None:
+    """A markdown layer's leaf ids link under the anchors its render qualified them with."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert "[`3.1`](#conops-3-1)" in pages["traceability.md"]
 
 
 def test_open_items_and_verification_rows_link_too(evidence_with_requirements: Evidence) -> None:
@@ -370,6 +376,7 @@ def test_the_requirements_page_names_every_rendered_container(
     requirements = pages["requirements.md"]
 
     assert "102 statements" not in requirements  # counts come from the render, not hardcoded
+    assert "4 leaf statements (CONOPS)" in requirements  # named as its kind, not as containers
     assert "3 statements in 1 container (HLR)" in requirements
     assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in requirements
     assert f"{REQUIREMENTS_SUBDIR}/llr_x" in requirements

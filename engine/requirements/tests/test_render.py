@@ -66,7 +66,7 @@ def test_one_page_per_container_with_anchored_statements(tmp_path: Path) -> None
     """Each container renders as a page whose statements carry cross-reference targets."""
     pages = DocumentRenderer(req_chain(tmp_path)).pages()
 
-    assert [page.name for page in pages] == ["hlr_a", "llr_a"]
+    assert [page.name for page in pages] == ["conops", "hlr_a", "llr_a"]
     hlr = page_text(pages, "hlr_a")
     assert "# hlr_a" in hlr
     assert "(hlr-a-1)=\n## hlr_a.1" in hlr
@@ -81,8 +81,9 @@ def test_up_refs_link_to_the_rendered_parent(tmp_path: Path) -> None:
 
 
 def test_up_refs_to_an_unrendered_layer_stay_plain(tmp_path: Path) -> None:
-    """An HLR's CONOPS source is shown as written: the CONOPS is not rendered here."""
-    hlr = page_text(DocumentRenderer(req_chain(tmp_path)).pages(), "hlr_a")
+    """With the CONOPS out of the chain, an HLR's source is shown as written."""
+    chain = req_chain(tmp_path)
+    hlr = page_text(DocumentRenderer(chain, selected_layers=["HLR", "LLR"]).pages(), "hlr_a")
 
     assert "- **Source:** `CONOPS §1.1`" in hlr
 
@@ -137,10 +138,13 @@ def test_the_index_names_the_anchors_the_pages_carry(tmp_path: Path) -> None:
 
     assert index["schema_version"] == INDEX_SCHEMA_VERSION
     assert index["corpus_valid"] is True
-    assert [layer["name"] for layer in index["layers"]] == ["HLR", "LLR"]
+    assert [layer["name"] for layer in index["layers"]] == ["CONOPS", "HLR", "LLR"]
     for nodes in index["nodes"].values():
         for node_id, entry in nodes.items():
-            assert f"({entry['anchor']})=" in pages[entry["page"]], node_id
+            page = pages[entry["page"]]
+            # Either MyST target form: a block target, or an inline attribute.
+            block, inline = f"({entry['anchor']})=", f"{{#{entry['anchor']}}}"
+            assert block in page or inline in page, node_id
             assert entry["text"]
 
 
@@ -258,7 +262,7 @@ def test_cli_writes_pages_and_index(tmp_path: Path) -> None:
     result = runner.invoke(app, ["document", "--chain", str(chain_file), "--out", str(out)])
 
     assert result.exit_code == 0, result.output
-    assert "2 page(s) written" in result.output
+    assert "3 page(s) written" in result.output
     assert (out / "pages" / "hlr_a.md").is_file()
     index = json.loads((out / INDEX_NAME).read_text(encoding="utf-8"))
     assert index["nodes"]["HLR"]["hlr_a.1"]["page"] == "hlr_a"
@@ -310,3 +314,83 @@ def test_cli_rejects_an_unknown_layer(tmp_path: Path) -> None:
 def test_anchor_of_is_a_stable_slug(node_id: str, expected: str) -> None:
     """Anchors are slugs of the id: what the index records is what the page carries."""
     assert anchor_of(node_id) == expected
+
+
+# --- the CONOPS: a document carried through, not rebuilt ----------------------
+
+
+def test_the_conops_is_rendered_as_written_with_anchored_leaves(tmp_path: Path) -> None:
+    """The narrative survives verbatim; each leaf gains an inline anchor."""
+    conops = page_text(DocumentRenderer(req_chain(tmp_path)).pages(), "conops")
+
+    assert "# 1. The Intersection" in conops  # the author's own headings
+    assert "Some explanatory prose, not a leaf." in conops
+    assert "- [**1.1 ◆**]{#conops-1-1} Four approaches meet at 90°." in conops
+    assert "- not a leaf bullet" in conops  # a non-leaf bullet is left alone
+
+
+def test_conops_leaf_anchors_do_not_split_the_run_of_leaves(tmp_path: Path) -> None:
+    """Anchors are inline, so consecutive leaves stay one list."""
+    conops = page_text(DocumentRenderer(req_chain(tmp_path)).pages(), "conops")
+
+    block = conops.split("# 2. Vehicle Signals")[1]
+    assert "(conops-2-1)=" not in block  # a block target would end the list
+    assert block.count("- [**2.") == 2
+
+
+def test_hlr_sources_link_to_the_conops_leaf_they_name(tmp_path: Path) -> None:
+    """`CONOPS §1.1` resolves through the layer's id_pattern to the leaf's anchor."""
+    hlr = page_text(DocumentRenderer(req_chain(tmp_path)).pages(), "hlr_a")
+
+    assert "- **Source:** [`CONOPS §1.1`](#conops-1-1)" in hlr
+
+
+def test_the_conops_page_says_what_realizes_each_leaf(tmp_path: Path) -> None:
+    """The realization table closes the loop the other pages have as links."""
+    chain = req_chain(tmp_path)
+    waivers = write_waivers(tmp_path, "cw.yaml", [("2.2", "negative scope")])
+    chain[0] = conops_layer(chain[0].path, waivers=waivers)
+    conops = page_text(DocumentRenderer(chain).pages(), "conops")
+
+    assert "# Realization" in conops
+    assert "| [`1.1`](#conops-1-1) | [`hlr_a.1`](#hlr-a-1) |" in conops
+    assert "| [`2.2`](#conops-2-2) | *waived* -- negative scope |" in conops
+    assert "| [`3.1`](#conops-3-1) | *nothing yet* |" in conops
+
+
+def test_conops_leaves_are_indexed_with_their_prose(tmp_path: Path) -> None:
+    """A leaf's index entry names its page, its qualified anchor, and its text."""
+    index = DocumentRenderer(req_chain(tmp_path)).index()
+
+    entry = index["nodes"]["CONOPS"]["1.1"]
+    assert entry == {
+        "page": "conops",
+        "anchor": "conops-1-1",
+        "text": "Four approaches meet at 90°. — *decision*",
+    }
+
+
+def test_the_index_records_each_layers_kind(tmp_path: Path) -> None:
+    """A consumer names a layer's nodes correctly only if it knows the kind."""
+    index = DocumentRenderer(req_chain(tmp_path)).index()
+
+    assert [(layer["name"], layer["kind"]) for layer in index["layers"]] == [
+        ("CONOPS", "markdown-leaves"),
+        ("HLR", "requirement-yaml"),
+        ("LLR", "requirement-yaml"),
+    ]
+
+
+def test_a_leaf_bullet_of_an_unexpected_shape_still_gets_an_anchor(tmp_path: Path) -> None:
+    """A dead link is worse than a split list: the anchor goes on the line before."""
+    chain = req_chain(tmp_path)
+    path = chain[0].path
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            "- **1.1 ◆** Four approaches meet at 90°. — *decision*", "- **1.1 Four approaches."
+        ),
+        encoding="utf-8",
+    )
+    conops = page_text(DocumentRenderer(chain).pages(), "conops")
+
+    assert "(conops-1-1)=\n- **1.1 Four approaches." in conops

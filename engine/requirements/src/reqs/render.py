@@ -26,11 +26,13 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from reqs.checks.trace import (
+    MARKDOWN_LEAVES,
     REQUIREMENT_YAML,
     TraceChecker,
     parent_ref_id,
     ref_field_header,
 )
+from reqs.conops import ConopsSet
 from reqs.requirement_set import RequirementSet, parse_req_id
 
 if TYPE_CHECKING:
@@ -48,6 +50,15 @@ INDEX_SCHEMA_VERSION = 1
 INDEX_NAME = "index.json"
 PAGES_DIR = "pages"
 
+# The kinds of layer this module renders as prose. The rest of the chain -- code,
+# tests, tagged checks -- is linked to, never rendered as a requirement.
+RENDERED_KINDS = (REQUIREMENT_YAML, MARKDOWN_LEAVES)
+
+# A markdown leaf bullet, split so its `**<id> <marker>**` span can carry an
+# anchor: `- [**4.1 ◆**]{#conops-4-1} ...`. An inline attribute, because a block
+# target between two bullets would break the run of leaves into separate lists.
+_LEAF_SPAN_RE = re.compile(r"^(\s*-\s+)(\*\*[^*]+\*\*)(.*)$")
+
 # What a statement's `verification:` method means to a reader, spelled out once.
 _METHOD_GLOSS = {
     "test": "verified by test",
@@ -57,9 +68,17 @@ _METHOD_GLOSS = {
 }
 
 
-def anchor_of(node_id: str) -> str:
-    """Return the cross-reference target of a statement's subsection."""
-    return re.sub(r"[^a-z0-9]+", "-", node_id.lower()).strip("-")
+def anchor_of(node_id: str, prefix: str | None = None) -> str:
+    """
+    Return the cross-reference target a node is rendered under.
+
+    A requirement id names its own container (`hlr_6_pedestrian.5`), so it is
+    unique across the document as it stands. A markdown layer's leaf id is a bare
+    section number (`4.1`), so it is qualified by its layer -- ids from different
+    layers must not collide on one anchor.
+    """
+    ident = f"{prefix}-{node_id}" if prefix else node_id
+    return re.sub(r"[^a-z0-9]+", "-", ident.lower()).strip("-")
 
 
 def page_of(node_id: str) -> str:
@@ -87,13 +106,16 @@ class DocumentRenderer:
 
     def __init__(self, chain: list[Layer], *, selected_layers: Iterable[str] | None = None) -> None:
         self.view, self.diagnostics = TraceChecker(chain, selected_layers=selected_layers).view()
-        # Only the requirement layers have prose to render. The layers below are
-        # code and tests: they are linked to, never rendered as requirements.
         self.rendered = [
             layer.name
             for layer in chain
-            if layer.kind == REQUIREMENT_YAML and layer.name in self.view.nodes
+            if layer.kind in RENDERED_KINDS and layer.name in self.view.nodes
         ]
+        # A markdown layer's leaf ids are bare section numbers, so its anchors are
+        # qualified by the layer; a requirement id already names its container.
+        self.prefixes = {
+            layer.name: (layer.name if layer.kind == MARKDOWN_LEAVES else None) for layer in chain
+        }
         # Layers a statement names itself (`implemented_by` -> CODE), keyed by the
         # field that names them: their refs are rendered from the resolved side,
         # so the field and the coverage line do not say the same thing twice.
@@ -124,8 +146,30 @@ class DocumentRenderer:
         yield from node_set
 
     def pages(self) -> list[RenderedPage]:
-        """Render one page per container, in chain order and then file order."""
-        return [self._page(layer, file) for layer in self.rendered for file in self.files_of(layer)]
+        """Render every rendered layer's pages, in chain order and then file order."""
+        out: list[RenderedPage] = []
+        for layer in self.rendered:
+            if isinstance(self.view.sets[layer], ConopsSet):
+                out.append(self._leaves_page(layer))
+            else:
+                out.extend(self._page(layer, file) for file in self.files_of(layer))
+        return out
+
+    def pages_of(self, layer: str) -> list[str]:
+        """Return the page names a layer renders as, in file order."""
+        node_set = self.view.sets[layer]
+        if isinstance(node_set, ConopsSet):
+            return [node_set.path.stem]
+        return [file.stem for file in self.files_of(layer)]
+
+    def anchor(self, layer: str, node_id: str) -> str:
+        """Return the anchor a node of `layer` is rendered under."""
+        return anchor_of(node_id, self.prefixes.get(layer))
+
+    def page(self, layer: str, node_id: str) -> str:
+        """Return the page a node of `layer` is rendered on."""
+        node_set = self.view.sets[layer]
+        return node_set.path.stem if isinstance(node_set, ConopsSet) else page_of(node_id)
 
     def index(
         self, *, command: str | None = None, generated_at: str | None = None
@@ -143,17 +187,21 @@ class DocumentRenderer:
             "generated_at": generated_at,
             "corpus_valid": self.view.valid,
             "layers": [
-                {"name": layer, "pages": [file.stem for file in self.files_of(layer)]}
+                {
+                    "name": layer,
+                    "kind": self.view.layers[layer].kind,
+                    "pages": self.pages_of(layer),
+                }
                 for layer in self.rendered
             ],
             "nodes": {
                 layer: {
                     node_id: {
-                        "page": page_of(node_id),
-                        "anchor": anchor_of(node_id),
-                        "text": _flat(statement.text),
+                        "page": self.page(layer, node_id),
+                        "anchor": self.anchor(layer, node_id),
+                        "text": text,
                     }
-                    for node_id, statement in self._statements(layer)
+                    for node_id, text in self._texts(layer)
                 }
                 for layer in self.rendered
             },
@@ -172,11 +220,17 @@ class DocumentRenderer:
         (out / INDEX_NAME).write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
         return pages
 
-    def _statements(self, layer: str) -> Iterator[tuple[str, Statement]]:
-        """Every statement of a requirement layer, as (full id, statement)."""
+    def _texts(self, layer: str) -> Iterator[tuple[str, str]]:
+        """Yield every node of a rendered layer as (id, its one-line text)."""
+        node_set = self.view.sets[layer]
+        if isinstance(node_set, ConopsSet):
+            lines = node_set.path.read_text(encoding="utf-8").splitlines()
+            for node_id, leaf in node_set.all_statements():
+                yield node_id, _flat(_leaf_prose(lines[leaf.line - 1]))
+            return
         for file in self.files_of(layer):
             for number, statement in file.description.items():
-                yield f"{file.stem}.{number}", statement
+                yield f"{file.stem}.{number}", _flat(statement.text)
 
     def _page(self, layer: str, file: RequirementFile) -> RenderedPage:
         """Render one container: its document-level prose, then every statement."""
@@ -187,13 +241,63 @@ class DocumentRenderer:
         ]
         return RenderedPage(name=file.stem, text="\n\n".join(p for p in parts if p) + "\n")
 
+    def _leaves_page(self, layer: str) -> RenderedPage:
+        """
+        Render a markdown layer: the document as written, with its leaves anchored.
+
+        The CONOPS is already a document -- a narrative a human wrote, with prose
+        and tables between its leaves -- so it is carried through as it is rather
+        than rebuilt from its leaves. What is added is an anchor per leaf, so the
+        requirements above can link to the statement they refine, and a closing
+        table of what realizes each leaf, so the navigation runs both ways here
+        as it does on every other page.
+        """
+        node_set = self.view.sets[layer]
+        if not isinstance(node_set, ConopsSet):  # pragma: no cover - dispatched on the kind
+            msg = f"layer {layer!r} is not a markdown-leaves layer"
+            raise TypeError(msg)
+        lines = node_set.path.read_text(encoding="utf-8").splitlines()
+        unanchored: list[str] = []
+        for node_id, leaf in node_set.all_statements():
+            index = leaf.line - 1
+            anchored = _anchor_leaf(lines[index], self.anchor(layer, node_id))
+            if anchored is None:
+                # The bullet is not shaped as expected, so the anchor goes on the
+                # line before it: it breaks the run of leaves into separate lists,
+                # which is cosmetic, where a missing anchor would be a dead link.
+                unanchored.append(node_id)
+                lines[index] = f"({self.anchor(layer, node_id)})=\n{lines[index]}"
+            else:
+                lines[index] = anchored
+        body = "\n".join(lines).rstrip()
+        return RenderedPage(name=node_set.path.stem, text=f"{body}\n\n{self._realization(layer)}")
+
+    def _realization(self, layer: str) -> str:
+        """Render the closing table: what realizes each leaf of a markdown layer."""
+        lower = next(iter(self.children.get(layer, [])), None)
+        if lower is None:
+            return ""
+        rows: list[str] = []
+        for node_id, view in self.view.nodes[layer].items():
+            covering = ", ".join(self._down_ref(lower, i) for i in view.down.get(lower, ()))
+            excuse = f"*waived* -- {_flat(view.waiver)}" if view.waiver else "*nothing yet*"
+            anchor = self.anchor(layer, node_id)
+            rows.append(f"| [`{node_id}`](#{anchor}) | {covering or excuse} |")
+        table = "\n".join([f"| Leaf | Realized by ({lower}) |", "|---|---|", *rows])
+        return (
+            f"# Realization\n\nWhich {lower} statement realizes each leaf above. A leaf realized "
+            f"by nothing is either work not yet done or a deliberate exclusion, and says which.\n\n"
+            f"{table}\n"
+        )
+
     def _statement(self, layer: str, node_id: str, statement: Statement) -> str:
         """Render one statement: its anchor, its text, then its neighbourhood."""
         view = self.view.nodes[layer].get(node_id)
         trace = "\n".join(
             f"- **{label}:** {value}" for label, value in self._trace(layer, statement, view)
         )
-        return f"({anchor_of(node_id)})=\n## {node_id}\n\n{statement.text.strip()}\n\n{trace}"
+        anchor = self.anchor(layer, node_id)
+        return f"({anchor})=\n## {node_id}\n\n{statement.text.strip()}\n\n{trace}"
 
     def _trace(
         self, layer: str, statement: Statement, view: NodeView | None
@@ -229,8 +333,8 @@ class DocumentRenderer:
         """Render one parent ref: as written, linked to the node it names."""
         parent = self.view.parents.get(layer)
         target = parent_ref_id(self.view.layers[layer], ref) if parent else None
-        if target is not None and self._is_rendered(parent, target):
-            return f"[`{ref}`](#{anchor_of(target)})"
+        if parent is not None and target is not None and self._is_rendered(parent, target):
+            return f"[`{ref}`](#{self.anchor(parent, target)})"
         return f"`{ref}`"
 
     def _downward(
@@ -257,12 +361,30 @@ class DocumentRenderer:
     def _down_ref(self, layer: str, node_id: str) -> str:
         """Render one covering node: linked when its layer is rendered as prose."""
         if self._is_rendered(layer, node_id):
-            return f"[`{node_id}`](#{anchor_of(node_id)})"
+            return f"[`{node_id}`](#{self.anchor(layer, node_id)})"
         return f"`{node_id}`"
 
     def _is_rendered(self, layer: str | None, node_id: str) -> bool:
         """Whether a node has a rendered subsection to link to."""
         return layer in self.rendered and node_id in self.view.nodes[layer]
+
+
+def _anchor_leaf(line: str, anchor: str) -> str | None:
+    """
+    Attach `anchor` to a leaf bullet's `**<id> <marker>**` span; None if it has none.
+
+    An inline attribute rather than a block target: a target line between two
+    bullets ends the list, so a run of leaves would render as a series of
+    one-item lists instead of the list the author wrote.
+    """
+    m = _LEAF_SPAN_RE.match(line)
+    return f"{m.group(1)}[{m.group(2)}]{{#{anchor}}}{m.group(3)}" if m else None
+
+
+def _leaf_prose(line: str) -> str:
+    """Return a leaf bullet's prose: what follows its id-and-marker span."""
+    m = _LEAF_SPAN_RE.match(line)
+    return m.group(3).strip() if m else line.lstrip("- ").strip()
 
 
 def _preamble(file: RequirementFile) -> str:

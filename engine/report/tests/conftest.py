@@ -85,10 +85,17 @@ def requirements_document() -> RequirementsDocument:
         generated_at="2026-07-29T00:00:00+00:00",
         corpus_valid=True,
         layers=[
-            RequirementLayer(name="HLR", pages=["hlr_x"]),
-            RequirementLayer(name="LLR", pages=["llr_x"]),
+            RequirementLayer(name="CONOPS", kind="markdown-leaves", pages=["conops"]),
+            RequirementLayer(name="HLR", kind="requirement-yaml", pages=["hlr_x"]),
+            RequirementLayer(name="LLR", kind="requirement-yaml", pages=["llr_x"]),
         ],
         nodes={
+            "CONOPS": {
+                leaf: RequirementStatement(
+                    page="conops", anchor=f"conops-{leaf.replace('.', '-')}", text=f"Leaf {leaf}."
+                )
+                for leaf in ("1.1", "2.1", "2.2", "3.1")
+            },
             "HLR": {f"hlr_x.{n}": _statement(f"hlr_x.{n}") for n in (1, 2, 3)},
             "LLR": {f"llr_x.{n}": _statement(f"llr_x.{n}") for n in (1, 2, 3)},
         },
