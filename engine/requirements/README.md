@@ -1,7 +1,8 @@
 # reqs — requirements tooling
 
 Tooling for the requirement YAML files in this directory: schema validation,
-EARS linting, and traceability (`reqs trace`). The requirement format
+EARS linting, traceability (`reqs trace`), and rendering the corpus as a
+document (`reqs document`). The requirement format
 itself is documented under [`docs/`](docs/README.md); a machine-checkable
 schema is defined (with Pydantic) in [`src/reqs/document.py`](src/reqs/document.py).
 
@@ -24,6 +25,15 @@ uv run reqs trace --chain <chain.yaml> --complete --format json -o report.json
 # 0 once the report is written: the verdict (errors/warnings/corpus_valid) and
 # the same rows the tables render travel inside the payload.
 
+# Render the requirement layers of a chain as a linked document
+uv run reqs document --chain <chain.yaml> --out <dir>
+# Writes `<dir>/pages/<container>.md` (one MyST page per container, one anchored
+# subsection per statement, each carrying its resolved trace neighbourhood) and
+# `<dir>/index.json` (schema_version, every statement's page and anchor). The
+# verification-report generator folds the pages into its own tree and links its
+# trace matrices through the index. Trace gaps render into the document as open
+# items; a corpus that does not analyse renders nothing and exits non-zero.
+
 # Tests (prints a coverage report; configured in pyproject.toml)
 uv run pytest
 uv run pytest --cov-report=html   # browsable report in htmlcov/
@@ -38,10 +48,11 @@ uv run pytest --cov-report=html   # browsable report in htmlcov/
 engine/requirements/
 ├── pyproject.toml          # project + the `reqs` entry point
 ├── src/reqs/
-│   ├── cli.py              # Typer app: `reqs validate {schema,ears}`
+│   ├── cli.py              # Typer app: `reqs validate {schema,ears}`, `trace`, `document`
 │   ├── core.py             # Diagnostic, file walking, YAML+source-line load, reporting
 │   ├── document.py         # requirement file schema as Pydantic models
 │   ├── requirement_set.py  # loading of requirement files
+│   ├── render.py           # the corpus as a document (pages + index), linked via the chain
 │   └── checks/
 │       ├── schema.py       # RequirementChecker (schema + structural + RS.3)
 │       └── ears.py         # EarsChecker (EARS grammar)
@@ -90,4 +101,3 @@ Both commands exit non-zero on any error; warnings alone exit 0.
 ## Out of scope (planned / deferred)
 
 Deeper EARS semantics, stable opaque IDs, and ReqIF round-tripping are deferred.
-`reqs report` will attach as a future top-level command.

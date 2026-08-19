@@ -15,13 +15,14 @@ from typing import NoReturn
 
 import typer
 
-from vreport.build import build_html, build_pdf, write_sphinx_sources
-from vreport.emit import emit_pages
+from vreport.build import build_html, build_pdf, copy_requirement_pages, write_sphinx_sources
+from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.gnatcov import collect_coverage
 from vreport.gnatprove import collect_proof
 from vreport.model import ArtifactParseError, Evidence, MissingArtifactsError, ObligationStatus
 from vreport.obligations import build_obligations
 from vreport.provenance import collect_git
+from vreport.requirements import PAGES_DIR, collect_requirements
 from vreport.traceability import collect_traceability
 
 app = typer.Typer(help="Verification-report generator.", no_args_is_help=True)
@@ -45,6 +46,11 @@ _TRACE_REPORT = typer.Option(
     "--trace-report",
     help="Trace-report JSON (default: ROOT/reports/trace/trace_report.json).",
 )
+_REQUIREMENTS_DIR = typer.Option(
+    None,
+    "--requirements-dir",
+    help="Rendered requirement document (default: ROOT/reports/requirements).",
+)
 _TITLE = typer.Option(None, "--title", help="Report title (default derives from ROOT).")
 _HTML = typer.Option(True, "--html/--no-html", help="Also build the HTML report.")
 _PDF = typer.Option(False, "--pdf/--no-pdf", help="Also build a PDF rendering (rst2pdf).")
@@ -65,6 +71,7 @@ def generate(
     proof_dir: Path | None = _PROOF_DIR,
     coverage_dir: Path | None = _COVERAGE_DIR,
     trace_report: Path | None = _TRACE_REPORT,
+    requirements_dir: Path | None = _REQUIREMENTS_DIR,
     title: str | None = _TITLE,
     html: bool = _HTML,
     pdf: bool = _PDF,
@@ -83,6 +90,11 @@ def generate(
         traceability = collect_traceability(root, trace_report)
     except (MissingArtifactsError, ArtifactParseError) as exc:
         _fail(str(exc), hint="make trace-report")
+    try:
+        # Optional input: without it the matrices simply carry no links.
+        requirements = collect_requirements(root, requirements_dir)
+    except (MissingArtifactsError, ArtifactParseError) as exc:
+        _fail(str(exc), hint="make requirements-doc")
 
     evidence = Evidence(
         generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),
@@ -92,6 +104,7 @@ def generate(
         proof=proof,
         coverage=coverage,
         traceability=traceability,
+        requirements=requirements,
     )
 
     out.mkdir(parents=True, exist_ok=True)
@@ -99,6 +112,10 @@ def generate(
     obligations = build_obligations(evidence)
     pages = emit_pages(evidence, obligations)
     write_sphinx_sources(pages, out / "src", evidence.title)
+    if requirements is not None:
+        copy_requirement_pages(
+            Path(requirements.source_dir) / PAGES_DIR, out / "src", REQUIREMENTS_SUBDIR
+        )
     typer.echo(f"evidence: {out / 'evidence.json'}")
     typer.echo(f"sources:  {out / 'src'}")
 

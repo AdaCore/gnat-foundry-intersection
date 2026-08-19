@@ -13,6 +13,7 @@ SHELL := bash
         generate-tests-target build-tests-target test-target smoke-target \
         validate-reqs validate-reqs-corpus \
         trace trace-check trace-check-code trace-check-proof trace-report \
+        requirements-doc \
         test-reqs-engine \
         build-tracer test-tracer \
         code-inventory test-inventory inventories \
@@ -540,6 +541,16 @@ trace-report: inventories ## Write the machine-readable trace report `make repor
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format json \
 	    --chain "$(TRACE_CHAIN)" --output "$(TRACE_REPORT)"
 
+# The requirements as a document, consumed by `make report`: pages the report
+# folds into its own tree, plus an index naming each statement's anchor so the
+# trace matrices can link to the requirement text. Not a gate either -- gaps
+# render into the document as the open items they are.
+REQS_DOC := $(CURDIR)/reports/requirements
+
+requirements-doc: inventories ## Render the requirements as a document `make report` reads
+	$(UV) --directory "$(REQS_ENGINE)" run reqs document \
+	    --chain "$(TRACE_CHAIN)" --out "$(REQS_DOC)"
+
 test-reqs-engine: ## Run the validation engine's own test suite
 	$(UV) --directory "$(REQS_ENGINE)" run pytest
 
@@ -616,11 +627,13 @@ REPORT_OUT    := $(CURDIR)/reports/report
 
 # The prerequisites guarantee the report never describes stale artifacts:
 # `validate-reqs-corpus` gates on a parseable corpus, `trace-report` regenerates
-# the trace matrices from fresh inventories, `prove-report` is a clean, forced
-# (-f) gnatprove run, and `all-coverage` re-runs the requirements-based tests
-# before `coverage-report-xml` reads the traces.
+# the trace matrices from fresh inventories, `requirements-doc` re-renders the
+# requirements the matrices link into, `prove-report` is a clean, forced (-f)
+# gnatprove run, and `all-coverage` re-runs the requirements-based tests before
+# `coverage-report-xml` reads the traces.
 # Not `validate-reqs`: trace gaps are open items in the report, not a stop.
-REPORT_EVIDENCE := validate-reqs-corpus trace-report prove-report all-coverage coverage-report-xml
+REPORT_EVIDENCE := validate-reqs-corpus trace-report requirements-doc prove-report \
+                   all-coverage coverage-report-xml
 
 report: $(REPORT_EVIDENCE) ## Regenerate the evidence, then the verification report
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \

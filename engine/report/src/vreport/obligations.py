@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from vreport.mdtext import code_span, count, inline
 from vreport.model import (
@@ -454,7 +454,15 @@ def _coverage_obligations(ev: Evidence, b: _Builder) -> None:
     )
 
 
-def open_trace_items(report: TraceReport) -> list[tuple[str, TraceRow | VerificationRow]]:
+class OpenTraceItem(NamedTuple):
+    """One open matrix row: where it was found, which layer its node lives in, the row."""
+
+    where: str
+    layer: str  # so a consumer can resolve the node without re-deriving it from `where`
+    row: TraceRow | VerificationRow
+
+
+def open_trace_items(report: TraceReport) -> list[OpenTraceItem]:
     """
     Collect the open rows of every trace matrix, each with a where-label.
 
@@ -462,12 +470,24 @@ def open_trace_items(report: TraceReport) -> list[tuple[str, TraceRow | Verifica
     owes, as opposed to rows that are covered, waived, derived,
     review-verified, or expected under a partial-coverage layer.
     """
-    items: list[tuple[str, TraceRow | VerificationRow]] = []
+    items: list[OpenTraceItem] = []
     for matrix in report.verification:
-        items.extend((f"{matrix.layer} verification", row) for row in matrix.rows if row.is_open)
+        items.extend(
+            OpenTraceItem(f"{matrix.layer} verification", matrix.layer, row)
+            for row in matrix.rows
+            if row.is_open
+        )
     for pair in report.pairs:
-        items.extend((f"{pair.upper} → {pair.lower}", r) for r in pair.upper_rows if r.is_open)
-        items.extend((f"{pair.lower} → {pair.upper}", r) for r in pair.lower_rows if r.is_open)
+        items.extend(
+            OpenTraceItem(f"{pair.upper} → {pair.lower}", pair.upper, r)
+            for r in pair.upper_rows
+            if r.is_open
+        )
+        items.extend(
+            OpenTraceItem(f"{pair.lower} → {pair.upper}", pair.lower, r)
+            for r in pair.lower_rows
+            if r.is_open
+        )
     return items
 
 
@@ -559,7 +579,7 @@ def _trace_gap_obligation(report: TraceReport | None, b: _Builder) -> None:
         ),
         review=not clean,
         items=(
-            [_trace_item(where, row) for where, row in open_items]
+            [_trace_item(item.where, item.row) for item in open_items]
             + [_diag_item(d) for d in rowless]
             or [_diag_item(d) for d in report.diagnostics]
         ),

@@ -21,6 +21,7 @@ invoking `vreport` directly, produce them first):
 | `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt`, `gnatcov-command.txt` (the recorded invocation) |
 | `reports/trace/trace_report.json` | `make trace-report` | `reqs trace --format json` over the whole chain: per-pair matrices, the merged verification view, gate diagnostics, recorded command |
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
+| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` plus `index.json` (each statement's page and anchor) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
 downstream tooling), `src/` (generated MyST sources), `html/` (the report),
@@ -32,7 +33,7 @@ convenience rendering of the same sources.
 ## Architecture
 
 ```
-collectors (gnatprove.py, gnatcov.py, traceability.py, provenance.py)
+collectors (gnatprove.py, gnatcov.py, traceability.py, requirements.py, provenance.py)
     -> Evidence (model.py, pydantic)  -> evidence.json
     -> review obligations (obligations.py)
     -> MyST pages (emit.py)
@@ -42,6 +43,14 @@ collectors (gnatprove.py, gnatcov.py, traceability.py, provenance.py)
 The Sphinx build runs with `-W -n` (warnings-as-errors, nitpicky references):
 every claim-to-evidence cross-reference the emitters produce must resolve, or
 the build fails. The build is itself the mechanical oracle for the report.
+
+The rendered requirement pages are *copied* into the generated tree rather than
+emitted (they are already the rendering; `reqs document` owns it) and appear as
+the Requirements section. Their statements are what the trace matrices link to,
+resolved through `index.json` — so a matrix id that names no rendered statement
+fails the build rather than shipping a dead link. The render is optional input:
+without it the report says everything it said before, with matrix ids as plain
+text.
 
 The review obligations follow the structure of NVIDIA's SPARK Process
 (Software Unit Verification Report / `Review_Diagnostic_Justifications` /

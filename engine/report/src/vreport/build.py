@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from typing import TYPE_CHECKING
 
 from sphinx.cmd.build import build_main
@@ -48,6 +49,20 @@ def write_sphinx_sources(pages: dict[str, str], srcdir: Path, title: str) -> Non
     (srcdir / "vreport.yaml").write_text(_PDF_STYLE)
     for name, content in pages.items():
         (srcdir / name).write_text(content)
+
+
+def copy_requirement_pages(pages_dir: Path, srcdir: Path, subdir: str) -> None:
+    """
+    Copy the rendered requirement pages into the Sphinx source tree.
+
+    Replaced wholesale rather than merged: a container that has gone away must
+    not linger as a page no toctree names, which the strict build would reject
+    for the wrong reason.
+    """
+    target = srcdir / subdir
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(pages_dir, target)
 
 
 def build_html(srcdir: Path, outdir: Path) -> int:

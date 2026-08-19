@@ -529,6 +529,51 @@ class TraceReport(Frozen):
     diagnostics: list[TraceDiagnostic] = Field(default_factory=list)
 
 
+REQUIREMENTS_INDEX_SCHEMA_VERSION = 1
+
+
+class RequirementStatement(Frozen):
+    """One rendered statement: where it sits in the document, and what it says."""
+
+    page: str  # the rendered page's name, relative to the document's page directory
+    anchor: str  # the cross-reference target that page carries for this statement
+    text: str
+
+
+class RequirementLayer(Frozen):
+    """One rendered layer of the chain and the pages it rendered as."""
+
+    name: str
+    pages: list[str] = Field(default_factory=list)
+
+
+class RequirementsDocument(Frozen):
+    """
+    The requirement corpus rendered as pages (`reqs document`).
+
+    Only the index is normalized here: the pages themselves are copied into the
+    report's source tree verbatim, since they are already the rendering. The
+    index is what the report needs -- it turns a matrix's node id into a link
+    without this consumer knowing how an anchor is spelled.
+    """
+
+    source_dir: str  # where the render was read from, for the provenance page
+    command: str | None = None
+    generated_at: str | None = None
+    corpus_valid: bool = False
+    layers: list[RequirementLayer] = Field(default_factory=list)
+    nodes: dict[str, dict[str, RequirementStatement]] = Field(default_factory=dict)
+
+    @property
+    def pages(self) -> list[str]:
+        """Every rendered page, in chain then file order."""
+        return [page for layer in self.layers for page in layer.pages]
+
+    def statement(self, layer: str, node: str) -> RequirementStatement | None:
+        """Resolve one node of one layer to its rendered statement, if it has one."""
+        return self.nodes.get(layer, {}).get(node)
+
+
 class TraceabilityEvidence(Frozen):
     """The requirement-chain facts the report covers, tracked per source."""
 
@@ -562,6 +607,7 @@ class Evidence(Frozen):
     proof: ProofEvidence
     coverage: CoverageEvidence
     traceability: TraceabilityEvidence
+    requirements: RequirementsDocument | None = None
 
 
 # --- Review obligations -------------------------------------------------------

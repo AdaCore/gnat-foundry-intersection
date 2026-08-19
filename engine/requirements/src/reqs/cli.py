@@ -7,6 +7,7 @@
     reqs trace --chain FILE --layers A,B       # ...over a subset of its layers
     reqs trace ... --allow-unselected M,N      # ...deferring these methods' evidence
     reqs trace --chain FILE --format json      # machine-readable trace report
+    reqs document --chain FILE --out DIR       # the requirements as a document
 
 With no PATHS, a validate command targets the default requirement set (the
 curated examples for now). Future top-level commands (e.g. `reqs report`) attach
@@ -34,6 +35,7 @@ from reqs.checks.trace import (
     select_layers,
 )
 from reqs.core import Diagnostic, report
+from reqs.render import render_document
 
 
 class OutputFormat(StrEnum):
@@ -69,6 +71,17 @@ _TRACE_LAYERS = typer.Option(
     help=(
         "Comma-separated layer names to restrict the chain to (default: all). "
         "Only pairs wholly inside the selection are checked."
+    ),
+)
+_DOC_OUT = typer.Option(
+    ..., "--out", help="Directory to write the rendered pages and their index into."
+)
+_DOC_LAYERS = typer.Option(
+    None,
+    "--layers",
+    help=(
+        "Comma-separated layer names to restrict the chain to (default: all). "
+        "Links into an unselected layer render as plain ids."
     ),
 )
 _TRACE_ALLOW_UNSELECTED = typer.Option(
@@ -172,6 +185,42 @@ def trace(
         checker.print_tables()
         raise typer.Exit(1 if any(d.level == "error" for d in diags) else 0)
     raise typer.Exit(report(diags, req_paths, quiet=quiet))
+
+
+@app.command("document")
+def document(
+    chain: Path = _CHAIN,
+    out: Path = _DOC_OUT,
+    layers_option: str | None = _DOC_LAYERS,
+    quiet: bool = _QUIET,
+) -> None:
+    """Render the requirement layers of the chain as a linked document."""
+    chain_layers = load_chain(chain)
+    selected_names: list[str] | None = None
+    select_diags: list[Diagnostic] = []
+    if layers_option is not None:
+        selected_names = [name.strip() for name in layers_option.split(",") if name.strip()]
+        _selected, select_diags = select_layers(chain_layers, selected_names, chain)
+    req_paths = [layer.path for layer in chain_layers if layer.kind == REQUIREMENT_YAML]
+    if select_diags:
+        raise typer.Exit(report(select_diags, req_paths, quiet=quiet))
+    argv = ["reqs", "document", "--chain", str(chain), "--out", str(out)]
+    argv += ["--layers", layers_option] if layers_option is not None else []
+    pages, diags, valid = render_document(
+        chain_layers,
+        out,
+        selected_layers=selected_names,
+        command=shlex.join(argv),
+        generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),
+    )
+    if not valid:
+        # Nothing was written: the corpus did not analyse, so there is no
+        # document to render. The diagnostics say why -- that is the verdict.
+        raise typer.Exit(report(diags, req_paths, quiet=quiet) or 1)
+    # Trace gaps are not this command's verdict (`reqs trace` owns that): they
+    # are rendered *into* the document as the open items they are.
+    print(f"{len(pages)} page(s) written to {out}")  # noqa: T201
+    raise typer.Exit(0)
 
 
 def main() -> None:

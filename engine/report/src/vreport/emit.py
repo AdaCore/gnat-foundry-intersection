@@ -9,6 +9,7 @@ reference to a missing target fails the build.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from vreport.mdtext import code_span, count, inline
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
         Evidence,
         Obligation,
         ProofEvidence,
+        RequirementsDocument,
         TraceDiagnostic,
         TracePair,
         TraceReport,
@@ -47,6 +49,31 @@ if TYPE_CHECKING:
     )
 
 _PAGE_ORDER = ("provenance", "proof", "coverage", "traceability")
+
+# Where the rendered requirement pages are copied to inside the source tree.
+REQUIREMENTS_SUBDIR = "requirements"
+
+
+def _page_order(ev: Evidence) -> tuple[str, ...]:
+    """Return the top-level pages in reading order, with the requirements when rendered."""
+    if ev.requirements is None:
+        return _PAGE_ORDER
+    index = _PAGE_ORDER.index("traceability")
+    return (*_PAGE_ORDER[:index], "requirements", *_PAGE_ORDER[index:])
+
+
+def _req_link(doc: RequirementsDocument | None, layer: str, node: str) -> str:
+    """
+    Render a chain node as a link to its requirement text, where there is one.
+
+    Anchors come from the render's index rather than being derived here: the
+    renderer owns how a statement is spelled as a target. A node of a layer the
+    document does not render (a CONOPS leaf, a test routine) stays plain text.
+    """
+    statement = doc.statement(layer, node) if doc else None
+    if statement is None:
+        return code_span(node)
+    return f"[{code_span(node)}](#{statement.anchor})"
 
 
 def _esc(cell: str) -> str:
@@ -165,7 +192,7 @@ def _emit_index(ev: Evidence, obligations: list[Obligation]) -> str:
         ("Sources", git_row),
     ]
 
-    toctree = "```{toctree}\n:hidden:\n\n" + "\n".join(_PAGE_ORDER) + "\n```"
+    toctree = "```{toctree}\n:hidden:\n\n" + "\n".join(_page_order(ev)) + "\n```"
     obligation_blocks = "\n\n".join(_obligation_admonition(o) for o in obligations)
     return f"""# {ev.title}
 
@@ -707,16 +734,52 @@ def _diag_detail(d: TraceDiagnostic) -> str:
     return f"{code_span(d.code)}: {inline(d.message)}"
 
 
-def _trace_matrix(rows: Sequence[TraceRow], id_header: str, detail_header: str) -> str:
-    """Render one trace matrix as a table."""
+@dataclass(frozen=True)
+class _Links:
+    """
+    How one matrix's ids become links: the render, and which layer each cell names.
+
+    A matrix's two id-bearing cells belong to different layers -- the node is of
+    the matrix's own layer, the detail's refs are of the layer across the pair --
+    so both are named here rather than guessed per cell.
+    """
+
+    doc: RequirementsDocument | None = None
+    node_layer: str | None = None
+    ref_layer: str | None = None
+
+    def node(self, node: str) -> str:
+        """Render a row's node cell."""
+        return _req_link(self.doc, self.node_layer, node) if self.node_layer else code_span(node)
+
+    def detail(self, row: TraceRow) -> str:
+        """
+        Render a row's detail: its refs as links where they are rendered statements.
+
+        A row's detail is its refs or prose, never both (`reqs` `Row.detail`), so
+        prose -- a waiver reason, an em-dash for nothing -- falls through unchanged.
+        """
+        if not (row.refs and self.ref_layer and self.doc):
+            return inline(row.detail)
+        return ", ".join(_req_link(self.doc, self.ref_layer, ref) for ref in row.refs)
+
+
+def _trace_matrix(
+    rows: Sequence[TraceRow],
+    id_header: str,
+    detail_header: str,
+    links: _Links | None = None,
+) -> str:
+    """Render one trace matrix as a table, linking the ids it can."""
+    link = links or _Links()
     return _table_or(
         (id_header, "Status", detail_header),
-        [(code_span(r.node), _status(r), inline(r.detail)) for r in rows],
+        [(link.node(r.node), _status(r), link.detail(r)) for r in rows],
         "No nodes.",
     )
 
 
-def _pair_sections(pair: TracePair) -> list[str]:
+def _pair_sections(pair: TracePair, doc: RequirementsDocument | None = None) -> list[str]:
     """Render one (parent, child) pair's matrices, mirroring the `make trace` tables."""
     up, lo = pair.upper, pair.lower
     out: list[str] = []
@@ -728,17 +791,17 @@ def _pair_sections(pair: TracePair) -> list[str]:
         )
         out.append(
             f"### {up} → {lo} ({title})\n\n"
-            + _trace_matrix(pair.upper_rows, up, f"{header} ({lo})")
+            + _trace_matrix(pair.upper_rows, up, f"{header} ({lo})", _Links(doc, up, lo))
         )
         out.append(
             f"### {lo} → {up} (required by)\n\n"
-            + _trace_matrix(pair.lower_rows, lo, f"Required by ({up})")
+            + _trace_matrix(pair.lower_rows, lo, f"Required by ({up})", _Links(doc, lo, up))
         )
         return out
     if pair.method is None:
         out.append(
             f"### {up} → {lo} (coverage)\n\n"
-            + _trace_matrix(pair.upper_rows, up, f"Covered by ({lo})")
+            + _trace_matrix(pair.upper_rows, up, f"Covered by ({lo})", _Links(doc, up, lo))
         )
     else:
         out.append(
@@ -747,12 +810,12 @@ def _pair_sections(pair: TracePair) -> list[str]:
         )
     out.append(
         f"### {lo} → {up} (upward trace)\n\n"
-        + _trace_matrix(pair.lower_rows, lo, f"Traces to ({up})")
+        + _trace_matrix(pair.lower_rows, lo, f"Traces to ({up})", _Links(doc, lo, up))
     )
     return out
 
 
-def _emit_trace_report(r: TraceReport | None) -> str:
+def _emit_trace_report(r: TraceReport | None, doc: RequirementsDocument | None = None) -> str:
     """Render the machine-checked portion of the traceability page."""
     regenerate = "Regenerate with `make trace-report`."
     if r is None:
@@ -853,7 +916,13 @@ Omitted — the corpus is invalid; see the gate diagnostics below.
     open_items = open_trace_items(r)
     rowless = rowless_trace_findings(r)
     open_rows: list[Sequence[str]] = [
-        (where, code_span(row.node), _status(row), inline(row.detail)) for where, row in open_items
+        (
+            item.where,
+            _req_link(doc, item.layer, item.row.node),
+            _status(item.row),
+            inline(item.row.detail),
+        )
+        for item in open_items
     ]
     # Gate findings with no matrix row (waiver lint, ignored check tags) are
     # open items all the same: absence of a row must not read as done.
@@ -879,7 +948,10 @@ Omitted — the corpus is invalid; see the gate diagnostics below.
         f"### {matrix.layer}\n\n"
         + _table_or(
             (matrix.layer, "Status", "Evidence"),
-            [(code_span(row.node), _status(row), inline(row.detail)) for row in matrix.rows],
+            [
+                (_req_link(doc, matrix.layer, row.node), _status(row), inline(row.detail))
+                for row in matrix.rows
+            ],
             "No statements.",
         )
         for matrix in r.verification
@@ -890,7 +962,7 @@ Omitted — the corpus is invalid; see the gate diagnostics below.
         else "No evidence layer of the chain declares a verification method."
     )
 
-    pair_blocks = [section for pair in r.pairs for section in _pair_sections(pair)]
+    pair_blocks = [section for pair in r.pairs for section in _pair_sections(pair, doc)]
     pairs_body = "\n\n".join(pair_blocks) if pair_blocks else "The chain has no pairs."
 
     return f"""{verdict}
@@ -950,7 +1022,9 @@ def _emit_traceability(ev: Evidence) -> str:
     """Render the requirements-chain page: matrices, gaps, and judgement items."""
     t = ev.traceability
     waiver_rows: list[Sequence[str]] = [(f"§{inline(w.leaf)}", inline(w.reason)) for w in t.waivers]
-    derived_rows: list[Sequence[str]] = [(code_span(d.ident), inline(d.text)) for d in t.derived]
+    derived_rows: list[Sequence[str]] = [
+        (_req_link(ev.requirements, "HLR", d.ident), inline(d.text)) for d in t.derived
+    ]
     absent = [
         note
         for note, is_absent in (
@@ -979,7 +1053,7 @@ corpus being parseable (`validate-reqs-corpus`): the chain's own gates are
 code and evidence), and neither gates this report — their findings stay
 visible as the open items below.
 {missing}
-{_emit_trace_report(t.report)}
+{_emit_trace_report(t.report, ev.requirements)}
 
 {_target("traceability-waivers")}
 
@@ -1009,12 +1083,54 @@ only by human review.
 """
 
 
+def _emit_requirements(ev: Evidence) -> str:
+    """Render the requirements section: what it is, then a toctree of the containers."""
+    doc = ev.requirements
+    if doc is None:  # pragma: no cover - emitted only when a render was collected
+        msg = "no rendered requirement document to emit"
+        raise ValueError(msg)
+    counts = ", ".join(
+        f"{count(len(doc.nodes.get(layer.name, {})), 'statement')} in "
+        f"{count(len(layer.pages), 'container')} ({layer.name})"
+        for layer in doc.layers
+    )
+    provenance = (
+        f"Rendered {inline(doc.generated_at)} by `reqs document`"
+        if doc.generated_at
+        else "Rendered by `reqs document`"
+    )
+    pages = "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in doc.pages)
+    return f"""{_target("requirements")}
+
+# Requirements
+
+The requirement corpus as a document: {counts}. Each statement carries the
+trace neighbourhood the chain resolved for it -- what it refines above, what
+covers it below, and how it is verified -- so the requirement and its evidence
+read together. The trace matrices under {{ref}}`traceability` link here, and
+every statement links back to its parents and children.
+
+{provenance} from the requirement files themselves; the authoring format is
+YAML (one container per file) and this rendering is generated, never edited.
+Regenerate with `make requirements-doc`.
+
+```{{toctree}}
+:maxdepth: 1
+
+{pages}
+```
+"""
+
+
 def emit_pages(ev: Evidence, obligations: list[Obligation]) -> dict[str, str]:
     """Render all report pages, keyed by output filename."""
-    return {
+    pages = {
         "index.md": _emit_index(ev, obligations),
         "provenance.md": _emit_provenance(ev),
         "proof.md": _emit_proof(ev),
         "coverage.md": _emit_coverage(ev),
         "traceability.md": _emit_traceability(ev),
     }
+    if ev.requirements is not None:
+        pages["requirements.md"] = _emit_requirements(ev)
+    return pages

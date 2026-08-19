@@ -436,10 +436,10 @@ def test_items_are_capped(evidence: Evidence) -> None:
 def test_trace_fixture_open_items_and_review_rows(trace_report: TraceReport) -> None:
     """The fixture report yields exactly its red rows as open, review rows as reviewed."""
     opened = open_trace_items(trace_report)
-    assert [(where, row.node, row.status) for where, row in opened] == [
-        ("LLR verification", "llr_x.3", "UNCOVERED"),
-        ("CONOPS → HLR", "3.1", "UNCOVERED"),
-        ("HLR → CONOPS", "hlr_x.3", "DANGLING"),
+    assert [(i.where, i.layer, i.row.node, i.row.status) for i in opened] == [
+        ("LLR verification", "LLR", "llr_x.3", "UNCOVERED"),
+        ("CONOPS → HLR", "CONOPS", "3.1", "UNCOVERED"),
+        ("HLR → CONOPS", "HLR", "hlr_x.3", "DANGLING"),
     ]
     reviewed = review_verified_rows(trace_report)
     assert [(layer, row.node) for layer, row in reviewed] == [("LLR", "llr_x.2")]
@@ -545,4 +545,4 @@ def test_unknown_row_status_counts_as_open() -> None:
         ],
     )
     opened = open_trace_items(report)
-    assert [(where, row.node) for where, row in opened] == [("A → B", "a.1")]
+    assert [(i.where, i.layer, i.row.node) for i in opened] == [("A → B", "A", "a.1")]

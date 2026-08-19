@@ -30,13 +30,14 @@ make test-target    # Run the testsuite ON TARGET (arm-eabi, under QEMU)
 make report         # Generate the verification report
 ```
 
-The verification report (proof + coverage + traceability + review
-obligations) renders to `reports/report/html/`; `make report-pdf` also
-renders it to `reports/report/pdf/verification-report.pdf` (rst2pdf, no TeX
-needed). The generator lives in `engine/report/`. `report` regenerates its
-evidence first (`validate-reqs-corpus trace-report prove-report all-coverage
-coverage-report-xml`), so it never reports stale proof runs, trace matrices,
-or test executions, and it gates on the requirement files being parseable
+The verification report (proof + coverage + traceability + the requirements
+themselves + review obligations) renders to `reports/report/html/`; `make
+report-pdf` also renders it to `reports/report/pdf/verification-report.pdf`
+(rst2pdf, no TeX needed). The generator lives in `engine/report/`. `report`
+regenerates its evidence first (`validate-reqs-corpus trace-report
+requirements-doc prove-report all-coverage coverage-report-xml`), so it never
+reports stale proof runs, trace matrices, requirement text, or test
+executions, and it gates on the requirement files being parseable
 (schema + EARS). Trace gaps at any layer do not fail `report` (that is
 `trace-check`'s job): they render as open items, so a report is available
 part-way through a project, showing what is not yet done.

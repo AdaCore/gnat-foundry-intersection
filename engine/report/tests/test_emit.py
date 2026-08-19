@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from vreport.build import build_html, build_pdf, write_sphinx_sources
-from vreport.emit import emit_pages
+from vreport.build import build_html, build_pdf, copy_requirement_pages, write_sphinx_sources
+from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.model import (
     CoverageViolation,
     DerivedRequirement,
@@ -327,3 +327,99 @@ def test_pdf_build_produces_a_pdf(evidence: Evidence, tmp_path: Path) -> None:
     out = tmp_path / "pdf" / "verification-report.pdf"
     assert out.exists()
     assert out.read_bytes().startswith(b"%PDF")
+
+
+# --- the requirements rendered as a document ---------------------------------
+
+
+def test_matrix_ids_link_to_the_requirement_text(evidence_with_requirements: Evidence) -> None:
+    """A matrix's node and its refs both link to the statements they name."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+
+    assert "[`hlr_x.1`](#hlr-x-1)" in traceability  # the node cell
+    assert "[`llr_x.1`](#llr-x-1)" in traceability  # a detail cell's ref
+
+
+def test_ids_of_unrendered_layers_stay_plain(evidence_with_requirements: Evidence) -> None:
+    """A CONOPS leaf and a test routine have no rendered statement, so no link."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+
+    assert "`3.1`" in traceability
+    assert "[`3.1`]" not in traceability
+    assert "[`u.Test_A`]" not in traceability
+
+
+def test_open_items_and_verification_rows_link_too(evidence_with_requirements: Evidence) -> None:
+    """The tables a reviewer reads first carry the same links as the full matrices."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+    open_items = traceability.split("## Open items")[1].split("## Verification matrix")[0]
+    verification = traceability.split("## Verification matrix")[1].split("## Chain matrices")[0]
+
+    assert "[`llr_x.3`](#llr-x-3)" in open_items
+    assert "[`llr_x.1`](#llr-x-1)" in verification
+
+
+def test_the_requirements_page_names_every_rendered_container(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """The section page lists the containers as a toctree and says what it is."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    requirements = pages["requirements.md"]
+
+    assert "102 statements" not in requirements  # counts come from the render, not hardcoded
+    assert "3 statements in 1 container (HLR)" in requirements
+    assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in requirements
+    assert f"{REQUIREMENTS_SUBDIR}/llr_x" in requirements
+    assert "requirements" in pages["index.md"]
+
+
+def test_without_a_render_the_report_omits_the_section(evidence: Evidence) -> None:
+    """The section and its links appear only when a render was collected."""
+    pages = emit_pages(evidence, build_obligations(evidence))
+
+    assert "requirements.md" not in pages
+    assert "\nrequirements\n" not in pages["index.md"]
+    assert "](#hlr-x-1)" not in pages["traceability.md"]
+    assert "`hlr_x.1`" in pages["traceability.md"]
+
+
+def test_the_report_builds_with_the_requirement_pages(
+    evidence_with_requirements: Evidence, tmp_path: Path
+) -> None:
+    """The strict build resolves every anchor the matrices link to."""
+    ev = evidence_with_requirements
+    render = tmp_path / "render" / "pages"
+    render.mkdir(parents=True)
+    for layer, nodes in ev.requirements.nodes.items() if ev.requirements else []:
+        for node, statement in nodes.items():
+            page = render / f"{statement.page}.md"
+            head = f"# {statement.page}\n\n" if not page.exists() else ""
+            with page.open("a", encoding="utf-8") as fh:
+                fh.write(
+                    f"{head}({statement.anchor})=\n## {node} ({layer})\n\n{statement.text}\n\n"
+                )
+
+    pages = emit_pages(ev, build_obligations(ev))
+    write_sphinx_sources(pages, tmp_path / "src", ev.title)
+    copy_requirement_pages(render, tmp_path / "src", REQUIREMENTS_SUBDIR)
+
+    assert build_html(tmp_path / "src", tmp_path / "html") == 0
+    assert (tmp_path / "html" / REQUIREMENTS_SUBDIR / "hlr_x.html").is_file()
+
+
+def test_copying_the_pages_drops_a_container_that_went_away(tmp_path: Path) -> None:
+    """A stale page must not linger: the strict build would reject it as unreferenced."""
+    render = tmp_path / "render"
+    render.mkdir()
+    (render / "hlr_x.md").write_text("# hlr_x\n", encoding="utf-8")
+    srcdir = tmp_path / "src"
+    (srcdir / REQUIREMENTS_SUBDIR).mkdir(parents=True)
+    (srcdir / REQUIREMENTS_SUBDIR / "hlr_gone.md").write_text("# gone\n", encoding="utf-8")
+
+    copy_requirement_pages(render, srcdir, REQUIREMENTS_SUBDIR)
+
+    assert (srcdir / REQUIREMENTS_SUBDIR / "hlr_x.md").is_file()
+    assert not (srcdir / REQUIREMENTS_SUBDIR / "hlr_gone.md").exists()

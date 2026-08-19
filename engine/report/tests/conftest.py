@@ -14,6 +14,9 @@ from vreport.model import (
     Evidence,
     GitInfo,
     ProofEvidence,
+    RequirementLayer,
+    RequirementsDocument,
+    RequirementStatement,
     TraceabilityEvidence,
     TraceReport,
     Waiver,
@@ -63,3 +66,38 @@ def evidence(
             report=trace_report,
         ),
     )
+
+
+def _statement(node: str) -> RequirementStatement:
+    """Build an index entry for one fixture statement."""
+    page = node.rsplit(".", 1)[0]
+    return RequirementStatement(
+        page=page, anchor=node.replace(".", "-").replace("_", "-"), text=f"Text of {node}."
+    )
+
+
+@pytest.fixture
+def requirements_document() -> RequirementsDocument:
+    """Build a rendered document covering the fixture chain's HLR and LLR statements."""
+    return RequirementsDocument(
+        source_dir="/workspace/traffic-light-controller/reports/requirements",
+        command="reqs document --chain requirements/trace_chain.yaml --out reports/requirements",
+        generated_at="2026-07-29T00:00:00+00:00",
+        corpus_valid=True,
+        layers=[
+            RequirementLayer(name="HLR", pages=["hlr_x"]),
+            RequirementLayer(name="LLR", pages=["llr_x"]),
+        ],
+        nodes={
+            "HLR": {f"hlr_x.{n}": _statement(f"hlr_x.{n}") for n in (1, 2, 3)},
+            "LLR": {f"llr_x.{n}": _statement(f"llr_x.{n}") for n in (1, 2, 3)},
+        },
+    )
+
+
+@pytest.fixture
+def evidence_with_requirements(
+    evidence: Evidence, requirements_document: RequirementsDocument
+) -> Evidence:
+    """Return the fixture evidence, plus the requirements rendered as a document."""
+    return evidence.model_copy(update={"requirements": requirements_document})
