@@ -158,6 +158,11 @@ The code is organised into .gpr projects, as follows:
     the generic core loop against trivial stub formals. gnatprove analyses
     generic *instances*, so without an instance in the analysed tree the loop
     body contributes no proof obligations at all.
+  - `src/proof/buses_proof.[ads|adb]`: the same for the two generic buses
+    `Buses.Source_Bus` and `Buses.Display_Bus`, each instantiated once against
+    stub formals standing in for the HAL ends `Main` wires them to. They are
+    generic packages *nested* in an ordinary unit, so `Buses` is analysed while
+    its bus bodies are not, and only the instance brings them in.
 
 - `traffic_light.gpr` (repo root): the application layer, which contains
   - `src/app/main.adb`: the main entry point, which initializes the HAL, the display,

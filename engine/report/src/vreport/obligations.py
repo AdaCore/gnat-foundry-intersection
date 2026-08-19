@@ -63,12 +63,16 @@ def classify_violation(violation: CoverageViolation, proof: ProofEvidence) -> Vi
     A file counts as proved when at least one proved check is located in it
     and no unproved or justified check is — for generics, checks land at the
     generic's source lines via instance analysis, whichever unit performed
-    it. Heuristic caveats: the match is per source-file basename (two files
-    with the same basename in different directories would be conflated) and
-    per file, not per line.
+    it. A generic nested in an ordinary unit can leave a body file with no
+    check of its own, its analysis recorded against the instantiating unit
+    and located at the declaration in the other source of the same unit, so
+    that evidence carries across the unit's sources. Heuristic caveats: the
+    match is per source-file basename (two files with the same basename in
+    different directories would be conflated) and per file, not per line.
     """
     name = Path(violation.location.file).name
-    if Path(name).stem.endswith("_proof"):
+    stem = Path(name).stem
+    if stem.endswith("_proof"):
         return ViolationClass.proof_support
     proved: set[str] = set()
     tainted: set[str] = set()
@@ -76,6 +80,8 @@ def classify_violation(violation: CoverageViolation, proof: ProofEvidence) -> Vi
         bucket = proved if check.status is CheckStatus.proved else tainted
         bucket.add(Path(check.location.file).name)
     if name in proved and name not in tainted:
+        return ViolationClass.proved_file
+    if proof.instance_units(stem) and not any(Path(f).stem == stem for f in tainted):
         return ViolationClass.proved_file
     return ViolationClass.no_evidence
 

@@ -39,6 +39,8 @@ def test_generate_writes_evidence_and_sources(tmp_path: Path) -> None:
     evidence = json.loads((tmp_path / "out" / "evidence.json").read_text())
     assert evidence["schema_version"] == 1
     assert evidence["proof"]["units"] == [
+        "buses",
+        "buses_proof",
         "conflicts",
         "controller",
         "main",

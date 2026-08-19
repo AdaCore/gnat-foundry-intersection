@@ -83,7 +83,9 @@ evidence links.
   This is a **unit-level** check: it sees only what gnatprove reports as a
   generic unit, so a generic package *nested* inside an ordinary unit is not
   covered by it. Such a unit shows in the scope table with its true check count
-  (often zero), which is the signal to read.
+  (often zero) beside any unit that did locate checks in its sources, so a
+  nested generic an instance reaches is credited there and a zero standing
+  alone is the signal to read.
 - Evidence-carried free text (justifications, waiver reasons, tool messages)
   is escaped before interpolation into the MyST sources, so it cannot break
   the report structure or plant cross-references that fail the strict build.

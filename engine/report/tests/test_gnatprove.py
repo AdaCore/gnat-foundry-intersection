@@ -21,6 +21,8 @@ FIXTURES = Path(__file__).parent / "fixtures" / "gnatprove"
 def test_units(proof: ProofEvidence) -> None:
     """One unit per .spark file, sorted."""
     assert proof.units == [
+        "buses",
+        "buses_proof",
         "conflicts",
         "controller",
         "main",
@@ -216,6 +218,28 @@ def test_generic_instance_evidence(proof: ProofEvidence) -> None:
     """A generic counts as analyzed through whichever unit located checks in it."""
     assert proof.instance_units("state_machine_loop") == ["state_machine_loop_proof"]
     assert proof.uninstantiated_generics == []
+
+
+def test_nested_generic_instance_evidence(proof: ProofEvidence) -> None:
+    """
+    A generic nested in an ordinary unit is found the same way, by location.
+
+    gnatprove reports the *unit* `buses` as fully analyzed and not generic, so
+    the generic-unit checks never see its two nested bus generics. What does
+    see them is the check located in `buses.ads` and recorded under the unit
+    that instantiates them.
+    """
+    host = next(a for a in proof.analyses if a.unit == "buses")
+    assert host.complete
+    assert not host.generic
+    assert not [c for c in proof.checks if c.unit == "buses"]
+    assert proof.instance_units("buses") == ["buses_proof"]
+    # Only Source_Bus contributes a check; nothing in Display_Bus.Bus_Write
+    # can fail, so its entity's SPARK mode is the whole record that the
+    # instance brought that body into the analysis.
+    analyzed = {m.entity: m.mode for m in proof.spark_modes if m.unit == "buses_proof"}
+    assert analyzed["Buses_Proof.Source_Wire.Bus_Read"] == "all"
+    assert analyzed["Buses_Proof.Display_Wire.Bus_Write"] == "all"
 
 
 def test_generic_without_an_instance(tmp_path: Path) -> None:

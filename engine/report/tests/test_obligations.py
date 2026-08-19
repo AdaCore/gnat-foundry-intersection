@@ -94,13 +94,36 @@ def test_classification(proof: ProofEvidence) -> None:
         "src/core/controller.adb": ViolationClass.proved_file,
         # Generic proved via the harness instance: checks land at these lines.
         "src/core/state_machine_loop.adb": ViolationClass.proved_file,
-        # Generic whose bodies were never analyzed: must NOT read as proven.
-        "src/types/buses.adb": ViolationClass.no_evidence,
+        # Nested generic proved through the harness instance: the checks are
+        # located in the spec, so the body is credited across the unit.
+        "src/types/buses.adb": ViolationClass.proved_file,
+        "src/types/buses.ads": ViolationClass.proved_file,
         # File containing unproved checks: proof evidence there is tainted.
         "synth.adb": ViolationClass.no_evidence,
     }
     for file, expected in cases.items():
         assert classify_violation(_violation(file), proof) is expected, file
+
+
+def test_tainted_unit_is_not_credited_across_its_sources(proof: ProofEvidence) -> None:
+    """
+    An unproved check anywhere in the unit withdraws the credit from all of it.
+
+    Instance evidence is carried from a generic's spec to its body, so the
+    taint has to travel the same way: otherwise a body would read as proved
+    on the strength of a spec whose own check failed.
+    """
+    unproved = ProofCheck(
+        unit="buses_proof",
+        kind="proof",
+        rule="VC_OVERFLOW_CHECK",
+        severity="medium",
+        location=Sloc(file="buses.ads", line=32),
+    )
+    tainted = proof.model_copy(update={"checks": [*proof.checks, unproved]})
+    assert classify_violation(_violation("src/types/buses.adb"), tainted) is (
+        ViolationClass.no_evidence
+    )
 
 
 def test_open_claims(proof: ProofEvidence) -> None:

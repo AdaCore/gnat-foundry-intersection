@@ -1,0 +1,114 @@
+{
+  "assumptions": [
+  ],
+  "entities": {
+    " 1": {
+      "name": "Buses_Proof.Stub_Sample",
+      "sloc": [
+        {
+          "column": 14,
+          "file": "buses_proof.ads",
+          "line": 34
+        }
+      ]
+    },
+    " 2": {
+      "name": "Buses_Proof.Source_Wire.Bus_Read",
+      "sloc": [
+        {
+          "column": 17,
+          "file": "buses.ads",
+          "line": 32
+        },
+        {
+          "column": 4,
+          "file": "buses_proof.ads",
+          "line": 42
+        }
+      ]
+    },
+    " 3": {
+      "name": "Buses_Proof",
+      "sloc": [
+        {
+          "column": 9,
+          "file": "buses_proof.ads",
+          "line": 15
+        }
+      ]
+    },
+    " 4": {
+      "name": "Buses_Proof.Display_Wire.Bus_Write",
+      "sloc": [
+        {
+          "column": 17,
+          "file": "buses.ads",
+          "line": 49
+        },
+        {
+          "column": 4,
+          "file": "buses_proof.ads",
+          "line": 46
+        }
+      ]
+    }
+  },
+  "flow": [
+    {
+      "check_tree": {
+      },
+      "col": 27,
+      "entity": 1,
+      "file": "buses_proof.ads",
+      "how_proved": "flow",
+      "line": 34,
+      "message": {
+        "text": "initialization of \"Value\" proved"
+      },
+      "msg_id": 0,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    },
+    {
+      "check_tree": {
+      },
+      "col": 27,
+      "entity": 2,
+      "file": "buses.ads",
+      "how_proved": "flow",
+      "line": 32,
+      "message": {
+        "text": "initialization of \"Value\" proved, in instantiation at buses_proof.ads:42"
+      },
+      "msg_id": 1,
+      "rule": "UNINITIALIZED",
+      "severity": "info",
+      "unproved_status": {
+        "status": "unknown"
+      }
+    }
+  ],
+  "pragma_assume": [
+  ],
+  "progress": "PROGRESS_PROOF",
+  "proof": [
+  ],
+  "skip_flow_proof": [
+  ],
+  "skip_proof": [
+  ],
+  "spark": {
+    " 1": "all",
+    " 2": "all",
+    " 3": "all",
+    " 4": "all"
+  },
+  "stop_reason": "STOP_REASON_NONE",
+  "timings": {
+  },
+  "warn_error": [
+  ]
+}
