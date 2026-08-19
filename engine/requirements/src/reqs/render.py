@@ -1,18 +1,24 @@
 """
-Render the requirement corpus as a document.
+Render a requirement chain as a document.
 
 The requirement files are the authoring surface: YAML, one container per file,
 statements keyed by number (see ``docs/README.md``). They are not a reading
 surface -- a reviewer following a trace matrix reads ``hlr_6_pedestrian.5`` and
-has to open the file and count keys to learn what the requirement says. This
-module renders the same corpus as prose: one MyST page per container, one
-anchored subsection per statement, each carrying its trace neighbourhood as
-links rather than as bare ids.
+has to open the file and count keys to learn what the requirement says.
+
+This module renders the chain as prose instead. A requirement layer becomes one
+MyST page per container, one anchored subsection per statement, each carrying the
+trace neighbourhood the chain resolved for it: what it refines above, what covers
+it below, how it is verified, and any waiver or unresolved ref. A markdown layer
+(the CONOPS) is carried through as its author wrote it, with an anchor planted in
+each leaf and a closing table naming what realizes it. Given a source root, the
+sources those requirements cite are listed too, so the evidence below the
+requirements -- an entity, a contract, a test routine -- links to its own line.
 
 The output is *generated evidence*, consumed by the verification-report
 generator the way it consumes the trace matrices: pages plus an ``index.json``
-naming every statement's page and anchor, so the report's matrices can link to
-the requirement text without knowing how an anchor is spelled.
+naming every node's page and anchor, so a consumer links to the requirement text
+without knowing how an anchor is spelled.
 
 The neighbourhood comes from `TraceChecker.view`, so what the document shows and
 what the traceability gate checks are one analysis.
@@ -81,28 +87,27 @@ def anchor_of(node_id: str, prefix: str | None = None) -> str:
     section number (`4.1`), so it is qualified by its layer -- ids from different
     layers must not collide on one anchor.
     """
-    ident = f"{prefix}-{node_id}" if prefix else node_id
-    return re.sub(r"[^a-z0-9]+", "-", ident.lower()).strip("-")
+    return _slug(f"{prefix}-{node_id}" if prefix else node_id)
 
 
 def source_page_of(path: str) -> str:
     """Return the page a source file is listed on, under the sources directory."""
-    return f"{SOURCES_DIR}/{re.sub(r'[^a-z0-9]+', '-', path.lower()).strip('-')}"
+    return f"{SOURCES_DIR}/{_slug(path)}"
 
 
 def source_anchor_of(path: str, line: int) -> str:
     """Return the cross-reference target of one line of one source file."""
-    return f"{_source_slug(path)}-l{line}"
+    return f"{_slug(path)}-l{line}"
 
 
 def source_page_anchor_of(path: str) -> str:
     """Return the cross-reference target of a source listing as a whole."""
-    return f"{_source_slug(path)}-listing"
+    return f"{_slug(path)}-listing"
 
 
-def _source_slug(path: str) -> str:
-    """Reduce a source path to the stem its anchors are built on."""
-    return re.sub(r"[^a-z0-9]+", "-", path.lower()).strip("-")
+def _slug(text: str) -> str:
+    """Reduce an identifier to the spelling a cross-reference target is built from."""
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
 def page_of(node_id: str) -> str:
