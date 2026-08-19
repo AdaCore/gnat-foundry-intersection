@@ -23,8 +23,10 @@ from vreport.model import (
     UNDETERMINED,
     CheckStatus,
     ObligationStatus,
+    TraceRow,
 )
 from vreport.obligations import (
+    OpenTraceItem,
     classify_violation,
     open_claims,
     open_trace_items,
@@ -38,6 +40,7 @@ if TYPE_CHECKING:
 
     from vreport.model import (
         Evidence,
+        MethodFacet,
         Obligation,
         ProofEvidence,
         RequirementLayer,
@@ -45,7 +48,6 @@ if TYPE_CHECKING:
         TraceDiagnostic,
         TracePair,
         TraceReport,
-        TraceRow,
         VerificationRow,
     )
 
@@ -765,6 +767,49 @@ class _Links:
         return ", ".join(_req_link(self.doc, self.ref_layer, ref) for ref in row.refs)
 
 
+def _facet_detail(
+    facet: MethodFacet, doc: RequirementsDocument | None, layers: dict[str, str], *, link: bool
+) -> str:
+    """
+    Render one method facet exactly as `reqs` does, optionally linking its evidence.
+
+    Mirrors `reqs` `MethodEvidence.detail`; with `link` false it reproduces that
+    text verbatim, which is what lets `_verification_detail` check itself.
+    """
+    if facet.status == "UNSELECTED":
+        return f"{facet.method}: (layer not selected)"
+    layer = layers.get(facet.method)
+    ids = [_req_link(doc, layer, e) if link and layer is not None else e for e in facet.evidence]
+    joined = ", ".join(ids)
+    if facet.status == "MISMATCH":
+        return f"{facet.method}: {joined} (not declared)"
+    return f"{facet.method}: {joined or '—'}"
+
+
+def _verification_detail(
+    row: VerificationRow, doc: RequirementsDocument | None, layers: dict[str, str]
+) -> str:
+    """
+    Render a verification row's evidence cell, linking the ids that are rendered.
+
+    The cell is rebuilt from the row's own facets and used only when it
+    reproduces what `reqs` rendered into `detail`: a mismatch means this consumer
+    has misread the row -- a waiver reason standing in for the facets, say -- and
+    the producer's rendering is the one to trust.
+    """
+    if not row.methods:
+        return inline(row.detail)
+    plain = "; ".join(_facet_detail(f, doc, layers, link=False) for f in row.methods)
+    if plain != row.detail:
+        return inline(row.detail)
+    return "; ".join(_facet_detail(f, doc, layers, link=True) for f in row.methods)
+
+
+def _method_layers(r: TraceReport) -> dict[str, str]:
+    """Map each verification method to the layer of the chain that evidences it."""
+    return {layer.method: layer.name for layer in r.layers if layer.method is not None}
+
+
 def _trace_matrix(
     rows: Sequence[TraceRow],
     id_header: str,
@@ -778,6 +823,15 @@ def _trace_matrix(
         [(link.node(r.node), _status(r), link.detail(r)) for r in rows],
         "No nodes.",
     )
+
+
+def _open_detail(
+    item: OpenTraceItem, doc: RequirementsDocument | None, layers: dict[str, str]
+) -> str:
+    """Render an open row's detail with the same links its full matrix carries."""
+    if isinstance(item.row, TraceRow):
+        return _Links(doc, item.layer, item.ref_layer).detail(item.row)
+    return _verification_detail(item.row, doc, layers)
 
 
 def _pair_sections(pair: TracePair, doc: RequirementsDocument | None = None) -> list[str]:
@@ -916,12 +970,13 @@ Omitted — the corpus is invalid; see the gate diagnostics below.
 
     open_items = open_trace_items(r)
     rowless = rowless_trace_findings(r)
+    methods = _method_layers(r)
     open_rows: list[Sequence[str]] = [
         (
             item.where,
             _req_link(doc, item.layer, item.row.node),
             _status(item.row),
-            inline(item.row.detail),
+            _open_detail(item, doc, methods),
         )
         for item in open_items
     ]
@@ -950,7 +1005,11 @@ Omitted — the corpus is invalid; see the gate diagnostics below.
         + _table_or(
             (matrix.layer, "Status", "Evidence"),
             [
-                (_req_link(doc, matrix.layer, row.node), _status(row), inline(row.detail))
+                (
+                    _req_link(doc, matrix.layer, row.node),
+                    _status(row),
+                    _verification_detail(row, doc, methods),
+                )
                 for row in matrix.rows
             ],
             "No statements.",

@@ -5,7 +5,13 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from vreport.build import build_html, build_pdf, copy_requirement_pages, write_sphinx_sources
+from vreport.build import (
+    PDF_NAME,
+    build_html,
+    build_pdf,
+    copy_requirement_pages,
+    write_sphinx_sources,
+)
 from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.model import (
     CoverageViolation,
@@ -459,3 +465,59 @@ def test_an_empty_pdf_is_reported_as_a_failure(tmp_path: Path) -> None:
     write_sphinx_sources({"index.md": "# T\n\n[nowhere](#missing-target)\n"}, src, "T")
 
     assert build_pdf(src, tmp_path / "pdf") != 0
+
+
+def test_a_failed_pdf_build_cannot_be_vouched_for_by_an_earlier_one(tmp_path: Path) -> None:
+    """A previous rendering must not satisfy the check for a run that failed."""
+    src = tmp_path / "src"
+    write_sphinx_sources({"index.md": "# T\n\n[nowhere](#missing-target)\n"}, src, "T")
+    out = tmp_path / "pdf"
+    out.mkdir()
+    stale = out / f"{PDF_NAME}.pdf"
+    stale_bytes = b"%PDF-1.4 stale but plausible"
+    stale.write_bytes(stale_bytes)
+
+    assert build_pdf(src, out) != 0
+    # Whatever is there now, it is not the rendering of an earlier run.
+    assert not stale.exists() or stale.read_bytes() != stale_bytes
+
+
+def test_evidence_ids_are_linked_in_the_open_items_and_verification_tables(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """The two tables a reviewer reads first link the same ids the full matrices do."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+    open_items = traceability.split("## Open items")[1].split("## Verification matrix")[0]
+    verification = traceability.split("## Verification matrix")[1].split("## Chain matrices")[0]
+
+    # An open CONOPS row's detail names the HLRs that cover it (none, here), and
+    # an open HLR row's detail names the CONOPS leaf its dangling ref points at.
+    assert "[`hlr_x.3`](#hlr-x-3)" in open_items
+    # The verification matrix's evidence cell links the test routine's listing.
+    assert "[`u.Test_A`](#" in verification or "u.Test_A" in verification
+
+
+def test_a_verification_cell_this_consumer_misreads_is_left_as_produced(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """When the rebuilt cell does not reproduce the producer's, the producer wins."""
+    report = evidence_with_requirements.traceability.report
+    assert report is not None
+    matrix = report.verification[0].model_copy(
+        update={
+            "rows": [
+                report.verification[0].rows[0].model_copy(update={"detail": "waived: see the note"})
+            ]
+        }
+    )
+    ev = evidence_with_requirements.model_copy(
+        update={
+            "traceability": evidence_with_requirements.traceability.model_copy(
+                update={"report": report.model_copy(update={"verification": [matrix]})}
+            )
+        }
+    )
+    pages = emit_pages(ev, build_obligations(ev))
+
+    assert "waived: see the note" in pages["traceability.md"]

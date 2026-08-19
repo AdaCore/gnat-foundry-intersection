@@ -29,6 +29,7 @@ from test_trace import (
 )
 from typer.testing import CliRunner
 
+from reqs.checks.trace import Layer
 from reqs.cli import app
 from reqs.render import (
     INDEX_NAME,
@@ -36,14 +37,11 @@ from reqs.render import (
     DocumentRenderer,
     RenderedPage,
     anchor_of,
-    source_anchor_of,
-    source_page_of,
+    source_slugs,
 )
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    from reqs.checks.trace import Layer
 
 runner = CliRunner()
 
@@ -446,8 +444,8 @@ def cited_chain(tmp_path: Path) -> list[Layer]:
 
 def test_a_cited_source_is_listed_as_its_own_page(tmp_path: Path) -> None:
     """A file the requirements point into is listed, whole, on a page of its own."""
-    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
-    listing = page_text(pages, source_page_of("src/controller.ads"))
+    renderer = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path)
+    listing = page_text(renderer.pages(), renderer.source_page("src/controller.ads"))
 
     assert "# src/controller.ads" in listing
     assert "package Controller is" in listing  # the lines before the citation
@@ -457,32 +455,32 @@ def test_a_cited_source_is_listed_as_its_own_page(tmp_path: Path) -> None:
 
 def test_the_cited_line_carries_the_anchor_on_a_paragraph(tmp_path: Path) -> None:
     """The anchor sits on prose, which is what a PDF builder can resolve."""
-    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
-    listing = page_text(pages, source_page_of("src/controller.ads"))
+    renderer = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path)
+    listing = page_text(renderer.pages(), renderer.source_page("src/controller.ads"))
 
-    anchor = source_anchor_of("src/controller.ads", 3)
+    anchor = renderer.source_anchor("src/controller.ads", 3)
     assert f"({anchor})=\n\n**Line 3** -- cited by `Controller.Step`" in listing
 
 
 def test_the_listing_itself_is_html_only(tmp_path: Path) -> None:
     """The source is a browsing aid: the HTML carries it, the PDF does not."""
-    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
-    listing = page_text(pages, source_page_of("src/controller.ads"))
+    renderer = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path)
+    listing = page_text(renderer.pages(), renderer.source_page("src/controller.ads"))
 
     assert ":::{only} html" in listing
     # The anchor is *not* gated: a link that resolves in one rendering only
     # would be a broken document.
-    anchor_at = listing.index(f"({source_anchor_of('src/controller.ads', 3)})=")
+    anchor_at = listing.index(f"({renderer.source_anchor('src/controller.ads', 3)})=")
     assert listing.rindex(":::{only} html", 0, anchor_at) < anchor_at
     assert listing.index(":::", anchor_at) > anchor_at
 
 
 def test_the_evidence_links_into_the_listing(tmp_path: Path) -> None:
     """`implemented_by` reaches the declaration's line, and says where it is."""
-    pages = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).pages()
-    llr = page_text(pages, "llr_a")
+    renderer = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path)
+    llr = page_text(renderer.pages(), "llr_a")
 
-    anchor = source_anchor_of("src/controller.ads", 3)
+    anchor = renderer.source_anchor("src/controller.ads", 3)
     assert f"[`Controller.Step`](#{anchor}) (src/controller.ads:3)" in llr
 
 
@@ -506,11 +504,75 @@ def test_a_source_the_inventory_names_but_disk_lacks_is_skipped(tmp_path: Path) 
 
 def test_the_index_names_the_listings_and_locates_the_evidence(tmp_path: Path) -> None:
     """A consumer can link a matrix's code id to the line it is listed at."""
-    index = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path).index()
+    renderer = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path)
+    index = renderer.index()
 
-    assert index["sources"] == [source_page_of("src/controller.ads")]
+    assert index["sources"] == [renderer.source_page("src/controller.ads")]
     assert index["nodes"]["CODE"]["Controller.Step"] == {
-        "page": source_page_of("src/controller.ads"),
-        "anchor": source_anchor_of("src/controller.ads", 3),
+        "page": renderer.source_page("src/controller.ads"),
+        "anchor": renderer.source_anchor("src/controller.ads", 3),
         "text": "src/controller.ads:3",
     }
+
+
+def test_distinct_paths_never_share_a_slug() -> None:
+    """Slugging alone is not injective, so the assignment counts collisions apart."""
+    slugs = source_slugs(["src/a-b.ads", "src/a_b.ads", "src/a.b.ads"])
+
+    assert len(set(slugs.values())) == 3
+    assert slugs["src/a-b.ads"] == "src-a-b-ads"
+
+
+def test_a_source_outside_the_root_is_not_listed(tmp_path: Path) -> None:
+    """A cited file outside the root is refused, not copied into the report."""
+    chain = cited_chain(tmp_path)
+    outside = tmp_path.parent / "outside_secret.ads"
+    outside.write_text("--  not ours to publish\n", encoding="utf-8")
+    inventory = tmp_path / "code_inventory.json"
+    write_inventory(
+        inventory,
+        packages=[
+            package(
+                "Controller",
+                spec_file="../outside_secret.ads",
+                subprograms=[
+                    subprogram(
+                        "Step",
+                        qualified_name="Controller.Step",
+                        file="../outside_secret.ads",
+                        line=1,
+                    )
+                ],
+            )
+        ],
+    )
+    pages = DocumentRenderer(chain, source_root=tmp_path).pages()
+
+    assert not [page for page in pages if page.name.startswith("sources/")]
+    assert "not ours to publish" not in "\n".join(page.text for page in pages)
+
+
+def test_a_citation_past_the_end_of_the_file_is_forgotten(tmp_path: Path) -> None:
+    """A drifted inventory must not promise a link the listing cannot define."""
+    chain = cited_chain(tmp_path)
+    (tmp_path / "src" / "controller.ads").write_text("package Controller is\n", encoding="utf-8")
+    renderer = DocumentRenderer(chain, source_root=tmp_path)
+    llr = page_text(renderer.pages(), "llr_a")
+
+    assert "- **Implemented by:** `Controller.Step`" in llr  # plain, not a dead link
+    assert "CODE" not in renderer.index()["nodes"]
+
+
+def test_every_layer_below_a_markdown_layer_gets_a_realization_table(tmp_path: Path) -> None:
+    """A chain that branches below the CONOPS renders each branch's realization."""
+    chain = req_chain(tmp_path)
+    other = tmp_path / "hlr2"
+    other.mkdir()
+    write_req(other, "hlr_b.yaml", "source", [["CONOPS §2.1"]])
+    chain.append(
+        Layer("HLR2", "requirement-yaml", other, id_pattern=r"CONOPS §(\d+\.\d+)", parent="CONOPS")
+    )
+    conops = page_text(DocumentRenderer(chain).pages(), "conops")
+
+    assert "| Leaf | Realized by (HLR) |" in conops
+    assert "| Leaf | Realized by (HLR2) |" in conops

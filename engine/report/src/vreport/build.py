@@ -88,10 +88,13 @@ def build_pdf(srcdir: Path, outdir: Path) -> int:
 
     The builder's exit status is not the whole verdict: rst2pdf logs a failed
     document and still exits 0, leaving an empty file behind. An empty or
-    missing PDF is therefore reported as the failure it is.
+    missing PDF is therefore reported as the failure it is -- and the previous
+    rendering is removed first, so a run that never reaches the file cannot be
+    vouched for by the output of an earlier one.
     """
+    pdf = outdir / f"{PDF_NAME}.pdf"
+    pdf.unlink(missing_ok=True)
     rc = build_main(["-b", "pdf", "-E", "-q", str(srcdir), str(outdir)])
     if rc != 0:
         return rc
-    pdf = outdir / f"{PDF_NAME}.pdf"
     return 0 if pdf.is_file() and pdf.stat().st_size > 0 else 1

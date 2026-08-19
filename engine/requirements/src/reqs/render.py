@@ -90,19 +90,41 @@ def anchor_of(node_id: str, prefix: str | None = None) -> str:
     return _slug(f"{prefix}-{node_id}" if prefix else node_id)
 
 
-def source_page_of(path: str) -> str:
+def source_page_of(slug: str) -> str:
     """Return the page a source file is listed on, under the sources directory."""
-    return f"{SOURCES_DIR}/{_slug(path)}"
+    return f"{SOURCES_DIR}/{slug}"
 
 
-def source_anchor_of(path: str, line: int) -> str:
+def source_anchor_of(slug: str, line: int) -> str:
     """Return the cross-reference target of one line of one source file."""
-    return f"{_slug(path)}-l{line}"
+    return f"{slug}-l{line}"
 
 
-def source_page_anchor_of(path: str) -> str:
+def source_page_anchor_of(slug: str) -> str:
     """Return the cross-reference target of a source listing as a whole."""
-    return f"{_slug(path)}-listing"
+    return f"{slug}-listing"
+
+
+def source_slugs(paths: Iterable[str]) -> dict[str, str]:
+    """
+    Assign each source path a distinct anchor spelling.
+
+    Slugging alone is not injective -- ``src/a-b.ads`` and ``src/a_b.ads`` reduce
+    to the same thing -- and two files sharing a spelling would mean one listing
+    overwriting the other and citations opening the wrong source, so a collision
+    is resolved by counting rather than left to chance.
+    """
+    out: dict[str, str] = {}
+    taken: set[str] = set()
+    for path in sorted(paths):
+        base = _slug(path)
+        slug, n = base, 1
+        while slug in taken:
+            n += 1
+            slug = f"{base}-{n}"
+        taken.add(slug)
+        out[path] = slug
+    return out
 
 
 def _slug(text: str) -> str:
@@ -193,6 +215,8 @@ class DocumentRenderer:
                 self.citations.setdefault(path, {}).setdefault(node.line, []).append(node_id)
                 self.locations[name, node_id] = (path, node.line)
         self.sources = self._read_sources()
+        self._prune_citations()
+        self.slugs = source_slugs(self.sources)
 
     @property
     def valid(self) -> bool:
@@ -203,20 +227,47 @@ class DocumentRenderer:
         """
         Read every cited source file, keyed by its inventory-relative path.
 
+        Only files *under* the source root are read: an inventory may name one
+        outside it (the format allows absolute paths), and copying an arbitrary
+        readable file into a published report is not this tool's business.
+
         A file that cannot be read is left out rather than fatal: the inventories
         are generated, and a stale one must not stop the requirements rendering.
         Its citations then render as plain text, exactly as an unlisted layer's do.
         """
         if self.source_root is None:
             return {}
+        root = self.source_root.resolve()
         out: dict[str, list[str]] = {}
         for path in sorted(self.citations):
+            candidate = (root / path).resolve()
+            if not candidate.is_relative_to(root):
+                continue
             try:
-                text = (self.source_root / path).read_text(encoding="utf-8")
+                text = candidate.read_text(encoding="utf-8")
             except OSError:
                 continue
             out[path] = text.splitlines()
         return out
+
+    def _prune_citations(self) -> None:
+        """
+        Drop citations of lines the file being listed does not have.
+
+        The inventories are generated from the sources, so a citation past the end
+        of one means they have drifted apart. The line cannot be anchored, so the
+        citation is forgotten here rather than left to promise a link the listing
+        never defines; that evidence renders as plain text instead.
+        """
+        for path, lines in self.sources.items():
+            stale = [line for line in self.citations[path] if line > len(lines)]
+            for line in stale:
+                del self.citations[path][line]
+        self.locations = {
+            key: (path, line)
+            for key, (path, line) in self.locations.items()
+            if path not in self.sources or line in self.citations[path]
+        }
 
     def files_of(self, layer: str) -> Iterator[RequirementFile]:
         """Yield the containers of a requirement layer, in file order."""
@@ -287,7 +338,7 @@ class DocumentRenderer:
                 for layer in self.rendered
             }
             | self._source_nodes(),
-            "sources": [source_page_of(path) for path in sorted(self.sources)],
+            "sources": [self.source_page(path) for path in sorted(self.sources)],
         }
 
     def _source_nodes(self) -> dict[str, dict[str, dict[str, str]]]:
@@ -297,8 +348,8 @@ class DocumentRenderer:
             if path not in self.sources:
                 continue
             out.setdefault(layer, {})[node_id] = {
-                "page": source_page_of(path),
-                "anchor": source_anchor_of(path, line),
+                "page": self.source_page(path),
+                "anchor": self.source_anchor(path, line),
                 "text": f"{path}:{line}",
             }
         return out
@@ -341,6 +392,14 @@ class DocumentRenderer:
         """Render one page per cited source file, in path order."""
         return [self._source_page(path, lines) for path, lines in sorted(self.sources.items())]
 
+    def source_page(self, path: str) -> str:
+        """Return the page a cited source file is listed on."""
+        return source_page_of(self.slugs[path])
+
+    def source_anchor(self, path: str, line: int) -> str:
+        """Return the anchor one cited line of one source file is rendered under."""
+        return source_anchor_of(self.slugs[path], line)
+
     def _source_page(self, path: str, lines: list[str]) -> RenderedPage:
         """
         List one source file whole, split so each cited line can be a target.
@@ -372,13 +431,13 @@ class DocumentRenderer:
                 continue
             citers = ", ".join(f"`{node}`" for node in self.citations[path][start])
             blocks.append(
-                f"({source_anchor_of(path, start)})=\n\n"
+                f"({self.source_anchor(path, start)})=\n\n"
                 f"**Line {start}** -- cited by {citers}\n\n{listing}"
             )
         return RenderedPage(
-            name=source_page_of(path),
+            name=self.source_page(path),
             text=(
-                f"({source_page_anchor_of(path)})=\n"
+                f"({source_page_anchor_of(self.slugs[path])})=\n"
                 f"# {path}\n\n"
                 f"{_count(len(cited), 'line')} of this file "
                 f"{'is' if len(cited) == 1 else 'are'} cited by the requirements; the "
@@ -419,22 +478,24 @@ class DocumentRenderer:
         return RenderedPage(name=node_set.path.stem, text=f"{body}\n\n{self._realization(layer)}")
 
     def _realization(self, layer: str) -> str:
-        """Render the closing table: what realizes each leaf of a markdown layer."""
-        lower = next(iter(self.children.get(layer, [])), None)
-        if lower is None:
+        """Render the closing tables: what realizes each leaf of a markdown layer."""
+        tables = [self._realization_table(layer, lower) for lower in self.children.get(layer, [])]
+        if not tables:
             return ""
+        return (
+            "# Realization\n\nWhich statement below realizes each leaf above. A leaf "
+            "realized by nothing is either work not yet done or a deliberate "
+            "exclusion, and says which.\n\n" + "\n\n".join(tables) + "\n"
+        )
+
+    def _realization_table(self, layer: str, lower: str) -> str:
+        """Render one layer below's realization of every leaf, as a table."""
         rows: list[str] = []
         for node_id, view in self.view.nodes[layer].items():
             covering = ", ".join(self._down_ref(lower, i) for i in view.down.get(lower, ()))
             excuse = f"*waived* -- {_flat(view.waiver)}" if view.waiver else "*nothing yet*"
-            anchor = self.anchor(layer, node_id)
-            rows.append(f"| [`{node_id}`](#{anchor}) | {covering or excuse} |")
-        table = "\n".join([f"| Leaf | Realized by ({lower}) |", "|---|---|", *rows])
-        return (
-            f"# Realization\n\nWhich {lower} statement realizes each leaf above. A leaf realized "
-            f"by nothing is either work not yet done or a deliberate exclusion, and says which.\n\n"
-            f"{table}\n"
-        )
+            rows.append(f"| [`{node_id}`](#{self.anchor(layer, node_id)}) | {covering or excuse} |")
+        return "\n".join([f"| Leaf | Realized by ({lower}) |", "|---|---|", *rows])
 
     def _statement(self, layer: str, node_id: str, statement: Statement) -> str:
         """Render one statement: its anchor, its text, then its neighbourhood."""
@@ -515,7 +576,7 @@ class DocumentRenderer:
                 # A check node is named by its location, so naming it twice says
                 # nothing; anything else is worth locating for the reader.
                 suffix = "" if node_id == where else f" ({where})"
-                return f"[`{node_id}`](#{source_anchor_of(path, line)}){suffix}"
+                return f"[`{node_id}`](#{self.source_anchor(path, line)}){suffix}"
         return f"`{node_id}`"
 
     def _is_rendered(self, layer: str | None, node_id: str) -> bool:

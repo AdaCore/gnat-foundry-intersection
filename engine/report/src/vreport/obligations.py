@@ -455,10 +455,11 @@ def _coverage_obligations(ev: Evidence, b: _Builder) -> None:
 
 
 class OpenTraceItem(NamedTuple):
-    """One open matrix row: where it was found, which layer its node lives in, the row."""
+    """One open matrix row: where it was found, the layers it names, and the row."""
 
     where: str
-    layer: str  # so a consumer can resolve the node without re-deriving it from `where`
+    layer: str  # the node's own layer, so a consumer need not re-derive it from `where`
+    ref_layer: str | None  # the layer its refs name; None for a verification row's facets
     row: TraceRow | VerificationRow
 
 
@@ -473,18 +474,18 @@ def open_trace_items(report: TraceReport) -> list[OpenTraceItem]:
     items: list[OpenTraceItem] = []
     for matrix in report.verification:
         items.extend(
-            OpenTraceItem(f"{matrix.layer} verification", matrix.layer, row)
+            OpenTraceItem(f"{matrix.layer} verification", matrix.layer, None, row)
             for row in matrix.rows
             if row.is_open
         )
     for pair in report.pairs:
         items.extend(
-            OpenTraceItem(f"{pair.upper} → {pair.lower}", pair.upper, r)
+            OpenTraceItem(f"{pair.upper} → {pair.lower}", pair.upper, pair.lower, r)
             for r in pair.upper_rows
             if r.is_open
         )
         items.extend(
-            OpenTraceItem(f"{pair.lower} → {pair.upper}", pair.lower, r)
+            OpenTraceItem(f"{pair.lower} → {pair.upper}", pair.lower, pair.upper, r)
             for r in pair.lower_rows
             if r.is_open
         )
