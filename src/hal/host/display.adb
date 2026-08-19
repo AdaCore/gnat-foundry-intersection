@@ -469,15 +469,27 @@ package body Display is
    --  @param Size Filled in with the window size on success
    --  @return Zero on success
 
+   Standard_Output_Fd : constant Interfaces.C.int := 1;
+   --  The descriptor the window size is read from, and the one Text_IO's
+   --  standard output writes to.
+
    function Seats_Wide return Boolean;
-   --  Whether standard output is a terminal big enough for the wide picture.
+   --  Whether the frame's destination is a terminal big enough for the wide
+   --  picture.
    --  @return True when the measured window is at least 95x50
 
    function Seats_Wide return Boolean is
       Size : aliased Winsize;
    begin
+      --  A window size is a property of the terminal behind standard output.
+      --  A caller that has redirected Text_IO is writing to a file or a pipe
+      --  instead, which that measurement would not describe at all, so the
+      --  answer there is the narrow picture -- the one that fits anywhere.
+      if File_Access'(Current_Output) /= File_Access'(Standard_Output) then
+         return False;
+      end if;
       return
-        Ioctl (1, TIOCGWINSZ, Size'Access) = 0
+        Ioctl (Standard_Output_Fd, TIOCGWINSZ, Size'Access) = 0
         and then Natural (Size.Cols) >= Wide_Width
         and then Natural (Size.Rows) >= Wide_Height;
    end Seats_Wide;

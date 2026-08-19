@@ -184,12 +184,14 @@ package body Display.Test_Data.Tests is
          --  The header legend rows pin the keyboard-shortcut documentation,
          --  key digits and side bindings included.
          if Ada.Strings.Fixed.Index
-             (Line, "1/2/3/4 = ped request N/S/E/W crosswalk") /= 0
+              (Line, "1/2/3/4 = ped request N/S/E/W crosswalk")
+           /= 0
          then
             Saw_Ped_Request := True;
          end if;
          if Ada.Strings.Fixed.Index
-             (Line, "n/s/e/w = left-turn N/S/E/W approach") /= 0
+              (Line, "n/s/e/w = left-turn N/S/E/W approach")
+           /= 0
          then
             Saw_Left_Turn := True;
          end if;
@@ -202,7 +204,7 @@ package body Display.Test_Data.Tests is
       --  South_Side head (served with the E-W green) is a horizontal '|' band
       --  across its N/S arm. (Painting a WALK lying across the green it moves
       --  with was the bug that motivated the side-of-junction names.)
-      East_Walk_Probe : constant States.Display_State :=
+      East_Walk_Probe  : constant States.Display_State :=
         (Through  => (others => States.Red),
          Left     => (others => States.Red),
          Heads    =>
@@ -313,19 +315,23 @@ package body Display.Test_Data.Tests is
                   Saw_Request := True;
                   Assert
                     (Char = Label (1) or Char = Label (2),
-                     "a pending " & States.Crosswalk'Image (Pending_Side)
+                     "a pending "
+                     & States.Crosswalk'Image (Pending_Side)
                      & " request must light only its own corner key label");
                end;
             end if;
          end loop;
       end Check_Request;
 
-
       --  Wide profile. A signal head straddles every lane, so a movement's
       --  colour lands on that head's bulbs and nowhere else -- and the glyph
       --  a paint falls on says which head lit, because the through head shows
       --  circular indications while the turn head shows arrows only, never
       --  circular (CONOPS 2.7).
+      subtype Glyph_Bytes is String (1 .. 3);
+      --  Every glyph the wide picture's heads and crosswalks use encodes
+      --  to three UTF-8 bytes.
+
       Wide_Frame_Height : constant := 50;
       --  Height of the wide picture (keep in step with the host Display
       --  body): 3 legend header rows plus 47 picture rows.
@@ -340,8 +346,8 @@ package body Display.Test_Data.Tests is
       --  @param B3 Third byte of the encoding
       --  @return The encoded glyph
 
-      Circle    : constant String := Glyph (16#E2#, 16#97#, 16#8F#);
-      Arrow_W   : constant String := Glyph (16#E2#, 16#97#, 16#80#);
+      Circle    : constant Glyph_Bytes := Glyph (16#E2#, 16#97#, 16#8F#);
+      Arrow_W   : constant Glyph_Bytes := Glyph (16#E2#, 16#97#, 16#80#);
       Bar_Down  : constant String := Glyph (16#E2#, 16#96#, 16#8C#);
       Bar_Along : constant String := Glyph (16#E2#, 16#96#, 16#80#);
       --  The head's circular indication, its westward arrow indication, and
@@ -391,7 +397,8 @@ package body Display.Test_Data.Tests is
       procedure Check_Wide_Through (Line : String; Number : Positive) is
       begin
          if Ada.Strings.Fixed.Index
-             (Line, "pedestrian request  --  N / S / E / W crosswalk") /= 0
+              (Line, "pedestrian request  --  N / S / E / W crosswalk")
+           /= 0
          then
             Saw_Wide_Legend := True;
          end if;
@@ -402,7 +409,9 @@ package body Display.Test_Data.Tests is
                "the last row should carry the erase-below tail");
          end if;
          Check_Wide_Green
-           (Line, Circle, Saw_Through_Bulb,
+           (Line,
+            Circle,
+            Saw_Through_Bulb,
             "a GREEN through face must light a circular indication, never "
             & "the turn head's arrows");
       end Check_Wide_Through;
@@ -411,7 +420,9 @@ package body Display.Test_Data.Tests is
          pragma Unreferenced (Number);
       begin
          Check_Wide_Green
-           (Line, Arrow_W, Saw_Turn_Bulb,
+           (Line,
+            Arrow_W,
+            Saw_Turn_Bulb,
             "a GREEN protected-left face must light an arrow indication "
             & "pointing where the turn exits, never a circular one "
             & "(CONOPS 2.7)");
@@ -421,7 +432,9 @@ package body Display.Test_Data.Tests is
          pragma Unreferenced (Number);
       begin
          Check_Wide_Green
-           (Line, Bar_Along, Saw_Wide_East,
+           (Line,
+            Bar_Along,
+            Saw_Wide_East,
             "East_Side WALK must paint the bars across the east arm "
             & "(parallel to N-S traffic), not lie across the N-S road");
       end Check_Wide_East;
@@ -430,10 +443,92 @@ package body Display.Test_Data.Tests is
          pragma Unreferenced (Number);
       begin
          Check_Wide_Green
-           (Line, Bar_Down, Saw_Wide_North,
+           (Line,
+            Bar_Down,
+            Saw_Wide_North,
             "North_Side WALK must paint the bars across the north arm "
             & "(parallel to E-W traffic), not lie across the E-W road");
       end Check_Wide_North;
+
+      --  Every movement's head, probed one at a time. The turn arrows tell
+      --  the four protected lefts apart outright, but all four through faces
+      --  show the same circular indication, so glyph alone cannot catch a
+      --  transposed pair of through masks. The positions do: with a single
+      --  movement released the frame holds exactly one green paint, and the
+      --  eight probes must light eight distinct places. That holds whatever
+      --  the drawing is, so it survives the picture being redrawn.
+      Arrow_E : constant Glyph_Bytes := Glyph (16#E2#, 16#96#, 16#B6#);
+      Arrow_N : constant Glyph_Bytes := Glyph (16#E2#, 16#96#, 16#B2#);
+      Arrow_S : constant Glyph_Bytes := Glyph (16#E2#, 16#96#, 16#BC#);
+      --  The remaining turn-exit arrows; Arrow_W is declared above.
+
+      type Head_Expectation is record
+         Approach : States.Approach;
+         Is_Left  : Boolean;
+         Lamp     : Glyph_Bytes;
+      end record;
+      --  One movement and the indication its head must light on GREEN.
+      --  @field Approach The approach the movement belongs to
+      --  @field Is_Left True for the protected left, False for the through
+      --  @field Lamp The glyph a GREEN must land on
+
+      Heads_Table : constant array (1 .. 8) of Head_Expectation :=
+        ((States.North, False, Circle),
+         (States.South, False, Circle),
+         (States.East, False, Circle),
+         (States.West, False, Circle),
+         (States.North, True, Arrow_W),
+         (States.South, True, Arrow_E),
+         (States.East, True, Arrow_N),
+         (States.West, True, Arrow_S));
+      --  A left turn's arrow points where the turn exits, so north's exits
+      --  west, south's east, east's north and west's south.
+
+      function Movement_Name (E : Head_Expectation) return String
+      is (States.Approach'Image (E.Approach)
+          & (if E.Is_Left then " protected left" else " through"));
+      --  The movement an entry names, for assertion messages.
+      --  @param E The table entry
+      --  @return The movement's name
+
+      Probe_Index  : Positive := Heads_Table'First;
+      Green_Paints : Natural := 0;
+      Lamp_Line    : array (Heads_Table'Range) of Natural := (others => 0);
+      Lamp_Offset  : array (Heads_Table'Range) of Natural := (others => 0);
+
+      procedure Render_Movement is
+         S : States.Display_State :=
+           (Through  => (others => States.Red),
+            Left     => (others => States.Red),
+            Heads    => (others => States.Dont_Walk),
+            Requests => (others => States.No_Request));
+      begin
+         if Heads_Table (Probe_Index).Is_Left then
+            S.Left (Heads_Table (Probe_Index).Approach) := States.Green;
+         else
+            S.Through (Heads_Table (Probe_Index).Approach) := States.Green;
+         end if;
+         Show (S);
+      end Render_Movement;
+
+      procedure Check_Movement (Line : String; Number : Positive) is
+         Entry_Under_Test : constant Head_Expectation :=
+           Heads_Table (Probe_Index);
+      begin
+         for I in Line'First .. Line'Last - Green_On'Length - 2 loop
+            if Line (I .. I + Green_On'Length - 1) = Green_On then
+               Green_Paints := Green_Paints + 1;
+               Lamp_Line (Probe_Index) := Number;
+               Lamp_Offset (Probe_Index) := I;
+               Assert
+                 (Line (I + Green_On'Length .. I + Green_On'Length + 2)
+                  = Entry_Under_Test.Lamp,
+                  "a released "
+                  & Movement_Name (Entry_Under_Test)
+                  & " must light its own head's indication");
+            end if;
+         end loop;
+      end Check_Movement;
 
    begin
 
@@ -470,11 +565,12 @@ package body Display.Test_Data.Tests is
 
       for C in States.Crosswalk loop
          Pending_Side := C;
-         Saw_Request  := False;
+         Saw_Request := False;
          Run_Captured (Render_Request'Access, Check_Request'Access, Count);
          Assert
            (Saw_Request,
-            "the " & States.Crosswalk'Image (C)
+            "the "
+            & States.Crosswalk'Image (C)
             & " request lamp should light its corner key label");
       end loop;
 
@@ -507,7 +603,59 @@ package body Display.Test_Data.Tests is
         (Saw_Wide_North,
          "the North_Side WALK probe should paint at least one green bar");
 
+      for Index in Heads_Table'Range loop
+         Probe_Index := Index;
+         Green_Paints := 0;
+         Run_Captured
+           (Render_Movement'Access, Check_Movement'Access, Wide_Count);
+         Assert
+           (Green_Paints = 1,
+            "releasing only the "
+            & Movement_Name (Heads_Table (Index))
+            & " should light exactly one bulb of one head");
+      end loop;
+
+      for A in Heads_Table'Range loop
+         for B in A + 1 .. Heads_Table'Last loop
+            Assert
+              (Lamp_Line (A) /= Lamp_Line (B)
+               or else Lamp_Offset (A) /= Lamp_Offset (B),
+               "the "
+               & Movement_Name (Heads_Table (A))
+               & " and the "
+               & Movement_Name (Heads_Table (B))
+               & " must light different places -- two movements sharing a "
+               & "bulb means their masks are transposed");
+         end loop;
+      end loop;
+
+      --  Distinct places rule out two movements sharing a head, but not a
+      --  permutation among the four through faces, which show the same
+      --  circular indication by CONOPS 2.7 and so cannot be told apart by
+      --  glyph. Where they sit tells them apart. A head is at the end of the
+      --  box its own traffic arrives at, and traffic keeps right, so the
+      --  southbound head is above the northbound one and -- the westbound
+      --  approach running along the north half of the east-west road -- the
+      --  westbound head is above the eastbound one. Both are orderings, not
+      --  coordinates, so redrawing the picture leaves them true.
+      Assert
+        (Lamp_Line (2) < Lamp_Line (1),
+         "the southbound through head should sit above the northbound one");
+      Assert
+        (Lamp_Line (4) < Lamp_Line (3),
+         "the westbound through head should sit above the eastbound one");
+
+      --  With no override the body measures for itself, and the destination
+      --  here is a captured file rather than the terminal behind standard
+      --  output -- whose size would say nothing about it. That is the
+      --  fallback, and it must land on the picture that fits anywhere.
       Ada.Environment_Variables.Clear ("TRAFFIC_LIGHT_FRAME");
+
+      Run_Captured (Render'Access, Check_Line'Access, Count);
+      Assert
+        (Count = Frame_Height,
+         "a redirected destination cannot be measured, so Show should fall "
+         & "back to the narrow picture rather than trust the terminal size");
 
 --  begin read only
    end Test_Show;
