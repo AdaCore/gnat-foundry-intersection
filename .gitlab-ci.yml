@@ -73,6 +73,9 @@ check:
     # Run the checks
     - make check-shell check-python-reqs check-target-test-parity
 
+    # Check that the demo CONOPS patch is valid
+    - git apply --check demo/conops.patch
+
 # Check and test the report engine.
 check-report:
   stage: validate

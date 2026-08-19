@@ -10,6 +10,7 @@ LLR's job).
 
 - `requirements/conops.md` — the concept of operations (the layer HLRs trace to).
 - `requirements/hlr/*.yaml` — existing HLRs (match their style and IDs).
+- Any accompanying explanatory documentation in `requirements/*.md`.
 - `engine/requirements/HLR.drafting.md` — **the methodology** (Moore state
   machines in EARS, the manifestation test, one machine per file). Follow it.
 - `engine/requirements/docs/{README,rules,ears,glossary}.md` — format, RS.1–RS.5,
@@ -18,9 +19,10 @@ LLR's job).
 ## Outputs
 
 - New/edited `requirements/hlr/*.yaml`. Each statement traces to a CONOPS leaf via
-  `source:` **or** is marked `derived: true` (and the gap pushed up to CONOPS).
-- If the feature is not yet covered by the CONOPS, an edit to
-  `requirements/conops.md` (or a `trace_waivers.yaml` entry) so the trace closes.
+  `source:` **or** is marked `derived: true`.
+- Edited `requirements/trace_waivers.yaml` if there are CONOPS leaves that do
+  not describe software behavior (physical/environmental assumptions, etc.).
+- Edited accompanying `requirements/*.md` documentation, if applicable.
 
 ## Procedure
 
