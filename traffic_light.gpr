@@ -3,9 +3,10 @@
 --  which wires the buses to the HAL and runs the core loop
 --  (design/architecture.md §"Project structure"). Owning those sources
 --  directly is what lets `for Main` name main.adb here, so the executable
---  lands in this project's bin/ as `traffic_light`. NOT a proof target:
---  main.adb carries no SPARK_Mode, so gnatprove skips it. The bare-metal
---  arm-eabi build lives in its own Alire crate, traffic_light_qemu/.
+--  lands in this project's bin/ as `traffic_light`. NOT a proof target: it is
+--  outside the proof scope (src/proof.gpr) altogether, and main.adb carries no
+--  SPARK_Mode in any case. The bare-metal arm-eabi build lives in its own
+--  Alire crate, traffic_light_qemu/.
 
 with "config/traffic_light_config.gpr";
 with "src/shared.gpr";

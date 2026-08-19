@@ -180,6 +180,40 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
         ],
     )
 
+    # Generics are the one class of unit gnatprove reports as skipped by
+    # design; what matters is whether an analyzed instance stands behind each.
+    generics = ev.proof.generic_analyses
+    orphans = ev.proof.uninstantiated_generics
+    b.add(
+        f"Generic units without an analyzed instance: {len(orphans)}"
+        if orphans
+        else f"Generic units, each analyzed through an instance: {len(generics)}"
+        if generics
+        else "Generic units: none",
+        "proof-generics",
+        (
+            "gnatprove analyzes generic *instances*, not generics themselves. No "
+            "check is located in these generics' sources, so no instance this run "
+            "analyzed exercises them and nothing in their bodies is proved. "
+            "Instantiate each against in-SPARK formals in a unit the proof run "
+            "reaches."
+            if orphans
+            else "gnatprove records each of these as skipped, which is the normal "
+            "outcome for a generic and not an early stop. Each carries checks "
+            "located in its own sources, contributed by an analyzed instance, so "
+            "its body is covered by the tables below."
+            if generics
+            else "The run analyzed no generic units."
+        ),
+        review=bool(orphans),
+        items=[
+            f"{a.unit} — no instance analyzed"
+            if not ev.proof.instance_units(a.unit)
+            else f"{a.unit} — analyzed through {', '.join(ev.proof.instance_units(a.unit))}"
+            for a in generics
+        ],
+    )
+
     unproved = ev.proof.unproved_checks
     b.add(
         f"Unproved checks: {len(unproved)}" if unproved else "Unproved checks: none",
@@ -275,10 +309,17 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
         "located (the coverage classification does this per file)."
     )
     outside = ev.proof.non_spark_entities
+    # "None" here means none *within the analyzed scope*: code the run never
+    # reached is absent from the evidence, not cleared by it.
+    scope_note = (
+        " This covers the analyzed scope and nothing wider: code the run did not "
+        "reach is absent from this report rather than cleared by it — see "
+        "{ref}`proof-scope`."
+    )
     b.add(
         f"Code outside the proof: {len(outside)} entities"
         if outside
-        else "Code outside the proof: none",
+        else f"Code outside the proof: none of the {len(ev.proof.units)} analyzed units",
         "proof-spark-modes",
         (
             "These entities are not fully analyzed by gnatprove (`spec`: only the "
@@ -287,7 +328,8 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
             if outside
             else "Every analyzed entity is fully in SPARK."
         )
-        + generic_note,
+        + generic_note
+        + scope_note,
         review=bool(outside),
         items=[f"{m.entity} — SPARK_Mode `{m.mode}` (unit {m.unit})" for m in outside],
     )

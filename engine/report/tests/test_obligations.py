@@ -59,6 +59,10 @@ def _by_anchor(obligations: list[Obligation]) -> dict[str, Obligation]:
 
 _COMPLETE = UnitAnalysis(unit="pkg", progress="PROGRESS_PROOF", stop_reason="STOP_REASON_NONE")
 
+_GENERIC = UnitAnalysis(
+    unit="gen", progress="PROGRESS_NONE", stop_reason="STOP_REASON_GENERIC_UNIT"
+)
+
 
 _CLEAN_REPORT = TraceReport(complete=True, corpus_valid=True)
 
@@ -83,7 +87,7 @@ def test_classification(proof: ProofEvidence) -> None:
     """Violations classify by where proved checks actually are, per file."""
     cases = {
         # The instantiation harness itself.
-        "src/core/state_machine_loop_proof.ads": ViolationClass.proof_support,
+        "src/proof/state_machine_loop_proof.ads": ViolationClass.proof_support,
         # Never analyzed at all (SPARK_Mode off).
         "src/app/main.adb": ViolationClass.no_evidence,
         # Proved checks located in the file itself.
@@ -268,6 +272,31 @@ def test_incomplete_or_unrecorded_analyses_force_review() -> None:
     ob = _by_anchor(build_obligations(_evidence()))["proof-completeness"]
     assert ob.status is ObligationStatus.review
     assert "not recorded" in ob.title
+
+
+def test_generic_unit_is_not_an_incomplete_analysis() -> None:
+    """A generic skipped for want of an instance is not an early stop."""
+    evidence = _evidence(proof=ProofEvidence(analyses=[_COMPLETE, _GENERIC]))
+    assert _by_anchor(build_obligations(evidence))["proof-completeness"].title == (
+        "Incomplete unit analyses: none"
+    )
+
+
+def test_generic_with_an_analyzed_instance_is_ok(proof: ProofEvidence) -> None:
+    """Checks located in the generic's own sources are the evidence it was analyzed."""
+    ob = _by_anchor(build_obligations(_evidence(proof=proof)))["proof-generics"]
+    assert ob.status is ObligationStatus.ok
+    assert ob.title == "Generic units, each analyzed through an instance: 1"
+    assert ob.items == ["state_machine_loop — analyzed through state_machine_loop_proof"]
+
+
+def test_generic_without_an_instance_forces_review() -> None:
+    """No instance means nothing in the generic's body is proved: say so."""
+    evidence = _evidence(proof=ProofEvidence(analyses=[_COMPLETE, _GENERIC]))
+    ob = _by_anchor(build_obligations(evidence))["proof-generics"]
+    assert ob.status is ObligationStatus.review
+    assert ob.title == "Generic units without an analyzed instance: 1"
+    assert ob.items == ["gen — no instance analyzed"]
 
 
 def test_undetermined_coverage_is_not_green() -> None:

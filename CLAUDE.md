@@ -128,10 +128,11 @@ like). If a change means the core can no longer be proven without such an
 escape hatch, stop and raise a flag rather than papering over it — that broken
 invariant is a signal worth surfacing.
 
-Because `gnatprove` analyses generic *instances* and not uninstantiated
-generics, the `core` project carries a small in-SPARK instantiation harness
-(`state_machine_loop_proof`) so the generic core loop is actually exercised by
-`make prove`. Keep such harnesses in step when the generic surface changes.
+`make prove` is rooted at `src/proof.gpr`, whose tree is the proof scope and
+whose sources are the instantiation harnesses (design/architecture.md
+§"Project structure"). Keep them in step with the generic surface, and put new
+ones there, never in `core`: a generic no analyzed instance reaches is unproved
+code, which `make report` reports under "Generic units".
 
 ## When editing tests
 

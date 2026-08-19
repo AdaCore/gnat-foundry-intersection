@@ -7,6 +7,11 @@
 --  exercised by the default project closure independently of the HAL. The
 --  instance is never called -- it exists only to be proved. See CLAUDE.md on
 --  keeping `core` proven.
+--
+--  It lives in its own project (src/proof.gpr) rather than in `core` so that
+--  the measured code -- the verification scope of `core` and `types` -- holds
+--  only code that ships. Coverage says nothing about a unit nothing calls, so
+--  this one is outside the denominator rather than exempted inside it.
 
 with States;
 with State_Machine_Loop;
@@ -14,14 +19,6 @@ with State_Machine_Loop;
 package State_Machine_Loop_Proof
   with SPARK_Mode => On
 is
-
-   pragma
-     Annotate
-       (Xcov,
-        Exempt_On,
-        "proof support: this unit exists to be proved, not run -- nothing "
-        & "calls the instance, so no test can execute it, and its coverage "
-        & "would say nothing about the controller.");
 
    --  Trivial in-SPARK stubs standing in for the HAL surface: the two writers
    --  do nothing, and the reader fully initialises the snapshot so the
@@ -45,7 +42,5 @@ is
         Read_Sources  => Stub_Read_Sources,
         Write_Display => Stub_Write_Display);
    --  The instance under proof -- never called, exists only to be proved.
-
-   pragma Annotate (Xcov, Exempt_Off);
 
 end State_Machine_Loop_Proof;

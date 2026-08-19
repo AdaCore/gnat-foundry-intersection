@@ -258,6 +258,37 @@ def test_proof_page_flags_incomplete_analysis(evidence: Evidence) -> None:
     assert "STOP_REASON_CHECK_MODE" in pages["proof.md"]
 
 
+def test_proof_page_lists_the_analyzed_scope(evidence: Evidence) -> None:
+    """
+    The scope table is the run's unit list — every unit, and nothing else.
+
+    A "none" elsewhere on the page means "none among these", so a table that
+    silently dropped or invented a unit would misstate what the page covers.
+    Which units *should* be in a run is the project's declaration, not this
+    generator's business: the fixture models a wide run on purpose.
+    """
+    page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
+    section = page.split("## Analysis scope", 1)[1].split("(proof-completeness)=", 1)[0]
+    rows = [ln.split("|")[1].strip() for ln in section.splitlines() if ln.startswith("| ")]
+    assert rows == ["Unit", *evidence.proof.units]
+    assert "| state_machine_loop | generic, through state_machine_loop_proof |" in section
+    assert "| main | " in section
+
+
+def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None:
+    """A clean boundary must not read as "no unproved code exists anywhere"."""
+    ob = {o.anchor: o for o in build_obligations(evidence)}["proof-spark-modes"]
+    assert "{ref}`proof-scope`" in ob.detail
+
+
+def test_proof_page_names_each_generic_instance(evidence: Evidence) -> None:
+    """The generics table says which unit stands behind each generic."""
+    page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
+    assert "## Generic units" in page
+    assert "| state_machine_loop | state_machine_loop_proof |" in page
+    assert "STOP_REASON_GENERIC_UNIT" not in page
+
+
 def test_provenance_strips_local_tool_paths(evidence: Evidence) -> None:
     """Prover version lines show tool basenames, not this machine's layout."""
     pages = emit_pages(evidence, build_obligations(evidence))

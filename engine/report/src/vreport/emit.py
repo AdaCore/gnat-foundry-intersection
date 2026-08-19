@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from vreport.model import (
         Evidence,
         Obligation,
+        ProofEvidence,
         TraceDiagnostic,
         TracePair,
         TraceReport,
@@ -306,6 +307,19 @@ The requirement-trace matrices were produced by:
 """
 
 
+def _scope_cell(p: ProofEvidence, unit: str) -> str:
+    """Say how one in-scope unit was treated, for the scope table."""
+    analysis = next((a for a in p.analyses if a.unit == unit), None)
+    if analysis is None:
+        return "no completion record"
+    if analysis.generic:
+        through = ", ".join(p.instance_units(unit))
+        return f"generic, through {through}" if through else "generic, **no instance analyzed**"
+    if not analysis.complete:
+        return f"stopped: `{analysis.stop_reason or 'unrecorded'}`"
+    return count(sum(1 for c in p.checks if c.unit == unit), "check")
+
+
 def _emit_proof(ev: Evidence) -> str:
     """Render the gnatprove evidence page."""
     p = ev.proof
@@ -375,10 +389,21 @@ def _emit_proof(ev: Evidence) -> str:
     completeness_block = (
         _table(("Unit", "Progress", "Stop reason"), incomplete_rows)
         if incomplete_rows
-        else f"All {len(p.analyses)} unit analyses ran to the end of the proof phase."
+        else f"All {len(p.analyses) - len(p.generic_analyses)} non-generic unit "
+        "analyses ran to the end of the proof phase."
         if p.analyses
         else "The `.spark` artifacts carry no completion records."
     )
+
+    scope_block = (
+        _table(("Unit", "Analysis"), [(u, _scope_cell(p, u)) for u in p.units])
+        if p.units
+        else "No unit artifacts were recorded."
+    )
+
+    generic_rows: list[Sequence[str]] = [
+        (a.unit, ", ".join(p.instance_units(a.unit)) or "**none**") for a in p.generic_analyses
+    ]
 
     warnings_note = (
         ""
@@ -397,6 +422,20 @@ gnatprove analyzed {len(p.units)} units toward the project's Silver target
 (absence of run-time errors); the contracts written in the code are proved by
 the same analysis (see the summary table). {run_note}
 
+{_target("proof-scope")}
+
+## Analysis scope
+
+Every claim on this page is bounded by the units below. `gnatprove -U` analyzes
+the project tree it is rooted at, so the root project chooses this list; the
+exact command is under {{ref}}`provenance-invocations`. Code outside the list is
+**not** described by this report — neither proved nor reported unproved — so
+read "none" in the sections that follow as "none among these units". Whether
+this is the right scope to verify is a human judgement, made where the scope is
+declared and not re-derived here.
+
+{scope_block}
+
 {_target("proof-completeness")}
 
 ## Analysis completeness
@@ -405,6 +444,24 @@ Units whose recorded analysis stopped early list only part of their checks;
 every table below is qualified by this one.
 
 {completeness_block}
+
+{_target("proof-generics")}
+
+## Generic units
+
+gnatprove analyzes generic *instances*, not generics: a generic's own artifact
+records no checks, and the checks from its body are attributed to the
+instantiating unit while staying located in the generic's source. A generic
+reached by no analyzed instance is therefore unproved code that no other table
+names.
+
+{
+        _table_or(
+            ("Generic unit", "Analyzed through"),
+            generic_rows,
+            "The run analyzed no generic units.",
+        )
+    }
 
 {_target("proof-summary")}
 

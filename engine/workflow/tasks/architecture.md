@@ -22,8 +22,9 @@ of the code (it is meant to be edited in step with the code).
 - **`design/architecture.md` edited in sync** — the doc must describe the code as
   it now is.
 - If the SPARK proof boundary moves, keep the `state_machine_loop_proof`
-  instantiation harness (`src/core/state_machine_loop_proof.{ads,adb}`) in step
-  with the generic surface.
+  instantiation harness (`src/proof/state_machine_loop_proof.{ads,adb}`) in step
+  with the generic surface. A new generic under proof needs a harness of its own
+  there, or nothing in its body is analyzed.
 
 ## Procedure
 

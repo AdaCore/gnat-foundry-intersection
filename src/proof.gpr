@@ -1,0 +1,30 @@
+with "../config/traffic_light_config.gpr";
+--  The root of the proof scope, and the home of the proof scaffolding -- code
+--  written to be analyzed, never to run. Nothing depends on this project and
+--  no unit of it is in any executable's closure.
+--
+--  `make prove` roots gnatprove here, so this project's tree IS the scope of
+--  the proof: `core`, `types`, and the harnesses below. That is the same
+--  verification scope COVERAGE_SCOPE measures (README "Verification scope") --
+--  the HAL simulator and the entry point are outside both. See
+--  design/architecture.md.
+
+with "shared.gpr";
+with "core.gpr";
+with "types.gpr";
+
+project Proof is
+
+   --  In-SPARK instantiation harnesses for the generic units of `core`:
+   --  gnatprove analyses generic *instances*, so a generic that nothing
+   --  instantiates contributes no proof obligations at all.
+   for Source_Dirs use ("proof");
+
+   --  Default Alire layout: obj/<profile> (e.g. obj/development) and bin/.
+   for Object_Dir use Shared'Object_Dir;
+   for Create_Missing_Dirs use "True";
+
+   package Compiler renames Shared.Compiler;
+   package Binder renames Shared.Binder;
+
+end Proof;

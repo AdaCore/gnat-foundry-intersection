@@ -152,6 +152,13 @@ The code is organised into .gpr projects, as follows:
     the state of the traffic
     lights on a GUI or console display.
 
+- `src/proof.gpr`: proof scaffolding — code written to be analyzed and never
+  run. It contains
+  - `src/proof/state_machine_loop_proof.[ads|adb]`: an in-SPARK instantiation of
+    the generic core loop against trivial stub formals. gnatprove analyses
+    generic *instances*, so without an instance in the analysed tree the loop
+    body contributes no proof obligations at all.
+
 - `traffic_light.gpr` (repo root): the application layer, which contains
   - `src/app/main.adb`: the main entry point, which initializes the HAL, the display,
     then "wires" the buses (i.e., instantiates the bus types, connecting them to displays
@@ -169,7 +176,20 @@ The dependencies are as follows:
 - traffic_light.gpr depends on core.gpr, hal.gpr, types.gpr
 - core.gpr depends on types.gpr
 - hal.gpr depends on types.gpr
+- proof.gpr depends on core.gpr, types.gpr
 - types.gpr has no dependencies
+
+Nothing depends on `proof.gpr` and no unit of it is in any executable's closure;
+it is a root, not a leaf. `make prove` roots gnatprove there, and `gnatprove -U`
+analyses the tree it is given, so `proof.gpr`'s tree is exactly the proof scope:
+`core`, `types` and the harnesses. That matches the scope the coverage run
+measures (`--projects core --projects types`), so one declared verification
+scope governs both forms of evidence, and the HAL simulator and the entry point
+fall outside both.
+
+Keeping the harnesses out of `core.gpr` is what keeps the coverage denominator
+to code that ships: coverage of a unit nothing calls would say nothing, so a
+harness sits outside the denominator rather than exempted inside it.
 
 The `core.gpr` project does not depend on the `hal.gpr` project. This allows the
 core logic to be tested and proven independently of the hardware abstraction layer.
