@@ -16,6 +16,7 @@ from vreport.model import (
     ProofEvidence,
     RequirementLayer,
     RequirementsDocument,
+    RequirementSource,
     RequirementStatement,
     TraceabilityEvidence,
     TraceReport,
@@ -85,11 +86,18 @@ def requirements_document() -> RequirementsDocument:
         generated_at="2026-07-29T00:00:00+00:00",
         corpus_valid=True,
         layers=[
-            RequirementLayer(name="CONOPS", kind="markdown-leaves", pages=["conops"]),
-            RequirementLayer(name="HLR", kind="requirement-yaml", pages=["hlr_x"]),
-            RequirementLayer(name="LLR", kind="requirement-yaml", pages=["llr_x"]),
+            RequirementLayer(
+                name="CONOPS", kind="markdown-leaves", pages=["conops"], roots=["conops"]
+            ),
+            RequirementLayer(
+                name="HLR",
+                kind="requirement-yaml",
+                pages=["hlr_x", "hlr_x_1_nested"],
+                roots=["hlr_x"],
+            ),
+            RequirementLayer(name="LLR", kind="requirement-yaml", pages=["llr_x"], roots=["llr_x"]),
         ],
-        sources=["sources/src-x-ads"],
+        sources=[RequirementSource(page="sources/src-x-ads", path="src/x.ads")],
         nodes={
             "CODE": {
                 "Ctrl.Do_Thing": RequirementStatement(

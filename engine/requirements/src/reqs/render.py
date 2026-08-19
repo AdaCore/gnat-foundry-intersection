@@ -7,18 +7,24 @@ surface -- a reviewer following a trace matrix reads ``hlr_6_pedestrian.5`` and
 has to open the file and count keys to learn what the requirement says.
 
 This module renders the chain as prose instead. A requirement layer becomes one
-MyST page per container, one anchored subsection per statement, each carrying the
-trace neighbourhood the chain resolved for it: what it refines above, what covers
-it below, how it is verified, and any waiver or unresolved ref. A markdown layer
-(the CONOPS) is carried through as its author wrote it, with an anchor planted in
-each leaf and a closing table naming what realizes it. Given a source root, the
-sources those requirements cite are listed too, so the evidence below the
-requirements -- an entity, a contract, a test routine -- links to its own line.
+MyST page per container, titled as the section the container's name says it is
+(``hlr_5_vehicle`` reads "5. Vehicle") and holding one anchored subsection per
+statement, each carrying the trace neighbourhood the chain resolved for it: what
+it refines above, what covers it below, how it is verified, and any waiver or
+unresolved ref. A container the names place under another
+(``hlr_5_vehicle_1_left_demand`` under ``hlr_5_vehicle``) is nested beneath it, so
+the layer reads as the tree its names describe. A markdown layer (the CONOPS) is
+carried through as its author wrote it, with an anchor planted in each leaf and a
+closing table naming what realizes it. Given a source root, the sources those
+requirements cite are listed too, so the evidence below the requirements -- an
+entity, a contract, a test routine -- links to its own line.
 
 The output is *generated evidence*, consumed by the verification-report
 generator the way it consumes the trace matrices: pages plus an ``index.json``
 naming every node's page and anchor, so a consumer links to the requirement text
-without knowing how an anchor is spelled.
+without knowing how an anchor is spelled. The index names each layer's top-level
+containers as well, because that is where the consumer's own table of contents
+starts; the nesting below them is carried by the pages themselves.
 
 The neighbourhood comes from `TraceChecker.view`, so what the document shows and
 what the traceability gate checks are one analysis.
@@ -28,6 +34,7 @@ from __future__ import annotations
 
 import json
 import re
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -50,7 +57,7 @@ if TYPE_CHECKING:
     from reqs.document import Statement
     from reqs.requirement_set import RequirementFile
 
-INDEX_SCHEMA_VERSION = 1
+INDEX_SCHEMA_VERSION = 2
 """Bumped whenever the index's shape changes; a consumer must check it."""
 
 INDEX_NAME = "index.json"
@@ -132,6 +139,62 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
+def container_segments(stem: str) -> tuple[str, list[list[str]]]:
+    """
+    Split a container stem into its level prefix and its numbered segments.
+
+    A container names its place in the layer: ``hlr_5_vehicle_1_left_demand`` is
+    the first elaboration of the fifth section, under the ``hlr`` level. Each
+    segment starts at a number, so ``[["5", "vehicle"], ["1", "left", "demand"]]``
+    -- the last segment names the container and the ones before it name what it
+    sits under. A stem that does not follow the convention has no segments; it is
+    then rendered under its own name, at the top of its layer.
+    """
+    parts = stem.split("_")
+    segments: list[list[str]] = []
+    prefix: list[str] = []
+    for part in parts:
+        if part.isdigit():
+            segments.append([part])
+        elif segments:
+            segments[-1].append(part)
+        else:
+            prefix.append(part)
+    return "_".join(prefix), segments
+
+
+def container_title(stem: str) -> str:
+    """
+    Return the heading a container is rendered under: "5. Vehicle" for `hlr_5_vehicle`.
+
+    The number and words come from the container's last segment, since the ones
+    before it are the containers it is nested under and are already headings of
+    their own. A stem the convention does not fit is its own title: inventing a
+    prettier name for it would hide which file the reader is looking at.
+    """
+    _, segments = container_segments(stem)
+    if not segments:
+        return stem
+    number, *words = segments[-1]
+    if not words:
+        return stem
+    return f"{number}. {' '.join(_capitalized(word) for word in words)}"
+
+
+def container_parent(stem: str) -> str | None:
+    """Return the stem of the container this one elaborates, or None if it is top level."""
+    prefix, segments = container_segments(stem)
+    if not segments[1:]:
+        return None
+    parts = [part for segment in segments[:-1] for part in segment]
+    return "_".join([prefix, *parts] if prefix else parts)
+
+
+def _capitalized(word: str) -> str:
+    """Capitalize a word for a heading, leaving any capitals it already has alone."""
+    return word[:1].upper() + word[1:]
+
+
 def page_of(node_id: str) -> str:
     """Return the page a statement is rendered on: its container, which owns the file."""
     parsed = parse_req_id(node_id)
@@ -197,6 +260,21 @@ class DocumentRenderer:
         for layer in chain:
             if (parent := self.view.parents.get(layer.name)) is not None:
                 self.children.setdefault(parent, []).append(layer.name)
+
+        # Which container elaborates which, per requirement layer: the names say
+        # so (`hlr_5_vehicle_1_left_demand` under `hlr_5_vehicle`), and a name
+        # whose parent is not itself a container of the layer is top level.
+        self.contained: dict[str, dict[str, list[str]]] = {}
+        for name in self.rendered:
+            if isinstance(self.view.sets[name], ConopsSet):
+                continue
+            stems = [file.stem for file in self.files_of(name)]
+            tree: dict[str, list[str]] = {stem: [] for stem in stems}
+            for stem in stems:
+                parent = container_parent(stem)
+                if parent is not None and parent in tree:
+                    tree[parent].append(stem)
+            self.contained[name] = tree
 
         # Where the evidence below the requirements lives, and what cites it: the
         # source listings exist because a requirement points into them, and the
@@ -295,6 +373,20 @@ class DocumentRenderer:
             return [node_set.path.stem]
         return [file.stem for file in self.files_of(layer)]
 
+    def roots_of(self, layer: str) -> list[str]:
+        """
+        Return the layer's top-level pages, in file order.
+
+        A consumer builds its table of contents from these: the containers nested
+        under them are named by their parent's own page, so listing every page
+        would enter the nested ones twice.
+        """
+        tree = self.contained.get(layer)
+        if tree is None:
+            return self.pages_of(layer)
+        nested = {stem for children in tree.values() for stem in children}
+        return [stem for stem in tree if stem not in nested]
+
     def anchor(self, layer: str, node_id: str) -> str:
         """Return the anchor a node of `layer` is rendered under."""
         return anchor_of(node_id, self.prefixes.get(layer))
@@ -323,6 +415,7 @@ class DocumentRenderer:
                     "name": layer,
                     "kind": self.view.layers[layer].kind,
                     "pages": self.pages_of(layer),
+                    "roots": self.roots_of(layer),
                 }
                 for layer in self.rendered
             ],
@@ -338,7 +431,9 @@ class DocumentRenderer:
                 for layer in self.rendered
             }
             | self._source_nodes(),
-            "sources": [self.source_page(path) for path in sorted(self.sources)],
+            "sources": [
+                {"page": self.source_page(path), "path": path} for path in sorted(self.sources)
+            ],
         }
 
     def _source_nodes(self) -> dict[str, dict[str, dict[str, str]]]:
@@ -380,13 +475,47 @@ class DocumentRenderer:
                 yield f"{file.stem}.{number}", _flat(statement.text)
 
     def _page(self, layer: str, file: RequirementFile) -> RenderedPage:
-        """Render one container: its document-level prose, then every statement."""
-        parts = [f"({anchor_of(file.stem)})=", f"# {file.stem}", _preamble(file)]
+        """Render one container: what it is, its document-level prose, then every statement."""
+        parts = [
+            f"({anchor_of(file.stem)})=",
+            f"# {container_title(file.stem)}",
+            self._identity(file),
+            _preamble(file),
+        ]
         parts += [
             self._statement(layer, f"{file.stem}.{number}", statement)
             for number, statement in file.description.items()
         ]
+        parts.append(self._contained_toc(layer, file.stem))
         return RenderedPage(name=file.stem, text="\n\n".join(p for p in parts if p) + "\n")
+
+    def _identity(self, file: RequirementFile) -> str:
+        """
+        Name the container the page renders, and the file it is authored in.
+
+        The heading is the container's section title, so the container id -- what
+        a matrix cites and what a statement id is built from -- is said here
+        instead, next to the file a reviewer would edit to change any of it.
+        """
+        path = file.path
+        if self.source_root is not None:
+            with suppress(ValueError):
+                path = path.resolve().relative_to(self.source_root.resolve())
+        return f"Container `{file.stem}`, authored in `{path.as_posix()}`."
+
+    def _contained_toc(self, layer: str, stem: str) -> str:
+        """Enter the containers nested under this one, so they hang off its page."""
+        children = self.contained.get(layer, {}).get(stem, [])
+        if not children:
+            return ""
+        entries = "\n".join(children)
+        return (
+            "## Sections\n\n"
+            "The containers this one's name places under it. Each of their "
+            "statements traces upward on its own: the nesting says how the layer "
+            "is organized, not what refines what.\n\n"
+            f"```{{toctree}}\n:maxdepth: 1\n\n{entries}\n```"
+        )
 
     def _source_pages(self) -> list[RenderedPage]:
         """Render one page per cited source file, in path order."""

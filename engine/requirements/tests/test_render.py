@@ -37,6 +37,8 @@ from reqs.render import (
     DocumentRenderer,
     RenderedPage,
     anchor_of,
+    container_parent,
+    container_title,
     source_slugs,
 )
 
@@ -316,6 +318,83 @@ def test_anchor_of_is_a_stable_slug(node_id: str, expected: str) -> None:
     assert anchor_of(node_id) == expected
 
 
+# --- containers read as the sections their names say they are -----------------
+
+
+@pytest.mark.parametrize(
+    ("stem", "title"),
+    [
+        ("hlr_0_safety", "0. Safety"),
+        ("llr_5_core_loop", "5. Core Loop"),
+        ("hlr_5_vehicle_1_left_demand", "1. Left Demand"),  # the last segment only
+        ("hlr_a", "hlr_a"),  # no numbered segment: its own name, unprettified
+        ("hlr_5", "hlr_5"),  # a number with nothing to name
+    ],
+)
+def test_container_title_names_the_section(stem: str, title: str) -> None:
+    """A container's heading is the section its name says it is."""
+    assert container_title(stem) == title
+
+
+@pytest.mark.parametrize(
+    ("stem", "parent"),
+    [
+        ("hlr_5_vehicle_1_left_demand", "hlr_5_vehicle"),
+        ("llr_4_controller_3_pedestrian", "llr_4_controller"),
+        ("hlr_5_vehicle", None),
+        ("hlr_a", None),
+    ],
+)
+def test_container_parent_follows_the_name(stem: str, parent: str | None) -> None:
+    """Nesting is what the names say: a further segment is a container below."""
+    assert container_parent(stem) == parent
+
+
+def nested_chain(tmp_path: Path) -> list[Layer]:
+    """Build an HLR layer holding a container and the container nested under it."""
+    hlr_dir = tmp_path / "hlr"
+    hlr_dir.mkdir()
+    write_req(hlr_dir, "hlr_5_vehicle.yaml", "source", [["CONOPS §1.1"]])
+    write_req(hlr_dir, "hlr_5_vehicle_1_left_demand.yaml", "source", [["CONOPS §2.1"]])
+    write_req(hlr_dir, "hlr_6_pedestrian.yaml", "source", [["CONOPS §2.6"]])
+    return [conops_layer(write_conops(tmp_path)), hlr_layer(hlr_dir)]
+
+
+def test_a_container_page_is_titled_and_says_which_file_it_renders(tmp_path: Path) -> None:
+    """The heading is the section title, so the id and its file are named beneath it."""
+    page = page_text(
+        DocumentRenderer(nested_chain(tmp_path), source_root=tmp_path).pages(), "hlr_5_vehicle"
+    )
+
+    assert "# 5. Vehicle" in page
+    assert "Container `hlr_5_vehicle`, authored in `hlr/hlr_5_vehicle.yaml`." in page
+
+
+def test_a_nested_container_is_entered_from_its_parents_page(tmp_path: Path) -> None:
+    """The page the names place above enters the one below, so the layer reads as a tree."""
+    renderer = DocumentRenderer(nested_chain(tmp_path))
+    pages = renderer.pages()
+
+    assert "hlr_5_vehicle_1_left_demand\n```" in page_text(pages, "hlr_5_vehicle")
+    # Entered once: a page named by its parent must not also be named by the layer.
+    assert renderer.roots_of("HLR") == ["hlr_5_vehicle", "hlr_6_pedestrian"]
+    assert "toctree" not in page_text(pages, "hlr_6_pedestrian")
+
+
+def test_the_index_names_each_layers_top_pages(tmp_path: Path) -> None:
+    """A consumer's table of contents starts at the roots; the rest hang off them."""
+    index = DocumentRenderer(nested_chain(tmp_path)).index()
+
+    layers = {layer["name"]: layer for layer in index["layers"]}
+    assert layers["HLR"]["roots"] == ["hlr_5_vehicle", "hlr_6_pedestrian"]
+    assert layers["HLR"]["pages"] == [
+        "hlr_5_vehicle",
+        "hlr_5_vehicle_1_left_demand",
+        "hlr_6_pedestrian",
+    ]
+    assert layers["CONOPS"]["roots"] == ["conops"]
+
+
 # --- the CONOPS: a document carried through, not rebuilt ----------------------
 
 
@@ -507,7 +586,9 @@ def test_the_index_names_the_listings_and_locates_the_evidence(tmp_path: Path) -
     renderer = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path)
     index = renderer.index()
 
-    assert index["sources"] == [renderer.source_page("src/controller.ads")]
+    assert index["sources"] == [
+        {"page": renderer.source_page("src/controller.ads"), "path": "src/controller.ads"}
+    ]
     assert index["nodes"]["CODE"]["Controller.Step"] == {
         "page": renderer.source_page("src/controller.ads"),
         "anchor": renderer.source_anchor("src/controller.ads", 3),

@@ -62,7 +62,10 @@ def _page_order(ev: Evidence) -> tuple[str, ...]:
     if ev.requirements is None:
         return _PAGE_ORDER
     index = _PAGE_ORDER.index("traceability")
-    return (*_PAGE_ORDER[:index], "requirements", *_PAGE_ORDER[index:])
+    # The source listings last: they are what the evidence links *into*, read
+    # from a requirement or a matrix rather than in their own right.
+    listings = ("source-listings",) if ev.requirements.sources else ()
+    return (*_PAGE_ORDER[:index], "requirements", *_PAGE_ORDER[index:], *listings)
 
 
 def _req_link(doc: RequirementsDocument | None, layer: str, node: str) -> str:
@@ -1156,53 +1159,127 @@ def _layer_count(doc: RequirementsDocument, layer: RequirementLayer) -> str:
     return f"{count(nodes, 'statement')} in {count(len(layer.pages), 'container')} ({layer.name})"
 
 
-def _emit_requirements(ev: Evidence) -> str:
-    """Render the requirements section: what it is, then a toctree of the containers."""
-    doc = ev.requirements
-    if doc is None:  # pragma: no cover - emitted only when a render was collected
+def _requirements(ev: Evidence) -> RequirementsDocument:
+    """Return the collected render; the requirement pages are emitted only from one."""
+    if ev.requirements is None:  # pragma: no cover - emitted only when a render was collected
         msg = "no rendered requirement document to emit"
         raise ValueError(msg)
+    return ev.requirements
+
+
+def _layer_page(layer: RequirementLayer) -> str:
+    """Return the report page one rendered layer's containers are entered from."""
+    return layer.name.lower()
+
+
+def _emit_requirements(ev: Evidence) -> str:
+    """Render the requirements landing page: what the corpus is, then a page per layer."""
+    doc = _requirements(ev)
     counts = ", ".join(_layer_count(doc, layer) for layer in doc.layers)
     provenance = (
         f"Rendered {inline(doc.generated_at)} by `reqs document`"
         if doc.generated_at
         else "Rendered by `reqs document`"
     )
-    pages = "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in doc.requirement_pages)
-    # The listing pages belong to both renderings, because the evidence links
-    # into them and a link that resolves in one rendering only is a broken
-    # document. Each page carries the source itself as HTML-only content.
-    listings = (
+    layers = "\n".join(_layer_page(layer) for layer in doc.layers)
+    cited = (
         ""
         if not doc.sources
-        else f"The evidence links into these {count(len(doc.sources), 'source listing')}, "
-        "which carry the cited source in the HTML rendering:\n\n"
-        "```{toctree}\n:maxdepth: 1\n\n"
-        + "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in doc.sources)
-        + "\n```\n"
+        else "The sources these requirements cite are listed under "
+        "{ref}`source-listings`, one page per file.\n"
     )
     return f"""{_target("requirements")}
 
 # Requirements
 
-The requirement corpus as a document: {counts}. Each statement carries the
-trace neighbourhood the chain resolved for it -- what it refines above, what
-covers it below, and how it is verified -- so the requirement and its evidence
-read together. The trace matrices under {{ref}}`traceability` link here, and
-every statement links back to its parents and children.
+The requirement corpus as a document, one layer of the chain per section below:
+{counts}. Each statement carries the trace neighbourhood the chain resolved for
+it -- what it refines above, what covers it below, and how it is verified -- so
+the requirement and its evidence read together. The trace matrices under
+{{ref}}`traceability` link here, and every statement links back to its parents
+and children.
 
+{cited}
 {provenance} from the requirement files themselves; the authoring format is
 YAML (one container per file) and this rendering is generated, never edited.
 Regenerate with `make requirements-doc`.
 
 ```{{toctree}}
+:maxdepth: 2
+
+{layers}
+```
+"""
+
+
+def _emit_layer(doc: RequirementsDocument, layer: RequirementLayer) -> str:
+    """Render one layer's page: what the layer holds, then a toctree of its top pages."""
+    roots = "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in layer.roots)
+    return f"""# {layer.name}
+
+{_layer_blurb(doc, layer)}
+
+```{{toctree}}
+:maxdepth: 2
+
+{roots}
+```
+"""
+
+
+def _layer_blurb(doc: RequirementsDocument, layer: RequirementLayer) -> str:
+    """Say what one layer holds and how its pages are organized."""
+    held = _layer_count(doc, layer).removesuffix(f" ({layer.name})")
+    if layer.kind == MARKDOWN_LEAVES_KIND:
+        return (
+            f"{_capitalized(held)}, in the document below as its author wrote it. "
+            "Each leaf is a commitment a requirement beneath it must realize, and "
+            "the closing tables name what realizes each."
+        )
+    return (
+        f"{_capitalized(held)}, one page per container, nested as the container names "
+        "are. A container's page carries its statements, each with the trace "
+        "neighbourhood the chain resolved for it."
+    )
+
+
+def _emit_source_listings(ev: Evidence) -> str:
+    """Render the source-listing section: one page per file the requirements cite."""
+    doc = _requirements(ev)
+    # An entry titled by its path with the `src/` directories dropped: the nav
+    # shows the entry's title, and which source root a file sits under says
+    # nothing about the file. The listing itself is titled by the real path.
+    entries = "\n".join(
+        f"{_listing_title(source.path)} <{REQUIREMENTS_SUBDIR}/{source.page}>"
+        for source in doc.sources
+    )
+    return f"""{_target("source-listings")}
+
+# Source listings
+
+The requirements cite {count(len(doc.sources), "file")}. Each is listed whole
+with an anchor on every cited line, so a requirement's evidence -- an entity, a
+contract, a test routine -- links to the line that carries it. The listings are
+a navigation aid rather than part of the argument, so the source itself is
+carried in the HTML rendering alone; the anchors are in both, because a link
+that resolves in one rendering and dangles in the other is a broken document.
+
+```{{toctree}}
 :maxdepth: 1
 
-{pages}
+{entries}
 ```
-
-{listings}
 """
+
+
+def _listing_title(path: str) -> str:
+    """Return the nav title of one listing: its path, minus the source roots in it."""
+    return "/".join(part for part in path.split("/") if part != "src")
+
+
+def _capitalized(text: str) -> str:
+    """Capitalize a phrase's first letter, leaving any capitals it already has alone."""
+    return text[:1].upper() + text[1:]
 
 
 def emit_pages(ev: Evidence, obligations: list[Obligation]) -> dict[str, str]:
@@ -1214,6 +1291,18 @@ def emit_pages(ev: Evidence, obligations: list[Obligation]) -> dict[str, str]:
         "coverage.md": _emit_coverage(ev),
         "traceability.md": _emit_traceability(ev),
     }
-    if ev.requirements is not None:
-        pages["requirements.md"] = _emit_requirements(ev)
+    if ev.requirements is None:
+        return pages
+    pages["requirements.md"] = _emit_requirements(ev)
+    for layer in ev.requirements.layers:
+        name = f"{_layer_page(layer)}.md"
+        # A layer named after one of the report's own pages would replace it
+        # here, silently: the chain names its layers, so this is checked rather
+        # than assumed.
+        if name in pages:
+            msg = f"chain layer {layer.name!r} collides with the report page {name!r}"
+            raise ValueError(msg)
+        pages[name] = _emit_layer(ev.requirements, layer)
+    if ev.requirements.sources:
+        pages["source-listings.md"] = _emit_source_listings(ev)
     return pages

@@ -21,7 +21,7 @@ invoking `vreport` directly, produce them first):
 | `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt`, `gnatcov-command.txt` (the recorded invocation) |
 | `reports/trace/trace_report.json` | `make trace-report` | `reqs trace --format json` over the whole chain: per-pair matrices, the merged verification view, gate diagnostics, recorded command |
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
-| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` (the CONOPS, HLR and LLR, plus a listing of each cited source under `pages/sources/`) and `index.json` (each node's page and anchor) |
+| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` (the CONOPS, HLR and LLR, plus a listing of each cited source under `pages/sources/`) and `index.json` (each layer's pages and top-level pages, each node's page and anchor) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
 downstream tooling), `src/` (generated MyST sources), `html/` (the report),
@@ -46,18 +46,24 @@ the build fails. The build is itself the mechanical oracle for the report.
 
 The rendered requirement pages are *copied* into the generated tree rather than
 emitted (they are already the rendering; `reqs document` owns it) and appear as
-the Requirements section. Their statements are what the trace matrices link to,
-resolved through `index.json` — so a matrix id that names no rendered statement
-fails the build rather than shipping a dead link. The render is optional input:
-without it the report says everything it said before, with matrix ids as plain
-text.
+the Requirements section: a page per chain layer, entering that layer's
+top-level containers, which in turn enter the containers nested under them. The
+layer pages are emitted here, because which layers the report carries and in
+what order is the report's own structure; the nesting below them comes from the
+render, which is what knows how the containers relate. Their statements are what
+the trace matrices link to, resolved through `index.json` — so a matrix id that
+names no rendered statement fails the build rather than shipping a dead link.
+The render is optional input: without it the report says everything it said
+before, with matrix ids as plain text.
 
-The source listings are marked HTML-only *inside* their pages, so the PDF
-rendering carries each cited line's anchor and citers but not the source; the
-pages themselves are in both renderings, because a link that resolves in one
-and dangles in the other is a broken document (and rst2pdf fails the build on
-one, which `build_pdf` now catches -- it logs a failed document and exits 0,
-leaving an empty file).
+The source listings are a section of their own, after the traceability page:
+they are what the evidence links *into*, read from a requirement or a matrix
+rather than in their own right. They are marked HTML-only *inside* their pages,
+so the PDF rendering carries each cited line's anchor and citers but not the
+source; the pages themselves are in both renderings, because a link that
+resolves in one and dangles in the other is a broken document (and rst2pdf fails
+the build on one, which `build_pdf` now catches -- it logs a failed document and
+exits 0, leaving an empty file).
 
 The review obligations follow the structure of NVIDIA's SPARK Process
 (Software Unit Verification Report / `Review_Diagnostic_Justifications` /

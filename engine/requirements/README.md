@@ -28,11 +28,13 @@ uv run reqs trace --chain <chain.yaml> --complete --format json -o report.json
 # Render the requirement layers of a chain as a linked document
 uv run reqs document --chain <chain.yaml> --out <dir>
 uv run reqs document --chain <chain.yaml> --out <dir> --source-root <repo>
-# Writes `<dir>/pages/<container>.md` (one MyST page per container, one anchored
-# subsection per statement, each carrying its resolved trace neighbourhood; a
-# markdown layer like the CONOPS is carried through as written, its leaves
-# anchored in place and a closing table naming what realizes each) and
-# `<dir>/index.json` (schema_version, every node's page and anchor). With
+# Writes `<dir>/pages/<container>.md` (one MyST page per container, titled as the
+# section its name says it is and nested under the container the name places it
+# under, one anchored subsection per statement, each carrying its resolved trace
+# neighbourhood; a markdown layer like the CONOPS is carried through as written,
+# its leaves anchored in place and a closing table naming what realizes each) and
+# `<dir>/index.json` (schema_version, each layer's pages and top-level pages,
+# every node's page and anchor). With
 # `--source-root`, the sources the requirements cite are listed too, under
 # `<dir>/pages/sources/`, and the evidence links to the cited lines. The
 # verification-report generator folds the pages into its own tree and links its

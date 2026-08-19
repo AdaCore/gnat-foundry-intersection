@@ -18,8 +18,18 @@ Each YAML file is a requirement *container*; the `description` map holds the
 individual numbered "shall" statements (RS.3 — exactly one shall per
 statement). Each statement is uniquely identified as `<stem>.<number>` — the
 file's name without extension, then the statement's `description` key (RS.2);
-e.g. `hlr_Exponentiation_Int_1.2`. Top-level fields observed across the
-examples:
+e.g. `hlr_Exponentiation_Int_1.2`.
+
+A stem names the container's place in its layer: a level prefix, then one
+numbered segment per level of nesting — `hlr_5_vehicle` is section 5, and
+`hlr_5_vehicle_1_left_demand` is its first subsection. Nothing in the schema
+requires that shape, but `reqs document` reads it to title and nest the pages it
+renders (`hlr_5_vehicle` reads "5. Vehicle"); a stem that does not follow it
+renders under its own name, at the top of its layer. Nesting is organization
+only — every statement traces upward on its own, so a subsection's statements do
+not refine the section's.
+
+Top-level fields observed across the examples:
 
 | Field | Level | Meaning |
 | --- | --- | --- |

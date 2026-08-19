@@ -377,16 +377,28 @@ def test_open_items_and_verification_rows_link_too(evidence_with_requirements: E
 def test_the_requirements_page_names_every_rendered_container(
     evidence_with_requirements: Evidence,
 ) -> None:
-    """The section page lists the containers as a toctree and says what it is."""
+    """The section page enters one page per layer, and each of those its containers."""
     pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
     requirements = pages["requirements.md"]
 
     assert "102 statements" not in requirements  # counts come from the render, not hardcoded
     assert "4 leaf statements (CONOPS)" in requirements  # named as its kind, not as containers
-    assert "3 statements in 1 container (HLR)" in requirements
-    assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in requirements
-    assert f"{REQUIREMENTS_SUBDIR}/llr_x" in requirements
+    assert "3 statements in 2 containers (HLR)" in requirements
+    assert "\nconops\nhlr\nllr\n" in requirements
+    assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in pages["hlr.md"]
+    assert f"{REQUIREMENTS_SUBDIR}/llr_x" in pages["llr.md"]
     assert "requirements" in pages["index.md"]
+
+
+def test_a_layer_page_enters_its_top_containers_only(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """A nested container is entered from its parent's page, so not from the layer's."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert f"{REQUIREMENTS_SUBDIR}/hlr_x_1_nested" not in pages["hlr.md"]
+    assert "3 statements in 2 containers" in pages["hlr.md"]
+    assert "4 leaf statements, in the document below" in pages["conops.md"]
 
 
 def test_without_a_render_the_report_omits_the_section(evidence: Evidence) -> None:
@@ -451,12 +463,14 @@ def test_the_listings_are_in_the_toctree_of_both_renderings(
 ) -> None:
     """The evidence links into them, so a link must not resolve in one rendering only."""
     pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
-    requirements = pages["requirements.md"]
+    listings = pages["source-listings.md"]
 
-    assert "1 source listing" in requirements
-    assert f"{REQUIREMENTS_SUBDIR}/sources/src-x-ads" in requirements
-    listings = requirements.split("source listing")[1]
+    assert "The requirements cite 1 file." in listings
+    # Titled by the path the `src/` roots carry no information in, entered by page.
+    assert f"x.ads <{REQUIREMENTS_SUBDIR}/sources/src-x-ads>" in listings
     assert "{only}" not in listings  # gating the pages would dangle the PDF's links
+    assert "\nsource-listings\n" in pages["index.md"]
+    assert "{ref}`source-listings`" in pages["requirements.md"]
 
 
 def test_an_empty_pdf_is_reported_as_a_failure(tmp_path: Path) -> None:

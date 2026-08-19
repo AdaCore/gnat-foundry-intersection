@@ -529,7 +529,7 @@ class TraceReport(Frozen):
     diagnostics: list[TraceDiagnostic] = Field(default_factory=list)
 
 
-REQUIREMENTS_INDEX_SCHEMA_VERSION = 1
+REQUIREMENTS_INDEX_SCHEMA_VERSION = 2
 
 
 class RequirementStatement(Frozen):
@@ -546,6 +546,17 @@ class RequirementLayer(Frozen):
     name: str
     kind: str = ""  # the chain layer's kind, so a consumer can name its nodes correctly
     pages: list[str] = Field(default_factory=list)
+    # The pages at the top of the layer. The rest are nested under one of these
+    # by the render, which enters them from their parent's page: a table of
+    # contents naming every page would enter the nested ones a second time.
+    roots: list[str] = Field(default_factory=list)
+
+
+class RequirementSource(Frozen):
+    """One cited source file, listed as its own page."""
+
+    page: str  # the listing's page name, relative to the document's page directory
+    path: str  # the file it lists, as the inventories name it
 
 
 class RequirementsDocument(Frozen):
@@ -564,7 +575,7 @@ class RequirementsDocument(Frozen):
     corpus_valid: bool = False
     layers: list[RequirementLayer] = Field(default_factory=list)
     nodes: dict[str, dict[str, RequirementStatement]] = Field(default_factory=dict)
-    sources: list[str] = Field(default_factory=list)  # listings of the sources the chain cites
+    sources: list[RequirementSource] = Field(default_factory=list)  # what the chain cites
 
     @property
     def requirement_pages(self) -> list[str]:
@@ -574,7 +585,7 @@ class RequirementsDocument(Frozen):
     @property
     def pages(self) -> list[str]:
         """Every rendered page: the requirements, then the source listings."""
-        return self.requirement_pages + self.sources
+        return self.requirement_pages + [source.page for source in self.sources]
 
     def statement(self, layer: str, node: str) -> RequirementStatement | None:
         """Resolve one node of one layer to its rendered statement, if it has one."""
