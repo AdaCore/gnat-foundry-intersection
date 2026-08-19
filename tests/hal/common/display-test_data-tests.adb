@@ -16,6 +16,7 @@ with System.Assertions;
 --  end read only
 
 with Ada.Characters.Latin_1;
+with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
 
@@ -154,12 +155,14 @@ package body Display.Test_Data.Tests is
 
       procedure Check_Line (Line : String; Number : Positive) is
       begin
-         --  Past the frame, only the erase-below tail Show ends with.
-         if Number > Frame_Height then
+         --  The frame is not newline-terminated -- on a terminal exactly as
+         --  tall as the picture that newline would scroll it off by one -- so
+         --  the erase-below tail rides on the end of the last row.
+         if Number = Frame_Height then
             Assert
-              (Line = ESC & "[J",
-               "the frame should be followed only by the erase-below tail");
-            return;
+              (Line'Length >= 3
+               and then Line (Line'Last - 2 .. Line'Last) = ESC & "[J",
+               "the last row should carry the erase-below tail");
          end if;
 
          --  Every GREEN paint in the frame must be the probe's single GREEN
@@ -317,14 +320,133 @@ package body Display.Test_Data.Tests is
          end loop;
       end Check_Request;
 
+
+      --  Wide profile. A signal head straddles every lane, so a movement's
+      --  colour lands on that head's bulbs and nowhere else -- and the glyph
+      --  a paint falls on says which head lit, because the through head shows
+      --  circular indications while the turn head shows arrows only, never
+      --  circular (CONOPS 2.7).
+      Wide_Frame_Height : constant := 50;
+      --  Height of the wide picture (keep in step with the host Display
+      --  body): 3 legend header rows plus 47 picture rows.
+
+      function Glyph (B1, B2, B3 : Natural) return String
+      is (Character'Val (B1) & Character'Val (B2) & Character'Val (B3));
+      --  One three-byte UTF-8 glyph of the wide picture, by code point. The
+      --  captured frame is a byte string and -gnatW8 forbids writing these
+      --  characters in a String literal, so they are spelled out.
+      --  @param B1 First byte of the encoding
+      --  @param B2 Second byte of the encoding
+      --  @param B3 Third byte of the encoding
+      --  @return The encoded glyph
+
+      Circle    : constant String := Glyph (16#E2#, 16#97#, 16#8F#);
+      Arrow_W   : constant String := Glyph (16#E2#, 16#97#, 16#80#);
+      Bar_Down  : constant String := Glyph (16#E2#, 16#96#, 16#8C#);
+      Bar_Along : constant String := Glyph (16#E2#, 16#96#, 16#80#);
+      --  The head's circular indication, its westward arrow indication, and
+      --  the two crosswalk bars: upright bars across the north/south arms,
+      --  flat bars across the east/west arms.
+
+      --  A protected left, and nothing else, released: its head is then the
+      --  only GREEN in the frame. North's left turn exits west, so the arrow
+      --  it must light is the westward one.
+      Turn_Probe : constant States.Display_State :=
+        (Through  => (others => States.Red),
+         Left     => (States.North => States.Green, others => States.Red),
+         Heads    => (others => States.Dont_Walk),
+         Requests => (others => States.No_Request));
+
+      Wide_Count       : Natural := 0;
+      Saw_Wide_Legend  : Boolean := False;
+      Saw_Through_Bulb : Boolean := False;
+      Saw_Turn_Bulb    : Boolean := False;
+      Saw_Wide_East    : Boolean := False;
+      Saw_Wide_North   : Boolean := False;
+
+      procedure Render_Turn is
+      begin
+         Show (Turn_Probe);
+      end Render_Turn;
+
+      procedure Check_Wide_Green
+        (Line     : String;
+         Expected : String;
+         Seen     : in out Boolean;
+         Message  : String) is
+      begin
+         for I in Line'First .. Line'Last - Green_On'Length - 2 loop
+            if Line (I .. I + Green_On'Length - 1) = Green_On then
+               Seen := True;
+               Assert
+                 (Line (I + Green_On'Length .. I + Green_On'Length + 2)
+                  = Expected,
+                  Message);
+            end if;
+         end loop;
+      end Check_Wide_Green;
+      --  Every GREEN paint in the line must land on the one glyph the probe
+      --  can legitimately light.
+
+      procedure Check_Wide_Through (Line : String; Number : Positive) is
+      begin
+         if Ada.Strings.Fixed.Index
+             (Line, "pedestrian request  --  N / S / E / W crosswalk") /= 0
+         then
+            Saw_Wide_Legend := True;
+         end if;
+         if Number = Wide_Frame_Height then
+            Assert
+              (Line'Length >= 3
+               and then Line (Line'Last - 2 .. Line'Last) = ESC & "[J",
+               "the last row should carry the erase-below tail");
+         end if;
+         Check_Wide_Green
+           (Line, Circle, Saw_Through_Bulb,
+            "a GREEN through face must light a circular indication, never "
+            & "the turn head's arrows");
+      end Check_Wide_Through;
+
+      procedure Check_Wide_Turn (Line : String; Number : Positive) is
+         pragma Unreferenced (Number);
+      begin
+         Check_Wide_Green
+           (Line, Arrow_W, Saw_Turn_Bulb,
+            "a GREEN protected-left face must light an arrow indication "
+            & "pointing where the turn exits, never a circular one "
+            & "(CONOPS 2.7)");
+      end Check_Wide_Turn;
+
+      procedure Check_Wide_East (Line : String; Number : Positive) is
+         pragma Unreferenced (Number);
+      begin
+         Check_Wide_Green
+           (Line, Bar_Along, Saw_Wide_East,
+            "East_Side WALK must paint the bars across the east arm "
+            & "(parallel to N-S traffic), not lie across the N-S road");
+      end Check_Wide_East;
+
+      procedure Check_Wide_North (Line : String; Number : Positive) is
+         pragma Unreferenced (Number);
+      begin
+         Check_Wide_Green
+           (Line, Bar_Down, Saw_Wide_North,
+            "North_Side WALK must paint the bars across the north arm "
+            & "(parallel to E-W traffic), not lie across the E-W road");
+      end Check_Wide_North;
+
    begin
+
+      --  Both pictures are exercised, and neither may be chosen by accident:
+      --  left to itself the body measures the terminal, which under a
+      --  captured run is whatever the suite happens to have been started in.
+      Ada.Environment_Variables.Set ("TRAFFIC_LIGHT_FRAME", "narrow");
 
       Run_Captured (Render'Access, Check_Line'Access, Count);
 
       Assert
-        (Count = Frame_Height + 1,
-         "Show should render the whole intersection frame followed by "
-         & "the erase-below tail");
+        (Count = Frame_Height,
+         "Show should render the whole intersection frame");
 
       Assert
         (Green_Found > 0, "Show should paint at least one GREEN character");
@@ -355,6 +477,37 @@ package body Display.Test_Data.Tests is
             "the " & States.Crosswalk'Image (C)
             & " request lamp should light its corner key label");
       end loop;
+
+      Ada.Environment_Variables.Set ("TRAFFIC_LIGHT_FRAME", "wide");
+
+      Run_Captured (Render'Access, Check_Wide_Through'Access, Wide_Count);
+      Assert
+        (Wide_Count = Wide_Frame_Height,
+         "Show should render the whole wide intersection frame");
+      Assert
+        (Saw_Wide_Legend,
+         "the wide header should legend the ped-request key shortcuts");
+      Assert
+        (Saw_Through_Bulb,
+         "the through probe should light a circular indication");
+
+      Run_Captured (Render_Turn'Access, Check_Wide_Turn'Access, Wide_Count);
+      Assert
+        (Saw_Turn_Bulb, "the turn probe should light an arrow indication");
+
+      Run_Captured
+        (Render_East_Walk'Access, Check_Wide_East'Access, Wide_Count);
+      Assert
+        (Saw_Wide_East,
+         "the East_Side WALK probe should paint at least one green bar");
+
+      Run_Captured
+        (Render_North_Walk'Access, Check_Wide_North'Access, Wide_Count);
+      Assert
+        (Saw_Wide_North,
+         "the North_Side WALK probe should paint at least one green bar");
+
+      Ada.Environment_Variables.Clear ("TRAFFIC_LIGHT_FRAME");
 
 --  begin read only
    end Test_Show;
