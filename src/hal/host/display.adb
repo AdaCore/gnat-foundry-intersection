@@ -44,8 +44,10 @@ with Ada.Characters.Latin_1;
 with Ada.Environment_Variables;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO.C_Streams;
 with Ada.Text_IO.Text_Streams;
 with Interfaces.C;
+with Interfaces.C_Streams;
 
 package body Display is
 
@@ -469,27 +471,27 @@ package body Display is
    --  @param Size Filled in with the window size on success
    --  @return Zero on success
 
-   Standard_Output_Fd : constant Interfaces.C.int := 1;
-   --  The descriptor the window size is read from, and the one Text_IO's
-   --  standard output writes to.
+   function Destination_Fd return Interfaces.C.int
+   is (Interfaces.C.int
+         (Interfaces.C_Streams.fileno
+            (Ada.Text_IO.C_Streams.C_Stream (Current_Output))));
+   --  The file descriptor the frame is actually being written to. Emit writes
+   --  through the current output, which a caller may have redirected, so the
+   --  size that governs the choice of picture has to be read from wherever
+   --  that leads rather than from standard output on principle.
+   --  @return The descriptor behind Text_IO's current output
 
    function Seats_Wide return Boolean;
    --  Whether the frame's destination is a terminal big enough for the wide
-   --  picture.
+   --  picture. A destination that is not a terminal at all -- a file, a pipe,
+   --  a captured test run -- has no size to report, and answers False.
    --  @return True when the measured window is at least 95x50
 
    function Seats_Wide return Boolean is
       Size : aliased Winsize;
    begin
-      --  A window size is a property of the terminal behind standard output.
-      --  A caller that has redirected Text_IO is writing to a file or a pipe
-      --  instead, which that measurement would not describe at all, so the
-      --  answer there is the narrow picture -- the one that fits anywhere.
-      if File_Access'(Current_Output) /= File_Access'(Standard_Output) then
-         return False;
-      end if;
       return
-        Ioctl (Standard_Output_Fd, TIOCGWINSZ, Size'Access) = 0
+        Ioctl (Destination_Fd, TIOCGWINSZ, Size'Access) = 0
         and then Natural (Size.Cols) >= Wide_Width
         and then Natural (Size.Rows) >= Wide_Height;
    end Seats_Wide;
