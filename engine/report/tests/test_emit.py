@@ -398,7 +398,7 @@ def test_a_layer_page_enters_its_top_containers_only(
 
     assert f"{REQUIREMENTS_SUBDIR}/hlr_x_1_nested" not in pages["hlr.md"]
     assert "3 statements in 2 containers" in pages["hlr.md"]
-    assert "4 leaf statements, in the document below" in pages["conops.md"]
+    assert "4 leaf statements." in pages["conops.md"]
 
 
 def test_without_a_render_the_report_omits_the_section(evidence: Evidence) -> None:

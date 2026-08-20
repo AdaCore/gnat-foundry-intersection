@@ -1213,11 +1213,18 @@ Regenerate with `make requirements-doc`.
 
 
 def _emit_layer(doc: RequirementsDocument, layer: RequirementLayer) -> str:
-    """Render one layer's page: what the layer holds, then a toctree of its top pages."""
+    """
+    Render one layer's page: how much the layer holds, then a toctree of its top pages.
+
+    How the pages below are organized and what a statement carries is said once,
+    on the section's own page; a reader who has followed a link this far is after
+    the layer, not another description of the rendering.
+    """
     roots = "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in layer.roots)
+    held = _layer_count(doc, layer).removesuffix(f" ({layer.name})")
     return f"""# {layer.name}
 
-{_layer_blurb(doc, layer)}
+{_capitalized(held)}.
 
 ```{{toctree}}
 :maxdepth: 2
@@ -1225,22 +1232,6 @@ def _emit_layer(doc: RequirementsDocument, layer: RequirementLayer) -> str:
 {roots}
 ```
 """
-
-
-def _layer_blurb(doc: RequirementsDocument, layer: RequirementLayer) -> str:
-    """Say what one layer holds and how its pages are organized."""
-    held = _layer_count(doc, layer).removesuffix(f" ({layer.name})")
-    if layer.kind == MARKDOWN_LEAVES_KIND:
-        return (
-            f"{_capitalized(held)}, in the document below as its author wrote it. "
-            "Each leaf is a commitment a requirement beneath it must realize, and "
-            "the closing tables name what realizes each."
-        )
-    return (
-        f"{_capitalized(held)}, one page per container, nested as the container names "
-        "are. A container's page carries its statements, each with the trace "
-        "neighbourhood the chain resolved for it."
-    )
 
 
 def _emit_source_listings(ev: Evidence) -> str:

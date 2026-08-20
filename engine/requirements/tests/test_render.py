@@ -21,7 +21,9 @@ from test_trace import (
     hlr_layer,
     llr_layer,
     make_code_layer,
+    make_proof_layer,
     make_test_layer,
+    write_checks,
     write_conops,
     write_req,
     write_tests,
@@ -538,7 +540,39 @@ def test_the_cited_line_carries_the_anchor_on_a_paragraph(tmp_path: Path) -> Non
     listing = page_text(renderer.pages(), renderer.source_page("src/controller.ads"))
 
     anchor = renderer.source_anchor("src/controller.ads", 3)
-    assert f"({anchor})=\n\n**Line 3** -- cited by `Controller.Step`" in listing
+    assert f"({anchor})=\n\n**Line 3** -- " in listing
+
+
+def test_a_listed_line_links_up_to_what_cites_it(tmp_path: Path) -> None:
+    """The reference runs upward: the reader has the line, not the requirement on it."""
+    renderer = DocumentRenderer(cited_chain(tmp_path), source_root=tmp_path)
+    listing = page_text(renderer.pages(), renderer.source_page("src/controller.ads"))
+
+    assert "**Line 3** -- `Controller.Step`, cited by [`llr_a.1`](#llr-a-1)" in listing
+
+
+def test_a_check_named_by_its_location_names_only_what_cites_it(tmp_path: Path) -> None:
+    """A check's id is the line itself, so naming it beside the line would say nothing."""
+    chain = cited_chain(tmp_path)
+    write_req(chain[2].path, "llr_a.yaml", "parent_req", [["hlr_a.1"]], ["test", "proof"])
+    chain.append(
+        make_proof_layer(
+            write_checks(
+                tmp_path,
+                {
+                    "kind": "aspect",
+                    "name": "Post",
+                    "file": "src/controller.ads",
+                    "line": 4,
+                    "covers": ["llr_a.1"],
+                },
+            )
+        )
+    )
+    renderer = DocumentRenderer(chain, source_root=tmp_path)
+    listing = page_text(renderer.pages(), renderer.source_page("src/controller.ads"))
+
+    assert "**Line 4** -- cited by [`llr_a.1`](#llr-a-1)" in listing
 
 
 def test_the_listing_itself_is_html_only(tmp_path: Path) -> None:

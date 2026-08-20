@@ -58,12 +58,13 @@ before, with matrix ids as plain text.
 
 The source listings are a section of their own, after the traceability page:
 they are what the evidence links *into*, read from a requirement or a matrix
-rather than in their own right. They are marked HTML-only *inside* their pages,
-so the PDF rendering carries each cited line's anchor and citers but not the
-source; the pages themselves are in both renderings, because a link that
-resolves in one and dangles in the other is a broken document (and rst2pdf fails
-the build on one, which `build_pdf` now catches -- it logs a failed document and
-exits 0, leaving an empty file).
+rather than in their own right. Each cited line names the requirements resting
+on it, so the navigation runs back up as well. They are marked HTML-only
+*inside* their pages, so the PDF rendering carries each cited line's anchor and
+its citing requirements but not the source; the pages themselves are in both
+renderings, because a link that resolves in one and dangles in the other is a
+broken document (and rst2pdf fails the build on one, which `build_pdf` now
+catches -- it logs a failed document and exits 0, leaving an empty file).
 
 The review obligations follow the structure of NVIDIA's SPARK Process
 (Software Unit Verification Report / `Review_Diagnostic_Justifications` /

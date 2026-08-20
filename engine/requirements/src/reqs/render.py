@@ -17,7 +17,8 @@ the layer reads as the tree its names describe. A markdown layer (the CONOPS) is
 carried through as its author wrote it, with an anchor planted in each leaf and a
 closing table naming what realizes it. Given a source root, the sources those
 requirements cite are listed too, so the evidence below the requirements -- an
-entity, a contract, a test routine -- links to its own line.
+entity, a contract, a test routine -- links to its own line, and that line links
+back to the requirements resting on it.
 
 The output is *generated evidence*, consumed by the verification-report
 generator the way it consumes the trace matrices: pages plus an ``index.json``
@@ -210,6 +211,14 @@ class RunInfo:
 
 
 @dataclass(frozen=True)
+class Citation:
+    """One node of the evidence below the requirements, cited at a source line."""
+
+    layer: str
+    node: str
+
+
+@dataclass(frozen=True)
 class RenderedPage:
     """One generated page: where it goes, and what is in it."""
 
@@ -279,7 +288,7 @@ class DocumentRenderer:
         # Where the evidence below the requirements lives, and what cites it: the
         # source listings exist because a requirement points into them, and the
         # lines a requirement points *at* are the ones that carry an anchor.
-        self.citations: dict[str, dict[int, list[str]]] = {}
+        self.citations: dict[str, dict[int, list[Citation]]] = {}
         self.locations: dict[tuple[str, str], tuple[str, int]] = {}
         for name, nodes in self.view.nodes.items():
             if name in self.rendered:
@@ -290,7 +299,8 @@ class DocumentRenderer:
                 if not node.up or node.file is None or node.line is None:
                     continue
                 path = node.file.as_posix()
-                self.citations.setdefault(path, {}).setdefault(node.line, []).append(node_id)
+                line = self.citations.setdefault(path, {}).setdefault(node.line, [])
+                line.append(Citation(name, node_id))
                 self.locations[name, node_id] = (path, node.line)
         self.sources = self._read_sources()
         self._prune_citations()
@@ -509,13 +519,7 @@ class DocumentRenderer:
         if not children:
             return ""
         entries = "\n".join(children)
-        return (
-            "## Sections\n\n"
-            "The containers this one's name places under it. Each of their "
-            "statements traces upward on its own: the nesting says how the layer "
-            "is organized, not what refines what.\n\n"
-            f"```{{toctree}}\n:maxdepth: 1\n\n{entries}\n```"
-        )
+        return f"## Sections\n\n```{{toctree}}\n:maxdepth: 1\n\n{entries}\n```"
 
     def _source_pages(self) -> list[RenderedPage]:
         """Render one page per cited source file, in path order."""
@@ -536,7 +540,8 @@ class DocumentRenderer:
         A target has to attach to something a reader's renderer will draw: the
         PDF builder resolves one on a paragraph or a heading, but not one on a
         code block. So each cited line is introduced by a paragraph that carries
-        its anchor and says what cites it, and the listing follows.
+        its anchor and names the requirements it answers to, and the listing
+        follows.
 
         The listings themselves are marked HTML-only -- they are a browsing aid,
         not part of the argument, and thousands of lines of source do not belong
@@ -558,10 +563,9 @@ class DocumentRenderer:
             if start not in cited:
                 blocks.append(listing)
                 continue
-            citers = ", ".join(f"`{node}`" for node in self.citations[path][start])
+            uses = "; ".join(self._citation(path, start, c) for c in self.citations[path][start])
             blocks.append(
-                f"({self.source_anchor(path, start)})=\n\n"
-                f"**Line {start}** -- cited by {citers}\n\n{listing}"
+                f"({self.source_anchor(path, start)})=\n\n**Line {start}** -- {uses}\n\n{listing}"
             )
         return RenderedPage(
             name=self.source_page(path),
@@ -612,9 +616,8 @@ class DocumentRenderer:
         if not tables:
             return ""
         return (
-            "# Realization\n\nWhich statement below realizes each leaf above. A leaf "
-            "realized by nothing is either work not yet done or a deliberate "
-            "exclusion, and says which.\n\n" + "\n\n".join(tables) + "\n"
+            "# Realization\n\nA leaf realized by nothing is either work not yet done "
+            "or a deliberate exclusion, and says which.\n\n" + "\n\n".join(tables) + "\n"
         )
 
     def _realization_table(self, layer: str, lower: str) -> str:
@@ -623,7 +626,7 @@ class DocumentRenderer:
         for node_id, view in self.view.nodes[layer].items():
             covering = ", ".join(self._down_ref(lower, i) for i in view.down.get(lower, ()))
             excuse = f"*waived* -- {_flat(view.waiver)}" if view.waiver else "*nothing yet*"
-            rows.append(f"| [`{node_id}`](#{self.anchor(layer, node_id)}) | {covering or excuse} |")
+            rows.append(f"| {self._node_link(layer, node_id)} | {covering or excuse} |")
         return "\n".join([f"| Leaf | Realized by ({lower}) |", "|---|---|", *rows])
 
     def _statement(self, layer: str, node_id: str, statement: Statement) -> str:
@@ -694,10 +697,35 @@ class DocumentRenderer:
             )
             yield label, covering or "*nothing yet*"
 
-    def _down_ref(self, layer: str, node_id: str) -> str:
-        """Render one covering node: linked to its statement, or to its source line."""
+    def _citation(self, path: str, line: int, cite: Citation) -> str:
+        """
+        Render one citation of a source line: what sits there, and what cites it.
+
+        The reference runs *upward*. A reader on a listing page has the line in
+        front of them, so what they cannot see is which requirement rests on it;
+        a link back to the line they are reading would say nothing. A node named
+        by its own location says nothing beyond the line either, so for one of
+        those only the requirements are named.
+        """
+        node = self.view.nodes[cite.layer][cite.node]
+        users = [
+            self._node_link(above, node_id)
+            for above, node_ids in node.up.items()
+            for node_id in node_ids
+        ]
+        named = "" if cite.node == f"{path}:{line}" else f"`{cite.node}`, "
+        return f"{named}cited by {', '.join(users)}" if users else f"`{cite.node}`"
+
+    def _node_link(self, layer: str, node_id: str) -> str:
+        """Render one node as a link to its statement, where it has a rendered one."""
         if self._is_rendered(layer, node_id):
             return f"[`{node_id}`](#{self.anchor(layer, node_id)})"
+        return f"`{node_id}`"
+
+    def _down_ref(self, layer: str, node_id: str) -> str:
+        """Render one covering node: linked to its statement, or to its source line."""
+        # Only the evidence below the requirements is located, so a node with a
+        # rendered statement of its own falls through to it.
         if (located := self.locations.get((layer, node_id))) is not None:
             path, line = located
             if path in self.sources:
@@ -706,7 +734,7 @@ class DocumentRenderer:
                 # nothing; anything else is worth locating for the reader.
                 suffix = "" if node_id == where else f" ({where})"
                 return f"[`{node_id}`](#{self.source_anchor(path, line)}){suffix}"
-        return f"`{node_id}`"
+        return self._node_link(layer, node_id)
 
     def _is_rendered(self, layer: str | None, node_id: str) -> bool:
         """Whether a node has a rendered subsection to link to."""

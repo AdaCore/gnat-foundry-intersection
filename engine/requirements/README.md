@@ -36,7 +36,8 @@ uv run reqs document --chain <chain.yaml> --out <dir> --source-root <repo>
 # `<dir>/index.json` (schema_version, each layer's pages and top-level pages,
 # every node's page and anchor). With
 # `--source-root`, the sources the requirements cite are listed too, under
-# `<dir>/pages/sources/`, and the evidence links to the cited lines. The
+# `<dir>/pages/sources/`; the evidence links to the cited lines, and each of
+# those names the requirements citing it. The
 # verification-report generator folds the pages into its own tree and links its
 # trace matrices through the index. Trace gaps render into the document as open
 # items; a corpus that does not analyse renders nothing and exits non-zero.
