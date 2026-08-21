@@ -43,11 +43,8 @@ executions, and it gates on the requirement files being parseable
 part-way through a project, showing what is not yet done.
 
 Three review obligations rest on a human reading: the trace waivers, the
-derived requirements, and the CONOPS itself. `requirements/signoffs.yaml`
-records who read each, keyed to a digest of the text they read, so editing that
-text lapses the sign-off and re-opens the obligation. **Never run `make
-signoff`, and never edit that file** — a sign-off you granted yourself asserts
-nothing. When a change of yours lapses one, say so and leave the record alone.
+derived requirements, and the CONOPS itself. You are FORBIDDEN from editing
+`requirements/signoffs.yaml`. You are FORBIDDEN from running `make signoff`.
 
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same
