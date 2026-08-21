@@ -1016,7 +1016,10 @@ def _analyze_downward(upper: _Loaded, lower: _Loaded) -> _Pair:
 # -- matrix rows (shared by the printed tables and the JSON report) -----------
 
 
-TRACE_REPORT_SCHEMA_VERSION = 1
+# Bumped whenever the payload's *shape* or its status vocabulary changes: the
+# reader maps any status it does not know to open work, so a stale report read
+# as current would invent open items rather than name itself out of date.
+TRACE_REPORT_SCHEMA_VERSION = 2
 
 
 @dataclass

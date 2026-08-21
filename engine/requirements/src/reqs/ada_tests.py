@@ -64,8 +64,8 @@ if TYPE_CHECKING:
 # A test routine's name starts with `Test_`.
 ROUTINE_RE = re.compile(r"^Test_\w+$")
 
-# `none` (optionally followed by a reason after `:`/`-`/em-dash) marks the node
-# derived: it verifies code no requirement governs.
+# `none` (optionally followed by a reason after `:`/`-`/em-dash): the routine
+# verifies code no requirement governs, so it is no node of the chain.
 NONE_RE = re.compile(r"^\s*none\b[\s:\-\u2014]*", re.IGNORECASE)
 
 COVERS_TAG = "covers"

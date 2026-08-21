@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "chain": "/workspace/traffic-light-controller/requirements/trace_chain.yaml",
   "command": "reqs trace --chain requirements/trace_chain.yaml --complete --format json --output reports/trace/trace_report.json",
   "generated_at": "2026-08-07T00:00:00+00:00",
