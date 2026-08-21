@@ -217,39 +217,41 @@ def test_generic_units_are_not_incomplete(proof: ProofEvidence) -> None:
 def test_generic_instance_evidence(proof: ProofEvidence) -> None:
     """A generic counts as analyzed through whichever unit located checks in it."""
     assert proof.instance_units("state_machine_loop") == ["state_machine_loop_proof"]
-    assert proof.uninstantiated_generics == []
 
 
 def test_nested_generic_instance_evidence(proof: ProofEvidence) -> None:
     """
-    A generic nested in an ordinary unit is found the same way, by location.
+    A generic nested in an ordinary unit is recorded on the instantiating side.
 
     gnatprove reports the *unit* `buses` as fully analyzed and not generic, so
-    the generic-unit checks never see its two nested bus generics. What does
-    see them is the check located in `buses.ads` and recorded under the unit
-    that instantiates them.
+    no stop reason names its two nested bus generics and its own artifact
+    lists only `Buses`. Each instance instead appears in `buses_proof`'s entity
+    table as a sloc chain: the declaration inside `buses.ads`, then the
+    instantiation that reached it.
     """
     host = next(a for a in proof.analyses if a.unit == "buses")
     assert host.complete
     assert not host.generic
     assert not [c for c in proof.checks if c.unit == "buses"]
-    assert proof.instance_units("buses") == ["buses_proof"]
-    # Only Source_Bus contributes a check; nothing in Display_Bus.Bus_Write
-    # can fail, so its entity's SPARK mode is the whole record that the
-    # instance brought that body into the analysis.
-    analyzed = {m.entity: m.mode for m in proof.spark_modes if m.unit == "buses_proof"}
-    assert analyzed["Buses_Proof.Source_Wire.Bus_Read"] == "all"
-    assert analyzed["Buses_Proof.Display_Wire.Bus_Write"] == "all"
+
+    chains = {i.entity: i for i in proof.instantiations}
+    source = chains["Buses_Proof.Source_Wire.Bus_Read"]
+    assert source.unit == "buses_proof"
+    assert (source.declared_at.file, source.declared_at.line) == ("buses.ads", 32)
+    assert (source.site.file, source.site.line) == ("buses_proof.ads", 42)
+    # Nothing in Display_Bus.Bus_Write can fail, so it contributes no check at
+    # all: the chain is the only record that the instance reached that body,
+    # which is why the generics table cannot be built from checks alone.
+    display = chains["Buses_Proof.Display_Wire.Bus_Write"]
+    assert (display.declared_at.file, display.declared_at.line) == ("buses.ads", 49)
+    assert (display.site.file, display.site.line) == ("buses_proof.ads", 46)
+    assert not [c for c in proof.checks if c.location.line == 49]
 
 
-def test_generic_without_an_instance(tmp_path: Path) -> None:
-    """Drop the instantiating unit and the generic stands alone, unanalyzed."""
-    src = Path(__file__).parent / "fixtures" / "gnatprove"
-    for name in ("gnatprove.out", "state_machine_loop.spark"):
-        (tmp_path / name).write_text((src / name).read_text())
-    proof = collect_proof(tmp_path)
-    assert [a.unit for a in proof.uninstantiated_generics] == ["state_machine_loop"]
-    assert proof.instance_units("state_machine_loop") == []
+def test_ordinary_entities_are_not_instantiations(proof: ProofEvidence) -> None:
+    """A single-element sloc chain is an ordinary entity, not an instance."""
+    assert "Buses_Proof.Stub_Sample" not in {i.entity for i in proof.instantiations}
+    assert {i.unit for i in proof.instantiations} == {"buses_proof"}
 
 
 def test_missing_artifacts(tmp_path: Path) -> None:

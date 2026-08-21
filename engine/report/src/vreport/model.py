@@ -154,6 +154,24 @@ class ToolWarning(Frozen):
     suppressed: bool = False
 
 
+class Instantiation(Frozen):
+    """
+    One generic instantiation gnatprove recorded while analyzing a unit.
+
+    A `.spark` entity whose `sloc` chain carries more than one element is an
+    instance: the first element is the declaration inside the *generic's* own
+    source, and the last is the instantiation that reached it. This is the one
+    place gnatprove names a generic nested in an ordinary package — such a
+    generic has no artifact of its own to be marked
+    `STOP_REASON_GENERIC_UNIT`, and no entity in its own unit's artifact.
+    """
+
+    unit: str
+    entity: str
+    declared_at: Sloc
+    site: Sloc
+
+
 class UnitAnalysis(Frozen):
     """Completion record of one unit's analysis (.spark progress/stop_reason)."""
 
@@ -168,7 +186,14 @@ class UnitAnalysis(Frozen):
 
     @property
     def generic(self) -> bool:
-        """Whether gnatprove skipped the unit because it is an uninstantiated generic."""
+        """
+        Whether gnatprove skipped the unit because the unit itself is a generic.
+
+        This marks a *library-level* generic and nothing else: the stop reason
+        is a property of a compilation unit, so a generic nested in an ordinary
+        package never carries it however it was analyzed. Do not read the
+        absence of this flag as "holds no generic" — see `Instantiation`.
+        """
         return self.stop_reason == "STOP_REASON_GENERIC_UNIT"
 
 
@@ -207,6 +232,7 @@ class ProofEvidence(Frozen):
     summary_text: str | None = None  # verbatim summary table from gnatprove.out
     units: list[str] = Field(default_factory=list)
     analyses: list[UnitAnalysis] = Field(default_factory=list)
+    instantiations: list[Instantiation] = Field(default_factory=list)
     checks: list[ProofCheck] = Field(default_factory=list)
     assumes: list[PragmaAssume] = Field(default_factory=list)
     skips: list[SkipAnnotation] = Field(default_factory=list)
@@ -222,13 +248,13 @@ class ProofEvidence(Frozen):
         Generic units are not among them: gnatprove analyzes generic
         *instances*, so a generic's own artifact is empty by construction and
         stopping on it is the normal outcome, not an early stop. The risk a
-        generic carries is a different one — see `uninstantiated_generics`.
+        generic carries is a different one — see `Evidence.generics`.
         """
         return [a for a in self.analyses if not a.complete and not a.generic]
 
     @property
     def generic_analyses(self) -> list[UnitAnalysis]:
-        """Units gnatprove skipped as uninstantiated generics."""
+        """Units gnatprove skipped because the unit itself is a generic."""
         return [a for a in self.analyses if a.generic]
 
     def instance_units(self, unit: str) -> list[str]:
@@ -244,17 +270,6 @@ class ProofEvidence(Frozen):
         return sorted(
             {c.unit for c in self.checks if Path(c.location.file).stem == unit and c.unit != unit}
         )
-
-    @property
-    def uninstantiated_generics(self) -> list[UnitAnalysis]:
-        """
-        Generic units that no analyzed instance exercises.
-
-        A generic with no check located in its own sources was never
-        instantiated in a unit this run analyzed: nothing in its body is
-        proved, and no table below says so.
-        """
-        return [a for a in self.generic_analyses if not self.instance_units(a.unit)]
 
     @property
     def unproved_checks(self) -> list[ProofCheck]:
@@ -281,6 +296,66 @@ class ProofEvidence(Frozen):
         """
         modes = [m for m in self.spark_modes if m.unit == unit]
         return bool(modes) and all(m.mode == "all" for m in modes)
+
+
+# --- Code inventory ---------------------------------------------------------
+
+
+class GenericDeclaration(Frozen):
+    """
+    One generic declared in the analyzed sources, as the Ada tracer found it.
+
+    The tracer parses the sources with libadalang, so this is the *declared*
+    set of generics — the denominator the proof evidence is judged against.
+    Deriving it from gnatprove's own output instead would be circular: a
+    generic no analyzed instance reached is exactly what gnatprove has nothing
+    to say about, and so exactly what must not be scoped by what gnatprove saw.
+    """
+
+    name: str
+    kind: str
+    declared_in: str
+    anchors: list[Sloc] = Field(default_factory=list)
+    """
+    Locations of the generic's own declarations (its subprograms, for a generic
+    package). A check or instance located in one of the generic's source files
+    belongs to whichever generic owns the nearest preceding anchor, which is
+    how two generics nested in one file are told apart.
+    """
+
+    @property
+    def sources(self) -> list[str]:
+        """Source-file stems the generic's own declarations live in."""
+        return sorted({Path(a.file).stem for a in self.anchors} | {Path(self.declared_in).stem})
+
+
+class CodeInventory(Frozen):
+    """The Ada tracer's inventory of the analyzed sources (`make code-inventory`)."""
+
+    schema_version: int = 0
+    project: str | None = None
+    generics: list[GenericDeclaration] = Field(default_factory=list)
+
+
+class GenericInstance(Frozen):
+    """One analyzed instance of a generic, and where it was instantiated."""
+
+    unit: str
+    site: Sloc | None = None
+
+
+class GenericAnalysis(Frozen):
+    """A generic, and the analysis that reached its body — or did not."""
+
+    name: str
+    kind: str
+    declared_in: str
+    instances: list[GenericInstance] = Field(default_factory=list)
+
+    @property
+    def analyzed(self) -> bool:
+        """Whether any analyzed instance stands behind this generic."""
+        return bool(self.instances)
 
 
 # --- Coverage ---------------------------------------------------------------
@@ -614,6 +689,36 @@ class GitInfo(Frozen):
     describe: str | None = None
 
 
+def _owner(generics: list[GenericDeclaration], loc: Sloc) -> str | None:
+    """
+    Name the generic a source location falls inside.
+
+    Two levels, because the inventory anchors a generic at its declarations and
+    a check can land anywhere in a body. Within a file that has anchors,
+    attribution is per line — the nearest preceding one wins, since a single
+    file can declare several generics and the ordinary package enclosing them,
+    and a file-level match would credit all of them for an instance of any one.
+    A location before the first anchor in such a file belongs to no generic:
+    that is the enclosing package's own code.
+
+    A file with no anchors of its own (the body of a library-level generic,
+    which the inventory records only at its spec) falls back to the unit — but
+    only when exactly one generic claims it, so an ambiguous case abstains
+    instead of guessing.
+
+    Files are matched by basename: gnatprove reports a bare file name and the
+    inventory a path relative to the project root, so two same-named sources in
+    different directories would be conflated.
+    """
+    name = Path(loc.file).name
+    anchored = [(g.name, a.line) for g in generics for a in g.anchors if Path(a.file).name == name]
+    if anchored:
+        preceding = [pair for pair in anchored if pair[1] <= loc.line]
+        return max(preceding, key=lambda pair: pair[1])[0] if preceding else None
+    claimants = {g.name for g in generics if Path(name).stem in g.sources}
+    return next(iter(claimants)) if len(claimants) == 1 else None
+
+
 class Evidence(Frozen):
     """The complete normalized evidence for one report."""
 
@@ -626,6 +731,72 @@ class Evidence(Frozen):
     coverage: CoverageEvidence
     traceability: TraceabilityEvidence
     requirements: RequirementsDocument | None = None
+    inventory: CodeInventory | None = None
+
+    @property
+    def generics(self) -> list[GenericAnalysis]:
+        """
+        Every generic in the proof scope, with the instances that analyzed it.
+
+        The row set comes from the *declared* generics (the code inventory),
+        restricted to those whose sources gnatprove actually analyzed — a
+        generic outside the proof scope is not described by this report at all,
+        and listing it as unanalyzed would contradict {ref}`proof-scope`.
+        Without an inventory the rows fall back to the generic *units*
+        gnatprove reported, which omits any generic nested in an ordinary
+        package.
+
+        Each row's instances come from two signals, because gnatprove records
+        the two kinds of generic differently. A nested generic appears as an
+        `Instantiation` naming both its declaration and the instantiation site;
+        a library-level generic's instance entities carry only the
+        instantiation site, and the evidence that its body was analyzed is
+        instead the checks *located* in its sources under another unit's name.
+        """
+        scope = set(self.proof.units)
+        declared = [
+            g for g in (self.inventory.generics if self.inventory else []) if scope & set(g.sources)
+        ]
+        rows = [
+            GenericAnalysis(
+                name=g.name,
+                kind=g.kind,
+                declared_in=g.declared_in,
+                instances=self._instances_of(declared, g),
+            )
+            for g in declared
+        ]
+        covered = {Path(g.declared_in).stem for g in declared}
+        rows.extend(
+            GenericAnalysis(
+                name=a.unit,
+                kind="unit",
+                declared_in=a.unit,
+                instances=[GenericInstance(unit=u) for u in self.proof.instance_units(a.unit)],
+            )
+            for a in self.proof.generic_analyses
+            if a.unit not in covered
+        )
+        return sorted(rows, key=lambda r: r.name)
+
+    def _instances_of(
+        self, declared: list[GenericDeclaration], generic: GenericDeclaration
+    ) -> list[GenericInstance]:
+        """Merge both instance signals for one generic, preferring a known site."""
+        sites: dict[str, Sloc | None] = {}
+        for inst in self.proof.instantiations:
+            if _owner(declared, inst.declared_at) == generic.name:
+                sites[inst.unit] = inst.site
+        own = set(generic.sources)
+        for check in self.proof.checks:
+            # A check under the generic's own unit name is not instance
+            # evidence: only an instantiation elsewhere proves the body was
+            # reached. Ada's default file naming makes the stem the unit name.
+            if check.unit in own or Path(check.location.file).stem not in own:
+                continue
+            if _owner(declared, check.location) == generic.name:
+                sites.setdefault(check.unit, None)
+        return [GenericInstance(unit=u, site=sites[u]) for u in sorted(sites)]
 
 
 # --- Review obligations -------------------------------------------------------

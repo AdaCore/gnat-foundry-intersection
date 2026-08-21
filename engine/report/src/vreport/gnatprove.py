@@ -18,6 +18,7 @@ from vreport.model import (
     AssumptionClaim,
     AssumptionRef,
     GnatproveHeader,
+    Instantiation,
     MissingArtifactsError,
     PragmaAssume,
     ProofCheck,
@@ -45,6 +46,9 @@ _HEADER_KEYS = {
 _SUMMARY_TITLE = "Summary of SPARK analysis"
 _SUMMARY_END = "max steps used"
 _SUMMARY_FALLBACK_LINES = 30
+# An entity's sloc chain reaches this length only for a generic instance: the
+# declaration inside the generic, then the instantiation that reached it.
+_INSTANCE_SLOCS = 2
 
 
 def _sloc(entry: Mapping[str, Any], default_file: str) -> Sloc:
@@ -66,6 +70,32 @@ def _entities(data: Mapping[str, Any]) -> dict[int, tuple[str, Sloc | None]]:
         slocs = val.get("sloc") or []
         sloc = _sloc(slocs[0], name) if slocs else None
         out[ident] = (name, sloc)
+    return out
+
+
+def _instantiations(data: Mapping[str, Any], unit: str) -> list[Instantiation]:
+    """
+    Read the instances out of a unit's entity table.
+
+    An entity's `sloc` is a chain: one element for an ordinary entity, and for
+    an instance the generic's own declaration followed by the instantiation
+    that reached it. The chain is the only record of a generic nested in an
+    ordinary package, which gets no artifact of its own.
+    """
+    out: list[Instantiation] = []
+    for key, val in dict(data.get("entities") or {}).items():
+        slocs = val.get("sloc") or []
+        if len(slocs) < _INSTANCE_SLOCS:
+            continue
+        name = str(val.get("name", f"entity {str(key).strip()}"))
+        out.append(
+            Instantiation(
+                unit=unit,
+                entity=name,
+                declared_at=_sloc(slocs[0], unit),
+                site=_sloc(slocs[-1], unit),
+            )
+        )
     return out
 
 
@@ -254,6 +284,7 @@ def collect_proof(proof_dir: Path) -> ProofEvidence:
 
     units: list[str] = []
     analyses: list[UnitAnalysis] = []
+    instantiations: list[Instantiation] = []
     checks: list[ProofCheck] = []
     assumes: list[PragmaAssume] = []
     skips: list[SkipAnnotation] = []
@@ -273,6 +304,7 @@ def collect_proof(proof_dir: Path) -> ProofEvidence:
                 stop_reason=str(data["stop_reason"]) if "stop_reason" in data else None,
             )
         )
+        instantiations.extend(_instantiations(data, unit))
         fallback_warnings.extend(_spark_warnings(data.get("warn_error"), unit))
         for kind in ("flow", "proof"):
             checks.extend(_check(entry, unit, kind, entities) for entry in data.get(kind) or [])
@@ -315,6 +347,7 @@ def collect_proof(proof_dir: Path) -> ProofEvidence:
         summary_text=summary,
         units=units,
         analyses=analyses,
+        instantiations=instantiations,
         checks=checks,
         assumes=assumes,
         skips=skips,

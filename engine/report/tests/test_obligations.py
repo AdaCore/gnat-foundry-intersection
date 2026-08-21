@@ -10,6 +10,7 @@ from vreport.model import (
     UNDETERMINED,
     AssumptionClaim,
     AssumptionRef,
+    CodeInventory,
     CoverageEvidence,
     CoverageViolation,
     Evidence,
@@ -66,11 +67,16 @@ _GENERIC = UnitAnalysis(
 
 _CLEAN_REPORT = TraceReport(complete=True, corpus_valid=True)
 
+# The real pipeline always inventories the sources, so the default is "parsed,
+# and it declares no generics" -- pass inventory=None for the fallback path.
+_EMPTY_INVENTORY = CodeInventory(schema_version=3, project="synthetic.gpr")
+
 
 def _evidence(
     proof: ProofEvidence | None = None,
     coverage: CoverageEvidence | None = None,
     traceability: TraceabilityEvidence | None = None,
+    inventory: CodeInventory | None = _EMPTY_INVENTORY,
 ) -> Evidence:
     """Synthetic evidence with clean defaults, overridable per aspect."""
     return Evidence(
@@ -80,6 +86,7 @@ def _evidence(
         if traceability is not None
         else TraceabilityEvidence(waivers_found=True, hlr_found=True, report=_CLEAN_REPORT),
         git=GitInfo(commit="abc", branch="main", dirty=False),
+        inventory=inventory,
     )
 
 
@@ -305,21 +312,58 @@ def test_generic_unit_is_not_an_incomplete_analysis() -> None:
     )
 
 
-def test_generic_with_an_analyzed_instance_is_ok(proof: ProofEvidence) -> None:
-    """Checks located in the generic's own sources are the evidence it was analyzed."""
-    ob = _by_anchor(build_obligations(_evidence(proof=proof)))["proof-generics"]
+def test_generic_with_an_analyzed_instance_is_ok(evidence: Evidence) -> None:
+    """Every declared generic, nested ones included, has an instance behind it."""
+    ob = _by_anchor(build_obligations(evidence))["proof-generics"]
     assert ob.status is ObligationStatus.ok
-    assert ob.title == "Generic units, each analyzed through an instance: 1"
-    assert ob.items == ["state_machine_loop — analyzed through state_machine_loop_proof"]
+    assert ob.title == "Generics, each analyzed through an instance: 3"
+    assert ob.items == [
+        "Buses.Display_Bus (package in src/types/buses.ads) — analyzed through buses_proof",
+        "Buses.Source_Bus (package in src/types/buses.ads) — analyzed through buses_proof",
+        (
+            "State_Machine_Loop (procedure in src/core/state_machine_loop.ads) — "
+            "analyzed through state_machine_loop_proof"
+        ),
+    ]
 
 
 def test_generic_without_an_instance_forces_review() -> None:
     """No instance means nothing in the generic's body is proved: say so."""
-    evidence = _evidence(proof=ProofEvidence(analyses=[_COMPLETE, _GENERIC]))
+    evidence = _evidence(proof=ProofEvidence(analyses=[_COMPLETE, _GENERIC]), inventory=None)
     ob = _by_anchor(build_obligations(evidence))["proof-generics"]
     assert ob.status is ObligationStatus.review
-    assert ob.title == "Generic units without an analyzed instance: 1"
-    assert ob.items == ["gen — no instance analyzed"]
+    assert ob.title == "Generics with no analyzed instance: 1"
+    assert ob.items == ["gen (unit in gen) — no instance analyzed"]
+
+
+def test_nested_generic_without_an_instance_forces_review(evidence: Evidence) -> None:
+    """
+    The case only the inventory can catch: a nested generic nothing instantiates.
+
+    gnatprove reports no stop reason and no entity for it, and a body with
+    nothing that can fail contributes no check either — so dropping the
+    instantiation must still leave the obligation red.
+    """
+    proof = evidence.proof.model_copy(
+        update={
+            "instantiations": [
+                i for i in evidence.proof.instantiations if "Display_Wire" not in i.entity
+            ]
+        }
+    )
+    ob = _by_anchor(build_obligations(evidence.model_copy(update={"proof": proof})))[
+        "proof-generics"
+    ]
+    assert ob.status is ObligationStatus.review
+    assert ob.title == "Generics with no analyzed instance: 1"
+    assert "Buses.Display_Bus (package in src/types/buses.ads) — no instance analyzed" in ob.items
+
+
+def test_missing_inventory_never_reads_as_settled() -> None:
+    """Without the declared set, "all generics analyzed" is a claim nothing supports."""
+    ob = _by_anchor(build_obligations(_evidence(inventory=None)))["proof-generics"]
+    assert ob.status is ObligationStatus.review
+    assert "nested in an ordinary package cannot appear" in ob.detail
 
 
 def test_undetermined_coverage_is_not_green() -> None:

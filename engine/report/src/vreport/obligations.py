@@ -186,37 +186,51 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
         ],
     )
 
-    # Generics are the one class of unit gnatprove reports as skipped by
-    # design; what matters is whether an analyzed instance stands behind each.
-    generics = ev.proof.generic_analyses
-    orphans = ev.proof.uninstantiated_generics
+    # A generic contributes proof obligations only through an instance, so what
+    # matters is whether one stands behind each generic the sources declare —
+    # judged against the declared set, never against what the analysis noticed.
+    generics = ev.generics
+    orphans = [g for g in generics if not g.analyzed]
+    # Without the inventory the denominator is gnatprove's own output, which
+    # names only library-level generics — so "each analyzed" is a claim about a
+    # set that cannot include a nested generic, and must not read as settled.
+    uninventoried = (
+        ""
+        if ev.inventory
+        else " **The sources were not inventoried**, so this list is gnatprove's "
+        "own and holds only *library-level* generics: a generic nested in an "
+        "ordinary package cannot appear, however it was analyzed, and one no "
+        "instance reaches would go unlisted. Regenerate with `make code-inventory`."
+    )
     b.add(
-        f"Generic units without an analyzed instance: {len(orphans)}"
+        f"Generics with no analyzed instance: {len(orphans)}"
         if orphans
-        else f"Generic units, each analyzed through an instance: {len(generics)}"
+        else f"Generics, each analyzed through an instance: {len(generics)}"
         if generics
-        else "Generic units: none",
+        else "Generics: none",
         "proof-generics",
         (
             "gnatprove analyzes generic *instances*, not generics themselves. No "
-            "check is located in these generics' sources, so no instance this run "
-            "analyzed exercises them and nothing in their bodies is proved. "
-            "Instantiate each against in-SPARK formals in a unit the proof run "
-            "reaches."
+            "instance this run analyzed reaches these, so nothing in their bodies "
+            "is proved and no other table names them. Instantiate each against "
+            "in-SPARK formals in a unit the proof run reaches."
             if orphans
-            else "gnatprove records each of these as skipped, which is the normal "
-            "outcome for a generic and not an early stop. Each carries checks "
-            "located in its own sources, contributed by an analyzed instance, so "
-            "its body is covered by the tables below."
+            else "Every generic the in-scope sources declare is reached by an "
+            "analyzed instance, so its body's checks appear in the tables below "
+            "under the instantiating unit's name."
             if generics
-            else "The run analyzed no generic units."
-        ),
-        review=bool(orphans),
+            else "The in-scope sources declare no generics."
+        )
+        + uninventoried,
+        review=bool(orphans) or ev.inventory is None,
         items=[
-            f"{a.unit} — no instance analyzed"
-            if not ev.proof.instance_units(a.unit)
-            else f"{a.unit} — analyzed through {', '.join(ev.proof.instance_units(a.unit))}"
-            for a in generics
+            f"{g.name} ({g.kind} in {g.declared_in}) — "
+            + (
+                f"analyzed through {', '.join(i.unit for i in g.instances)}"
+                if g.analyzed
+                else "no instance analyzed"
+            )
+            for g in generics
         ],
     )
 

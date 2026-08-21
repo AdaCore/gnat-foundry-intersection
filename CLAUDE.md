@@ -133,7 +133,8 @@ invariant is a signal worth surfacing.
 whose sources are the instantiation harnesses (design/architecture.md
 §"Project structure"). Keep them in step with the generic surface, and put new
 ones there, never in `core`: a generic no analyzed instance reaches is unproved
-code, which `make report` reports under "Generic units".
+code, which `make report` reports under "Generics" -- nested generics
+included, so a bus generic nothing instantiates is caught too.
 
 ## When editing tests
 

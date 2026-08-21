@@ -25,6 +25,7 @@ from vreport.build import (
 from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.gnatcov import collect_coverage
 from vreport.gnatprove import collect_proof
+from vreport.inventory import collect_inventory, default_inventory_path
 from vreport.model import ArtifactParseError, Evidence, MissingArtifactsError, ObligationStatus
 from vreport.obligations import build_obligations
 from vreport.provenance import collect_git
@@ -52,6 +53,11 @@ _TRACE_REPORT = typer.Option(
     "--trace-report",
     help="Trace-report JSON (default: ROOT/reports/trace/trace_report.json).",
 )
+_CODE_INVENTORY = typer.Option(
+    None,
+    "--code-inventory",
+    help="Ada tracer inventory (default: ROOT/obj/analysis/code_inventory.json).",
+)
 _REQUIREMENTS_DIR = typer.Option(
     None,
     "--requirements-dir",
@@ -77,6 +83,7 @@ def generate(
     proof_dir: Path | None = _PROOF_DIR,
     coverage_dir: Path | None = _COVERAGE_DIR,
     trace_report: Path | None = _TRACE_REPORT,
+    code_inventory: Path | None = _CODE_INVENTORY,
     requirements_dir: Path | None = _REQUIREMENTS_DIR,
     title: str | None = _TITLE,
     html: bool = _HTML,
@@ -101,6 +108,15 @@ def generate(
         requirements = collect_requirements(root, requirements_dir)
     except (MissingArtifactsError, ArtifactParseError) as exc:
         _fail(str(exc), hint="make requirements-doc")
+    try:
+        inventory = collect_inventory(code_inventory or default_inventory_path(root))
+    except MissingArtifactsError:
+        # Optional input: without it the generics table falls back to the
+        # generic *units* gnatprove reports, which cannot see a generic nested
+        # in an ordinary package.
+        inventory = None
+    except ArtifactParseError as exc:
+        _fail(str(exc), hint="make code-inventory")
 
     evidence = Evidence(
         generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),
@@ -111,6 +127,7 @@ def generate(
         coverage=coverage,
         traceability=traceability,
         requirements=requirements,
+        inventory=inventory,
     )
 
     out.mkdir(parents=True, exist_ok=True)

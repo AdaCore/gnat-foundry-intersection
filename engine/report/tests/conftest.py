@@ -8,7 +8,9 @@ import pytest
 
 from vreport.gnatcov import collect_coverage
 from vreport.gnatprove import collect_proof
+from vreport.inventory import collect_inventory
 from vreport.model import (
+    CodeInventory,
     CoverageEvidence,
     DerivedRequirement,
     Evidence,
@@ -42,6 +44,12 @@ def coverage() -> CoverageEvidence:
 
 
 @pytest.fixture(scope="session")
+def inventory() -> CodeInventory:
+    """Code inventory parsed from the fixture tracer JSON."""
+    return collect_inventory(FIXTURES / "inventory" / "code_inventory.json")
+
+
+@pytest.fixture(scope="session")
 def trace_report() -> TraceReport:
     """Trace report parsed from the fixture JSON (with open gaps and review rows)."""
     return collect_trace_report(FIXTURES / "trace" / "trace_report.json")
@@ -49,7 +57,10 @@ def trace_report() -> TraceReport:
 
 @pytest.fixture(scope="session")
 def evidence(
-    proof: ProofEvidence, coverage: CoverageEvidence, trace_report: TraceReport
+    proof: ProofEvidence,
+    coverage: CoverageEvidence,
+    trace_report: TraceReport,
+    inventory: CodeInventory,
 ) -> Evidence:
     """Build a complete Evidence value over the fixture artifacts."""
     return Evidence(
@@ -66,6 +77,7 @@ def evidence(
             hlr_found=True,
             report=trace_report,
         ),
+        inventory=inventory,
     )
 
 

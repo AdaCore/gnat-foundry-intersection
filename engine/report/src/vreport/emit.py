@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from vreport.mdtext import code_span, count, inline
@@ -22,6 +23,7 @@ from vreport.model import (
     TOTAL_LINES,
     UNDETERMINED,
     CheckStatus,
+    GenericAnalysis,
     ObligationStatus,
     TraceRow,
 )
@@ -340,23 +342,47 @@ The requirement-trace matrices were produced by:
 """
 
 
-def _scope_cell(p: ProofEvidence, unit: str) -> str:
+def _instances_cell(g: GenericAnalysis) -> str:
+    """List where a generic's analyzed instances are, for the generics table."""
+    if not g.instances:
+        return "**none**"
+    return ", ".join(
+        f"{i.unit} ({code_span(str(i.site))})" if i.site else i.unit for i in g.instances
+    )
+
+
+def _hosted_generics(generics: Sequence[GenericAnalysis], unit: str) -> list[GenericAnalysis]:
+    """Return the generics a unit's own sources declare (by Ada's file-per-unit naming)."""
+    return [g for g in generics if Path(g.declared_in).stem == unit and g.kind != "unit"]
+
+
+def _scope_cell(p: ProofEvidence, generics: Sequence[GenericAnalysis], unit: str) -> str:
     """Say how one in-scope unit was treated, for the scope table."""
     analysis = next((a for a in p.analyses if a.unit == unit), None)
     if analysis is None:
         return "no completion record"
     if analysis.generic:
-        through = ", ".join(p.instance_units(unit))
+        row = next((g for g in generics if Path(g.declared_in).stem == unit), None)
+        through = ", ".join(i.unit for i in row.instances) if row else ""
         return f"generic, through {through}" if through else "generic, **no instance analyzed**"
     if not analysis.complete:
         return f"stopped: `{analysis.stop_reason or 'unrecorded'}`"
     own = count(sum(1 for c in p.checks if c.unit == unit), "check")
-    # A generic nested in an ordinary unit is reached only through an instance,
-    # whose checks are recorded under the instantiating unit: naming it is what
-    # separates "this unit hosts proved generic bodies" from the bare "0
-    # checks" an unreached nested generic would leave here.
-    through = ", ".join(p.instance_units(unit))
-    return f"{own}; instances analyzed through {through}" if through else own
+    # A unit's own check count says nothing about the generics nested in it:
+    # their checks are recorded under whichever unit instantiates them. Count
+    # them here so a nested generic no instance reached cannot hide behind the
+    # enclosing unit's ordinary "N checks".
+    hosted = _hosted_generics(generics, unit)
+    if not hosted:
+        return own
+    reached = sum(1 for g in hosted if g.analyzed)
+    tally = (
+        f"all {count(len(hosted), 'nested generic')} analyzed"
+        if reached == len(hosted)
+        else f"**{len(hosted) - reached} of {count(len(hosted), 'nested generic')} "
+        "with no instance analyzed**"
+    )
+    return f"{own}; {tally}"
 
 
 def _emit_proof(ev: Evidence) -> str:
@@ -434,15 +460,30 @@ def _emit_proof(ev: Evidence) -> str:
         else "The `.spark` artifacts carry no completion records."
     )
 
+    generics = ev.generics
     scope_block = (
-        _table(("Unit", "Analysis"), [(u, _scope_cell(p, u)) for u in p.units])
+        _table(("Unit", "Analysis"), [(u, _scope_cell(p, generics, u)) for u in p.units])
         if p.units
         else "No unit artifacts were recorded."
     )
 
     generic_rows: list[Sequence[str]] = [
-        (a.unit, ", ".join(p.instance_units(a.unit)) or "**none**") for a in p.generic_analyses
+        (
+            g.name,
+            g.kind,
+            code_span(g.declared_in),
+            _instances_cell(g),
+        )
+        for g in generics
     ]
+    generics_note = (
+        ""
+        if ev.inventory
+        else "\n\n**Warning:** the code inventory was not recorded, so this list "
+        "comes from gnatprove's own output and names only *library-level* "
+        "generics — a generic nested in an ordinary package cannot appear. "
+        "Regenerate with `make code-inventory`."
+    )
 
     warnings_note = (
         ""
@@ -489,7 +530,7 @@ every table below is qualified by this one.
 
 {_target("proof-generics")}
 
-## Generic units
+## Generics
 
 gnatprove analyzes generic *instances*, not generics: a generic's own artifact
 records no checks, and the checks from its body are attributed to the
@@ -497,11 +538,18 @@ instantiating unit while staying located in the generic's source. A generic
 reached by no analyzed instance is therefore unproved code that no other table
 names.
 
+Every generic the in-scope sources declare has a row below, listed from the
+code inventory rather than from gnatprove's output — a generic nothing
+instantiates is exactly what that output has nothing to say about, so scoping
+this table by what the analysis saw would hide the case it exists to catch.
+"Analyzed through" names each instantiating unit, with the instantiation site
+where gnatprove recorded one.{generics_note}
+
 {
         _table_or(
-            ("Generic unit", "Analyzed through"),
+            ("Generic", "Kind", "Declared in", "Analyzed through"),
             generic_rows,
-            "The run analyzed no generic units.",
+            "The in-scope sources declare no generics.",
         )
     }
 

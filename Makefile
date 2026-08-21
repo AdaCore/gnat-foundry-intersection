@@ -637,12 +637,14 @@ REPORT_EVIDENCE := validate-reqs-corpus trace-report requirements-doc prove-repo
 
 report: $(REPORT_EVIDENCE) ## Regenerate the evidence, then the verification report
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
-	    --root "$(CURDIR)" --out "$(REPORT_OUT)"
+	    --root "$(CURDIR)" --out "$(REPORT_OUT)" \
+	    --code-inventory "$(CODE_INVENTORY)"
 
 # rst2pdf -- pure Python, no TeX toolchain needed.
 report-pdf: $(REPORT_EVIDENCE) ## Same as `report`, plus a PDF rendering
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
-	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf
+	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf \
+	    --code-inventory "$(CODE_INVENTORY)"
 
 test-report-engine: ## Run the report engine's own test suite
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked pytest

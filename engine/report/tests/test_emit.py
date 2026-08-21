@@ -29,7 +29,7 @@ from vreport.obligations import build_obligations
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from vreport.model import Evidence
+    from vreport.model import Evidence, Obligation
 
 _TARGET_RE = re.compile(r"^\(([\w-]+)\)=$", re.MULTILINE)
 _REF_RE = re.compile(r"\{ref\}`([\w-]+)`")
@@ -38,6 +38,11 @@ _REF_RE = re.compile(r"\{ref\}`([\w-]+)`")
 def _targets_and_refs(pages: dict[str, str]) -> tuple[set[str], set[str]]:
     text = "\n".join(pages.values())
     return set(_TARGET_RE.findall(text)), set(_REF_RE.findall(text))
+
+
+def _rendered(ev: Evidence) -> tuple[Evidence, list[Obligation]]:
+    """Pair evidence with its own obligations, for `emit_pages(*_rendered(ev))`."""
+    return ev, build_obligations(ev)
 
 
 def test_every_reference_resolves(evidence: Evidence) -> None:
@@ -283,14 +288,29 @@ def test_proof_page_lists_the_analyzed_scope(evidence: Evidence) -> None:
 
 def test_proof_page_credits_a_nested_generic_to_its_instance(evidence: Evidence) -> None:
     """
-    A unit hosting a nested generic must not read as a bare zero.
+    A unit hosting nested generics must not read as a bare zero.
 
     `buses` records no check of its own — its two bus generics are analyzed
-    through the instance in `buses_proof` — and that cell is the only place the
-    page can say so, since the generics table sees whole generic units only.
+    through the instances in `buses_proof` — so the cell tallies the generics it
+    hosts rather than leaving the enclosing unit's "0 checks" to speak for them.
     """
     page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
-    assert "| buses | 0 checks; instances analyzed through buses_proof |" in page
+    assert "| buses | 0 checks; all 2 nested generics analyzed |" in page
+
+
+def test_scope_cell_flags_an_unreached_nested_generic(evidence: Evidence) -> None:
+    """Drop one instance and the enclosing unit's cell says so, not "0 checks"."""
+    inventory = evidence.inventory
+    assert inventory is not None
+    proof = evidence.proof.model_copy(
+        update={
+            "instantiations": [
+                i for i in evidence.proof.instantiations if "Display_Wire" not in i.entity
+            ]
+        }
+    )
+    page = emit_pages(*_rendered(evidence.model_copy(update={"proof": proof})))["proof.md"]
+    assert "| buses | 0 checks; **1 of 2 nested generics with no instance analyzed** |" in page
 
 
 def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None:
@@ -300,11 +320,42 @@ def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None
 
 
 def test_proof_page_names_each_generic_instance(evidence: Evidence) -> None:
-    """The generics table says which unit stands behind each generic."""
+    """
+    The generics table lists every declared generic and what analyzed it.
+
+    Nested generics included: they are the ones gnatprove's own output cannot
+    name, and each row carries the instantiation site gnatprove recorded.
+    """
     page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
-    assert "## Generic units" in page
-    assert "| state_machine_loop | state_machine_loop_proof |" in page
+    assert "## Generics" in page
+    assert (
+        "| Buses.Source_Bus | package | `src/types/buses.ads` | "
+        "buses_proof (`buses_proof.ads:42:4`) |"
+    ) in page
+    assert (
+        "| Buses.Display_Bus | package | `src/types/buses.ads` | "
+        "buses_proof (`buses_proof.ads:46:4`) |"
+    ) in page
+    assert (
+        "| State_Machine_Loop | procedure | `src/core/state_machine_loop.ads` | "
+        "state_machine_loop_proof |"
+    ) in page
     assert "STOP_REASON_GENERIC_UNIT" not in page
+
+
+def test_generics_table_is_bounded_by_the_proof_scope(evidence: Evidence) -> None:
+    """A generic outside the analyzed units is not reported as unanalyzed."""
+    page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
+    assert "Hal.Ring" not in page
+
+
+def test_generics_table_warns_without_an_inventory(evidence: Evidence) -> None:
+    """Falling back to gnatprove's output has to say what it cannot see."""
+    bare = evidence.model_copy(update={"inventory": None})
+    page = emit_pages(*_rendered(bare))["proof.md"]
+    assert "names only *library-level* generics" in page
+    assert "Buses.Source_Bus" not in page
+    assert "| state_machine_loop | unit | `state_machine_loop` |" in page
 
 
 def test_provenance_strips_local_tool_paths(evidence: Evidence) -> None:
