@@ -33,8 +33,8 @@ uv run reqs document --chain <chain.yaml> --out <dir> --source-root <repo>
 # under, one anchored subsection per statement, each carrying its resolved trace
 # neighbourhood; a markdown layer like the CONOPS is carried through as written,
 # its leaves anchored in place and a closing table naming what realizes each) and
-# `<dir>/index.json` (schema_version, each layer's pages and top-level pages,
-# every node's page and anchor). With
+# `<dir>/index.json` (schema_version, each layer's title, pages and top-level
+# pages, every node's page and anchor). With
 # `--source-root`, the sources the requirements cite are listed too, under
 # `<dir>/pages/sources/`; the evidence links to the cited lines, and each of
 # those names the requirements citing it. The

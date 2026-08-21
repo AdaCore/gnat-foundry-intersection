@@ -127,6 +127,19 @@ def test_provenance_records_reqs_trace_command(evidence: Evidence) -> None:
     assert "reqs trace --chain requirements/trace_chain.yaml" in pages["provenance.md"]
 
 
+def test_provenance_records_the_requirements_render(
+    evidence: Evidence, evidence_with_requirements: Evidence
+) -> None:
+    """The pages say nothing about themselves, so what rendered them is recorded here."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    provenance = pages["provenance.md"]
+
+    assert "reqs document --chain requirements/trace_chain.yaml" in provenance
+    assert "(run at 2026-07-29T00:00:00+00:00)" in provenance
+    # No render, nothing to record: the report is the same one it always was.
+    assert "reqs document" not in emit_pages(evidence, build_obligations(evidence))["provenance.md"]
+
+
 def test_traceability_page_puts_open_items_first(evidence: Evidence) -> None:
     """The open items lead the page: the red rows plus the rowless gate findings."""
     page = emit_pages(evidence, build_obligations(evidence))["traceability.md"]
@@ -432,13 +445,33 @@ def test_the_requirements_page_names_every_rendered_container(
     pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
     requirements = pages["requirements.md"]
 
-    assert "102 statements" not in requirements  # counts come from the render, not hardcoded
-    assert "4 leaf statements (CONOPS)" in requirements  # named as its kind, not as containers
-    assert "3 statements in 2 containers (HLR)" in requirements
     assert "\nconops\nhlr\nllr\n" in requirements
     assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in pages["hlr.md"]
     assert f"{REQUIREMENTS_SUBDIR}/llr_x" in pages["llr.md"]
     assert "requirements" in pages["index.md"]
+
+
+def test_the_landing_pages_carry_nothing_but_their_contents(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """A page whose whole job is to enter the next one describes neither."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    for page in ("requirements.md", "conops.md", "hlr.md", "llr.md"):
+        # Everything ahead of the toctree fence: an anchor target and a heading,
+        # and no sentence between them.
+        head = [line for line in pages[page].split("```")[0].splitlines() if line.strip()]
+        assert all(line.startswith(("#", "(")) for line in head), f"{page} heads with {head}"
+
+
+def test_a_layer_is_headed_by_the_name_the_chain_spells_out(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """An acronym layer heads its page with its title; a layer without one keeps its name."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert pages["conops.md"].startswith("# Concept of Operations (CONOPS)\n")
+    assert pages["hlr.md"].startswith("# HLR\n")
 
 
 def test_a_layer_page_enters_its_top_containers_only(
@@ -448,8 +481,7 @@ def test_a_layer_page_enters_its_top_containers_only(
     pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
 
     assert f"{REQUIREMENTS_SUBDIR}/hlr_x_1_nested" not in pages["hlr.md"]
-    assert "3 statements in 2 containers" in pages["hlr.md"]
-    assert "4 leaf statements." in pages["conops.md"]
+    assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in pages["hlr.md"]
 
 
 def test_without_a_render_the_report_omits_the_section(evidence: Evidence) -> None:
@@ -521,7 +553,6 @@ def test_the_listings_are_in_the_toctree_of_both_renderings(
     assert f"x.ads <{REQUIREMENTS_SUBDIR}/sources/src-x-ads>" in listings
     assert "{only}" not in listings  # gating the pages would dangle the PDF's links
     assert "\nsource-listings\n" in pages["index.md"]
-    assert "{ref}`source-listings`" in pages["requirements.md"]
 
 
 def test_an_empty_pdf_is_reported_as_a_failure(tmp_path: Path) -> None:

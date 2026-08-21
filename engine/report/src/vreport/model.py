@@ -604,7 +604,7 @@ class TraceReport(Frozen):
     diagnostics: list[TraceDiagnostic] = Field(default_factory=list)
 
 
-REQUIREMENTS_INDEX_SCHEMA_VERSION = 2
+REQUIREMENTS_INDEX_SCHEMA_VERSION = 3
 
 
 class RequirementStatement(Frozen):
@@ -619,12 +619,20 @@ class RequirementLayer(Frozen):
     """One rendered layer of the chain and the pages it rendered as."""
 
     name: str
+    # The layer spelled out for a heading; the chain's short name stands in when
+    # it needs no spelling out.
+    title: str = ""
     kind: str = ""  # the chain layer's kind, so a consumer can name its nodes correctly
     pages: list[str] = Field(default_factory=list)
     # The pages at the top of the layer. The rest are nested under one of these
     # by the render, which enters them from their parent's page: a table of
     # contents naming every page would enter the nested ones a second time.
     roots: list[str] = Field(default_factory=list)
+
+    @property
+    def heading(self) -> str:
+        """The layer as a document heads a section with it."""
+        return self.title or self.name
 
 
 class RequirementSource(Frozen):

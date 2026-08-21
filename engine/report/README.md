@@ -22,7 +22,7 @@ invoking `vreport` directly, produce them first):
 | `reports/trace/trace_report.json` | `make trace-report` | `reqs trace --format json` over the whole chain: per-pair matrices, the merged verification view, gate diagnostics, recorded command |
 | `obj/analysis/code_inventory.json` | `make code-inventory` | the Ada tracer's libadalang parse of the project's own sources; the report reads the generics it declares |
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
-| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` (the CONOPS, HLR and LLR, plus a listing of each cited source under `pages/sources/`) and `index.json` (each layer's pages and top-level pages, each node's page and anchor) |
+| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` (the CONOPS, HLR and LLR, plus a listing of each cited source under `pages/sources/`) and `index.json` (each layer's title, pages and top-level pages, each node's page and anchor) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
 downstream tooling), `src/` (generated MyST sources), `html/` (the report),
@@ -52,7 +52,11 @@ the Requirements section: a page per chain layer, entering that layer's
 top-level containers, which in turn enter the containers nested under them. The
 layer pages are emitted here, because which layers the report carries and in
 what order is the report's own structure; the nesting below them comes from the
-render, which is what knows how the containers relate. Their statements are what
+render, which is what knows how the containers relate. Neither the section page
+nor a layer's page says anything but its heading and its contents: a page whose
+whole job is to enter the next one is not the place to describe the rendering,
+and what produced the pages is recorded with the other tool invocations on the
+provenance page. Their statements are what
 the trace matrices link to, resolved through `index.json` — so a matrix id that
 names no rendered statement fails the build rather than shipping a dead link.
 The render is optional input: without it the report says everything it said

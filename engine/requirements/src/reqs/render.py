@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from reqs.document import Statement
     from reqs.requirement_set import RequirementFile
 
-INDEX_SCHEMA_VERSION = 2
+INDEX_SCHEMA_VERSION = 3
 """Bumped whenever the index's shape changes; a consumer must check it."""
 
 INDEX_NAME = "index.json"
@@ -423,6 +423,7 @@ class DocumentRenderer:
             "layers": [
                 {
                     "name": layer,
+                    "title": self.view.layers[layer].title or layer,
                     "kind": self.view.layers[layer].kind,
                     "pages": self.pages_of(layer),
                     "roots": self.roots_of(layer),

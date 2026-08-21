@@ -152,6 +152,19 @@ def test_the_index_names_the_anchors_the_pages_carry(tmp_path: Path) -> None:
             assert entry["text"]
 
 
+def test_the_index_spells_out_the_layers_the_chain_gave_a_title(tmp_path: Path) -> None:
+    """A consumer heading a section with a layer reads its title, name if it has none."""
+    chain = req_chain(tmp_path)
+    chain[0] = Layer("CONOPS", "markdown-leaves", chain[0].path, title="Concept of Operations")
+    index = DocumentRenderer(chain).index()
+
+    assert {layer["name"]: layer["title"] for layer in index["layers"]} == {
+        "CONOPS": "Concept of Operations",
+        "HLR": "HLR",
+        "LLR": "LLR",
+    }
+
+
 def test_statements_render_their_container_prose(tmp_path: Path) -> None:
     """The container's document-level fields are rendered above its statements."""
     chain = req_chain(tmp_path)

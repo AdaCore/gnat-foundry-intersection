@@ -294,6 +294,27 @@ def _emit_provenance(ev: Evidence) -> str:
             "cannot be tied to a command line; regenerate with `make trace-report`."
         )
 
+    # The requirement pages carry no provenance of their own: they are the
+    # rendering, and a rendering that explained itself would read as part of the
+    # requirements. What produced them is recorded here, with the other tools.
+    doc = ev.requirements
+    if doc is None:
+        render_block = ""
+    elif doc.command:
+        rendered_at = f"\n\n(run at {inline(doc.generated_at)})" if doc.generated_at else ""
+        render_block = (
+            "\nThe requirement pages were rendered from the requirement files by:\n\n"
+            + _code(doc.command)
+            + rendered_at
+            + "\n"
+        )
+    else:
+        render_block = (
+            "\n**Warning:** the requirement pages carry no recorded `reqs document` "
+            "invocation — they cannot be tied to a command line; regenerate with "
+            "`make requirements-doc`.\n"
+        )
+
     return f"""{_target("provenance")}
 
 # Provenance
@@ -339,7 +360,7 @@ from these test executions:
 The requirement-trace matrices were produced by:
 
 {trace_block}
-"""
+{render_block}"""
 
 
 def _instances_cell(g: GenericAnalysis) -> str:
@@ -1194,19 +1215,6 @@ only by human review.
 """
 
 
-# A markdown layer's nodes are leaves of one document; a requirement layer's are
-# statements spread over its containers. Named as what they are, per kind.
-MARKDOWN_LEAVES_KIND = "markdown-leaves"
-
-
-def _layer_count(doc: RequirementsDocument, layer: RequirementLayer) -> str:
-    """Say how much of one layer the document renders, in that layer's own terms."""
-    nodes = len(doc.nodes.get(layer.name, {}))
-    if layer.kind == MARKDOWN_LEAVES_KIND:
-        return f"{count(nodes, 'leaf statement')} ({layer.name})"
-    return f"{count(nodes, 'statement')} in {count(len(layer.pages), 'container')} ({layer.name})"
-
-
 def _requirements(ev: Evidence) -> RequirementsDocument:
     """Return the collected render; the requirement pages are emitted only from one."""
     if ev.requirements is None:  # pragma: no cover - emitted only when a render was collected
@@ -1221,36 +1229,11 @@ def _layer_page(layer: RequirementLayer) -> str:
 
 
 def _emit_requirements(ev: Evidence) -> str:
-    """Render the requirements landing page: what the corpus is, then a page per layer."""
-    doc = _requirements(ev)
-    counts = ", ".join(_layer_count(doc, layer) for layer in doc.layers)
-    provenance = (
-        f"Rendered {inline(doc.generated_at)} by `reqs document`"
-        if doc.generated_at
-        else "Rendered by `reqs document`"
-    )
-    layers = "\n".join(_layer_page(layer) for layer in doc.layers)
-    cited = (
-        ""
-        if not doc.sources
-        else "The sources these requirements cite are listed under "
-        "{ref}`source-listings`, one page per file.\n"
-    )
+    """Render the requirements landing page: the corpus entered one layer at a time."""
+    layers = "\n".join(_layer_page(layer) for layer in _requirements(ev).layers)
     return f"""{_target("requirements")}
 
 # Requirements
-
-The requirement corpus as a document, one layer of the chain per section below:
-{counts}. Each statement carries the trace neighbourhood the chain resolved for
-it -- what it refines above, what covers it below, and how it is verified -- so
-the requirement and its evidence read together. The trace matrices under
-{{ref}}`traceability` link here, and every statement links back to its parents
-and children.
-
-{cited}
-{provenance} from the requirement files themselves; the authoring format is
-YAML (one container per file) and this rendering is generated, never edited.
-Regenerate with `make requirements-doc`.
 
 ```{{toctree}}
 :maxdepth: 2
@@ -1260,19 +1243,10 @@ Regenerate with `make requirements-doc`.
 """
 
 
-def _emit_layer(doc: RequirementsDocument, layer: RequirementLayer) -> str:
-    """
-    Render one layer's page: how much the layer holds, then a toctree of its top pages.
-
-    How the pages below are organized and what a statement carries is said once,
-    on the section's own page; a reader who has followed a link this far is after
-    the layer, not another description of the rendering.
-    """
+def _emit_layer(layer: RequirementLayer) -> str:
+    """Render one layer's page: its heading, then a toctree of its top pages."""
     roots = "\n".join(f"{REQUIREMENTS_SUBDIR}/{page}" for page in layer.roots)
-    held = _layer_count(doc, layer).removesuffix(f" ({layer.name})")
-    return f"""# {layer.name}
-
-{_capitalized(held)}.
+    return f"""# {layer.heading}
 
 ```{{toctree}}
 :maxdepth: 2
@@ -1316,11 +1290,6 @@ def _listing_title(path: str) -> str:
     return "/".join(part for part in path.split("/") if part != "src")
 
 
-def _capitalized(text: str) -> str:
-    """Capitalize a phrase's first letter, leaving any capitals it already has alone."""
-    return text[:1].upper() + text[1:]
-
-
 def emit_pages(ev: Evidence, obligations: list[Obligation]) -> dict[str, str]:
     """Render all report pages, keyed by output filename."""
     pages = {
@@ -1341,7 +1310,7 @@ def emit_pages(ev: Evidence, obligations: list[Obligation]) -> dict[str, str]:
         if name in pages:
             msg = f"chain layer {layer.name!r} collides with the report page {name!r}"
             raise ValueError(msg)
-        pages[name] = _emit_layer(ev.requirements, layer)
+        pages[name] = _emit_layer(layer)
     if ev.requirements.sources:
         pages["source-listings.md"] = _emit_source_listings(ev)
     return pages

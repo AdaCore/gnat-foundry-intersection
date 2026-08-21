@@ -98,8 +98,14 @@ def requirements_document() -> RequirementsDocument:
         generated_at="2026-07-29T00:00:00+00:00",
         corpus_valid=True,
         layers=[
+            # One layer with a title and one without: the heading takes whichever
+            # the chain gave it.
             RequirementLayer(
-                name="CONOPS", kind="markdown-leaves", pages=["conops"], roots=["conops"]
+                name="CONOPS",
+                title="Concept of Operations (CONOPS)",
+                kind="markdown-leaves",
+                pages=["conops"],
+                roots=["conops"],
             ),
             RequirementLayer(
                 name="HLR",

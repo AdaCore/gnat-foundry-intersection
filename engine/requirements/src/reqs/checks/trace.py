@@ -45,7 +45,9 @@ its nodes (``kind``: ``markdown-leaves``, ``requirement-yaml``, ``ada-tests``,
 ``ada-entities`` or ``ada-checks``) and, for any layer that traces upward, how
 to extract a parent-node id from each ref (``id_pattern``, one capture group,
 matched against the *whole* ref: a pattern that matched only a prefix would
-accept ``llr_3_conflicts.1typo`` as ``llr_3_conflicts.1``).
+accept ``llr_3_conflicts.1typo`` as ``llr_3_conflicts.1``). Its ``name`` is the
+short one the ids and matrix headings carry; a layer whose name is an acronym
+can spell itself out in ``title``, which is what a document heading uses.
 
 A layer that discharges one verification method declares it as ``method``: its
 parent's nodes need covering exactly when they declare that method. Method
@@ -126,6 +128,9 @@ class Layer:
     name: str
     kind: str
     path: Path
+    # How a document naming this layer spells it out; the short `name` is what
+    # ids, tags and matrix headings use, and stands in when no title is given.
+    title: str | None = None
     id_pattern: str | None = None  # regex; group(1) extracts a parent-node id from an up-ref
     waivers: Path | None = None  # nodes here intentionally left uncovered by the layer below
     # The layer this one traces to; None means "the entry above me in the file".
@@ -152,6 +157,7 @@ _LAYER_KEYS = frozenset(
         "name",
         "kind",
         "path",
+        "title",
         "id_pattern",
         "waivers",
         "parent",
@@ -174,6 +180,7 @@ def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
             name=item["name"],
             kind=item["kind"],
             path=base / item["path"],
+            title=item.get("title"),
             id_pattern=item.get("id_pattern"),
             waivers=(base / item["waivers"]) if item.get("waivers") else None,
             parent=item.get("parent"),
