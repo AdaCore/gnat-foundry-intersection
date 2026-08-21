@@ -698,7 +698,7 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
 
 
 def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
-    """Obligations about the evidence itself: run consistency and sources."""
+    """Obligations about the evidence itself: run consistency, tools, sources."""
     header = ev.proof.header
     forced = header is not None and header.forced
     prove_date = inline((header.date if header else None) or "unknown")
@@ -732,6 +732,32 @@ def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
         )
         + cov_note,
         review=not forced or ev.coverage.command_text is None,
+    )
+
+    # Each version file is written by a command of its own, separate from the run
+    # whose artifacts it describes: gnatprove's header can be present with its
+    # version absent. Without a version the evidence names no toolchain at all,
+    # which is a finding, not a detail of the provenance section.
+    missing = [
+        tool
+        for tool, version in (
+            ("gnatprove", ev.proof.version_text),
+            ("gnatcov", ev.coverage.version_text),
+        )
+        if not version
+    ]
+    named = " and ".join(missing)
+    b.add(
+        f"Tool versions not recorded: {named}" if missing else "Tool versions recorded",
+        "provenance-tools",
+        (
+            f"No version was recorded for {named}, so this evidence cannot be tied "
+            f"to a toolchain. Regenerate with `make prove-report` and "
+            f"`make coverage-report-xml`."
+            if missing
+            else "The gnatprove and gnatcov versions are both recorded, in the provenance section."
+        ),
+        review=bool(missing),
     )
 
     dirty = ev.git is None or ev.git.dirty

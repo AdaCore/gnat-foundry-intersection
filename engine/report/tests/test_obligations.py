@@ -216,6 +216,8 @@ def test_statuses_on_fixture_evidence(evidence: Evidence) -> None:
     for anchor in expect_review:
         assert by_anchor[anchor].status is ObligationStatus.review, anchor
     assert by_anchor["provenance-git"].status is ObligationStatus.ok
+    # The fixture records a gnatprove and a gnatcov version.
+    assert by_anchor["provenance-tools"].status is ObligationStatus.ok
     # The fixture gnatprove.out records a `-f` command line.
     assert by_anchor["provenance-invocations"].status is ObligationStatus.ok
 
@@ -246,6 +248,31 @@ def test_statuses_on_clean_evidence() -> None:
     assert by_anchor["traceability-conops"].status is ObligationStatus.review
     # No recorded command line means the forced-run claim cannot be made.
     assert by_anchor["provenance-invocations"].status is ObligationStatus.review
+    # ...and synthetic evidence records no tool versions.
+    assert by_anchor["provenance-tools"].status is ObligationStatus.review
+
+
+def test_missing_tool_version_forces_review() -> None:
+    """A tool with no recorded version is named, and holds its item open."""
+    both = _evidence(
+        proof=ProofEvidence(version_text="FSF 16.1.0"),
+        coverage=CoverageEvidence(level="stmt", version_text="GNATcoverage FSF 26.2"),
+    )
+    recorded = _by_anchor(build_obligations(both))["provenance-tools"]
+    assert recorded.status is ObligationStatus.ok
+    assert "gnatprove" not in recorded.title
+
+    coverage_only = both.model_copy(
+        update={"proof": ProofEvidence(version_text=None)},
+    )
+    partial = _by_anchor(build_obligations(coverage_only))["provenance-tools"]
+    assert partial.status is ObligationStatus.review
+    assert partial.title == "Tool versions not recorded: gnatprove"
+    assert "gnatcov" not in partial.detail
+
+    neither = _by_anchor(build_obligations(_evidence()))["provenance-tools"]
+    assert neither.status is ObligationStatus.review
+    assert neither.title == "Tool versions not recorded: gnatprove and gnatcov"
 
 
 def test_missing_requirements_tree_forces_review() -> None:
