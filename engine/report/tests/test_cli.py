@@ -196,3 +196,42 @@ def test_signoff_needs_a_named_reviewer(tmp_path: Path, monkeypatch: pytest.Monk
     result = _signoff(tmp_path, "--item", "conops")
     assert result.exit_code == 1
     assert "no reviewer" in result.output
+
+
+def test_restamping_keeps_the_existing_note(tmp_path: Path) -> None:
+    """A re-stamp must not silently discard commentary the reviewer wrote."""
+    reqs = _requirements(tmp_path)
+    _signoff(tmp_path, "--item", "waiver:1.1", "--by", "Tony", "--note", "Site visit, 2026.")
+
+    # The reason moves, so the sign-off lapses and the reviewer signs it again.
+    (reqs / "trace_waivers.yaml").write_text('waivers:\n  - leaf: "1.1"\n    reason: Changed.\n')
+    result = _signoff(tmp_path, "--item", "waiver:1.1", "--by", "Tony")
+    assert result.exit_code == 0, result.output
+    assert "    note: Site visit, 2026." in (reqs / "signoffs.yaml").read_text()
+
+    # Passing --note replaces it; passing it empty clears it.
+    _signoff(tmp_path, "--item", "waiver:1.1", "--by", "Tony", "--note", "Re-read the reason.")
+    assert "    note: Re-read the reason." in (reqs / "signoffs.yaml").read_text()
+    _signoff(tmp_path, "--item", "waiver:1.1", "--by", "Tony", "--note", "")
+    assert "    note:" not in (reqs / "signoffs.yaml").read_text()
+
+
+def test_signoff_rejects_a_date_that_is_not_one(tmp_path: Path) -> None:
+    """The date is stated in the report as fact, so it is a date or the run fails."""
+    _requirements(tmp_path)
+    for bad in ("yesterday", "2026-13-45", "2026-08-21\nnote: injected"):
+        result = _signoff(tmp_path, "--item", "conops", "--by", "Tony", "--date", bad)
+        assert result.exit_code == 1, bad
+        assert "must be a calendar date" in result.output, bad
+    assert not (tmp_path / "requirements" / "signoffs.yaml").exists()
+
+
+def test_signoff_rejects_a_recorded_date_that_is_not_one(tmp_path: Path) -> None:
+    """A hand-written record is an input too: a bad date names the file, not a traceback."""
+    reqs = _requirements(tmp_path)
+    (reqs / "signoffs.yaml").write_text(
+        "signoffs:\n  - item: conops\n    digest: sha256:0\n    by: Tony\n    date: not-a-date\n"
+    )
+    result = _signoff(tmp_path)
+    assert result.exit_code == 1
+    assert "signoffs.yaml" in result.output

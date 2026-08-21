@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 from enum import StrEnum
 from pathlib import Path
 
@@ -510,7 +511,9 @@ class Signoff(Frozen):
     item: str  # `conops`, `waiver:<leaf>`, or `derived:<ident>`
     digest: str
     by: str
-    date: str
+    # A calendar date, not free text: the report states it as a fact, and a
+    # hand-written record is as much an input here as a generated one.
+    date: dt.date
     note: str = ""
 
 

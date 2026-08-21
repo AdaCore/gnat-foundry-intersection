@@ -196,7 +196,7 @@ def test_traceability_page_reports_each_signoff(evidence: Evidence) -> None:
     page = emit_pages(ev, build_obligations(ev))["traceability.md"]
     assert "**lapsed** (was Tony, 2026-06-01)" in page  # the waiver's reason moved
     assert "Tony, 2026-08-21" in page  # the derived requirement, and the CONOPS
-    assert "signed off: Tony, 2026-08-21" in page
+    assert "The document as it stands: Tony, 2026-08-21." in page
     assert digest_of(waiver_subject(waiver)) != signoffs[1].digest
 
 
@@ -211,6 +211,17 @@ def test_traceability_page_says_when_nothing_is_signed(evidence: Evidence) -> No
     )
     page = emit_pages(ev, build_obligations(ev))["traceability.md"]
     assert page.count("**not signed off**") == 3  # waiver, derived requirement, CONOPS
+
+
+def test_traceability_page_omits_signoffs_when_not_adopted(evidence: Evidence) -> None:
+    """Without a record the page carries no sign-off column, cell, or prose at all."""
+    page = emit_pages(evidence, build_obligations(evidence))["traceability.md"]
+    assert not evidence.traceability.signoffs_found
+    for absent in ("Signed off", "not signed off", "signoffs.yaml", "The document as it stands"):
+        assert absent not in page, absent
+    # The tables keep their original two columns.
+    assert "| Leaf | Reason |" in page
+    assert "| Requirement | Text |" in page
 
 
 def test_traceability_page_flags_a_missing_conops(evidence: Evidence) -> None:

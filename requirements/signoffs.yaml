@@ -2,48 +2,51 @@
 #
 # Entries are protected by a digest. Agents MAY NOT recompute the digest
 # automatically.
+#
+# Commentary belongs in an entry's `note:`, which a re-stamp preserves; comments
+# written between entries do not survive one.
 signoffs:
   - item: conops
     digest: sha256:7d6dcc0733d45e7a16d0e3dbee1cc743f2d3ac8f66f55b9adeddf2873b18989a
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:1.1
     digest: sha256:4386030b89593f40c5547b3d176782cda8fc8dad0711fdab8d84bb3ffafbc8ee
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:1.2
     digest: sha256:b5b96ef0b4494a10d98c8f01da9af2ed188778978e5b7e81008f87b1d7df2ec5
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:1.3
     digest: sha256:8b98adc0ffdaf828f5820ebb71dfd027e7e84d72220d75edc76f993982ce8827
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:1.4
     digest: sha256:9acfd66e7adf6b6c79c29535ce01642847821ddbb8bb1e67de9501b745af71bd
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:2.3
     digest: sha256:499cf3211fe518c8d60088c98cae29ec0f9f41589c437bef0fa7d7c9d58ebe79
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:2.4
     digest: sha256:e82ee19b2364055ca6a3a47ab25dfca09c8aeffe2976ba5059db12fb0a6184fa
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:3.1
     digest: sha256:b0d1a32f22b7cf12d92d7b3a0320c1e62de9764b2eefb40688f57a9b623976b0
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:5.2
     digest: sha256:ec4dca4208a3757bd3f306559c62fd52a32106f5f4333d3cea33a8f3c3fad4e3
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: waiver:5.4
     digest: sha256:5712456cb820d32f9d32a6c4682d7a95404f699385ae07af8875c5833383dd4d
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21
   - item: derived:hlr_3_timing.8
     digest: sha256:355fd5e7865026fb8e9b8bd38dec38e7f99ccd5a74701b76c357122fd2a3fb4c
     by: M. Anthony Aiello
-    date: '2026-08-21'
+    date: 2026-08-21

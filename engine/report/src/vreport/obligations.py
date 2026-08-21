@@ -618,7 +618,7 @@ def _signoff_clause(state: SignoffState) -> str:
     """How one item's sign-off stands, as a clause closing that item's line."""
     if state.signoff is None:
         return " — **not signed off**"
-    stamp = f"signed off {inline(state.signoff.date)} by {inline(state.signoff.by)}"
+    stamp = f"signed off {state.signoff.date.isoformat()} by {inline(state.signoff.by)}"
     if state.status is SignoffStatus.signed:
         return f" — {stamp}"
     if state.status is SignoffStatus.lapsed:
@@ -786,8 +786,9 @@ def _conops_obligation(state: SignoffState, b: _Builder, *, opted_in: bool) -> N
         return
 
     signoff = state.signoff
+    signed_on = signoff.date.isoformat() if signoff else ""
     title = {
-        SignoffStatus.signed: f"CONOPS validity: signed off {signoff.date}" if signoff else "",
+        SignoffStatus.signed: f"CONOPS validity: signed off {signed_on}",
         SignoffStatus.lapsed: "CONOPS validity: sign-off lapsed",
         SignoffStatus.unknown: "CONOPS validity: `requirements/conops.md` not found",
         SignoffStatus.unsigned: "CONOPS validity is human-owned",

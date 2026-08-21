@@ -39,14 +39,15 @@
  
 --- a/requirements/signoffs.yaml
 +++ b/requirements/signoffs.yaml
-@@ -9,7 +9,8 @@ signoffs:
- # comments written between entries do not.
+@@ -7,9 +7,10 @@
+ # written between entries do not survive one.
  signoffs:
    - item: conops
 -    digest: sha256:7d6dcc0733d45e7a16d0e3dbee1cc743f2d3ac8f66f55b9adeddf2873b18989a
 +    digest: sha256:b55d5696d723f74d9d13aea34e47b09d7afb47ae48c1e75e86916792620c9284
      by: M. Anthony Aiello
-     date: '2026-08-21'
+     date: 2026-08-21
 +    note: Revised CONOPS, reviewed on handover; the countdown display is wanted.
    - item: waiver:1.1
      digest: sha256:4386030b89593f40c5547b3d176782cda8fc8dad0711fdab8d84bb3ffafbc8ee
+     by: M. Anthony Aiello

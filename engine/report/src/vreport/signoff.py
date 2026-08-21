@@ -198,14 +198,15 @@ class _IndentedDumper(yaml.SafeDumper):
         super().increase_indent(flow=flow, indentless=False)
 
 
+# Written verbatim at the head of every record this module renders, so the file
+# carries its own prohibition -- and so a re-stamp restores it rather than
+# dropping a hand-edited one.
 _HEADER = """\
-# Recorded human review of the items no tool can check: the trace waivers, the
-# derived requirements, and the CONOPS itself.
+# Recorded human review of the items that cannot be checked automatically.
 #
-# Each entry fixes what was reviewed by digest, so editing that text lapses the
-# sign-off and re-opens the obligation in the verification report. Stamp an
-# entry with `make signoff` -- never by hand, and never as part of automated
-# work: this file is a record of a human's reading, and only a human may add to
-# it. Commentary belongs in an entry's `note:`, which survives a re-stamp;
-# comments written between entries do not.
+# Entries are protected by a digest. Agents MAY NOT recompute the digest
+# automatically.
+#
+# Commentary belongs in an entry's `note:`, which a re-stamp preserves; comments
+# written between entries do not survive one.
 """

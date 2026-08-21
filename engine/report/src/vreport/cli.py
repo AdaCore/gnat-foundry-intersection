@@ -11,7 +11,7 @@ outputs are `evidence.json`, the generated MyST sources, and the HTML report.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import NoReturn
 
@@ -180,7 +180,9 @@ _SIGNOFF_BY = typer.Option(None, "--by", help="Reviewer (default: git's `user.na
 _SIGNOFF_DATE = typer.Option(
     None, "--date", help="Date of the review, YYYY-MM-DD (default: today)."
 )
-_SIGNOFF_NOTE = typer.Option(None, "--note", help="What the review established.")
+_SIGNOFF_NOTE = typer.Option(
+    None, "--note", help="What the review established (omit to keep an entry's existing note)."
+)
 
 
 _STATUS_LABEL = {
@@ -240,22 +242,29 @@ def signoff(
     reviewer = by or git_user_name(root)
     if not reviewer:
         _fail("no reviewer: pass --by, or set git's `user.name`")
+    try:
+        reviewed_on = date.fromisoformat(reviewed) if reviewed else datetime.now(tz=UTC).date()
+    except ValueError:
+        _fail(f"--date must be a calendar date as YYYY-MM-DD, not {reviewed!r}")
     stamped = {t.item for t in targets}
     kept = [s for s in judgement.signoffs if s.item not in stamped]
+    # A re-stamp must not silently discard commentary the reviewer wrote: an
+    # unpassed --note carries the previous one over, and `--note ""` clears it.
+    previous = {s.item: s.note for s in judgement.signoffs}
     written = [
         Signoff(
             item=t.item,
             digest=t.digest or "",
             by=reviewer,
-            date=reviewed or datetime.now(tz=UTC).date().isoformat(),
-            note=note or "",
+            date=reviewed_on,
+            note=previous.get(t.item, "") if note is None else note,
         )
         for t in targets
     ]
     path = signoffs_path(root)
     path.write_text(render_signoffs([*kept, *written]), encoding="utf-8")
     for entry in written:
-        typer.echo(f"signed off {entry.item} ({entry.by}, {entry.date})")
+        typer.echo(f"signed off {entry.item} ({entry.by}, {entry.date.isoformat()})")
     typer.echo(f"record:  {path}")
 
 
@@ -265,7 +274,7 @@ def _list_signoffs(items: list[SignoffItem], states: dict[str, SignoffState]) ->
     for i in items:
         state = states[i.item]
         stamp = (
-            f" — {state.signoff.by}, {state.signoff.date}"
+            f" — {state.signoff.by}, {state.signoff.date.isoformat()}"
             if state.signoff is not None and state.status is SignoffStatus.signed
             else ""
         )
