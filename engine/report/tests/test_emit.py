@@ -497,7 +497,14 @@ def test_without_a_render_the_report_omits_the_section(evidence: Evidence) -> No
 def test_the_report_builds_with_the_requirement_pages(
     evidence_with_requirements: Evidence, tmp_path: Path
 ) -> None:
-    """The strict build resolves every anchor the matrices link to."""
+    """
+    The strict build resolves every anchor the matrices link to.
+
+    Resolution, not just exit status: a matrix cell links a statement by anchor
+    alone and Sphinx is what turns that into a path into the requirement pages.
+    A link that stayed page-local would resolve against the matrix page itself
+    and go nowhere, which the exit status alone would not catch.
+    """
     ev = evidence_with_requirements
     render = tmp_path / "render" / "pages"
     render.mkdir(parents=True)
@@ -517,6 +524,10 @@ def test_the_report_builds_with_the_requirement_pages(
 
     assert build_html(tmp_path / "src", tmp_path / "html") == 0
     assert (tmp_path / "html" / REQUIREMENTS_SUBDIR / "hlr_x.html").is_file()
+    matrix = (tmp_path / "html" / "traceability.html").read_text(encoding="utf-8")
+    assert ev.requirements is not None
+    linked = ev.requirements.nodes["HLR"]["hlr_x.1"]
+    assert f'href="{REQUIREMENTS_SUBDIR}/{linked.page}.html#{linked.anchor}"' in matrix
 
 
 def test_copying_the_pages_drops_a_container_that_went_away(tmp_path: Path) -> None:
