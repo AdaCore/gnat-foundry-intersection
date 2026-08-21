@@ -697,28 +697,8 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
     )
 
 
-def toolchain_note(proof_version: str | None, coverage_version: str | None) -> str:
-    """Describe the recorded toolchain honestly, without assuming which one ran."""
-    blob = f"{proof_version or ''} {coverage_version or ''}"
-    if "FSF" in blob or "Community" in blob:
-        return (
-            "The recorded versions identify FSF community builds of GNATprove and "
-            "GNATcoverage; these are not tool-qualified releases."
-        )
-    if blob.strip():
-        return (
-            "The recorded tool versions are not FSF community builds; confirm which "
-            "releases these are and whether tool qualification applies to this use."
-        )
-    return (
-        "Tool versions were not recorded — regenerate the evidence with "
-        "`make prove-report` and `make coverage-report-xml`; without recorded "
-        "versions the evidence cannot be tied to a toolchain."
-    )
-
-
 def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
-    """Obligations about the evidence itself: run consistency, tools, sources."""
+    """Obligations about the evidence itself: run consistency and sources."""
     header = ev.proof.header
     forced = header is not None and header.forced
     prove_date = inline((header.date if header else None) or "unknown")
@@ -752,15 +732,6 @@ def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
         )
         + cov_note,
         review=not forced or ev.coverage.command_text is None,
-    )
-
-    b.add(
-        "Tool qualification",
-        "provenance-tools",
-        toolchain_note(ev.proof.version_text, ev.coverage.version_text)
-        + " The proof results are sound only subject to GNATprove's documented "
-        "assumptions, and every recorded tool version is in the provenance section.",
-        review=True,
     )
 
     dirty = ev.git is None or ev.git.dirty

@@ -40,7 +40,6 @@ from vreport.obligations import (
     open_claims,
     open_trace_items,
     review_verified_rows,
-    toolchain_note,
 )
 
 
@@ -187,13 +186,6 @@ def test_open_claims_ambiguous_mode_is_not_discharged() -> None:
     assert len(open_claims(proof)) == 1
 
 
-def test_toolchain_note_follows_recorded_versions() -> None:
-    """The qualification note describes the recorded toolchain, not an assumption."""
-    assert "FSF community" in toolchain_note("FSF 16.1.0", "GNATcoverage FSF 26.2")
-    assert "not FSF" in toolchain_note("Pro 25.1", "GNATcoverage Pro 25.1")
-    assert "not recorded" in toolchain_note(None, None)
-
-
 def test_idents_unique(evidence: Evidence) -> None:
     """Obligation identifiers are unique and sequential."""
     obligations = build_obligations(evidence)
@@ -220,7 +212,6 @@ def test_statuses_on_fixture_evidence(evidence: Evidence) -> None:
         "traceability-waivers",
         "traceability-derived",
         "traceability-conops",
-        "provenance-tools",
     }
     for anchor in expect_review:
         assert by_anchor[anchor].status is ObligationStatus.review, anchor
@@ -252,9 +243,7 @@ def test_statuses_on_clean_evidence() -> None:
     }
     for anchor in machine_ok:
         assert by_anchor[anchor].status is ObligationStatus.ok, anchor
-    always_review = {"traceability-conops", "provenance-tools"}
-    for anchor in always_review:
-        assert by_anchor[anchor].status is ObligationStatus.review, anchor
+    assert by_anchor["traceability-conops"].status is ObligationStatus.review
     # No recorded command line means the forced-run claim cannot be made.
     assert by_anchor["provenance-invocations"].status is ObligationStatus.review
 
