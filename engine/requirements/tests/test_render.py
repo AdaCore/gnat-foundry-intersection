@@ -286,6 +286,26 @@ def test_cli_writes_pages_and_index(tmp_path: Path) -> None:
     assert "reqs document --chain" in index["command"]
 
 
+def test_a_rerender_does_not_keep_a_page_of_its_own_last_run(tmp_path: Path) -> None:
+    """
+    Renaming a container must not leave its page behind.
+
+    The page tree is what a consumer copies wholesale; a page no index names
+    would carry stale requirement text into a report, or fail the report's own
+    build as a page nothing links to.
+    """
+    chain = req_chain(tmp_path)
+    out = tmp_path / "out"
+    DocumentRenderer(chain).write(out)
+    assert (out / "pages" / "hlr_a.md").is_file()
+
+    (chain[1].path / "hlr_a.yaml").rename(chain[1].path / "hlr_b.yaml")
+    DocumentRenderer(chain).write(out)
+
+    assert (out / "pages" / "hlr_b.md").is_file()
+    assert not (out / "pages" / "hlr_a.md").exists()
+
+
 def test_cli_fails_on_a_corpus_that_does_not_analyse(tmp_path: Path) -> None:
     """A broken corpus exits non-zero and writes no document."""
     chain_file = tmp_path / "chain.yaml"

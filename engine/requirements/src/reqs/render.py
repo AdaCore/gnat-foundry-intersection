@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
@@ -461,10 +462,19 @@ class DocumentRenderer:
         return out
 
     def write(self, out: Path, run: RunInfo | None = None) -> list[RenderedPage]:
-        """Write the pages and the index under `out`, returning what was written."""
+        """
+        Write the pages and the index under `out`, returning what was written.
+
+        The page tree is replaced, not written over: a renamed or deleted
+        requirement must not leave its page behind, where a consumer copying the
+        tree would carry stale requirement text into a report, or fail on a page
+        no index names.
+        """
         pages = self.pages()
         pages_dir = out / PAGES_DIR
-        pages_dir.mkdir(parents=True, exist_ok=True)
+        if pages_dir.exists():
+            shutil.rmtree(pages_dir)
+        pages_dir.mkdir(parents=True)
         for page in pages:
             target = pages_dir / f"{page.name}.md"
             target.parent.mkdir(parents=True, exist_ok=True)
