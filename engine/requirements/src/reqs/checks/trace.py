@@ -128,10 +128,10 @@ class Layer:
     name: str
     kind: str
     path: Path
+    id_pattern: str | None = None  # regex; group(1) extracts a parent-node id from an up-ref
     # How a document naming this layer spells it out; the short `name` is what
     # ids, tags and matrix headings use, and stands in when no title is given.
     title: str | None = None
-    id_pattern: str | None = None  # regex; group(1) extracts a parent-node id from an up-ref
     waivers: Path | None = None  # nodes here intentionally left uncovered by the layer below
     # The layer this one traces to; None means "the entry above me in the file".
     parent: str | None = None
@@ -157,8 +157,8 @@ _LAYER_KEYS = frozenset(
         "name",
         "kind",
         "path",
-        "title",
         "id_pattern",
+        "title",
         "waivers",
         "parent",
         "partial_coverage",
