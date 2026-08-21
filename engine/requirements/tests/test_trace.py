@@ -522,14 +522,17 @@ def test_untagged_test_is_untraced(tmp_path: Path) -> None:
     ]
 
 
-def test_none_tagged_test_is_derived_not_untraced(tmp_path: Path) -> None:
-    """A `--@covers none` test is accounted for (derived), not UNTRACED."""
+def test_none_tagged_test_is_no_node_at_all(tmp_path: Path) -> None:
+    """A `--@covers none` test is not requirements-based: no gate finding, no row."""
     chain = llr_test_chain(
         tmp_path,
         TWO_LLRS,
         {"Test_A": ["llr_x.1", "llr_x.2"], "Test_Boundary": ["none: out of requirement scope"]},
     )
     assert check_trace(chain) == []
+    out = render_tables(chain, width=140)
+    assert "Test_A" in out
+    assert "Test_Boundary" not in out
 
 
 def test_partial_coverage_suppresses_uncovered_even_under_complete(tmp_path: Path) -> None:
@@ -698,7 +701,7 @@ def test_downward_tables_report_both_directions(tmp_path: Path) -> None:
     assert "LLR → CODE  (implementation)" in out
     assert "CODE → LLR  (required by)" in out
     assert "DANGLING" in out  # llr_x.2 names something absent
-    assert "UNREQUIRED" in out  # Conflicts.Helper is named by no LLR
+    assert "NO REQUIREMENT" in out  # Conflicts.Helper is named by no LLR
 
 
 def test_llr_naming_no_code_is_reported_but_not_an_error(tmp_path: Path) -> None:
@@ -981,7 +984,7 @@ def test_check_evidence_renders_in_the_verification_table(tmp_path: Path) -> Non
 
 
 def test_check_tagged_none_is_derived_not_untraced(tmp_path: Path) -> None:
-    """`--@covers none: <reason>` on a check parks it as derived, like a boundary test."""
+    """`--@covers none: <reason>` on a check parks it as derived, not untraced."""
     chain = [
         llr_layer(write_proof_llr(tmp_path)),
         make_proof_layer(

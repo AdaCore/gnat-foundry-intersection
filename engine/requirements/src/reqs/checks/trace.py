@@ -1130,7 +1130,7 @@ def _required_rows(pair: _Pair) -> list[Row]:
             rows.append(Row(nid, "OK", refs=list(pair.resolved[nid])))
         else:
             # Code no requirement names: a helper, the HAL, a test fixture.
-            rows.append(Row(nid, "UNREQUIRED"))
+            rows.append(Row(nid, "NO REQUIREMENT"))
     return rows
 
 
@@ -1250,7 +1250,7 @@ _RED_STATUSES = frozenset(
 # Expected-and-accounted-for, not a gap (waived, derived, review-verified,
 # or partial coverage).
 _YELLOW_STATUSES = frozenset(
-    {"WAIVED", "DERIVED", "UNTESTED", "UNIMPLEMENTED", "UNREQUIRED", "REVIEW"}
+    {"WAIVED", "DERIVED", "UNTESTED", "UNIMPLEMENTED", "NO REQUIREMENT", "REVIEW"}
 )
 
 

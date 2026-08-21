@@ -167,6 +167,15 @@ def test_traceability_page_renders_matrices_and_method_note(evidence: Evidence) 
     assert "W-TRACE-WAIVER-REDUNDANT" in page  # the gate diagnostics table
 
 
+def test_chain_table_scopes_the_test_layer_count(evidence: Evidence) -> None:
+    """The TEST row says its count is the traced population, not the testsuite."""
+    page = emit_pages(evidence, build_obligations(evidence))["traceability.md"]
+    chain = page.split("## The chain", 1)[1].split("## ", 1)[0]
+    test_row = next(line for line in chain.splitlines() if line.startswith("| TEST "))
+    assert "requirements-based routines only" in test_row
+    assert "requirements-based routines only" not in chain[: chain.index(test_row)]
+
+
 def test_index_glance_counts_trace_open_items(evidence: Evidence) -> None:
     """The front page counts the open rows plus the rowless gate findings."""
     index = emit_pages(evidence, build_obligations(evidence))["index.md"]

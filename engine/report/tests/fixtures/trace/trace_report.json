@@ -129,7 +129,7 @@
       ],
       "lower_rows": [
         {"node": "Ctrl.Do_Thing", "status": "OK", "refs": ["llr_x.1"], "detail": "llr_x.1"},
-        {"node": "Ctrl.Helper", "status": "UNREQUIRED", "refs": [], "detail": "—"},
+        {"node": "Ctrl.Helper", "status": "NO REQUIREMENT", "refs": [], "detail": "—"},
         {"node": "Ctrl.Other", "status": "OK", "refs": ["llr_x.3"], "detail": "llr_x.3"}
       ]
     }

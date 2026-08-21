@@ -477,7 +477,7 @@ TRACE_REPORT_SCHEMA_VERSION = 1
 # any status outside this set — including ones this consumer has never seen —
 # is treated as open, so the unknown surfaces as a finding rather than silence.
 SETTLED_TRACE_STATUSES = frozenset(
-    {"OK", "WAIVED", "DERIVED", "REVIEW", "UNTESTED", "UNIMPLEMENTED", "UNREQUIRED"}
+    {"OK", "WAIVED", "DERIVED", "REVIEW", "UNTESTED", "UNIMPLEMENTED", "NO REQUIREMENT"}
 )
 
 

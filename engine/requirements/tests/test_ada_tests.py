@@ -92,8 +92,29 @@ def test_covers_ids_are_unioned_across_tags(tmp_path: Path) -> None:
     assert not node.is_derived
 
 
-def test_none_tag_marks_derived(tmp_path: Path) -> None:
-    """`--@covers none: <reason>` marks the node derived with no up-refs."""
+def test_none_tag_drops_the_routine_from_the_set(tmp_path: Path) -> None:
+    """`--@covers none: <reason>` keeps the routine out of the trace layer."""
+    file = "tests/hal/common/display-test_data-tests.adb"
+    nodes = load(
+        tmp_path,
+        package(
+            "Display.Test_Data.Tests",
+            subprograms=[
+                gnattest_routine(
+                    "Test_Show",
+                    file,
+                    line=79,
+                    covers=["none: rendering is out of requirement scope (llr_6_hal)"],
+                ),
+                gnattest_routine("Test_Sample", file, line=120, covers=["llr_3_conflicts.1"]),
+            ],
+        ),
+    ).nodes
+    assert set(nodes) == {"display.Test_Sample"}
+
+
+def test_none_alongside_an_id_stays_a_node(tmp_path: Path) -> None:
+    """A routine citing an id keeps its trace even when a `none` tag joins it."""
     file = "tests/hal/common/display-test_data-tests.adb"
     node = load(
         tmp_path,
@@ -104,14 +125,13 @@ def test_none_tag_marks_derived(tmp_path: Path) -> None:
                     "Test_Show",
                     file,
                     line=79,
-                    covers=["none: rendering is out of requirement scope (llr_6_hal)"],
+                    covers=["llr_6_hal.2", "none: and some rendering besides"],
                 )
             ],
         ),
     ).statement("display.Test_Show")
     assert node is not None
-    assert node.up_refs == []
-    assert node.is_derived
+    assert node.up_refs == ["llr_6_hal.2"]
 
 
 def test_untagged_routine_has_no_refs_and_is_not_derived(tmp_path: Path) -> None:

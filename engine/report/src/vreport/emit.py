@@ -980,6 +980,10 @@ Unknown — there is no trace report to enumerate them from.
             note
             for note, applies in (
                 (f"verifies `{layer.method}`", layer.method is not None),
+                # The count is the traced population, not the testsuite: a
+                # routine tagged `--@covers none` verifies code no requirement
+                # governs and is no node here.
+                ("requirements-based routines only", layer.kind == "ada-tests"),
                 ("partial coverage by design", layer.partial_coverage),
                 (f"cited by the parent's `{layer.ref_field}`", layer.refs_point_down),
             )
@@ -1134,7 +1138,7 @@ no layer of the traced chain verifies: unchecked, so open.
 
 Per-pair coverage and upward traces, as `make trace` prints them. Statuses:
 `OK` covered/resolved; `WAIVED` excused with a recorded reason; `DERIVED` no
-parent by design; `UNTESTED`/`UNIMPLEMENTED`/`UNREQUIRED` expected under a
+parent by design; `UNTESTED`/`UNIMPLEMENTED`/`NO REQUIREMENT` expected under a
 partial-coverage layer; anything **bold** is an open item listed above.
 
 {pairs_body}
