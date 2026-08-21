@@ -16,6 +16,7 @@ from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.model import (
     CoverageViolation,
     DerivedRequirement,
+    Signoff,
     Sloc,
     TraceabilityEvidence,
     TraceDiagnostic,
@@ -25,6 +26,14 @@ from vreport.model import (
     Waiver,
 )
 from vreport.obligations import build_obligations
+from vreport.signoff import (
+    CONOPS_ITEM,
+    derived_item,
+    derived_subject,
+    digest_of,
+    waiver_item,
+    waiver_subject,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -153,6 +162,64 @@ def test_traceability_page_puts_open_items_first(evidence: Evidence) -> None:
     # The waiver-lint warning has no matrix row, yet it is an open item too.
     assert "W-TRACE-WAIVER-REDUNDANT" in section
     assert "`1.1`" not in section  # waived: accounted-for, not open
+
+
+def test_traceability_page_reports_each_signoff(evidence: Evidence) -> None:
+    """The judgement tables carry who signed each item, and say when one has lapsed."""
+    t = evidence.traceability
+    waiver, derived = t.waivers[0], t.derived[0]
+    conops_digest = digest_of("# CONOPS\n")
+    signoffs = [
+        Signoff(item=CONOPS_ITEM, digest=conops_digest, by="Tony", date="2026-08-21"),
+        # Taken over an older reason: this one has lapsed.
+        Signoff(
+            item=waiver_item(waiver.leaf), digest=digest_of("older"), by="Tony", date="2026-06-01"
+        ),
+        Signoff(
+            item=derived_item(derived.ident),
+            digest=digest_of(derived_subject(derived)),
+            by="Tony",
+            date="2026-08-21",
+        ),
+    ]
+    ev = evidence.model_copy(
+        update={
+            "traceability": t.model_copy(
+                update={
+                    "signoffs": signoffs,
+                    "signoffs_found": True,
+                    "conops_digest": conops_digest,
+                }
+            )
+        }
+    )
+    page = emit_pages(ev, build_obligations(ev))["traceability.md"]
+    assert "**lapsed** (was Tony, 2026-06-01)" in page  # the waiver's reason moved
+    assert "Tony, 2026-08-21" in page  # the derived requirement, and the CONOPS
+    assert "signed off: Tony, 2026-08-21" in page
+    assert digest_of(waiver_subject(waiver)) != signoffs[1].digest
+
+
+def test_traceability_page_says_when_nothing_is_signed(evidence: Evidence) -> None:
+    """An opted-in project with an empty record shows every item as unsigned."""
+    ev = evidence.model_copy(
+        update={
+            "traceability": evidence.traceability.model_copy(
+                update={"signoffs_found": True, "conops_digest": digest_of("# CONOPS\n")}
+            )
+        }
+    )
+    page = emit_pages(ev, build_obligations(ev))["traceability.md"]
+    assert page.count("**not signed off**") == 3  # waiver, derived requirement, CONOPS
+
+
+def test_traceability_page_flags_a_missing_conops(evidence: Evidence) -> None:
+    """Without the document the page says its review state is unknown, not that it is fine."""
+    ev = evidence.model_copy(
+        update={"traceability": evidence.traceability.model_copy(update={"signoffs_found": True})}
+    )
+    page = emit_pages(ev, build_obligations(ev))["traceability.md"]
+    assert "its review state is unknown" in page
 
 
 def test_traceability_page_renders_matrices_and_method_note(evidence: Evidence) -> None:

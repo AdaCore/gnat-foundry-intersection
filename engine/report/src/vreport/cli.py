@@ -2,6 +2,8 @@
 `vreport` command-line interface.
 
     vreport generate --root DIR --out DIR   # collect evidence, render the report
+    vreport signoff --root DIR               # human-judgement items and their sign-off state
+    vreport signoff --root DIR --item ITEM   # record that a human reviewed one of them
 
 Inputs are the artifacts left by the verification tools (see README.md);
 outputs are `evidence.json`, the generated MyST sources, and the HTML report.
@@ -26,18 +28,28 @@ from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.gnatcov import collect_coverage
 from vreport.gnatprove import collect_proof
 from vreport.inventory import collect_inventory, default_inventory_path
-from vreport.model import ArtifactParseError, Evidence, MissingArtifactsError, ObligationStatus
+from vreport.model import (
+    ArtifactParseError,
+    Evidence,
+    MissingArtifactsError,
+    ObligationStatus,
+    Signoff,
+    SignoffItem,
+    SignoffState,
+    SignoffStatus,
+)
 from vreport.obligations import build_obligations
-from vreport.provenance import collect_git
+from vreport.provenance import collect_git, git_user_name
 from vreport.requirements import PAGES_DIR, collect_requirements
-from vreport.traceability import collect_traceability
+from vreport.signoff import enumerate_items, render_signoffs, resolve
+from vreport.traceability import collect_judgement_items, collect_traceability, signoffs_path
 
 app = typer.Typer(help="Verification-report generator.", no_args_is_help=True)
 
 
 @app.callback()
 def _callback() -> None:
-    """Keep `generate` an explicit subcommand (future commands attach here)."""
+    """Keep every operation an explicit subcommand."""
 
 
 _ROOT = typer.Option(Path(), "--root", help="Project root the evidence describes.")
@@ -156,6 +168,118 @@ def generate(
 
     review = sum(1 for o in obligations if o.status is ObligationStatus.review)
     typer.echo(f"obligations: {review} of {len(obligations)} need human review")
+
+
+_SIGNOFF_ITEM = typer.Option(
+    None, "--item", help="Item to stamp (`conops`, `waiver:<leaf>`, `derived:<id>`)."
+)
+_SIGNOFF_ALL = typer.Option(
+    False, "--all", help="Stamp every item that carries no current sign-off."
+)
+_SIGNOFF_BY = typer.Option(None, "--by", help="Reviewer (default: git's `user.name`).")
+_SIGNOFF_DATE = typer.Option(
+    None, "--date", help="Date of the review, YYYY-MM-DD (default: today)."
+)
+_SIGNOFF_NOTE = typer.Option(None, "--note", help="What the review established.")
+
+
+_STATUS_LABEL = {
+    SignoffStatus.signed: "signed",
+    SignoffStatus.lapsed: "LAPSED",
+    SignoffStatus.unsigned: "unsigned",
+    SignoffStatus.unknown: "text missing",
+}
+
+
+@app.command()
+def signoff(
+    root: Path = _ROOT,
+    item: str | None = _SIGNOFF_ITEM,
+    stamp_all: bool = _SIGNOFF_ALL,
+    by: str | None = _SIGNOFF_BY,
+    reviewed: str | None = _SIGNOFF_DATE,
+    note: str | None = _SIGNOFF_NOTE,
+) -> None:
+    """
+    Show the human-judgement items and their sign-off state, or record a review.
+
+    Recording one asserts that a human read the item's text as it now stands.
+    Nothing enforces that, so this is the human's own command: no automated task
+    may run it on their behalf.
+    """
+    root = root.resolve()
+    try:
+        judgement = collect_judgement_items(root)
+    except ArtifactParseError as exc:
+        _fail(str(exc))
+    items = enumerate_items(judgement)
+    states = {i.item: resolve(judgement.signoffs, i.item, i.digest) for i in items}
+
+    if item is None and not stamp_all:
+        _list_signoffs(items, states)
+        return
+    if item is not None and stamp_all:
+        _fail("--item and --all are mutually exclusive")
+
+    known = {i.item: i for i in items}
+    if item is not None and item not in known:
+        _fail(f"no such item: {item}", hint="vreport signoff")
+    targets = (
+        [known[item]]
+        if item is not None
+        else [i for i in items if states[i.item].status is not SignoffStatus.signed]
+    )
+    blocked = [t for t in targets if t.digest is None]
+    if blocked:
+        _fail(f"nothing to sign for {blocked[0].item}: its text is missing")
+    targets = [t for t in targets if t.digest is not None]
+    if not targets:
+        typer.echo("every item already carries a current sign-off; nothing to do")
+        return
+
+    reviewer = by or git_user_name(root)
+    if not reviewer:
+        _fail("no reviewer: pass --by, or set git's `user.name`")
+    stamped = {t.item for t in targets}
+    kept = [s for s in judgement.signoffs if s.item not in stamped]
+    written = [
+        Signoff(
+            item=t.item,
+            digest=t.digest or "",
+            by=reviewer,
+            date=reviewed or datetime.now(tz=UTC).date().isoformat(),
+            note=note or "",
+        )
+        for t in targets
+    ]
+    path = signoffs_path(root)
+    path.write_text(render_signoffs([*kept, *written]), encoding="utf-8")
+    for entry in written:
+        typer.echo(f"signed off {entry.item} ({entry.by}, {entry.date})")
+    typer.echo(f"record:  {path}")
+
+
+def _list_signoffs(items: list[SignoffItem], states: dict[str, SignoffState]) -> None:
+    """Print every item with its state, widest-first, and what is outstanding."""
+    width = max((len(i.item) for i in items), default=0)
+    for i in items:
+        state = states[i.item]
+        stamp = (
+            f" — {state.signoff.by}, {state.signoff.date}"
+            if state.signoff is not None and state.status is SignoffStatus.signed
+            else ""
+        )
+        typer.echo(f"{i.item:<{width}}  {_STATUS_LABEL[state.status]}{stamp}")
+    open_items = [i.item for i in items if states[i.item].status is not SignoffStatus.signed]
+    typer.echo("")
+    if open_items:
+        typer.secho(
+            f"{len(open_items)} of {len(items)} items carry no current sign-off",
+            fg=typer.colors.YELLOW,
+        )
+        typer.echo("review each, then: vreport signoff --item <item>")
+    else:
+        typer.echo(f"all {len(items)} items carry a current sign-off")
 
 
 def main() -> None:

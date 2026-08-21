@@ -495,6 +495,41 @@ class DerivedRequirement(Frozen):
     text: str
 
 
+class SignoffStatus(StrEnum):
+    """How the sign-off record stands against one item's current text."""
+
+    signed = "signed"
+    lapsed = "lapsed"  # signed, but the text has changed since
+    unsigned = "unsigned"
+    unknown = "unknown"  # the reviewed text itself is missing
+
+
+class Signoff(Frozen):
+    """One recorded human review, fixed to a digest of the text reviewed."""
+
+    item: str  # `conops`, `waiver:<leaf>`, or `derived:<ident>`
+    digest: str
+    by: str
+    date: str
+    note: str = ""
+
+
+class SignoffItem(Frozen):
+    """One item a human can sign off: its id, the text it covers, that text's digest."""
+
+    item: str
+    subject: str
+    digest: str | None
+
+
+class SignoffState(Frozen):
+    """Where one item stands: its status, and the entry behind it if there is one."""
+
+    item: str
+    status: SignoffStatus
+    signoff: Signoff | None = None
+
+
 class TraceRow(Frozen):
     """One trace-matrix row: a node, its status, and the refs behind it."""
 
@@ -680,8 +715,12 @@ class TraceabilityEvidence(Frozen):
 
     waivers: list[Waiver] = Field(default_factory=list)
     derived: list[DerivedRequirement] = Field(default_factory=list)
+    signoffs: list[Signoff] = Field(default_factory=list)
     waivers_found: bool = False
     hlr_found: bool = False
+    signoffs_found: bool = False
+    # None when requirements/conops.md is absent, so nothing can be claimed of it.
+    conops_digest: str | None = None
     report: TraceReport | None = None
 
 

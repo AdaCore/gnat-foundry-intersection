@@ -13,6 +13,7 @@ from vreport.model import (
     CodeInventory,
     CoverageEvidence,
     CoverageViolation,
+    DerivedRequirement,
     Evidence,
     GitInfo,
     GnatproveHeader,
@@ -22,6 +23,7 @@ from vreport.model import (
     ObligationStatus,
     ProofCheck,
     ProofEvidence,
+    Signoff,
     Sloc,
     SparkModeEntry,
     TraceabilityEvidence,
@@ -32,6 +34,7 @@ from vreport.model import (
     UnitAnalysis,
     VerificationMatrix,
     VerificationRow,
+    Waiver,
 )
 from vreport.obligations import (
     ViolationClass,
@@ -40,6 +43,14 @@ from vreport.obligations import (
     open_claims,
     open_trace_items,
     review_verified_rows,
+)
+from vreport.signoff import (
+    CONOPS_ITEM,
+    derived_item,
+    derived_subject,
+    digest_of,
+    waiver_item,
+    waiver_subject,
 )
 
 
@@ -296,6 +307,129 @@ def test_each_traceability_source_forces_its_own_review() -> None:
     assert by_anchor["traceability-waivers"].status is ObligationStatus.ok
     assert by_anchor["traceability-derived"].status is ObligationStatus.review
     assert "not found" in by_anchor["traceability-derived"].title
+
+
+_WAIVER = Waiver(leaf="1.1", reason="Physical site assumption.")
+_DERIVED = DerivedRequirement(ident="hlr_3_timing.8", text="Derived text.")
+_CONOPS_DIGEST = digest_of("# CONOPS\n")
+
+_SIGNOFF_ANCHORS = ("traceability-waivers", "traceability-derived", "traceability-conops")
+
+
+def _signed(item: str, digest: str) -> Signoff:
+    return Signoff(item=item, digest=digest, by="M. Anthony Aiello", date="2026-08-21")
+
+
+def _judged(*signoffs: Signoff, signoffs_found: bool = True) -> Evidence:
+    """Evidence carrying one waiver, one derived requirement, and a CONOPS to sign."""
+    return _evidence(
+        traceability=TraceabilityEvidence(
+            waivers=[_WAIVER],
+            derived=[_DERIVED],
+            signoffs=list(signoffs),
+            waivers_found=True,
+            hlr_found=True,
+            signoffs_found=signoffs_found,
+            conops_digest=_CONOPS_DIGEST,
+            report=_CLEAN_REPORT,
+        )
+    )
+
+
+def _all_signed() -> tuple[Signoff, ...]:
+    return (
+        _signed(CONOPS_ITEM, _CONOPS_DIGEST),
+        _signed(waiver_item(_WAIVER.leaf), digest_of(waiver_subject(_WAIVER))),
+        _signed(derived_item(_DERIVED.ident), digest_of(derived_subject(_DERIVED))),
+    )
+
+
+def test_no_signoff_record_leaves_the_obligations_as_they_were() -> None:
+    """The mechanism is opt-in: without the record, judgement items read as before."""
+    by_anchor = _by_anchor(build_obligations(_judged(signoffs_found=False)))
+    for anchor in _SIGNOFF_ANCHORS:
+        assert by_anchor[anchor].status is ObligationStatus.review, anchor
+        assert "signed off" not in " ".join(by_anchor[anchor].items), anchor
+    assert by_anchor["traceability-waivers"].title == "Trace waivers: 1"
+    assert by_anchor["traceability-conops"].title == "CONOPS validity is human-owned"
+
+
+def test_signed_judgement_items_go_green() -> None:
+    """A current sign-off on every item is what turns these three obligations OK."""
+    by_anchor = _by_anchor(build_obligations(_judged(*_all_signed())))
+    for anchor in _SIGNOFF_ANCHORS:
+        assert by_anchor[anchor].status is ObligationStatus.ok, anchor
+    assert by_anchor["traceability-waivers"].title == "Trace waivers: 1, all signed off"
+    assert by_anchor["traceability-conops"].title == "CONOPS validity: signed off 2026-08-21"
+    assert "M. Anthony Aiello" in by_anchor["traceability-derived"].items[0]
+
+
+def test_an_unsigned_item_is_named_not_merely_counted() -> None:
+    """The report says which item lacks a sign-off, so a new one cannot hide."""
+    conops, waiver, _ = _all_signed()
+    by_anchor = _by_anchor(build_obligations(_judged(conops, waiver)))
+    assert by_anchor["traceability-waivers"].status is ObligationStatus.ok
+    ob = by_anchor["traceability-derived"]
+    assert ob.status is ObligationStatus.review
+    assert ob.title == "Derived requirements: 1 — 1 not signed off"
+    assert "not signed off" in ob.items[0]
+    assert "make signoff" in ob.detail
+
+
+def test_editing_signed_text_lapses_its_signoff() -> None:
+    """A sign-off holds over the text it was taken on; an edit re-opens the item."""
+    conops, _, derived = _all_signed()
+    stale = _signed(waiver_item(_WAIVER.leaf), digest_of("CONOPS §1.1 — An older reason."))
+    by_anchor = _by_anchor(build_obligations(_judged(conops, stale, derived)))
+    ob = by_anchor["traceability-waivers"]
+    assert ob.status is ObligationStatus.review
+    assert ob.title == "Trace waivers: 1 — 1 lapsed"
+    assert "text has changed since" in ob.items[0]
+
+
+def test_editing_the_conops_lapses_its_signoff() -> None:
+    """The CONOPS sign-off covers the document as it stood, not the document."""
+    _, waiver, derived = _all_signed()
+    stale = _signed(CONOPS_ITEM, digest_of("# An older CONOPS\n"))
+    ob = _by_anchor(build_obligations(_judged(stale, waiver, derived)))["traceability-conops"]
+    assert ob.status is ObligationStatus.review
+    assert ob.title == "CONOPS validity: sign-off lapsed"
+    assert "text has changed since" in ob.items[0]
+
+
+def test_a_signoff_over_a_missing_conops_claims_nothing() -> None:
+    """Absence of the document is not a green tick, sign-off or no sign-off."""
+    signed = _all_signed()
+    evidence = _evidence(
+        traceability=TraceabilityEvidence(
+            signoffs=list(signed),
+            waivers_found=True,
+            hlr_found=True,
+            signoffs_found=True,
+            conops_digest=None,
+            report=_CLEAN_REPORT,
+        )
+    )
+    ob = _by_anchor(build_obligations(evidence))["traceability-conops"]
+    assert ob.status is ObligationStatus.review
+    assert "not found" in ob.title
+    assert "the reviewed text is missing" in ob.items[0]
+
+
+def test_a_missing_source_outranks_its_signoffs() -> None:
+    """A waiver record that is gone cannot be signed green by a stale entry."""
+    evidence = _evidence(
+        traceability=TraceabilityEvidence(
+            signoffs=list(_all_signed()),
+            hlr_found=True,
+            signoffs_found=True,
+            conops_digest=_CONOPS_DIGEST,
+            report=_CLEAN_REPORT,
+        )
+    )
+    ob = _by_anchor(build_obligations(evidence))["traceability-waivers"]
+    assert ob.status is ObligationStatus.review
+    assert "not found" in ob.title
 
 
 def test_missing_sarif_forces_warning_review() -> None:

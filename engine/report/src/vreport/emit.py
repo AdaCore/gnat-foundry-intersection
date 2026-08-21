@@ -35,6 +35,14 @@ from vreport.obligations import (
     predicate_label,
     rowless_trace_findings,
 )
+from vreport.signoff import (
+    CONOPS_ITEM,
+    derived_item,
+    derived_subject,
+    digest_of,
+    waiver_item,
+    waiver_subject,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -1155,10 +1163,38 @@ errors; `make report` does not, so gaps stay visible here):
 def _emit_traceability(ev: Evidence) -> str:
     """Render the requirements-chain page: matrices, gaps, and judgement items."""
     t = ev.traceability
-    waiver_rows: list[Sequence[str]] = [(f"§{inline(w.leaf)}", inline(w.reason)) for w in t.waivers]
-    derived_rows: list[Sequence[str]] = [
-        (_req_link(ev.requirements, "HLR", d.ident), inline(d.text)) for d in t.derived
+    signed = {s.item: s for s in t.signoffs}
+
+    def stamp(item: str, digest: str | None) -> str:
+        """Render the sign-off cell for one item: who signed the text as it now stands."""
+        entry = signed.get(item)
+        if entry is None:
+            return "**not signed off**"
+        if entry.digest != digest:
+            return f"**lapsed** (was {inline(entry.by)}, {inline(entry.date)})"
+        return f"{inline(entry.by)}, {inline(entry.date)}"
+
+    waiver_rows: list[Sequence[str]] = [
+        (
+            f"§{inline(w.leaf)}",
+            inline(w.reason),
+            stamp(waiver_item(w.leaf), digest_of(waiver_subject(w))),
+        )
+        for w in t.waivers
     ]
+    derived_rows: list[Sequence[str]] = [
+        (
+            _req_link(ev.requirements, "HLR", d.ident),
+            inline(d.text),
+            stamp(derived_item(d.ident), digest_of(derived_subject(d))),
+        )
+        for d in t.derived
+    ]
+    conops_block = (
+        f"The CONOPS as it stands is signed off: {stamp(CONOPS_ITEM, t.conops_digest)}."
+        if t.conops_digest is not None
+        else "**`requirements/conops.md` was not found — its review state is unknown.**"
+    )
     absent = [
         note
         for note, is_absent in (
@@ -1194,17 +1230,18 @@ visible as the open items below.
 ## Waived CONOPS leaves
 
 CONOPS leaves deliberately not realized by any HLR, each with its recorded
-reason:
+reason and the review recorded against that reason:
 
-{_table_or(("Leaf", "Reason"), waiver_rows, "None.")}
+{_table_or(("Leaf", "Reason", "Signed off"), waiver_rows, "None.")}
 
 {_target("traceability-derived")}
 
 ## Derived requirements
 
-HLR statements with no CONOPS parent, standing on their rationale alone:
+HLR statements with no CONOPS parent, standing on their rationale alone, with
+the review recorded against each:
 
-{_table_or(("Requirement", "Text"), derived_rows, "None.")}
+{_table_or(("Requirement", "Text", "Signed off"), derived_rows, "None.")}
 
 {_target("traceability-conops")}
 
@@ -1214,6 +1251,15 @@ The CONOPS (`requirements/conops.md`) is the root of the chain: every HLR is
 checked against it, but nothing checks the CONOPS itself. Its validity — that
 it describes the intersection the stakeholders actually want — is established
 only by human review.
+
+{conops_block}
+
+Sign-offs on this page and the two above are read from
+`requirements/signoffs.yaml`, where each entry names the reviewer and fixes
+what they read by digest: edit that text and the sign-off lapses, re-opening
+its review obligation. They are a record of a human's reading, not something a
+tool enforces — anything able to write the repository can write that file, so
+what they buy is that a change to them is conspicuous in a diff.
 """
 
 
