@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -19,6 +20,20 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from vreport.model import Evidence
+
+
+def _write(path: Path, **overrides: object) -> Path:
+    """Write a minimal inventory, so one record can be varied at a time."""
+    payload: dict[str, object] = {
+        "schema_version": 3,
+        "tool": "ada_tracer",
+        "project": "traffic_light.gpr",
+        "packages": [],
+        "library_subprograms": [],
+    }
+    payload.update(overrides)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
 
 
 def test_collects_nested_and_library_generics(inventory: CodeInventory) -> None:
@@ -68,6 +83,119 @@ def test_non_object_inventory_is_rejected(tmp_path: Path) -> None:
     path = tmp_path / "code_inventory.json"
     path.write_text("[]")
     with pytest.raises(ArtifactParseError):
+        collect_inventory(path)
+
+
+def test_a_generic_subprogram_in_an_ordinary_package_is_declared(tmp_path: Path) -> None:
+    """
+    The denominator's whole point: gnatprove cannot name this one.
+
+    A generic procedure inside an ordinary package is reached only through an
+    instance of its own, and nothing about the enclosing package says so.
+    """
+    path = _write(
+        tmp_path / "code_inventory.json",
+        packages=[
+            {
+                "name": "Buses",
+                "spec_file": "src/types/buses.ads",
+                "is_generic": False,
+                "subprograms": [
+                    {
+                        "name": "Latch",
+                        "qualified_name": "Buses.Latch",
+                        "kind": "procedure",
+                        "is_generic": True,
+                        "location": {"file": "src/types/buses.ads", "line": 60, "column": 7},
+                    }
+                ],
+            }
+        ],
+    )
+    (generic,) = collect_inventory(path).generics
+    assert (generic.name, generic.kind) == ("Buses.Latch", "procedure")
+    assert generic.declared_in == "src/types/buses.ads"
+    assert [(a.file, a.line) for a in generic.anchors] == [("src/types/buses.ads", 60)]
+
+
+def test_a_generic_member_anchors_itself_not_its_package(tmp_path: Path) -> None:
+    """
+    Both are declarations, and the inner one owns its own lines.
+
+    Were the member left among the package's anchors, a check inside it would
+    attribute to the package -- crediting the outer generic with an instance
+    that never reached the inner one.
+    """
+    path = _write(
+        tmp_path / "code_inventory.json",
+        packages=[
+            {
+                "name": "Hal.Ring",
+                "spec_file": "src/hal/hal-ring.ads",
+                "is_generic": True,
+                "subprograms": [
+                    {
+                        "name": "Push",
+                        "qualified_name": "Hal.Ring.Push",
+                        "kind": "procedure",
+                        "is_generic": False,
+                        "location": {"file": "src/hal/hal-ring.ads", "line": 12, "column": 7},
+                    },
+                    {
+                        "name": "Map",
+                        "qualified_name": "Hal.Ring.Map",
+                        "kind": "procedure",
+                        "is_generic": True,
+                        "location": {"file": "src/hal/hal-ring.ads", "line": 20, "column": 7},
+                    },
+                ],
+            }
+        ],
+    )
+    rows = {g.name: g for g in collect_inventory(path).generics}
+    assert set(rows) == {"Hal.Ring", "Hal.Ring.Map"}
+    assert [a.line for a in rows["Hal.Ring"].anchors] == [12]
+    assert [a.line for a in rows["Hal.Ring.Map"].anchors] == [20]
+
+
+def test_another_tool_s_json_is_not_an_inventory(tmp_path: Path) -> None:
+    """
+    A foreign file must not pass for the declared set.
+
+    Accepted, it would supply an empty denominator -- "the sources declare no
+    generics" -- and settle the obligation the inventory exists to raise.
+    """
+    path = _write(tmp_path / "code_inventory.json", tool="gnatprove")
+    with pytest.raises(ArtifactParseError, match="ada_tracer"):
+        collect_inventory(path)
+
+
+def test_an_unsupported_schema_version_is_rejected(tmp_path: Path) -> None:
+    """A schema this reader was not written against says nothing it can rely on."""
+    path = _write(tmp_path / "code_inventory.json", schema_version=99)
+    with pytest.raises(ArtifactParseError, match="schema_version"):
+        collect_inventory(path)
+
+
+def test_malformed_records_are_a_parse_error(tmp_path: Path) -> None:
+    """Wrong shapes inside a well-formed file are reported, not raised raw at the CLI."""
+    path = _write(tmp_path / "code_inventory.json", packages={"Buses": {}})
+    with pytest.raises(ArtifactParseError, match="`packages`"):
+        collect_inventory(path)
+    path = _write(tmp_path / "code_inventory.json", library_subprograms=["Main"])
+    with pytest.raises(ArtifactParseError, match="`library_subprograms`"):
+        collect_inventory(path)
+    path = _write(
+        tmp_path / "code_inventory.json",
+        library_subprograms=[
+            {
+                "qualified_name": "Main",
+                "is_generic": True,
+                "location": {"file": "src/app/main.adb", "line": "top"},
+            }
+        ],
+    )
+    with pytest.raises(ArtifactParseError, match="malformed inventory record"):
         collect_inventory(path)
 
 
