@@ -568,7 +568,8 @@ package body Display is
                 (Mask (Mask'First + Offset), Bulb (Bulb'First + Offset), S);
          begin
             if SGR /= Active (1 .. Length) then
-               Emit ((if SGR = "" then CSI ("0m") else CSI (SGR & "m")));
+               Emit
+                 ((if SGR = "" then CSI ("0m") else CSI ("0;" & SGR & "m")));
                Length := SGR'Length;
                Active (1 .. Length) := SGR;
             end if;
