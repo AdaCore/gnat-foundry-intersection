@@ -356,8 +356,10 @@ package body Display is
    SGR_Dark   : constant String := "90";  --  dim grey -- an unlit lamp
    SGR_Blink  : constant String := "5";   --  blink attribute, for flashing
 
-   Max_SGR : constant := 8;
-   --  Longest SGR body any of the functions below returns ("5;91").
+   Max_SGR : constant := 4;
+   --  Longest SGR body the functions below return ("5;91"). Emit_Row
+   --  caches a body of this width, so a longer code added below must
+   --  raise it.
 
    function Face_SGR (F : States.Vehicle_Face) return String
    is (case F is
