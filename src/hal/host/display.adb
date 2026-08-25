@@ -39,6 +39,18 @@
 --                       is a pavement marking and not a lamp
 --  Bulb codes: 'R', 'Y', 'G' name one lamp of a vehicle head; blank means the
 --  mask paints an area.
+--
+--  Each crosswalk owns a kerbside corner of the picture: the cells lying
+--  diagonally outward from its request-indicator pair ('a'/'b'/'c'/'d'), on
+--  the far side from the intersection centre. Whatever the picture carries
+--  per crosswalk beyond its band and its lamp belongs in that corner, next
+--  to the same crosswalk's own request indicator -- never out on the
+--  carriageway, where the area is painted in a movement's colour and a mark
+--  standing on it reads as belonging to the traffic beneath it. Both
+--  profiles put the same annotation in the corresponding corner, so the two
+--  pictures stay legible as one drawing. Where a corner holds no free cell,
+--  open one in the `Art`: the corner is the constraint, and a roomier spot
+--  elsewhere is not a substitute for it.
 
 with Ada.Characters.Latin_1;
 with Ada.Environment_Variables;
