@@ -109,10 +109,12 @@ endif
 # ----------------------------------------------------------------------------
 
 # Sections come from the `##@ <name>` banners below, target descriptions from
-# a trailing `## <text>` on the target's own line.
+# a trailing `## <text>` on the target's own line, and a section's notes on the
+# variables it honours from `##> <text>` lines, printed where they stand.
 help: ## List the public targets, by section
 	@awk 'BEGIN { FS = ":[^#]*##" } \
 	     /^##@/ { printf "\n%s\n", substr($$0, 5); next } \
+	     /^##>/ { printf "  %s\n", substr($$0, 5); next } \
 	     /^[a-zA-Z0-9_.-]+:.*##/ { printf "  %-26s  %s\n", $$1, $$2 }' \
 	     $(MAKEFILE_LIST)
 
@@ -648,6 +650,10 @@ report-pdf: $(REPORT_EVIDENCE) ## Same as `report`, plus a PDF rendering
 
 test-report-engine: ## Run the report engine's own test suite
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked pytest
+
+##> Variables:
+##>   REPORT_OUT                 where the report is written (default: reports/report)
+##>   REPORT_EVIDENCE            evidence targets to run first; empty renders what is on disk
 
 # ----------------------------------------------------------------------------
 ##@ Setup

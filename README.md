@@ -129,6 +129,32 @@ uses them directly instead of installing anything, provided nothing is staged in
 `pro-downloads/`. `PRO_TOOLS=install` or `PRO_TOOLS=external` forces either
 mode.
 
+## Verification report
+
+`make report` renders the verification report that includes: the proof results,
+the structural coverage, the traceability matrices, the requirements themselves
+as a document, and the review obligations a human has to discharge. By default,
+the report is rendered to `reports/report/html/index.html`.
+
+`make report-pdf` renders the same report as a PDF. By default, the PDF is
+rendered to `reports/report/pdf/verification-report.pdf`.
+
+The report generator lives in
+[`engine/report/`](engine/report/README.md).
+
+Both targets regenerate their evidence first so the report never describes
+stale artifacts. Make variables control this behavior, as well as where the
+reports are written:
+
+- `REPORT_OUT` — where the report is written (default: `reports/report`).
+- `REPORT_EVIDENCE` — the evidence targets to run beforehand; running
+  `make report REPORT_EVIDENCE=` regenerates nothing and renders whatever
+  evidence is already on disk; this is useful during report development.
+
+Note that trace gaps do not fail `report`; they render as open items instead,
+so a report is available part-way through a project and says what is not yet
+done.
+
 ## Repository layout
 
 | Path                     | Contents                                                                         |
