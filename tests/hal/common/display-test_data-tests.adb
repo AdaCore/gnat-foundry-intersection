@@ -138,7 +138,12 @@ package body Display.Test_Data.Tests is
       --  the Art constant in the host Display body): 3 legend header rows
       --  plus 21 picture rows.
 
-      Green_On : constant String := ESC & "[92m";
+      Colour_On : constant String := ESC & "[0;";
+      --  The introducer of every colour the host display paints: each
+      --  sequence resets first, so a lamp's colour never inherits an
+      --  attribute from the character before it.
+
+      Green_On : constant String := Colour_On & "92m";
       --  The SGR sequence the host display paints GREEN lamps with.
 
       Count           : Natural := 0;
@@ -276,7 +281,7 @@ package body Display.Test_Data.Tests is
       --  other lamp restrictive, the request lamp is the frame's only
       --  YELLOW paint, so it must land on that side's corner label.
 
-      Yellow_On : constant String := ESC & "[93m";
+      Yellow_On : constant String := Colour_On & "93m";
       --  The SGR sequence the host display paints pending requests with.
 
       Pending_Side : States.Crosswalk := States.North_Side;
