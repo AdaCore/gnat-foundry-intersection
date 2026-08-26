@@ -648,7 +648,6 @@ report-pdf: $(REPORT_EVIDENCE) ## Same as `report`, plus a PDF rendering
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf \
 	    --code-inventory "$(CODE_INVENTORY)"
 
-# ITEM/BY/DATE/NOTE pass through; with no ITEM this lists what is outstanding.
 # A human runs this, having read the item: no task oracle may stand in for them.
 signoff: ## Sign off a human-judgement item, or list their state (ITEM=<id>)
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport signoff \
@@ -662,6 +661,11 @@ test-report-engine: ## Run the report engine's own test suite
 ##> Variables:
 ##>   REPORT_OUT                 where the report is written (default: reports/report)
 ##>   REPORT_EVIDENCE            evidence targets to run first; empty renders what is on disk
+##>   ITEM                       the item `signoff` signs; with none, it only lists
+##>   ALL                        sign every outstanding item, rather than one
+##>   BY                         who read it (default: git's user.name)
+##>   DATE                       when they read it (default: today)
+##>   NOTE                       what the review established; a re-sign keeps it
 
 # ----------------------------------------------------------------------------
 ##@ Setup
