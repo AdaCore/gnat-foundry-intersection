@@ -107,14 +107,8 @@ Edit the spec here (and, if the oracle command changes, the table above and the
 matching `.claude/agents/*.md` wrapper). Keep the substance in this directory;
 the agent wrappers stay thin so the CLIs never diverge. Update `CLAUDE.md` accordingly.
 
-## A note on GNATformat version differences
+## A note on GNATformat
 
-GNATformat is an opinionated formatter, and there are a wide range of versions
-presently in use. It is therefore possible that `make format` will slightly
-reformat files unrelated to the current changes if the local GNATformat version
-differs from that used on the last commit.
-
-This should not interrupt the workflow (use the local formatter for the
-duration), but should be flagged to the user in the final message at the
-conclusion of the workflow. For example, CI may apply `gnatformat --check` with
-a different version, which will fail.
+`make format` and `make check` do not format or check Ada sources on the
+community toolchain: the GNATformat that path provides is disabled for now.
+Match the surrounding style by hand.

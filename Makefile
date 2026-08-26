@@ -208,28 +208,35 @@ check: check-ada check-shell check-python check-target-test-parity ## Verify for
 
 # With pro tools (pro/external), run gnatformat directly: `alr` would fetch
 # the community gnat_arm_elf/aunit crates for the nested crates instead.
-# Otherwise alr provides those crates (community) or resolves them from the
-# configured index (the SETUP=none CI check job).
+# Otherwise (the SETUP=none CI check job) alr resolves them from the
+# configured index.
 #
 # tests/tests.gpr is a wiring shim with no sources of its own, so the two
 # hand-written harnesses under it are named outright: the requirements-based
-# tests and the system-level tests are formatted like any other source. Both
-# import `aunit`, whose sources belong to that crate and not to this tree, so
-# they are the one pair that needs --no-subprojects to stay off them.
+# tests and the system-level tests are formatted like any other source.
+#
+# --no-subprojects, not -U, is what confines a run to one project: without it
+# the harnesses and the tracer reach into the `aunit` and Libadalang crates,
+# and src/proof.gpr re-walks what traffic_light.gpr has already covered.
 format-ada: generate-config ## Reformat all Ada sources in place (gnatformat)
+ifeq ($(SETUP),community)
+	@echo "format-ada: skipped - pending updated community gnatformat"
+else
 ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light.gpr -U --charset utf-8
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
 	    -XBUILD_KIND=target -U --charset utf-8
 	gnatformat -P tests/tests.gpr -U --charset utf-8
 	gnatformat -P traffic_light_qemu/tests/target_tests.gpr -U --charset utf-8
-	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr -U --charset utf-8
+	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr --no-subprojects -U \
+	    --charset utf-8
 else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C tests exec -P -- gnatformat -U --charset utf-8
 	$(ALR) -C traffic_light_qemu/tests exec -P -- gnatformat -U --charset utf-8
-	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8
+	cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat --no-subprojects -U \
+	    --charset utf-8
 endif
 	$(TESTS_EXEC) gnatformat -P $(REQS_TESTS) --no-subprojects -U \
 	    --charset utf-8
@@ -237,16 +244,21 @@ endif
 	    --charset utf-8
 	$(ALR) exec -- gnatformat -P $(PROOF_SCOPE) --no-subprojects -U \
 	    --charset utf-8
+endif
 
 # Same split as `format-ada` above.
 check-ada: generate-config ## Verify Ada formatting; non-zero if any file would change
+ifeq ($(SETUP),community)
+	@echo "check-ada: skipped - pending updated community gnatformat"
+else
 ifneq (,$(filter pro external,$(SETUP)))
 	gnatformat -P traffic_light.gpr -U --charset utf-8 --check
 	gnatformat -P traffic_light_qemu/traffic_light_qemu.gpr \
 	    -XBUILD_KIND=target -U --charset utf-8 --check
 	gnatformat -P tests/tests.gpr -U --check --charset utf-8
 	gnatformat -P traffic_light_qemu/tests/target_tests.gpr -U --check --charset utf-8
-	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr -U --check --charset utf-8
+	gnatformat -P $(TRACER_DIR)/ada_tracer.gpr --no-subprojects -U --check \
+	    --charset utf-8
 else
 	$(ALR) exec -P -- gnatformat -U --charset utf-8 --check
 	$(ALR) -C traffic_light_qemu exec -P -- gnatformat -U --charset utf-8 --check
@@ -254,7 +266,8 @@ else
 	$(ALR) -C traffic_light_qemu/tests exec -P -- gnatformat -U --check --charset utf-8
 	# Temporary: exclude the tracer from the checks: it pulls Libadalang,
 	# which slows the CI down.
-	# cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat -U --charset utf-8 --check
+	# cd $(TRACER_DIR) && $(ALR) exec -P -- gnatformat --no-subprojects -U \
+	#     --charset utf-8 --check
 endif
 	$(TESTS_EXEC) gnatformat -P $(REQS_TESTS) --no-subprojects -U --check \
 	    --charset utf-8
@@ -267,6 +280,7 @@ endif
 	#   eng/ide/gnatdoc#190
 	#   eng/ide/gnatdoc#191
 	# $(ALR) exec -P -- gnatdoc --warnings --style trailing
+endif
 
 check-shell: ## Lint the shell scripts (shellcheck)
 	find scripts -type f -exec $(UV) tool run --from shellcheck-py shellcheck {} +
