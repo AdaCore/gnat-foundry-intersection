@@ -30,6 +30,11 @@ def _git(root: Path, *args: str) -> str | None:
     return proc.stdout.strip() if proc.returncode == 0 else None
 
 
+def git_user_name(root: Path) -> str | None:
+    """Return the name git would attribute a commit to under `root`, if configured."""
+    return _git(root, "config", "user.name") or None
+
+
 def collect_git(root: Path) -> GitInfo | None:
     """Describe the state of the sources under `root` (None outside git)."""
     commit = _git(root, "rev-parse", "HEAD")

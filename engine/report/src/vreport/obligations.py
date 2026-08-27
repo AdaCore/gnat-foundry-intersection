@@ -20,6 +20,18 @@ from vreport.model import (
     CheckStatus,
     Obligation,
     ObligationStatus,
+    SignoffStatus,
+)
+from vreport.signoff import (
+    CONOPS_ITEM,
+    all_signed,
+    derived_item,
+    derived_subject,
+    digest_of,
+    outstanding_note,
+    resolve,
+    waiver_item,
+    waiver_subject,
 )
 
 if TYPE_CHECKING:
@@ -31,6 +43,7 @@ if TYPE_CHECKING:
         CoverageViolation,
         Evidence,
         ProofEvidence,
+        SignoffState,
         TraceDiagnostic,
         TraceReport,
         TraceRow,
@@ -601,6 +614,38 @@ def _trace_gap_obligation(report: TraceReport | None, b: _Builder) -> None:
     )
 
 
+def _signoff_clause(state: SignoffState) -> str:
+    """How one item's sign-off stands, as a clause closing that item's line."""
+    if state.signoff is None:
+        return " — **not signed off**"
+    stamp = f"signed off {state.signoff.date.isoformat()} by {inline(state.signoff.by)}"
+    if state.status is SignoffStatus.signed:
+        return f" — {stamp}"
+    if state.status is SignoffStatus.lapsed:
+        return f" — **{stamp}, text has changed since**"
+    return f" — **{stamp}, but the reviewed text is missing**"
+
+
+def _signoff_states(ev: Evidence) -> tuple[list[SignoffState], list[SignoffState], SignoffState]:
+    """Resolve the record against the waivers, the derived requirements, and the CONOPS."""
+    t = ev.traceability
+    return (
+        [resolve(t.signoffs, waiver_item(w.leaf), digest_of(waiver_subject(w))) for w in t.waivers],
+        [
+            resolve(t.signoffs, derived_item(d.ident), digest_of(derived_subject(d)))
+            for d in t.derived
+        ],
+        resolve(t.signoffs, CONOPS_ITEM, t.conops_digest),
+    )
+
+
+def _signoff_qualifier(states: list[SignoffState], *, opted_in: bool) -> str:
+    """Phrase the sign-off state of a whole item list, for its obligation's title."""
+    if not opted_in:
+        return ""
+    return ", all signed off" if all_signed(states) else f" — {outstanding_note(states)}"
+
+
 def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
     """Obligations derived from the requirements chain and its trace report."""
     report = ev.traceability.report
@@ -639,6 +684,9 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
             ],
         )
 
+    signed_off = ev.traceability.signoffs_found
+    waiver_states, derived_states, conops_state = _signoff_states(ev)
+
     # Empty-because-absent must not render as OK; each source vouches only for itself.
     waivers = ev.traceability.waivers
     waivers_missing = not ev.traceability.waivers_found
@@ -646,6 +694,7 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
         "Trace waivers: waiver record not found"
         if waivers_missing
         else f"Trace waivers: {len(waivers)}"
+        + _signoff_qualifier(waiver_states, opted_in=signed_off)
         if waivers
         else "Trace waivers: none",
         "traceability-waivers",
@@ -653,15 +702,22 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
             "`requirements/trace_waivers.yaml` was not found, so nothing can be "
             "claimed about waived CONOPS leaves: check `--root`, or restore the file."
             if waivers_missing
-            else "These CONOPS leaves are deliberately not realized by any HLR. Review "
-            "each reason and confirm the waiver is still appropriate."
+            else _judgement_detail(
+                "These CONOPS leaves are deliberately not realized by any HLR.",
+                "reason",
+                states=waiver_states,
+                opted_in=signed_off,
+            )
             if waivers
             else "No CONOPS leaf is waived from HLR coverage. (That the HLRs cover "
             "every non-waived leaf is checked by `make validate-reqs`, a "
             "prerequisite of `make report` — this report does not re-verify it.)"
         ),
-        review=waivers_missing or bool(waivers),
-        items=[f"CONOPS §{inline(w.leaf)} — {inline(w.reason)}" for w in waivers],
+        review=waivers_missing or (bool(waivers) and not all_signed(waiver_states)),
+        items=[
+            inline(waiver_subject(w)) + (_signoff_clause(st) if signed_off else "")
+            for w, st in zip(waivers, waiver_states, strict=True)
+        ],
     )
 
     derived = ev.traceability.derived
@@ -670,6 +726,7 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
         "Derived requirements: HLR tree not found"
         if hlr_missing
         else f"Derived requirements: {len(derived)}"
+        + _signoff_qualifier(derived_states, opted_in=signed_off)
         if derived
         else "Derived requirements: none",
         "traceability-derived",
@@ -677,23 +734,78 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
             "`requirements/hlr/` was not found, so nothing can be claimed about "
             "derived requirements: check `--root`, or restore the tree."
             if hlr_missing
-            else "Derived requirements have no CONOPS parent; they exist on the strength "
-            "of their rationale alone. Review each one."
+            else _judgement_detail(
+                "Derived requirements have no CONOPS parent; they exist on the "
+                "strength of their rationale alone.",
+                "rationale",
+                states=derived_states,
+                opted_in=signed_off,
+            )
             if derived
             else "No HLR statement is marked `derived`. (That every non-derived "
             "statement traces to the CONOPS is checked by `make validate-reqs`, a "
             "prerequisite of `make report` — this report does not re-verify it.)"
         ),
-        review=hlr_missing or bool(derived),
-        items=[f"{inline(d.ident)} — {inline(d.text)}" for d in derived],
+        review=hlr_missing or (bool(derived) and not all_signed(derived_states)),
+        items=[
+            inline(derived_subject(d)) + (_signoff_clause(st) if signed_off else "")
+            for d, st in zip(derived, derived_states, strict=True)
+        ],
     )
 
+    _conops_obligation(conops_state, b, opted_in=signed_off)
+
+
+def _judgement_detail(
+    premise: str, noun: str, *, states: list[SignoffState], opted_in: bool
+) -> str:
+    """Detail text for a list of judgement items, told against the sign-off record."""
+    if not opted_in:
+        return f"{premise} Review each {noun} and confirm it is still appropriate."
+    if all_signed(states):
+        return (
+            f"{premise} Each {noun} carries a recorded human sign-off over the text "
+            "as it now stands; a sign-off lapses as soon as that text changes."
+        )
+    return (
+        f"{premise} The {noun}s marked below carry no current sign-off: review each "
+        "one and record it with `make signoff`."
+    )
+
+
+def _conops_obligation(state: SignoffState, b: _Builder, *, opted_in: bool) -> None:
+    """Add the CONOPS's own validity: the one obligation with no machine evidence at all."""
+    premise = "Everything below the CONOPS is checked against it; nothing checks the CONOPS itself."
+    if not opted_in:
+        b.add(
+            "CONOPS validity is human-owned",
+            "traceability-conops",
+            f"{premise} A reviewer must confirm it describes the intersection you want.",
+            review=True,
+        )
+        return
+
+    signoff = state.signoff
+    signed_on = signoff.date.isoformat() if signoff else ""
+    title = {
+        SignoffStatus.signed: f"CONOPS validity: signed off {signed_on}",
+        SignoffStatus.lapsed: "CONOPS validity: sign-off lapsed",
+        SignoffStatus.unknown: "CONOPS validity: `requirements/conops.md` not found",
+        SignoffStatus.unsigned: "CONOPS validity is human-owned",
+    }[state.status]
+    detail = (
+        f"{premise} A reviewer has confirmed that this exact text describes the "
+        "intersection you want; editing the CONOPS lapses that sign-off."
+        if state.status is SignoffStatus.signed
+        else f"{premise} A reviewer must confirm it describes the intersection you "
+        "want, and record it with `make signoff`."
+    )
     b.add(
-        "CONOPS validity is human-owned",
+        title,
         "traceability-conops",
-        "Everything below the CONOPS is checked against it; nothing checks the CONOPS "
-        "itself. A reviewer must confirm it describes the intersection you want.",
-        review=True,
+        detail,
+        review=state.status is not SignoffStatus.signed,
+        items=[code_span("requirements/conops.md") + _signoff_clause(state)],
     )
 
 

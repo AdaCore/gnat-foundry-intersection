@@ -42,6 +42,10 @@ executions, and it gates on the requirement files being parseable
 `trace-check`'s job): they render as open items, so a report is available
 part-way through a project, showing what is not yet done.
 
+Three review obligations rest on a human reading: the trace waivers, the
+derived requirements, and the CONOPS itself. You are FORBIDDEN from editing
+`requirements/signoffs.yaml`. You are FORBIDDEN from running `make signoff`.
+
 The `test`/`coverage` targets auto-detect the toolchain provisioned under
 `install/` (`make setup-pro` or `make setup-community`), so they are the same
 regardless of which one you ran.

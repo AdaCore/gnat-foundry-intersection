@@ -17,7 +17,7 @@ SHELL := bash
         test-reqs-engine \
         build-tracer test-tracer \
         code-inventory test-inventory inventories \
-        report report-pdf test-report-engine \
+        report report-pdf signoff test-report-engine \
         setup-community setup-pro reset-hard \
         coverage-rts coverage-instrumentation coverage-build \
         coverage-test all-coverage all-coverage-mixed check-coverage \
@@ -662,12 +662,24 @@ report-pdf: $(REPORT_EVIDENCE) ## Same as `report`, plus a PDF rendering
 	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf \
 	    --code-inventory "$(CODE_INVENTORY)"
 
+# A human runs this, having read the item: no task oracle may stand in for them.
+signoff: ## Sign off a human-judgement item, or list their state (ITEM=<id>)
+	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport signoff \
+	    --root "$(CURDIR)" \
+	    $(if $(ITEM),--item "$(ITEM)") $(if $(ALL),--all) \
+	    $(if $(BY),--by "$(BY)") $(if $(DATE),--date "$(DATE)") $(if $(NOTE),--note "$(NOTE)")
+
 test-report-engine: ## Run the report engine's own test suite
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked pytest
 
 ##> Variables:
 ##>   REPORT_OUT                 where the report is written (default: reports/report)
 ##>   REPORT_EVIDENCE            evidence targets to run first; empty renders what is on disk
+##>   ITEM                       the item `signoff` signs; with none, it only lists
+##>   ALL                        sign every outstanding item, rather than one
+##>   BY                         who read it (default: git's user.name)
+##>   DATE                       when they read it (default: today)
+##>   NOTE                       what the review established; a re-sign keeps it
 
 # ----------------------------------------------------------------------------
 ##@ Setup

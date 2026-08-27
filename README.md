@@ -155,6 +155,32 @@ Note that trace gaps do not fail `report`; they render as open items instead,
 so a report is available part-way through a project and says what is not yet
 done.
 
+### Sign-offs
+
+Three of the report's review obligations rest on human review:
+
+1. the waivers excusing CONOPS leaves from HLR coverage,
+2. the derived HLRs, and
+3. the CONOPS itself.
+
+`requirements/signoffs.yaml` records these reviews with one entry per item,
+each carrying a SHA-256 digest of the report text. When the text is edited, the
+digest no longer matches and the report states the obligation to re-review.
+
+`make signoff` lists the items with their state and what is outstanding or,
+when passed arguments, effects a sign-off:
+
+```bash
+make signoff ITEM=conops NOTE="the revised phasing is what we intended"
+```
+
+- `ITEM` — the item to sign: `conops`, `waiver:<leaf>`, or
+  `derived:<statement id>`. With no `ITEM`, `signoff` only lists.
+- `ALL` — sign every outstanding item, rather than one.
+- `BY` — who read it (default: git's `user.name`).
+- `DATE` — when they read it, as `YYYY-MM-DD` (default: today).
+- `NOTE` — what the review established; a later re-sign keeps it.
+
 ## Repository layout
 
 | Path                     | Contents                                                                         |

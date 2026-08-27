@@ -101,6 +101,12 @@ resumes on re-dispatch. Never edit or delete a prior Q/A — only append.
 
 Any notes that are useful for the next sub-agents in the chain. Delete notes when addressed.
 
+## What the workflow MAY NOT touch
+
+`requirements/signoffs.yaml` records that a *human* read the items no tool can
+check — the trace waivers, the derived requirements, and the CONOPS. Running
+`make signoff` is FORBIDDEN. Writing `signoffs.yaml` directly is FORBIDDEN.
+
 ## Adding or changing a task type
 
 Edit the spec here (and, if the oracle command changes, the table above and the

@@ -35,9 +35,17 @@ from vreport.obligations import (
     predicate_label,
     rowless_trace_findings,
 )
+from vreport.signoff import (
+    CONOPS_ITEM,
+    derived_item,
+    derived_subject,
+    digest_of,
+    waiver_item,
+    waiver_subject,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
 
     from vreport.model import (
         Evidence,
@@ -46,6 +54,7 @@ if TYPE_CHECKING:
         ProofEvidence,
         RequirementLayer,
         RequirementsDocument,
+        TraceabilityEvidence,
         TraceDiagnostic,
         TracePair,
         TraceReport,
@@ -1155,10 +1164,48 @@ errors; `make report` does not, so gaps stay visible here):
 def _emit_traceability(ev: Evidence) -> str:
     """Render the requirements-chain page: matrices, gaps, and judgement items."""
     t = ev.traceability
-    waiver_rows: list[Sequence[str]] = [(f"§{inline(w.leaf)}", inline(w.reason)) for w in t.waivers]
-    derived_rows: list[Sequence[str]] = [
-        (_req_link(ev.requirements, "HLR", d.ident), inline(d.text)) for d in t.derived
+    signed = {s.item: s for s in t.signoffs}
+
+    def stamp(item: str, digest: str | None) -> str:
+        """Render the sign-off cell for one item: who signed the text as it now stands."""
+        entry = signed.get(item)
+        if entry is None:
+            return "**not signed off**"
+        if entry.digest != digest:
+            return f"**lapsed** (was {inline(entry.by)}, {entry.date.isoformat()})"
+        return f"{inline(entry.by)}, {entry.date.isoformat()}"
+
+    # Sign-offs are opt-in: a project with no record gets the page it had before
+    # they existed, not a column of items it never undertook to sign.
+    signoffs = t.signoffs_found
+    signed_column = ("Signed off",) if signoffs else ()
+    waiver_rows: list[Sequence[str]] = [
+        (
+            f"§{inline(w.leaf)}",
+            inline(w.reason),
+            *([stamp(waiver_item(w.leaf), digest_of(waiver_subject(w)))] if signoffs else []),
+        )
+        for w in t.waivers
     ]
+    derived_rows: list[Sequence[str]] = [
+        (
+            _req_link(ev.requirements, "HLR", d.ident),
+            inline(d.text),
+            *([stamp(derived_item(d.ident), digest_of(derived_subject(d)))] if signoffs else []),
+        )
+        for d in t.derived
+    ]
+    waiver_lead = (
+        "each with its recorded reason and the review recorded against that reason:"
+        if signoffs
+        else "each with its recorded reason:"
+    )
+    derived_lead = (
+        "standing on their rationale alone, with the review recorded against each:"
+        if signoffs
+        else "standing on their rationale alone:"
+    )
+    conops_block = _conops_signoff_block(t, stamp) if signoffs else ""
     absent = [
         note
         for note, is_absent in (
@@ -1193,18 +1240,17 @@ visible as the open items below.
 
 ## Waived CONOPS leaves
 
-CONOPS leaves deliberately not realized by any HLR, each with its recorded
-reason:
+CONOPS leaves deliberately not realized by any HLR, {waiver_lead}
 
-{_table_or(("Leaf", "Reason"), waiver_rows, "None.")}
+{_table_or(("Leaf", "Reason", *signed_column), waiver_rows, "None.")}
 
 {_target("traceability-derived")}
 
 ## Derived requirements
 
-HLR statements with no CONOPS parent, standing on their rationale alone:
+HLR statements with no CONOPS parent, {derived_lead}
 
-{_table_or(("Requirement", "Text"), derived_rows, "None.")}
+{_table_or(("Requirement", "Text", *signed_column), derived_rows, "None.")}
 
 {_target("traceability-conops")}
 
@@ -1214,6 +1260,25 @@ The CONOPS (`requirements/conops.md`) is the root of the chain: every HLR is
 checked against it, but nothing checks the CONOPS itself. Its validity — that
 it describes the intersection the stakeholders actually want — is established
 only by human review.
+{conops_block}"""
+
+
+def _conops_signoff_block(t: TraceabilityEvidence, stamp: Callable[[str, str | None], str]) -> str:
+    """Render the CONOPS's own sign-off, and what a sign-off on this page means."""
+    state = (
+        f"The document as it stands: {stamp(CONOPS_ITEM, t.conops_digest)}."
+        if t.conops_digest is not None
+        else "**`requirements/conops.md` was not found — its review state is unknown.**"
+    )
+    return f"""
+{state}
+
+Sign-offs on this page and the two above are read from
+`requirements/signoffs.yaml`, where each entry names the reviewer and fixes
+what they read by digest: edit that text and the sign-off lapses, re-opening
+its review obligation. They are a record of a human's reading, not something a
+tool enforces — anything able to write the repository can write that file, so
+what they buy is that a change to them is conspicuous in a diff.
 """
 
 

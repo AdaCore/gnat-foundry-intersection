@@ -9,6 +9,8 @@ Everything else in the report is supporting evidence for that checklist.
 
 ```bash
 vreport generate --root <repo> --out <repo>/reports/report
+vreport signoff  --root <repo>                   # what needs a human, and who signed it
+vreport signoff  --root <repo> --item conops     # record that a human reviewed it
 ```
 
 or, from the repository root, `make report`, whose prerequisites regenerate
@@ -21,7 +23,7 @@ invoking `vreport` directly, produce them first):
 | `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt`, `gnatcov-command.txt` (the recorded invocation) |
 | `reports/trace/trace_report.json` | `make trace-report` | `reqs trace --format json` over the whole chain: per-pair matrices, the merged verification view, gate diagnostics, recorded command |
 | `obj/analysis/code_inventory.json` | `make code-inventory` | the Ada tracer's libadalang parse of the project's own sources; the report reads the generics it declares |
-| `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
+| `requirements/` | checked-in | `conops.md`, `trace_waivers.yaml`, `hlr/*.yaml` (the waived and derived items), `signoffs.yaml` (who reviewed them) |
 | `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` (the CONOPS, HLR and LLR, plus a listing of each cited source under `pages/sources/`) and `index.json` (each layer's title, pages and top-level pages, each node's page and anchor) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
@@ -109,6 +111,41 @@ coverage-deviation handling): machine-checkable assertions are rendered as
 OK/FAIL with counts; genuinely human judgements (justification texts,
 exemptions, waivers, non-SPARK code) are rendered as review items with
 evidence links.
+
+### Sign-offs
+
+Three of those judgements can be discharged by nothing but a reading: the
+waivers excusing CONOPS leaves from HLR coverage, the derived HLR statements
+that have no CONOPS parent, and the CONOPS itself. `requirements/signoffs.yaml`
+records the reading, one entry per item:
+
+```yaml
+signoffs:
+  - item: conops                    # or waiver:<leaf>, or derived:<statement id>
+    digest: sha256:7d6dcc07…        # of the text reviewed (signoff.py builds it)
+    by: A Reviewer
+    date: '2026-08-21'
+    note: what the review established   # optional
+```
+
+The digest is the mechanism. It is taken over the same string the report
+renders for that item, so a sign-off covers exactly what a reader sees; edit
+the text and the digest no longer matches, the sign-off lapses, and its
+obligation re-opens saying so. Against a baseline where every item is signed,
+an unreviewed change is the only thing that shows — which is the point, for a
+report read after an agent has been through the requirements.
+
+`vreport signoff` (`make signoff`) lists the items with their state and stamps
+one, or `--all` outstanding; the digest is computed, `by` defaults to git's
+`user.name` and `date` to today. Without the file the three obligations read as
+they did before sign-offs existed, so the mechanism is opt-in and the engine
+stays project-agnostic.
+
+Sign-offs are a record of human review, **not** an attestation anything
+enforces: whatever can write the repository can write that file. What they buy
+is that a change to them is conspicuous in a diff. Automated work must
+therefore never stamp one (`engine/workflow/README.md` says so for the feature
+workflow).
 
 ## Caveats
 

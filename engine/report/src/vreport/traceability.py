@@ -9,7 +9,8 @@ and the gate's diagnostics. The requirement tree itself supplies the pure
 human-judgement items: ``requirements/trace_waivers.yaml`` (CONOPS leaves
 waived from HLR coverage, each with a reason to review) and the
 ``derived: true`` statements in ``requirements/hlr/*.yaml`` (requirements with
-no CONOPS parent).
+no CONOPS parent), and ``requirements/signoffs.yaml`` (the record of who
+reviewed them, and of the CONOPS itself).
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from vreport.model import (
     TraceReport,
     Waiver,
 )
+from vreport.signoff import digest_of, load_signoffs
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -72,10 +74,18 @@ def collect_trace_report(path: Path) -> TraceReport:
         raise ArtifactParseError(path, str(exc)) from exc
 
 
-def collect_traceability(root: Path, trace_report: Path | None = None) -> TraceabilityEvidence:
-    """Gather the trace report, waivers, and derived requirements under ROOT."""
-    report = collect_trace_report(trace_report or root / "reports" / "trace" / "trace_report.json")
+def signoffs_path(root: Path) -> Path:
+    """Where the sign-off record lives under ROOT."""
+    return root / "requirements" / "signoffs.yaml"
 
+
+def collect_judgement_items(root: Path) -> TraceabilityEvidence:
+    """
+    Gather the human-judgement items under ROOT: waivers, derived requirements, sign-offs.
+
+    Everything here comes from the requirement tree alone, so `vreport signoff`
+    can reach it without the tool evidence a full report needs.
+    """
     waivers: list[Waiver] = []
     derived: list[DerivedRequirement] = []
 
@@ -104,10 +114,25 @@ def collect_traceability(root: Path, trace_report: Path | None = None) -> Tracea
                 if isinstance(val, dict) and val.get("derived")
             )
 
+    conops_path = root / "requirements" / "conops.md"
+    conops_digest = (
+        digest_of(conops_path.read_text(encoding="utf-8")) if conops_path.is_file() else None
+    )
+
+    signoffs, signoffs_found = load_signoffs(signoffs_path(root))
+
     return TraceabilityEvidence(
         waivers=waivers,
         derived=derived,
+        signoffs=signoffs,
         waivers_found=waivers_found,
         hlr_found=hlr_found,
-        report=report,
+        signoffs_found=signoffs_found,
+        conops_digest=conops_digest,
     )
+
+
+def collect_traceability(root: Path, trace_report: Path | None = None) -> TraceabilityEvidence:
+    """Gather the trace report alongside the human-judgement items under ROOT."""
+    report = collect_trace_report(trace_report or root / "reports" / "trace" / "trace_report.json")
+    return collect_judgement_items(root).model_copy(update={"report": report})
