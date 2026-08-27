@@ -34,7 +34,6 @@ from vreport.obligations import (
     open_trace_items,
     predicate_label,
     rowless_trace_findings,
-    toolchain_note,
 )
 
 if TYPE_CHECKING:
@@ -329,7 +328,6 @@ def _emit_provenance(ev: Evidence) -> str:
 
 ## Tools
 
-{toolchain_note(ev.proof.version_text, ev.coverage.version_text)}
 GNATprove's results are sound subject to its documented assumptions
 (SPARK User's Guide, "GNATprove Assumptions").
 

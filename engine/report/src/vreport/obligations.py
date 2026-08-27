@@ -697,26 +697,6 @@ def _traceability_obligations(ev: Evidence, b: _Builder) -> None:
     )
 
 
-def toolchain_note(proof_version: str | None, coverage_version: str | None) -> str:
-    """Describe the recorded toolchain honestly, without assuming which one ran."""
-    blob = f"{proof_version or ''} {coverage_version or ''}"
-    if "FSF" in blob or "Community" in blob:
-        return (
-            "The recorded versions identify FSF community builds of GNATprove and "
-            "GNATcoverage; these are not tool-qualified releases."
-        )
-    if blob.strip():
-        return (
-            "The recorded tool versions are not FSF community builds; confirm which "
-            "releases these are and whether tool qualification applies to this use."
-        )
-    return (
-        "Tool versions were not recorded — regenerate the evidence with "
-        "`make prove-report` and `make coverage-report-xml`; without recorded "
-        "versions the evidence cannot be tied to a toolchain."
-    )
-
-
 def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
     """Obligations about the evidence itself: run consistency, tools, sources."""
     header = ev.proof.header
@@ -754,13 +734,30 @@ def _provenance_obligations(ev: Evidence, b: _Builder) -> None:
         review=not forced or ev.coverage.command_text is None,
     )
 
+    # Each version file is written by a command of its own, separate from the run
+    # whose artifacts it describes: gnatprove's header can be present with its
+    # version absent. Without a version the evidence names no toolchain at all,
+    # which is a finding, not a detail of the provenance section.
+    missing = [
+        tool
+        for tool, version in (
+            ("gnatprove", ev.proof.version_text),
+            ("gnatcov", ev.coverage.version_text),
+        )
+        if not version
+    ]
+    named = " and ".join(missing)
     b.add(
-        "Tool qualification",
+        f"Tool versions not recorded: {named}" if missing else "Tool versions recorded",
         "provenance-tools",
-        toolchain_note(ev.proof.version_text, ev.coverage.version_text)
-        + " The proof results are sound only subject to GNATprove's documented "
-        "assumptions, and every recorded tool version is in the provenance section.",
-        review=True,
+        (
+            f"No version was recorded for {named}, so this evidence cannot be tied "
+            f"to a toolchain. Regenerate with `make prove-report` and "
+            f"`make coverage-report-xml`."
+            if missing
+            else "The gnatprove and gnatcov versions are both recorded, in the provenance section."
+        ),
+        review=bool(missing),
     )
 
     dirty = ev.git is None or ev.git.dirty
