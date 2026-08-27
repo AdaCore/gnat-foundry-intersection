@@ -469,7 +469,7 @@ class CoverageEvidence(Frozen):
 
 # --- Traceability -------------------------------------------------------------
 
-TRACE_REPORT_SCHEMA_VERSION = 1
+TRACE_REPORT_SCHEMA_VERSION = 2
 
 # Matrix-row statuses that are accounted-for rather than open work: covered,
 # waived/derived (reviewed as their own obligations), review-verified (its own
@@ -477,7 +477,7 @@ TRACE_REPORT_SCHEMA_VERSION = 1
 # any status outside this set — including ones this consumer has never seen —
 # is treated as open, so the unknown surfaces as a finding rather than silence.
 SETTLED_TRACE_STATUSES = frozenset(
-    {"OK", "WAIVED", "DERIVED", "REVIEW", "UNTESTED", "UNIMPLEMENTED", "UNREQUIRED"}
+    {"OK", "WAIVED", "DERIVED", "REVIEW", "UNTESTED", "UNIMPLEMENTED", "NO REQUIREMENT"}
 )
 
 
@@ -589,7 +589,7 @@ class TraceDiagnostic(Frozen):
 
 
 class TraceReport(Frozen):
-    """The `reqs trace --format json` payload (schema_version 1)."""
+    """The `reqs trace --format json` payload (schema_version 2)."""
 
     chain: str = ""
     command: str | None = None

@@ -252,7 +252,7 @@ def test_down_pair_reports_both_directions(tmp_path: Path) -> None:
     assert upper["llr_x.2"]["status"] == "DANGLING"
     assert upper["llr_x.3"]["status"] == "UNIMPLEMENTED"
     lower = rows_by_node(pair["lower_rows"])
-    assert lower["Conflicts.Helper"]["status"] == "UNREQUIRED"
+    assert lower["Conflicts.Helper"]["status"] == "NO REQUIREMENT"
 
 
 def test_non_partial_down_pair_uncovered_row_matches_the_gate(tmp_path: Path) -> None:

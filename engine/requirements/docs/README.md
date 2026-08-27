@@ -83,13 +83,14 @@ obligation: the trace gate reports the statement uncovered until a tagged
 check cites it. Tagging checks is *opt-in*, unlike test routines: an untagged
 contract or pragma is simply not evidence (most exist for engineering and
 proof-plumbing reasons), so there is no UNTRACED analogue for checks — the
-pressure comes from the statement side. Which constructs count for which
-method is the chain's `anchors` policy (see `requirements/trace_chain.yaml`);
-a tag on a construct *no* layer's anchors accept is E-TRACE-CHECK-IGNORED —
-the author opted in, so the citation must not vanish silently. A tag whose
-payload names nothing at all (a bare `--@covers`) is E-TRACE-CHECK-EMPTY,
-reported wherever it sits: an empty payload discharges nothing on any
-construct, accepted anchor or not.
+pressure comes from the statement side. A check tagged `none` therefore stays a
+DERIVED row, where a test tagged `none` leaves the chain altogether. Which
+constructs count for which method is the chain's `anchors` policy (see
+`requirements/trace_chain.yaml`); a tag on a construct *no* layer's anchors
+accept is E-TRACE-CHECK-IGNORED — the author opted in, so the citation must
+not vanish silently. A tag whose payload names nothing at all (a bare
+`--@covers`) is E-TRACE-CHECK-EMPTY, reported wherever it sits: an empty
+payload discharges nothing on any construct, accepted anchor or not.
 
 > **Note**
 > The gate anchors the tag to the parsed construct — deleting the pragma or

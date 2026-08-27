@@ -17,20 +17,25 @@ A test routine declares its trace with a ``--@covers`` tag placed in its
 The ids are whitespace- and/or comma-separated and may span several tags; they
 are unioned. A test that intentionally verifies code no requirement governs
 (a boundary/robustness test -- e.g. HAL rendering, which ``llr_6_hal`` places
-"out of requirement scope") says so explicitly, which is the test-side analogue
-of a ``derived`` requirement::
+"out of requirement scope") says so explicitly::
 
        --@covers none: display rendering is out of requirement scope (llr_6_hal)
+
+Such a routine is no node of the trace chain: it is not a requirements-based
+test, so it has nothing to trace and belongs in no matrix. The tag is still
+required -- it is what distinguishes a deliberate boundary test from a routine
+whose trace was simply forgotten, and the latter stays a node, and so an
+untraced one.
 
 The Ada itself is not parsed here. ``engine/ada_tracer`` does that and reports
 each body's interior comments with their tags already split out (see
 :mod:`reqs.code_inventory`); what is left for this module is the *tag payload*,
 which is this repository's convention rather than anything about Ada.
 
-Each *test routine* is one trace node. Its id is ``<unit>.<routine>`` (the unit
-is the file-name stem up to the first ``-``, matching the GNATtest
-``<unit>-test_data-tests.adb`` convention), its up-refs are the ids it covers,
-and it is ``derived`` when tagged ``none``. The resulting :class:`TestSet` is
+Each *requirements-based test routine* is one trace node. Its id is
+``<unit>.<routine>`` (the unit is the file-name stem up to the first ``-``,
+matching the GNATtest ``<unit>-test_data-tests.adb`` convention) and its
+up-refs are the ids it covers. The resulting :class:`TestSet` is
 queryable exactly like a :class:`~reqs.conops.ConopsSet` /
 :class:`~reqs.requirement_set.RequirementSet`, so the level-agnostic trace
 engine treats the tests as the chain's bottom layer (LLR -> TEST) with no
@@ -59,8 +64,8 @@ if TYPE_CHECKING:
 # A test routine's name starts with `Test_`.
 ROUTINE_RE = re.compile(r"^Test_\w+$")
 
-# `none` (optionally followed by a reason after `:`/`-`/em-dash) marks the node
-# derived: it verifies code no requirement governs.
+# `none` (optionally followed by a reason after `:`/`-`/em-dash): the routine
+# verifies code no requirement governs, so it is no node of the chain.
 NONE_RE = re.compile(r"^\s*none\b[\s:\-\u2014]*", re.IGNORECASE)
 
 COVERS_TAG = "covers"
@@ -92,7 +97,7 @@ class TestNode:
 
     @property
     def is_derived(self) -> bool:
-        """Whether the test is tagged ``none`` (verifies code no requirement governs)."""
+        """Whether the test is tagged ``none`` and so is no node of the chain."""
         return self.derived and not self.refs
 
 
@@ -146,7 +151,12 @@ class TestSet:
     @classmethod
     def from_inventory(cls, inventory: Inventory, path: Path) -> tuple[TestSet, list[Diagnostic]]:
         """
-        Turn every test routine body in `inventory` into a trace node.
+        Turn every requirements-based test routine in `inventory` into a node.
+
+        A routine tagged ``--@covers none`` is not a requirements-based test:
+        it verifies code no requirement governs, so it is dropped rather than
+        carried as a node that traces to nothing. It is still collected first,
+        so that a duplicate id it takes part in is reported.
 
         A node's id stem is its *file*'s unit (the stem up to the first ``-``)
         rather than its Ada package name, which keeps the ids what they have always
@@ -179,7 +189,7 @@ class TestSet:
                 )
                 continue
             nodes[node_id] = _node_of(sub)
-        return cls(path, nodes), diags
+        return cls(path, {nid: n for nid, n in nodes.items() if not n.is_derived}), diags
 
     def all_statements(self) -> Iterator[tuple[str, TestNode]]:
         """Yield every test node as (node id, node), in discovery order."""
