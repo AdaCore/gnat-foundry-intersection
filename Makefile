@@ -13,6 +13,7 @@ SHELL := bash
         generate-tests-target build-tests-target test-target smoke-target \
         validate-reqs validate-reqs-corpus \
         trace trace-check trace-check-code trace-check-proof trace-report \
+        requirements-doc \
         test-reqs-engine \
         build-tracer test-tracer \
         code-inventory test-inventory inventories \
@@ -108,10 +109,12 @@ endif
 # ----------------------------------------------------------------------------
 
 # Sections come from the `##@ <name>` banners below, target descriptions from
-# a trailing `## <text>` on the target's own line.
+# a trailing `## <text>` on the target's own line, and a section's notes on the
+# variables it honours from `##> <text>` lines, printed where they stand.
 help: ## List the public targets, by section
 	@awk 'BEGIN { FS = ":[^#]*##" } \
 	     /^##@/ { printf "\n%s\n", substr($$0, 5); next } \
+	     /^##>/ { printf "  %s\n", substr($$0, 5); next } \
 	     /^[a-zA-Z0-9_.-]+:.*##/ { printf "  %-26s  %s\n", $$1, $$2 }' \
 	     $(MAKEFILE_LIST)
 
@@ -554,6 +557,16 @@ trace-report: inventories ## Write the machine-readable trace report `make repor
 	$(UV) --directory "$(REQS_ENGINE)" run reqs trace --complete --format json \
 	    --chain "$(TRACE_CHAIN)" --output "$(TRACE_REPORT)"
 
+# The requirements as a document, consumed by `make report`: pages the report
+# folds into its own tree, plus an index naming each statement's anchor so the
+# trace matrices can link to the requirement text. Not a gate either -- gaps
+# render into the document as the open items they are.
+REQS_DOC := $(CURDIR)/reports/requirements
+
+requirements-doc: inventories ## Render the requirements as a document `make report` reads
+	$(UV) --directory "$(REQS_ENGINE)" run reqs document \
+	    --chain "$(TRACE_CHAIN)" --out "$(REQS_DOC)" --source-root "$(CURDIR)"
+
 test-reqs-engine: ## Run the validation engine's own test suite
 	$(UV) --directory "$(REQS_ENGINE)" run pytest
 
@@ -630,23 +643,31 @@ REPORT_OUT    := $(CURDIR)/reports/report
 
 # The prerequisites guarantee the report never describes stale artifacts:
 # `validate-reqs-corpus` gates on a parseable corpus, `trace-report` regenerates
-# the trace matrices from fresh inventories, `prove-report` is a clean, forced
-# (-f) gnatprove run, and `all-coverage` re-runs the requirements-based tests
-# before `coverage-report-xml` reads the traces.
+# the trace matrices from fresh inventories, `requirements-doc` re-renders the
+# requirements the matrices link into, `prove-report` is a clean, forced (-f)
+# gnatprove run, and `all-coverage` re-runs the requirements-based tests before
+# `coverage-report-xml` reads the traces.
 # Not `validate-reqs`: trace gaps are open items in the report, not a stop.
-REPORT_EVIDENCE := validate-reqs-corpus trace-report prove-report all-coverage coverage-report-xml
+REPORT_EVIDENCE := validate-reqs-corpus trace-report requirements-doc prove-report \
+                   all-coverage coverage-report-xml
 
 report: $(REPORT_EVIDENCE) ## Regenerate the evidence, then the verification report
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
-	    --root "$(CURDIR)" --out "$(REPORT_OUT)"
+	    --root "$(CURDIR)" --out "$(REPORT_OUT)" \
+	    --code-inventory "$(CODE_INVENTORY)"
 
 # rst2pdf -- pure Python, no TeX toolchain needed.
 report-pdf: $(REPORT_EVIDENCE) ## Same as `report`, plus a PDF rendering
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked vreport generate \
-	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf
+	    --root "$(CURDIR)" --out "$(REPORT_OUT)" --pdf \
+	    --code-inventory "$(CODE_INVENTORY)"
 
 test-report-engine: ## Run the report engine's own test suite
 	$(UV) --directory "$(REPORT_ENGINE)" run --locked pytest
+
+##> Variables:
+##>   REPORT_OUT                 where the report is written (default: reports/report)
+##>   REPORT_EVIDENCE            evidence targets to run first; empty renders what is on disk
 
 # ----------------------------------------------------------------------------
 ##@ Setup

@@ -1,0 +1,94 @@
+{
+  "schema_version": 3,
+  "tool": "ada_tracer",
+  "project": "traffic_light.gpr",
+  "packages": [
+    {
+      "name": "Buses",
+      "spec_file": "src/types/buses.ads",
+      "body_file": "src/types/buses.adb",
+      "is_generic": false,
+      "subprograms": [],
+      "entities": []
+    },
+    {
+      "name": "Buses.Source_Bus",
+      "spec_file": "src/types/buses.ads",
+      "body_file": "src/types/buses.adb",
+      "is_generic": true,
+      "subprograms": [
+        {
+          "name": "Bus_Read",
+          "qualified_name": "Buses.Source_Bus.Bus_Read",
+          "kind": "procedure",
+          "is_generic": false,
+          "location": {"file": "src/types/buses.ads", "line": 32, "column": 7}
+        },
+        {
+          "name": "Bus_Read",
+          "qualified_name": "Buses.Source_Bus.Bus_Read",
+          "kind": "procedure",
+          "is_generic": false,
+          "location": {"file": "src/types/buses.adb", "line": 6, "column": 7}
+        }
+      ],
+      "entities": []
+    },
+    {
+      "name": "Buses.Display_Bus",
+      "spec_file": "src/types/buses.ads",
+      "body_file": "src/types/buses.adb",
+      "is_generic": true,
+      "subprograms": [
+        {
+          "name": "Bus_Write",
+          "qualified_name": "Buses.Display_Bus.Bus_Write",
+          "kind": "procedure",
+          "is_generic": false,
+          "location": {"file": "src/types/buses.ads", "line": 49, "column": 7}
+        },
+        {
+          "name": "Bus_Write",
+          "qualified_name": "Buses.Display_Bus.Bus_Write",
+          "kind": "procedure",
+          "is_generic": false,
+          "location": {"file": "src/types/buses.adb", "line": 19, "column": 7}
+        }
+      ],
+      "entities": []
+    },
+    {
+      "name": "Hal.Ring",
+      "spec_file": "src/hal/hal-ring.ads",
+      "body_file": "src/hal/hal-ring.adb",
+      "is_generic": true,
+      "subprograms": [
+        {
+          "name": "Push",
+          "qualified_name": "Hal.Ring.Push",
+          "kind": "procedure",
+          "is_generic": false,
+          "location": {"file": "src/hal/hal-ring.ads", "line": 12, "column": 7}
+        }
+      ],
+      "entities": []
+    }
+  ],
+  "library_subprograms": [
+    {
+      "name": "State_Machine_Loop",
+      "qualified_name": "State_Machine_Loop",
+      "kind": "procedure",
+      "is_generic": true,
+      "location": {"file": "src/core/state_machine_loop.ads", "line": 18, "column": 1}
+    },
+    {
+      "name": "Main",
+      "qualified_name": "Main",
+      "kind": "procedure",
+      "is_generic": false,
+      "location": {"file": "src/app/main.adb", "line": 13, "column": 1}
+    }
+  ],
+  "checks": []
+}

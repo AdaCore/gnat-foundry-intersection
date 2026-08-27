@@ -45,7 +45,9 @@ its nodes (``kind``: ``markdown-leaves``, ``requirement-yaml``, ``ada-tests``,
 ``ada-entities`` or ``ada-checks``) and, for any layer that traces upward, how
 to extract a parent-node id from each ref (``id_pattern``, one capture group,
 matched against the *whole* ref: a pattern that matched only a prefix would
-accept ``llr_3_conflicts.1typo`` as ``llr_3_conflicts.1``).
+accept ``llr_3_conflicts.1typo`` as ``llr_3_conflicts.1``). Its ``name`` is the
+short one the ids and matrix headings carry; a layer whose name is an acronym
+can spell itself out in ``title``, which is what a document heading uses.
 
 A layer that discharges one verification method declares it as ``method``: its
 parent's nodes need covering exactly when they declare that method. Method
@@ -127,6 +129,9 @@ class Layer:
     kind: str
     path: Path
     id_pattern: str | None = None  # regex; group(1) extracts a parent-node id from an up-ref
+    # How a document naming this layer spells it out; the short `name` is what
+    # ids, tags and matrix headings use, and stands in when no title is given.
+    title: str | None = None
     waivers: Path | None = None  # nodes here intentionally left uncovered by the layer below
     # The layer this one traces to; None means "the entry above me in the file".
     parent: str | None = None
@@ -153,6 +158,7 @@ _LAYER_KEYS = frozenset(
         "kind",
         "path",
         "id_pattern",
+        "title",
         "waivers",
         "parent",
         "partial_coverage",
@@ -174,6 +180,7 @@ def load_chain(path: str | os.PathLike[str]) -> list[Layer]:
             name=item["name"],
             kind=item["kind"],
             path=base / item["path"],
+            title=item.get("title"),
             id_pattern=item.get("id_pattern"),
             waivers=(base / item["waivers"]) if item.get("waivers") else None,
             parent=item.get("parent"),
@@ -239,11 +246,19 @@ def select_allowed_methods(
     return frozenset(name for name in wanted if name in machine), diags
 
 
+NodeSet = RequirementSet | ConopsSet | TestSet | CodeSet | CheckSet
+"""Any layer's nodes: the surface every `kind` presents to the trace engine.
+
+Whatever a layer reads -- requirement YAML, CONOPS markdown, an Ada inventory --
+it presents the same three queries: `all_statements`, `statement`, `loc_of`.
+"""
+
+
 @dataclass
 class _Loaded:
     layer: Layer
     # nodes: coverage targets, up-refs, locations
-    reqset: RequirementSet | ConopsSet | TestSet | CodeSet | CheckSet
+    reqset: NodeSet
     waived: dict[str, str]  # node id -> reason
     waiver_file: Path | None
 
@@ -411,6 +426,63 @@ class TraceChecker:
             "verification": verification_out,
             "diagnostics": [_diag_dict(d) for d in diags],
         }
+
+    def view(self) -> tuple[ChainView, list[Diagnostic]]:
+        """
+        Build the chain as data: every node with its resolved links, both ways.
+
+        The same analysis the gate and the JSON report run, presented
+        node-first rather than pair-first, for a consumer that renders the
+        chain rather than judging it (`reqs document`). Over an invalid corpus
+        the view carries the nodes it could load with no links at all and
+        `valid` false, mirroring `to_report`: links across a broken corpus
+        would be misinformation, and rendering them as absent is not the same
+        claim as rendering them as none.
+        """
+        diags, loaded, analyzed, valid = self._gather()
+        sets = {item.layer.name: item.reqset for item in loaded}
+        nodes: dict[str, dict[str, NodeView]] = {}
+        up: dict[str, dict[str, tuple[str, ...]]] = {}
+        down: dict[str, dict[str, tuple[str, ...]]] = {}
+        dangling: dict[str, list[str]] = {}
+        for _upper, pair in analyzed:
+            upper_name, lower_name = pair.upper.layer.name, pair.lower.layer.name
+            for node_id, covering in pair.coverage.items():
+                down.setdefault(f"{upper_name}\0{node_id}", {})[lower_name] = tuple(covering)
+            for node_id, resolved in pair.resolved.items():
+                up.setdefault(f"{lower_name}\0{node_id}", {})[upper_name] = tuple(resolved)
+            # Keyed by whichever layer wrote the refs, as `_Pair.dangling` is.
+            owner = pair.ref_owner.layer.name
+            for node_id, refs in pair.dangling.items():
+                dangling.setdefault(f"{owner}\0{node_id}", []).extend(refs)
+        for item in loaded:
+            layer_name = item.layer.name
+            views: dict[str, NodeView] = {}
+            for node_id, node in item.reqset.all_statements():
+                key = f"{layer_name}\0{node_id}"
+                try:
+                    file, line, _keys = item.reqset.loc_of(node_id)
+                except KeyError:
+                    file, line = None, None
+                views[node_id] = NodeView(
+                    layer=layer_name,
+                    node=node_id,
+                    file=file,
+                    line=line,
+                    up=up.get(key, {}),
+                    down=down.get(key, {}),
+                    dangling=tuple(dangling.get(key, ())),
+                    is_derived=node.is_derived,
+                    verification_methods=node.verification_methods,
+                    waiver=item.waived.get(node_id),
+                )
+            nodes[layer_name] = views
+        layers = {layer.name: layer for layer in self.layers}
+        parents = {
+            layer.name: (parent.name if (parent := _parent_in(self.layers, index)) else None)
+            for index, layer in enumerate(self.layers)
+        }
+        return ChainView(nodes=nodes, sets=sets, layers=layers, parents=parents, valid=valid), diags
 
     def _check_diagnostics(self, loaded: list[_Loaded]) -> list[Diagnostic]:
         """
@@ -878,24 +950,35 @@ def _pairs(loaded: list[_Loaded], diags: list[Diagnostic]) -> list[tuple[_Loaded
     return out
 
 
+def parent_ref_id(layer: Layer, ref: str) -> str | None:
+    """
+    Return the parent-node id an up-ref names; None if it targets another layer.
+
+    A layer's ``id_pattern`` says how its statements spell a parent ref (an HLR
+    writes ``CONOPS §4.1`` for the leaf ``4.1``); group(1) is the id. Matched in
+    full, not by prefix: with a prefix match ``llr_3_conflicts.1typo`` would
+    resolve to ``llr_3_conflicts.1`` and pass, so a fat-fingered tag would
+    silently trace to the wrong requirement instead of dangling.
+    """
+    if not layer.id_pattern:
+        return None
+    m = re.fullmatch(layer.id_pattern, ref)
+    return m.group(1) if m else None
+
+
 def _analyze(upper: _Loaded, lower: _Loaded) -> _Pair:
     """Resolve the refs linking a pair, in whichever direction they run."""
     if lower.layer.refs_point_down:
         return _analyze_downward(upper, lower)
 
     pair = _Pair(upper, lower)
-    pattern = re.compile(lower.layer.id_pattern) if lower.layer.id_pattern else None
     for nid, statement in lower.reqset.all_statements():
         matched = False
         for ref in statement.up_refs or []:
-            # `fullmatch`, not `match`: with a prefix match, `llr_3_conflicts.1typo`
-            # would resolve to `llr_3_conflicts.1` and pass, so a fat-fingered tag
-            # would silently trace to the wrong requirement instead of dangling.
-            m = pattern.fullmatch(ref) if pattern else None
-            if m is None:
+            parent = parent_ref_id(lower.layer, ref)
+            if parent is None:
                 continue  # ref does not target this layer -> out of scope
             matched = True
-            parent = m.group(1)
             if upper.reqset.statement(parent) is not None:
                 pair.coverage.setdefault(parent, []).append(nid)
                 pair.resolved.setdefault(nid, []).append(parent)
@@ -1233,6 +1316,12 @@ _REF_FIELD_LABELS = {
 }
 
 
+def ref_field_header(field: str | None) -> str:
+    """Return a down-ref field's reader-facing name (`implemented_by` -> `Implemented by`)."""
+    name = field or "down refs"
+    return _REF_FIELD_LABELS.get(name, (name, name, "UNCOVERED"))[1]
+
+
 def _ref_field_labels(pair: _Pair) -> tuple[str, str, str]:
     """Title suffix, detail header, and uncovered status of a down pair."""
     field_name = pair.lower.layer.ref_field or "down refs"
@@ -1254,6 +1343,33 @@ def _downward_tables(pair: _Pair) -> list[Table]:
         f"{lo} → {up}  (required by)", lo, f"Required by ({up})", _required_rows(pair)
     )
     return [forward, required]
+
+
+@dataclass(frozen=True)
+class NodeView:
+    """One chain node with its resolved links: what a renderer needs per node."""
+
+    layer: str
+    node: str
+    file: Path | None  # where the node is written; None if its set cannot locate it
+    line: int | None
+    up: dict[str, tuple[str, ...]]  # upper layer name -> the nodes this one traces to
+    down: dict[str, tuple[str, ...]]  # lower layer name -> the nodes covering this one
+    dangling: tuple[str, ...]  # refs this node wrote that resolve to no node at all
+    is_derived: bool  # cites nothing above it by declaration, not by omission
+    verification_methods: tuple[str, ...]
+    waiver: str | None  # why this node is left uncovered, when a waiver excuses it
+
+
+@dataclass(frozen=True)
+class ChainView:
+    """The whole chain as data, node-first (see `TraceChecker.view`)."""
+
+    nodes: dict[str, dict[str, NodeView]]  # layer name -> node id -> view, in document order
+    sets: dict[str, NodeSet]  # layer name -> the nodes it loaded, for content beyond the links
+    layers: dict[str, Layer]  # layer name -> its chain entry, for a consumer that reads its config
+    parents: dict[str, str | None]  # layer name -> the layer above it, resolved from the chain
+    valid: bool  # whether the corpus analysed at all; links are empty when it did not
 
 
 def check_trace(

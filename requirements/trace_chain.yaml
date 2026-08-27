@@ -1,18 +1,22 @@
 # Traceability chain, top to bottom; `reqs trace` checks each (parent, child)
 # pair both ways. Paths are relative to this file. `parent` defaults to the
-# entry above, so the layers below LLR make the list a tree. A `method` layer
+# entry above, so the layers below LLR make the list a tree. A layer's `title`
+# spells its name out where a document heads a section with it. A `method` layer
 # must cover exactly the LLRs declaring that verification method; there is no
 # layer for `review`, which carries no machine evidence.
 layers:
   - name: CONOPS
+    title: Concept of Operations (CONOPS)
     kind: markdown-leaves
     path: conops.md
     waivers: trace_waivers.yaml
   - name: HLR
+    title: High-Level Requirements (HLR)
     kind: requirement-yaml
     path: hlr
     id_pattern: 'CONOPS §(\d+\.\d+)'
   - name: LLR
+    title: Low-Level Requirements (LLR)
     kind: requirement-yaml
     path: llr
     id_pattern: '(.+\.\d+)'

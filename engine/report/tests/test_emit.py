@@ -5,8 +5,14 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from vreport.build import build_html, build_pdf, write_sphinx_sources
-from vreport.emit import emit_pages
+from vreport.build import (
+    PDF_NAME,
+    build_html,
+    build_pdf,
+    copy_requirement_pages,
+    write_sphinx_sources,
+)
+from vreport.emit import REQUIREMENTS_SUBDIR, emit_pages
 from vreport.model import (
     CoverageViolation,
     DerivedRequirement,
@@ -23,7 +29,7 @@ from vreport.obligations import build_obligations
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from vreport.model import Evidence
+    from vreport.model import Evidence, Obligation
 
 _TARGET_RE = re.compile(r"^\(([\w-]+)\)=$", re.MULTILINE)
 _REF_RE = re.compile(r"\{ref\}`([\w-]+)`")
@@ -32,6 +38,11 @@ _REF_RE = re.compile(r"\{ref\}`([\w-]+)`")
 def _targets_and_refs(pages: dict[str, str]) -> tuple[set[str], set[str]]:
     text = "\n".join(pages.values())
     return set(_TARGET_RE.findall(text)), set(_REF_RE.findall(text))
+
+
+def _rendered(ev: Evidence) -> tuple[Evidence, list[Obligation]]:
+    """Pair evidence with its own obligations, for `emit_pages(*_rendered(ev))`."""
+    return ev, build_obligations(ev)
 
 
 def test_every_reference_resolves(evidence: Evidence) -> None:
@@ -114,6 +125,19 @@ def test_provenance_records_reqs_trace_command(evidence: Evidence) -> None:
     """The recorded `reqs trace` invocation appears on the provenance page."""
     pages = emit_pages(evidence, build_obligations(evidence))
     assert "reqs trace --chain requirements/trace_chain.yaml" in pages["provenance.md"]
+
+
+def test_provenance_records_the_requirements_render(
+    evidence: Evidence, evidence_with_requirements: Evidence
+) -> None:
+    """The pages say nothing about themselves, so what rendered them is recorded here."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    provenance = pages["provenance.md"]
+
+    assert "reqs document --chain requirements/trace_chain.yaml" in provenance
+    assert "(run at 2026-07-29T00:00:00+00:00)" in provenance
+    # No render, nothing to record: the report is the same one it always was.
+    assert "reqs document" not in emit_pages(evidence, build_obligations(evidence))["provenance.md"]
 
 
 def test_traceability_page_puts_open_items_first(evidence: Evidence) -> None:
@@ -277,14 +301,29 @@ def test_proof_page_lists_the_analyzed_scope(evidence: Evidence) -> None:
 
 def test_proof_page_credits_a_nested_generic_to_its_instance(evidence: Evidence) -> None:
     """
-    A unit hosting a nested generic must not read as a bare zero.
+    A unit hosting nested generics must not read as a bare zero.
 
     `buses` records no check of its own — its two bus generics are analyzed
-    through the instance in `buses_proof` — and that cell is the only place the
-    page can say so, since the generics table sees whole generic units only.
+    through the instances in `buses_proof` — so the cell tallies the generics it
+    hosts rather than leaving the enclosing unit's "0 checks" to speak for them.
     """
     page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
-    assert "| buses | 0 checks; instances analyzed through buses_proof |" in page
+    assert "| buses | 0 checks; all 2 nested generics analyzed |" in page
+
+
+def test_scope_cell_flags_an_unreached_nested_generic(evidence: Evidence) -> None:
+    """Drop one instance and the enclosing unit's cell says so, not "0 checks"."""
+    inventory = evidence.inventory
+    assert inventory is not None
+    proof = evidence.proof.model_copy(
+        update={
+            "instantiations": [
+                i for i in evidence.proof.instantiations if "Display_Wire" not in i.entity
+            ]
+        }
+    )
+    page = emit_pages(*_rendered(evidence.model_copy(update={"proof": proof})))["proof.md"]
+    assert "| buses | 0 checks; **1 of 2 nested generics with no instance analyzed** |" in page
 
 
 def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None:
@@ -294,11 +333,42 @@ def test_boundary_obligation_is_bounded_by_the_scope(evidence: Evidence) -> None
 
 
 def test_proof_page_names_each_generic_instance(evidence: Evidence) -> None:
-    """The generics table says which unit stands behind each generic."""
+    """
+    The generics table lists every declared generic and what analyzed it.
+
+    Nested generics included: they are the ones gnatprove's own output cannot
+    name, and each row carries the instantiation site gnatprove recorded.
+    """
     page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
-    assert "## Generic units" in page
-    assert "| state_machine_loop | state_machine_loop_proof |" in page
+    assert "## Generics" in page
+    assert (
+        "| Buses.Source_Bus | package | `src/types/buses.ads` | "
+        "buses_proof (`buses_proof.ads:42:4`) |"
+    ) in page
+    assert (
+        "| Buses.Display_Bus | package | `src/types/buses.ads` | "
+        "buses_proof (`buses_proof.ads:46:4`) |"
+    ) in page
+    assert (
+        "| State_Machine_Loop | procedure | `src/core/state_machine_loop.ads` | "
+        "state_machine_loop_proof |"
+    ) in page
     assert "STOP_REASON_GENERIC_UNIT" not in page
+
+
+def test_generics_table_is_bounded_by_the_proof_scope(evidence: Evidence) -> None:
+    """A generic outside the analyzed units is not reported as unanalyzed."""
+    page = emit_pages(evidence, build_obligations(evidence))["proof.md"]
+    assert "Hal.Ring" not in page
+
+
+def test_generics_table_warns_without_an_inventory(evidence: Evidence) -> None:
+    """Falling back to gnatprove's output has to say what it cannot see."""
+    bare = evidence.model_copy(update={"inventory": None})
+    page = emit_pages(*_rendered(bare))["proof.md"]
+    assert "names only *library-level* generics" in page
+    assert "Buses.Source_Bus" not in page
+    assert "| state_machine_loop | unit | `state_machine_loop` |" in page
 
 
 def test_provenance_strips_local_tool_paths(evidence: Evidence) -> None:
@@ -327,3 +397,234 @@ def test_pdf_build_produces_a_pdf(evidence: Evidence, tmp_path: Path) -> None:
     out = tmp_path / "pdf" / "verification-report.pdf"
     assert out.exists()
     assert out.read_bytes().startswith(b"%PDF")
+
+
+# --- the requirements rendered as a document ---------------------------------
+
+
+def test_matrix_ids_link_to_the_requirement_text(evidence_with_requirements: Evidence) -> None:
+    """A matrix's node and its refs both link to the statements they name."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+
+    assert "[`hlr_x.1`](#hlr-x-1)" in traceability  # the node cell
+    assert "[`llr_x.1`](#llr-x-1)" in traceability  # a detail cell's ref
+
+
+def test_ids_of_unrendered_layers_stay_plain(evidence_with_requirements: Evidence) -> None:
+    """A test routine has no rendered statement, so it carries no link."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+
+    assert "`u.Test_A`" in traceability
+    assert "[`u.Test_A`]" not in traceability
+
+
+def test_conops_leaves_link_to_the_rendered_document(evidence_with_requirements: Evidence) -> None:
+    """A markdown layer's leaf ids link under the anchors its render qualified them with."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert "[`3.1`](#conops-3-1)" in pages["traceability.md"]
+
+
+def test_open_items_and_verification_rows_link_too(evidence_with_requirements: Evidence) -> None:
+    """The tables a reviewer reads first carry the same links as the full matrices."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+    open_items = traceability.split("## Open items")[1].split("## Verification matrix")[0]
+    verification = traceability.split("## Verification matrix")[1].split("## Chain matrices")[0]
+
+    assert "[`llr_x.3`](#llr-x-3)" in open_items
+    assert "[`llr_x.1`](#llr-x-1)" in verification
+
+
+def test_the_requirements_page_names_every_rendered_container(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """The section page enters one page per layer, and each of those its containers."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    requirements = pages["requirements.md"]
+
+    assert "\nconops\nhlr\nllr\n" in requirements
+    assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in pages["hlr.md"]
+    assert f"{REQUIREMENTS_SUBDIR}/llr_x" in pages["llr.md"]
+    assert "requirements" in pages["index.md"]
+
+
+def test_the_landing_pages_carry_nothing_but_their_contents(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """A page whose whole job is to enter the next one describes neither."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    for page in ("requirements.md", "conops.md", "hlr.md", "llr.md"):
+        # Everything ahead of the toctree fence: an anchor target and a heading,
+        # and no sentence between them.
+        head = [line for line in pages[page].split("```")[0].splitlines() if line.strip()]
+        assert all(line.startswith(("#", "(")) for line in head), f"{page} heads with {head}"
+
+
+def test_a_layer_is_headed_by_the_name_the_chain_spells_out(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """An acronym layer heads its page with its title; a layer without one keeps its name."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert pages["conops.md"].startswith("# Concept of Operations (CONOPS)\n")
+    assert pages["hlr.md"].startswith("# HLR\n")
+
+
+def test_a_layer_page_enters_its_top_containers_only(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """A nested container is entered from its parent's page, so not from the layer's."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert f"{REQUIREMENTS_SUBDIR}/hlr_x_1_nested" not in pages["hlr.md"]
+    assert f"{REQUIREMENTS_SUBDIR}/hlr_x" in pages["hlr.md"]
+
+
+def test_without_a_render_the_report_omits_the_section(evidence: Evidence) -> None:
+    """The section and its links appear only when a render was collected."""
+    pages = emit_pages(evidence, build_obligations(evidence))
+
+    assert "requirements.md" not in pages
+    assert "\nrequirements\n" not in pages["index.md"]
+    assert "](#hlr-x-1)" not in pages["traceability.md"]
+    assert "`hlr_x.1`" in pages["traceability.md"]
+
+
+def test_the_report_builds_with_the_requirement_pages(
+    evidence_with_requirements: Evidence, tmp_path: Path
+) -> None:
+    """
+    The strict build resolves every anchor the matrices link to.
+
+    Resolution, not just exit status: a matrix cell links a statement by anchor
+    alone and Sphinx is what turns that into a path into the requirement pages.
+    A link that stayed page-local would resolve against the matrix page itself
+    and go nowhere, which the exit status alone would not catch.
+    """
+    ev = evidence_with_requirements
+    render = tmp_path / "render" / "pages"
+    render.mkdir(parents=True)
+    for layer, nodes in ev.requirements.nodes.items() if ev.requirements else []:
+        for node, statement in nodes.items():
+            page = render / f"{statement.page}.md"
+            page.parent.mkdir(parents=True, exist_ok=True)
+            head = f"# {statement.page}\n\n" if not page.exists() else ""
+            with page.open("a", encoding="utf-8") as fh:
+                fh.write(
+                    f"{head}({statement.anchor})=\n## {node} ({layer})\n\n{statement.text}\n\n"
+                )
+
+    pages = emit_pages(ev, build_obligations(ev))
+    write_sphinx_sources(pages, tmp_path / "src", ev.title)
+    copy_requirement_pages(render, tmp_path / "src", REQUIREMENTS_SUBDIR)
+
+    assert build_html(tmp_path / "src", tmp_path / "html") == 0
+    assert (tmp_path / "html" / REQUIREMENTS_SUBDIR / "hlr_x.html").is_file()
+    matrix = (tmp_path / "html" / "traceability.html").read_text(encoding="utf-8")
+    assert ev.requirements is not None
+    linked = ev.requirements.nodes["HLR"]["hlr_x.1"]
+    assert f'href="{REQUIREMENTS_SUBDIR}/{linked.page}.html#{linked.anchor}"' in matrix
+
+
+def test_copying_the_pages_drops_a_container_that_went_away(tmp_path: Path) -> None:
+    """A stale page must not linger: the strict build would reject it as unreferenced."""
+    render = tmp_path / "render"
+    render.mkdir()
+    (render / "hlr_x.md").write_text("# hlr_x\n", encoding="utf-8")
+    srcdir = tmp_path / "src"
+    (srcdir / REQUIREMENTS_SUBDIR).mkdir(parents=True)
+    (srcdir / REQUIREMENTS_SUBDIR / "hlr_gone.md").write_text("# gone\n", encoding="utf-8")
+
+    copy_requirement_pages(render, srcdir, REQUIREMENTS_SUBDIR)
+
+    assert (srcdir / REQUIREMENTS_SUBDIR / "hlr_x.md").is_file()
+    assert not (srcdir / REQUIREMENTS_SUBDIR / "hlr_gone.md").exists()
+
+
+def test_evidence_ids_link_into_the_source_listings(evidence_with_requirements: Evidence) -> None:
+    """A code id the render located is linked to the line it is listed at."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+
+    assert "[`Ctrl.Do_Thing`](#src-x-ads-l10)" in pages["traceability.md"]
+
+
+def test_the_listings_are_in_the_toctree_of_both_renderings(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """The evidence links into them, so a link must not resolve in one rendering only."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    listings = pages["source-listings.md"]
+
+    assert "The requirements cite 1 file." in listings
+    # Titled by the path the `src/` roots carry no information in, entered by page.
+    assert f"x.ads <{REQUIREMENTS_SUBDIR}/sources/src-x-ads>" in listings
+    assert "{only}" not in listings  # gating the pages would dangle the PDF's links
+    assert "\nsource-listings\n" in pages["index.md"]
+
+
+def test_an_empty_pdf_is_reported_as_a_failure(tmp_path: Path) -> None:
+    """rst2pdf logs a failed document and exits 0; an empty PDF is still a failure."""
+    src = tmp_path / "src"
+    write_sphinx_sources({"index.md": "# T\n\n[nowhere](#missing-target)\n"}, src, "T")
+
+    assert build_pdf(src, tmp_path / "pdf") != 0
+
+
+def test_a_failed_pdf_build_cannot_be_vouched_for_by_an_earlier_one(tmp_path: Path) -> None:
+    """A previous rendering must not satisfy the check for a run that failed."""
+    src = tmp_path / "src"
+    write_sphinx_sources({"index.md": "# T\n\n[nowhere](#missing-target)\n"}, src, "T")
+    out = tmp_path / "pdf"
+    out.mkdir()
+    stale = out / f"{PDF_NAME}.pdf"
+    stale_bytes = b"%PDF-1.4 stale but plausible"
+    stale.write_bytes(stale_bytes)
+
+    assert build_pdf(src, out) != 0
+    # Whatever is there now, it is not the rendering of an earlier run.
+    assert not stale.exists() or stale.read_bytes() != stale_bytes
+
+
+def test_evidence_ids_are_linked_in_the_open_items_and_verification_tables(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """The two tables a reviewer reads first link the same ids the full matrices do."""
+    pages = emit_pages(evidence_with_requirements, build_obligations(evidence_with_requirements))
+    traceability = pages["traceability.md"]
+    open_items = traceability.split("## Open items")[1].split("## Verification matrix")[0]
+    verification = traceability.split("## Verification matrix")[1].split("## Chain matrices")[0]
+
+    # An open CONOPS row's detail names the HLRs that cover it (none, here), and
+    # an open HLR row's detail names the CONOPS leaf its dangling ref points at.
+    assert "[`hlr_x.3`](#hlr-x-3)" in open_items
+    # The verification matrix's evidence cell links the test routine's listing.
+    assert "[`u.Test_A`](#" in verification or "u.Test_A" in verification
+
+
+def test_a_verification_cell_this_consumer_misreads_is_left_as_produced(
+    evidence_with_requirements: Evidence,
+) -> None:
+    """When the rebuilt cell does not reproduce the producer's, the producer wins."""
+    report = evidence_with_requirements.traceability.report
+    assert report is not None
+    matrix = report.verification[0].model_copy(
+        update={
+            "rows": [
+                report.verification[0].rows[0].model_copy(update={"detail": "waived: see the note"})
+            ]
+        }
+    )
+    ev = evidence_with_requirements.model_copy(
+        update={
+            "traceability": evidence_with_requirements.traceability.model_copy(
+                update={"report": report.model_copy(update={"verification": [matrix]})}
+            )
+        }
+    )
+    pages = emit_pages(ev, build_obligations(ev))
+
+    assert "waived: see the note" in pages["traceability.md"]

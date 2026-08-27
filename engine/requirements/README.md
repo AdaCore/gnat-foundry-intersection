@@ -1,7 +1,8 @@
 # reqs — requirements tooling
 
 Tooling for the requirement YAML files in this directory: schema validation,
-EARS linting, and traceability (`reqs trace`). The requirement format
+EARS linting, traceability (`reqs trace`), and rendering the corpus as a
+document (`reqs document`). The requirement format
 itself is documented under [`docs/`](docs/README.md); a machine-checkable
 schema is defined (with Pydantic) in [`src/reqs/document.py`](src/reqs/document.py).
 
@@ -24,6 +25,23 @@ uv run reqs trace --chain <chain.yaml> --complete --format json -o report.json
 # 0 once the report is written: the verdict (errors/warnings/corpus_valid) and
 # the same rows the tables render travel inside the payload.
 
+# Render the requirement layers of a chain as a linked document
+uv run reqs document --chain <chain.yaml> --out <dir>
+uv run reqs document --chain <chain.yaml> --out <dir> --source-root <repo>
+# Writes `<dir>/pages/<container>.md` (one MyST page per container, titled as the
+# section its name says it is and nested under the container the name places it
+# under, one anchored subsection per statement, each carrying its resolved trace
+# neighbourhood; a markdown layer like the CONOPS is carried through as written,
+# its leaves anchored in place and a closing table naming what realizes each) and
+# `<dir>/index.json` (schema_version, each layer's title, pages and top-level
+# pages, every node's page and anchor). With
+# `--source-root`, the sources the requirements cite are listed too, under
+# `<dir>/pages/sources/`; the evidence links to the cited lines, and each of
+# those names the requirements citing it. The
+# verification-report generator folds the pages into its own tree and links its
+# trace matrices through the index. Trace gaps render into the document as open
+# items; a corpus that does not analyse renders nothing and exits non-zero.
+
 # Tests (prints a coverage report; configured in pyproject.toml)
 uv run pytest
 uv run pytest --cov-report=html   # browsable report in htmlcov/
@@ -38,10 +56,11 @@ uv run pytest --cov-report=html   # browsable report in htmlcov/
 engine/requirements/
 ├── pyproject.toml          # project + the `reqs` entry point
 ├── src/reqs/
-│   ├── cli.py              # Typer app: `reqs validate {schema,ears}`
+│   ├── cli.py              # Typer app: `reqs validate {schema,ears}`, `trace`, `document`
 │   ├── core.py             # Diagnostic, file walking, YAML+source-line load, reporting
 │   ├── document.py         # requirement file schema as Pydantic models
 │   ├── requirement_set.py  # loading of requirement files
+│   ├── render.py           # the corpus as a document (pages + index), linked via the chain
 │   └── checks/
 │       ├── schema.py       # RequirementChecker (schema + structural + RS.3)
 │       └── ears.py         # EarsChecker (EARS grammar)
@@ -90,4 +109,3 @@ Both commands exit non-zero on any error; warnings alone exit 0.
 ## Out of scope (planned / deferred)
 
 Deeper EARS semantics, stable opaque IDs, and ReqIF round-tripping are deferred.
-`reqs report` will attach as a future top-level command.

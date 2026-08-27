@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import shutil
 from typing import TYPE_CHECKING
 
 from sphinx.cmd.build import build_main
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+PDF_NAME = "verification-report"
+"""Basename of the PDF rendering, shared by the conf.py and the build check."""
 
 # The conf.py written next to the generated pages. Kept minimal: MyST parsing
 # with colon-fence admonitions, the furo theme, and the rst2pdf builder for
@@ -22,7 +26,7 @@ myst_enable_extensions = ["colon_fence"]
 exclude_patterns = ["_build"]
 html_theme = "furo"
 html_title = {project!r}
-pdf_documents = [("index", "verification-report", {project!r}, "vreport")]
+pdf_documents = [("index", {pdf_name!r}, {project!r}, "vreport")]
 pdf_use_index = False
 pdf_style_path = [os.path.dirname(__file__)]
 pdf_stylesheets = ["sphinx", "vreport"]
@@ -44,10 +48,24 @@ _PDF_STYLE = """styles:
 def write_sphinx_sources(pages: dict[str, str], srcdir: Path, title: str) -> None:
     """Write conf.py, the PDF stylesheet, and the generated pages into `srcdir`."""
     srcdir.mkdir(parents=True, exist_ok=True)
-    (srcdir / "conf.py").write_text(_CONF.format(project=title))
+    (srcdir / "conf.py").write_text(_CONF.format(project=title, pdf_name=PDF_NAME))
     (srcdir / "vreport.yaml").write_text(_PDF_STYLE)
     for name, content in pages.items():
         (srcdir / name).write_text(content)
+
+
+def copy_requirement_pages(pages_dir: Path, srcdir: Path, subdir: str) -> None:
+    """
+    Copy the rendered requirement pages into the Sphinx source tree.
+
+    Replaced wholesale rather than merged: a container that has gone away must
+    not linger as a page no toctree names, which the strict build would reject
+    for the wrong reason.
+    """
+    target = srcdir / subdir
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(pages_dir, target)
 
 
 def build_html(srcdir: Path, outdir: Path) -> int:
@@ -67,5 +85,16 @@ def build_pdf(srcdir: Path, outdir: Path) -> int:
     Deliberately not run with `-W`: the strict HTML build is the report's
     correctness oracle, and the PDF is a convenience rendering of the same
     sources whose builder may warn on cosmetic layout issues.
+
+    The builder's exit status is not the whole verdict: rst2pdf logs a failed
+    document and still exits 0, leaving an empty file behind. An empty or
+    missing PDF is therefore reported as the failure it is -- and the previous
+    rendering is removed first, so a run that never reaches the file cannot be
+    vouched for by the output of an earlier one.
     """
-    return build_main(["-b", "pdf", "-E", "-q", str(srcdir), str(outdir)])
+    pdf = outdir / f"{PDF_NAME}.pdf"
+    pdf.unlink(missing_ok=True)
+    rc = build_main(["-b", "pdf", "-E", "-q", str(srcdir), str(outdir)])
+    if rc != 0:
+        return rc
+    return 0 if pdf.is_file() and pdf.stat().st_size > 0 else 1

@@ -252,7 +252,8 @@ def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
     write_waivers(tmp_path, "trace_waivers.yaml", [("1.1", "ok")])
     (tmp_path / "trace_chain.yaml").write_text(
         "layers:\n"
-        "  - {name: CONOPS, kind: markdown-leaves, path: conops.md, waivers: trace_waivers.yaml}\n"
+        "  - {name: CONOPS, kind: markdown-leaves, path: conops.md,"
+        " title: Concept of Operations, waivers: trace_waivers.yaml}\n"
         "  - {name: HLR, kind: requirement-yaml, path: hlr,"
         " id_pattern: 'CONOPS §(\\d+\\.\\d+)'}\n",
         encoding="utf-8",
@@ -261,6 +262,8 @@ def test_load_chain_resolves_relative_paths(tmp_path: Path) -> None:
     assert [layer.name for layer in layers] == ["CONOPS", "HLR"]
     assert layers[0].path == tmp_path / "conops.md"
     assert layers[0].waivers == tmp_path / "trace_waivers.yaml"
+    assert layers[0].title == "Concept of Operations"
+    assert layers[1].title is None  # a layer needing no spelling out has none
     assert layers[1].id_pattern == r"CONOPS §(\d+\.\d+)"
 
 

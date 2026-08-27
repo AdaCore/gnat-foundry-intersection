@@ -20,7 +20,9 @@ invoking `vreport` directly, produce them first):
 | `obj/development/gnatprove/` | `make prove-report` | per-unit `*.spark` JSON, `gnatprove.out` (with `--output-header`/`--assumptions`), `gnatprove.sarif`, `gnatprove-version.txt` |
 | `reports/coverage/xml/` | `make coverage-report-xml` | gnatcov XML report (`index.xml`, per-source XML, `trace.xml`), `gnatcov-version.txt`, `gnatcov-command.txt` (the recorded invocation) |
 | `reports/trace/trace_report.json` | `make trace-report` | `reqs trace --format json` over the whole chain: per-pair matrices, the merged verification view, gate diagnostics, recorded command |
+| `obj/analysis/code_inventory.json` | `make code-inventory` | the Ada tracer's libadalang parse of the project's own sources; the report reads the generics it declares |
 | `requirements/` | checked-in | `trace_waivers.yaml`, `hlr/*.yaml` (for waived/derived items) |
+| `reports/requirements/` | `make requirements-doc` | the requirements rendered as a document: `pages/*.md` (the CONOPS, HLR and LLR, plus a listing of each cited source under `pages/sources/`) and `index.json` (each layer's title, pages and top-level pages, each node's page and anchor) |
 
 Outputs under `--out`: `evidence.json` (the normalized model, for debugging and
 downstream tooling), `src/` (generated MyST sources), `html/` (the report),
@@ -32,7 +34,8 @@ convenience rendering of the same sources.
 ## Architecture
 
 ```
-collectors (gnatprove.py, gnatcov.py, traceability.py, provenance.py)
+collectors (gnatprove.py, gnatcov.py, traceability.py, requirements.py,
+            inventory.py, provenance.py)
     -> Evidence (model.py, pydantic)  -> evidence.json
     -> review obligations (obligations.py)
     -> MyST pages (emit.py)
@@ -42,6 +45,63 @@ collectors (gnatprove.py, gnatcov.py, traceability.py, provenance.py)
 The Sphinx build runs with `-W -n` (warnings-as-errors, nitpicky references):
 every claim-to-evidence cross-reference the emitters produce must resolve, or
 the build fails. The build is itself the mechanical oracle for the report.
+
+The rendered requirement pages are *copied* into the generated tree rather than
+emitted (they are already the rendering; `reqs document` owns it) and appear as
+the Requirements section: a page per chain layer, entering that layer's
+top-level containers, which in turn enter the containers nested under them. The
+layer pages are emitted here, because which layers the report carries and in
+what order is the report's own structure; the nesting below them comes from the
+render, which is what knows how the containers relate. Neither the section page
+nor a layer's page says anything but its heading and its contents: a page whose
+whole job is to enter the next one is not the place to describe the rendering,
+and what produced the pages is recorded with the other tool invocations on the
+provenance page. Their statements are what
+the trace matrices link to, resolved through `index.json` — so a matrix id that
+names no rendered statement fails the build rather than shipping a dead link.
+The render is optional input: without it the report says everything it said
+before, with matrix ids as plain text.
+
+The source listings are a section of their own, after the traceability page:
+they are what the evidence links *into*, read from a requirement or a matrix
+rather than in their own right. Each cited line names the requirements resting
+on it, so the navigation runs back up as well. They are marked HTML-only
+*inside* their pages, so the PDF rendering carries each cited line's anchor and
+its citing requirements but not the source; the pages themselves are in both
+renderings, because a link that resolves in one and dangles in the other is a
+broken document (and rst2pdf fails the build on one, which `build_pdf` now
+catches -- it logs a failed document and exits 0, leaving an empty file).
+
+### Generics
+
+gnatprove analyzes generic *instances*, never generics, and it records the two
+kinds of generic differently. A library-level generic gets an artifact of its
+own, stopped with `STOP_REASON_GENERIC_UNIT` and empty; the checks its body
+contributes are located in its sources but attributed to whichever unit
+instantiated it. A generic nested in an ordinary package gets no artifact and
+no entity in its own unit's -- it appears only on the instantiating side, as an
+entity whose `sloc` chain runs from the declaration inside the generic to the
+instantiation that reached it.
+
+So the generics table is a join. Its rows are the generics the *code inventory*
+declares, bounded by the units gnatprove analyzed; what fills the "analyzed
+through" column is those sloc chains, plus the checks located in a generic's
+sources under another unit's name (which is all the evidence a library-level
+generic's body leaves). Taking the rows from gnatprove's output instead would
+be circular in the way a coverage denominator scoped by what already traces is
+circular: a generic no analyzed instance reaches is precisely what that output
+has nothing to say about, and precisely the case the table exists to catch.
+
+Attribution is per line, not per file, because one file can declare several
+generics and the package enclosing them -- a file-level match would credit
+each of `buses.ads`'s two bus generics with the other's instance. A location
+in a file with no anchors of its own (a library-level generic's body, which
+the inventory anchors only at its spec) falls back to the unit, and only when
+exactly one generic claims it.
+
+The inventory is optional input: without it the table falls back to the generic
+units gnatprove reported, says in the section and in the obligation that it can
+no longer see nested generics, and holds the obligation open.
 
 The review obligations follow the structure of NVIDIA's SPARK Process
 (Software Unit Verification Report / `Review_Diagnostic_Justifications` /

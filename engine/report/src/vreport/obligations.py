@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from vreport.mdtext import code_span, count, inline
 from vreport.model import (
@@ -186,37 +186,51 @@ def _proof_obligations(ev: Evidence, b: _Builder) -> None:
         ],
     )
 
-    # Generics are the one class of unit gnatprove reports as skipped by
-    # design; what matters is whether an analyzed instance stands behind each.
-    generics = ev.proof.generic_analyses
-    orphans = ev.proof.uninstantiated_generics
+    # A generic contributes proof obligations only through an instance, so what
+    # matters is whether one stands behind each generic the sources declare —
+    # judged against the declared set, never against what the analysis noticed.
+    generics = ev.generics
+    orphans = [g for g in generics if not g.analyzed]
+    # Without the inventory the denominator is gnatprove's own output, which
+    # names only library-level generics — so "each analyzed" is a claim about a
+    # set that cannot include a nested generic, and must not read as settled.
+    uninventoried = (
+        ""
+        if ev.inventory
+        else " **The sources were not inventoried**, so this list is gnatprove's "
+        "own and holds only *library-level* generics: a generic nested in an "
+        "ordinary package cannot appear, however it was analyzed, and one no "
+        "instance reaches would go unlisted. Regenerate with `make code-inventory`."
+    )
     b.add(
-        f"Generic units without an analyzed instance: {len(orphans)}"
+        f"Generics with no analyzed instance: {len(orphans)}"
         if orphans
-        else f"Generic units, each analyzed through an instance: {len(generics)}"
+        else f"Generics, each analyzed through an instance: {len(generics)}"
         if generics
-        else "Generic units: none",
+        else "Generics: none",
         "proof-generics",
         (
             "gnatprove analyzes generic *instances*, not generics themselves. No "
-            "check is located in these generics' sources, so no instance this run "
-            "analyzed exercises them and nothing in their bodies is proved. "
-            "Instantiate each against in-SPARK formals in a unit the proof run "
-            "reaches."
+            "instance this run analyzed reaches these, so nothing in their bodies "
+            "is proved and no other table names them. Instantiate each against "
+            "in-SPARK formals in a unit the proof run reaches."
             if orphans
-            else "gnatprove records each of these as skipped, which is the normal "
-            "outcome for a generic and not an early stop. Each carries checks "
-            "located in its own sources, contributed by an analyzed instance, so "
-            "its body is covered by the tables below."
+            else "Every generic the in-scope sources declare is reached by an "
+            "analyzed instance, so its body's checks appear in the tables below "
+            "under the instantiating unit's name."
             if generics
-            else "The run analyzed no generic units."
-        ),
-        review=bool(orphans),
+            else "The in-scope sources declare no generics."
+        )
+        + uninventoried,
+        review=bool(orphans) or ev.inventory is None,
         items=[
-            f"{a.unit} — no instance analyzed"
-            if not ev.proof.instance_units(a.unit)
-            else f"{a.unit} — analyzed through {', '.join(ev.proof.instance_units(a.unit))}"
-            for a in generics
+            f"{g.name} ({g.kind} in {g.declared_in}) — "
+            + (
+                f"analyzed through {', '.join(i.unit for i in g.instances)}"
+                if g.analyzed
+                else "no instance analyzed"
+            )
+            for g in generics
         ],
     )
 
@@ -454,7 +468,16 @@ def _coverage_obligations(ev: Evidence, b: _Builder) -> None:
     )
 
 
-def open_trace_items(report: TraceReport) -> list[tuple[str, TraceRow | VerificationRow]]:
+class OpenTraceItem(NamedTuple):
+    """One open matrix row: where it was found, the layers it names, and the row."""
+
+    where: str
+    layer: str  # the node's own layer, so a consumer need not re-derive it from `where`
+    ref_layer: str | None  # the layer its refs name; None for a verification row's facets
+    row: TraceRow | VerificationRow
+
+
+def open_trace_items(report: TraceReport) -> list[OpenTraceItem]:
     """
     Collect the open rows of every trace matrix, each with a where-label.
 
@@ -462,12 +485,24 @@ def open_trace_items(report: TraceReport) -> list[tuple[str, TraceRow | Verifica
     owes, as opposed to rows that are covered, waived, derived,
     review-verified, or expected under a partial-coverage layer.
     """
-    items: list[tuple[str, TraceRow | VerificationRow]] = []
+    items: list[OpenTraceItem] = []
     for matrix in report.verification:
-        items.extend((f"{matrix.layer} verification", row) for row in matrix.rows if row.is_open)
+        items.extend(
+            OpenTraceItem(f"{matrix.layer} verification", matrix.layer, None, row)
+            for row in matrix.rows
+            if row.is_open
+        )
     for pair in report.pairs:
-        items.extend((f"{pair.upper} → {pair.lower}", r) for r in pair.upper_rows if r.is_open)
-        items.extend((f"{pair.lower} → {pair.upper}", r) for r in pair.lower_rows if r.is_open)
+        items.extend(
+            OpenTraceItem(f"{pair.upper} → {pair.lower}", pair.upper, pair.lower, r)
+            for r in pair.upper_rows
+            if r.is_open
+        )
+        items.extend(
+            OpenTraceItem(f"{pair.lower} → {pair.upper}", pair.lower, pair.upper, r)
+            for r in pair.lower_rows
+            if r.is_open
+        )
     return items
 
 
@@ -559,7 +594,7 @@ def _trace_gap_obligation(report: TraceReport | None, b: _Builder) -> None:
         ),
         review=not clean,
         items=(
-            [_trace_item(where, row) for where, row in open_items]
+            [_trace_item(item.where, item.row) for item in open_items]
             + [_diag_item(d) for d in rowless]
             or [_diag_item(d) for d in report.diagnostics]
         ),
