@@ -132,8 +132,9 @@ printenv: ## Print the tool and dependency environment as shell exports
 # Build products and outputs only. The provisioned toolchain (install/, see
 # reset-hard) and Alire's resolved dependencies are left alone.
 clean: ## Remove every build product and output
-	rm -rf bin obj lib reports $(COVERAGE_LOG) \
-	    tests/obj tests/reqs/obj $(TRACER_DIR)/bin $(TRACER_DIR)/obj
+	rm -rf bin obj lib reports $(COVERAGE_LOG) coverage-mixed.log \
+	    tests/obj tests/reqs/obj tests/system/bin tests/system/obj \
+	    $(TRACER_DIR)/bin $(TRACER_DIR)/obj
 
 # ----------------------------------------------------------------------------
 ##@ Build and run
