@@ -294,17 +294,13 @@ is
    T_FDW    : constant Duration_Ms := 7_000;     --  pedestrian change, 7 s
    T_Buffer : constant Duration_Ms := 2_000;  --  pedestrian buffer, 2 s
 
-   --  Formerly-deferred durations (hlr_3_timing.4-.9, .12): named here but
-   --  valued at deployment, from the MUTCD kinematic basis
-   --  (yellow/red-clear/barrier) or per-intersection policy
-   --  (axis/lead/lag/both-min).
-   --
-   --  These are now given the satisfying provisional values `TODO.md` proposes
-   --  (T_YELLOW=4, T_REDCLEAR=2, T_BARRIER=2, T_LEAD=T_LAG=6, T_BOTH_MIN=10,
-   --  T_AXIS=40 s) so the vehicle sequencer's per-state waits and the T_BOTH
-   --  residual are concrete and provable. The *final* valuation (kinematic
-   --  basis / per-intersection policy) remains the deferred LLR item in
-   --  `requirements/TODO.md`; only the placeholder values land here.
+   --  Durations (hlr_3_timing.4-.9, .12). Their final valuation belongs to
+   --  deployment, from the MUTCD kinematic basis (yellow/red-clear/barrier) or
+   --  per-intersection policy (axis/lead/lag/both-min), and is a deferred LLR
+   --  item. The provisional values below (T_YELLOW=4, T_REDCLEAR=2,
+   --  T_BARRIER=2, T_LEAD=T_LAG=6, T_BOTH_MIN=10, T_AXIS=40 s) stand in so
+   --  the vehicle sequencer's per-state waits and the T_BOTH residual are
+   --  concrete and provable.
    --
    --  The set is chosen to satisfy the timing constraints the state machine
    --  relies on: hlr_3_timing.9 (T_LEAD, T_LAG <= T_AXIS / 2 = 20 s) and

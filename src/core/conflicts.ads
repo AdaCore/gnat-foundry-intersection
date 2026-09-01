@@ -1,11 +1,10 @@
 --  The conflict / crosswalk-to-movement binding the controller's safety
---  invariants and cross-machine couplings quantify over (jeeves plan Q3;
---  requirements/TODO.md "Crosswalk -> movement bindings" / conflict matrix).
+--  invariants and cross-machine couplings quantify over (`llr_3_conflicts`).
 --
---  `TODO.md` defers the conflict matrix and the crosswalk -> movement
---  enumeration to the LLR, but the controller cannot run or be proven without
---  them, so this package is the concrete landing of that deferred binding,
---  enumerated straight from the geometry the HLRs already state:
+--  The HLRs state the invariants but leave the binding quantified; the
+--  controller can neither run nor be proven without it, so this package is
+--  where the conflict matrix and the crosswalk -> movement enumeration land,
+--  taken straight from the geometry the HLRs already state:
 --    * the "next conflicting movement" list in `hlr_5_vehicle_1_left_demand`
 --      context (N_left -> S_thru, S_left -> E_thru, E_left -> W_thru,
 --      W_left -> N_thru), and

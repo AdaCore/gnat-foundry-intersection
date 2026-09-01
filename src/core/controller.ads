@@ -49,7 +49,7 @@
 --  * `hlr_0_safety.1` (SERVING => conflicting movements RED) is *not* a
 --    per-state property: it is discharged as the static timing margin
 --    `hlr_3_timing.10` (a property over the whole schedule and the chosen
---    durations), which `requirements/TODO.md` tracks as a coupled LLR item.
+--    durations); elaborating that margin is a coupled LLR item, still open.
 --    It is therefore deliberately NOT encoded as a runtime contract here; doing
 --    so would require an escape hatch (`pragma Assume` / suppressed checks) that
 --    `CLAUDE.md` forbids. This is the expected, flagged deferral, not a hole.
