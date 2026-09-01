@@ -3,6 +3,7 @@ name = "reqs"
 version = "0.1.0"
 description = "Requirements tooling: schema validation, EARS linting, traceability, and reporting for the requirement YAML files."
 readme = "README.md"
+license = "Apache-2.0 OR CC-BY-4.0"
 authors = [
     { name = "M. Anthony Aiello", email = "aiello@adacore.com" }
 ]
@@ -27,7 +28,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]

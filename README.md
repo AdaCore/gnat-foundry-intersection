@@ -142,3 +142,9 @@ The repository is organized as follows:
 
 To learn more about this demo and what we're doing with it, check out our
 [blog](https://blog.adacore.com).
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE-2.0) or
+[Creative Commons Attribution 4.0 International](LICENSE-CC-BY-4.0), at your
+option.

@@ -197,9 +197,8 @@ make signoff ITEM=conops NOTE="the revised phasing is what we intended"
 
 ## Contributing
 
-All changes go through merge requests; CI must be green; requirement IDs are
-stable forever (never reused, even if deleted).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
-See [`LICENSE`](LICENSE).
+See [License](README.md#license).
