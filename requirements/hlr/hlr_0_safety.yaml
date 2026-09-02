@@ -111,9 +111,9 @@ rationale: |-
     would break Moore form — the by-construction argument evaporates and this
     invariant becomes load-bearing rather than emergent.
   - **Binding:** the invariant quantifies over the set of conflicting vehicle face
-    pairs (the conflict matrix). That matrix is deferred to the LLR (`TODO.md`),
-    exactly as crosswalk -> movement is for invariant 1; until it is enumerated the
-    invariant cannot be evaluated.
+    pairs (the conflict matrix). That matrix is enumerated by the LLR
+    (`llr_3_conflicts`), which is also where crosswalk -> movement is bound for
+    invariant 1; without that enumeration the invariant cannot be evaluated.
   - **Cohesion note:** unlike invariant 1, in the *current* serialized design all
     eight faces are outputs of the single `5_vehicle` machine, so this invariant is
     intra-machine, not the cross-machine relation this file's cohesion rule

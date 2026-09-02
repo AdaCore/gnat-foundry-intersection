@@ -246,4 +246,4 @@ state. The invariant (the what) and its margin discharge (the how) are kept
 separate so the fallback — a runtime coupling, if the inequality cannot be shown —
 has somewhere to attach. Discharging the inequality against chosen durations, the
 crosswalk → movement binding, and the fallback are one coupled LLR work item — see
-`hlr_0_safety` rationale and `TODO.md`.
+the `hlr_0_safety` rationale.

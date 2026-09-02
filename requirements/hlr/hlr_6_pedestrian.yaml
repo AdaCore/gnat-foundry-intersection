@@ -230,5 +230,5 @@ rationale: |-
   buffer exits fire on time-in-SERVING reaching T_WALK + T_FDW + T_BUFFER, not on
   time-in-sub-state, so the latch transition (15) never resets the clearance clock —
   the buffer always runs its full T_BUFFER regardless of when the press lands. The
-  latch *mechanism* (debounce, electrical hold) remains the LLR concern already
-  listed in `TODO.md`; these statements fix only the required behaviour.
+  latch *mechanism* (debounce, electrical hold) is an LLR concern; these statements
+  fix only the required behaviour.
