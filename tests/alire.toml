@@ -4,7 +4,7 @@ version = "0.0.0"
 authors = ["Mark"]
 maintainers = ["Mark <mark@example.invalid>"]
 maintainers-logins = ["mark"]
-licenses = "Apache-2.0 WITH LLVM-exception"
+licenses = "Apache-2.0 OR CC-BY-4.0"
 
 project-files = ["tests.gpr"]
 

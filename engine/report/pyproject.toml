@@ -3,6 +3,7 @@ name = "vreport"
 version = "0.1.0"
 description = "Verification-report generator: collects gnatprove/gnatcov/requirements evidence and renders a Sphinx/MyST trust report."
 readme = "README.md"
+license = "Apache-2.0 OR CC-BY-4.0"
 authors = [
     { name = "Rowan Walshe", email = "walshe@adacore.com" }
 ]
@@ -30,7 +31,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]

@@ -3,7 +3,7 @@ description = "Bare-metal arm-eabi (Cortex-A9) QEMU build of traffic_light"
 version = "0.1.0-dev"
 authors = ["AdaCore"]
 maintainers = ["AdaCore <support@adacore.com>"]
-licenses = "Apache-2.0 WITH LLVM-exception"
+licenses = "Apache-2.0 OR CC-BY-4.0"
 website = "https://gitlab.com/mark/traffic-light-controller"
 tags = ["embedded", "ada", "spark", "arm", "qemu", "zynq"]
 
