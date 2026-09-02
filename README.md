@@ -1,205 +1,144 @@
-# Traffic Light Controller
+# GNAT Foundry: Intersection
 
-A four-way intersection traffic light controller with dedicated left-turn
-phases and concurrent pedestrian crossings, targeting the Xilinx Zynq-7000
-(dual-core Cortex-A9, run under QEMU's xilinx-zynq-a9 machine), implemented
-in Ada with SPARK-proven conflict-detection logic.
+How can we trust the correctness of high-integrity software developed using
+agentic AI? Through the output of traditional, non-AI tools that are designed
+to furnish that trust.
 
-This is a learning / hobby project. **It is not intended for deployment on
-public roads** and has not been certified to any traffic-control or
-functional-safety standard.
+*GNAT Foundry: Intersection* demonstrates trustworthy AI development in two
+steps:
 
-## Status
+1. demonstrating a *baseline* high-integrity system in which all deterministic
+   evidence is furnished for all elements, establishing the initial trust
+   basis; and
 
-Early scaffold.
+2. demonstrating agent-driven execution of a *change request* that develops
+   new functionality and provides updates to the deterministic evidence,
+   reestablishing trust in the system.
 
-## Verification scope
+## Quickstart
 
-**The HAL is a simulator, not a production artifact.** Neither profile drives
-signal hardware: the host profile renders the intersection to a terminal and
-simulates the sensors from keystrokes; the QEMU profile renders it over a UART,
-because the emulated machine has no GPIO, and its sensor producer is a stub. A
-production system would replace that layer with device drivers carrying their
-own requirements and their own hardware/software integration verification, for
-which nothing here substitutes.
+Prerequisites:
 
-The HAL realizations (`Display`, `Sources`, `Timings`), the composition that
-wires them and the `Main` entry point are therefore the demonstration's
-*harness*: excluded from the requirements, from the V&V activities, and from
-the structural-coverage denominator, and outside the proof: `make prove` is
-rooted at `src/proof.gpr`, whose tree is `src/types`, `src/core` and the
-instantiation harnesses that give their generics something for gnatprove to
-analyse. What is verified is the controller — `src/types` and `src/core` — by
-SPARK proof at Silver and by the requirements-based tests under
-[`tests/reqs/`](tests/reqs/README.md), whose structural coverage is measured
-over exactly that scope (`make all-coverage`) and is complete — `make
-check-coverage` holds CI to it. Proof and coverage therefore answer for the
-same code, and the verification report records that scope explicitly: what it
-reports clean, it reports clean *within* it.
+* Ubuntu 24.04 on x86_64 or aarch64
+* `git`, `make`, `curl`, `tar`, `unzip` and a Bash shell
+* Network access for the `make setup-community` step (and probably so your
+  agent can make API calls)
+* About 10 GB of free disk. Everything installs under `install/` in the
+  checkout; nothing is installed system-wide, and `make reset-hard` removes
+  it all
+* For the change request (step 4): Claude Code or Codex, signed in to an
+  account with credit available
 
-## Quick start
+Optional:
 
-```bash
-# List the public targets, by section
+* `qemu-system-arm`, for the bare-metal Arm targets (`make build-target`,
+  `make test-target`) — the setup targets do not provision it
+* For `make setup-pro`: a GNAT Tracker account, with the pro tarballs staged
+  under `pro-downloads/` — or the pro tools already on your `PATH`
+
+Then:
+
+1. clone this repo
+2. set up the tools that you'll need: `make setup-community` or, if you're a
+   GNAT Pro, SPARK Pro, and GNAT DAS customer: `make setup-pro`.
+3. run the baseline: `make run-native` and view the report: `make report` and
+   open `reports/report/html/index.html` (the first time you do this will take
+   several minutes)
+4. run the change request: in Claude Code or Codex, `@demo/demo-prompt.md`;
+   when the agent is done, `make run-native` to see the result and view the
+   report with `make report` and refresh or open
+   `reports/report/html/index.html`
+
+***Note: the change request takes about two hours to complete and costs about
+$50 using frontier models.*** We recommend creating a branch for this or
+setting up a git worktree. The agent will write new HLRs, LLRs, code, and
+requirements-based tests; run the proofs, repairing any as needed; and
+ensure coverage is complete.
+
+## The Demo
+
+*GNAT Foundry: Intersection* is a demonstration of a controller for a four-way
+intersection with protected left turns and pedestrian crosswalks. *This demo is
+not for public roads nor certified to any safety standard.*
+
+* The left turns follow *lead-lag* scheduling. Rather than releasing both left
+  turns together, each is released alongside the through movement beside it: on
+  the north-south axis, the northbound left and northbound through go first (the
+  *lead*), then both through movements run together, then the southbound left
+  and southbound through go last (the *lag*). East-west mirrors it.
+
+* The left turns are demand-led: they are only released when there is a
+  vehicle present.
+
+* The pedestrian crosswalks are demand-led: they are only released when a call
+  button is pressed.
+
+* The pedestrian crosswalks feature a call light: it turns on when pressed and
+  turns off when the walk signal is given.
+
+* Initially, no countdown timer is displayed when the pedestrian control head
+  shows flashing DON'T WALK; the change request adds a countdown timer.
+
+To get started, we built a set of comprehensive systems- and
+software-engineering artifacts:
+
+* a Concept of Operations (CONOPS)
+* High-Level Requirements (HLRs)
+* a software architecture
+* Low-Level Requirements (LLRs)
+* a software implementation targeting native or a bare-metal Arm 32-bit target
+
+The CONOPS is derived from and traces to the
+[US Department of Transportation Manual on Uniform Traffic Control Devices.](https://mutcd.fhwa.dot.gov)
+
+For demonstration purposes, we added a simulation harness that stands in for
+the physical hardware with which the software would interact. The simulation
+harness runs on Linux, but the Ada code can just as well be run on a
+microcontroller, with an RTOS, or bare-board, without an RTOS.
+
+We then developed comprehensive artifacts that verify the LLRs:
+
+* proofs of absence of runtime errors, using SPARK (SPARK Silver)
+* selected proofs of correctness (LLRs verified by proof), using SPARK (SPARK
+  Gold)
+* compile-time verifications, using Ada's support for the same
+* requirements-based tests sufficient to yield 100% MC/DC and statement
+  coverage of the controller
+
+Finally, we developed a comprehensive traceability matrix that is presented
+through an interactive HTML report.
+
+The report clearly identifies where human review is required:
+
+* the CONOPS, as the root of the chain of trust
+* the CONOPS elements not traced to software
+* the derived requirements in the HLRs
+
+Aside from this trust core, the report relies entirely on evidence produced
+deterministically by AdaCore's tools to establish trust in the software.
+
+## Digging In
+
+The Makefile is self-documenting, so to see a comprehensive list of targets,
+run:
+
+```shell
 make help
-
-# One-time: provision the toolchain locally under install/
-# The build/test/prove targets auto-detect whichever you ran
-make setup-community  # community tools, fetched via Alire (needs internet)
-# or
-make setup-pro  # pro tools, from GNAT Tracker staged under pro-downloads/
-                # (or adopted from PATH when your env already provides them)
-
-# Host build (runs on your laptop, uses stub HAL)
-make build-native
-
-# Run unit tests (AUnit harness generated by gnattest)
-make test
-
-# Run SPARK proofs (silver level)
-make prove
-
-# Build the bare-metal arm-eabi firmware (runs under QEMU xilinx-zynq-a9)
-make build-target
-
-# Boot the firmware under QEMU and check it reaches its first display frame
-make smoke-target
-
-# Run the requirements-based tests ON TARGET (arm-eabi, under QEMU)
-make test-target
 ```
 
-`make smoke-target` / `make test-target` (and `make run-target`) need
-`qemu-system-arm` on your PATH. No `setup-*` target provisions it: install it
-from your distribution (Debian/Ubuntu: `qemu-system-arm`). CI takes it
-from the `image:serotonic` runner image, and runs both targets on both
-toolchains. GNATemulator is not a substitute: it composes the same command line
-and then emits nothing for this image (issue #90, closed won't-fix — pro
-customers are not expected to have the cross toolchain that bundles it).
+The repository is organized as follows:
 
-The suite is verified across a wide span of QEMU versions: **6.2.0** in CI, what
-`image:serotonic` ships, on both toolchains; **8.2.2** locally, what Ubuntu
-24.04 ships. Worth keeping in mind — that span is what constrains
-which `qemu-system-arm` switches `scripts/qemu/run.sh` may use, and it is the
-baseline against which a future timing regression would be read.
+| Directory | Purpose |
+|-----------|---------|
+| demo | contains the demo prompt and the patch representing the change request |
+| design | design documents for the controller |
+| engine | reusable components of the demo, including the agentic workflow employed |
+| requirements | systems-engineering artifacts for the controller |
+| scripts | setup scripts called by the Makefile |
+| src | the Ada sources for the controller (`core`, `types`) and the simulation harness (`app`, `hal`) and the proof harness for generics (`proof`) |
+| tests | the requirements-based tests for the LLRs (`reqs`) and for selected HLRs (`system`) |
 
-### Testing on target
+## Additional Resources
 
-`make test` and `make test-target` run the *same* test bodies under `tests/`
-through two GNATtest harnesses — one native, one cross-compiled for arm-eabi
-and run on QEMU's `xilinx-zynq-a9` machine against the same
-`light-tasking-zynq7000` runtime the firmware ships with. Coverage is measured
-natively only, and from the requirements-based tests under `tests/reqs/` alone
-(`make all-coverage`); `make all-coverage-mixed` measures the whole suite as a
-diagnostic.
-
-The cross harness leaves out the `Display` / `Sources` / `Timings` tests, which
-are bound to the host profile by construction — they capture `Ada.Text_IO`
-streams and read `Ada.Calendar`, none of which a bare-metal runtime offers. The
-list lives in
-[`traffic_light_qemu/tests/host_only_sources.txt`](traffic_light_qemu/tests/host_only_sources.txt),
-with the per-unit rationale beside `TARGET_TEST_IGNORE` in the `Makefile`.
-
-All tests citing a requirement id run on target, and two checks keep it that
-way: `make check` fails if a unit on that list cites one, and `make test-target`
-fails unless the harness runs `QEMU_TEST_EXPECTED` tests.
-
-### Staging the pro downloads for `make setup-pro`
-
-`make setup-pro` installs from [GNAT Tracker](https://support.adacore.com/)
-downloads staged under `pro-downloads/` (created on first run). Log in and
-download the x86_64 Linux packages for:
-
-| Product                    | Expected download                              |
-| -------------------------- | ---------------------------------------------- |
-| GNAT Pro for Ada (native)  | `gnatpro-<version>-x86_64-linux-bin.tar.gz`    |
-| GNAT Pro for Ada (arm-elf) | `gnatpro-<version>-arm-elf-*-bin.tar.gz`       |
-| SPARK Pro                  | `spark-pro-<version>-x86_64-linux-bin.tar.gz`  |
-| GNAT DAS                   | `gnatdas-<version>-x86_64-linux-bin.tar.gz`    |
-| Libadalang                 | `libadalang-<version>-x86_64-linux-bin.tar.gz` |
-
-Copy either the product tarballs themselves or the zipfiles into
-`pro-downloads/`; `make setup-pro` will pick the newest version if several are
-staged. The staging directory survives `make reset-hard`.
-
-### Using pro tools already provided by your environment
-
-If the pro tools are already installed and in your environment, `make setup-pro`
-uses them directly instead of installing anything, provided nothing is staged in
-`pro-downloads/`. `PRO_TOOLS=install` or `PRO_TOOLS=external` forces either
-mode.
-
-## Verification report
-
-`make report` renders the verification report that includes: the proof results,
-the structural coverage, the traceability matrices, the requirements themselves
-as a document, and the review obligations a human has to discharge. By default,
-the report is rendered to `reports/report/html/index.html`.
-
-`make report-pdf` renders the same report as a PDF. By default, the PDF is
-rendered to `reports/report/pdf/verification-report.pdf`.
-
-The report generator lives in
-[`engine/report/`](engine/report/README.md).
-
-Both targets regenerate their evidence first so the report never describes
-stale artifacts. Make variables control this behavior, as well as where the
-reports are written:
-
-- `REPORT_OUT` — where the report is written (default: `reports/report`).
-- `REPORT_EVIDENCE` — the evidence targets to run beforehand; running
-  `make report REPORT_EVIDENCE=` regenerates nothing and renders whatever
-  evidence is already on disk; this is useful during report development.
-
-Note that trace gaps do not fail `report`; they render as open items instead,
-so a report is available part-way through a project and says what is not yet
-done.
-
-### Sign-offs
-
-Three of the report's review obligations rest on human review:
-
-1. the waivers excusing CONOPS leaves from HLR coverage,
-2. the derived HLRs, and
-3. the CONOPS itself.
-
-`requirements/signoffs.yaml` records these reviews with one entry per item,
-each carrying a SHA-256 digest of the report text. When the text is edited, the
-digest no longer matches and the report states the obligation to re-review.
-
-`make signoff` lists the items with their state and what is outstanding or,
-when passed arguments, effects a sign-off:
-
-```bash
-make signoff ITEM=conops NOTE="the revised phasing is what we intended"
-```
-
-- `ITEM` — the item to sign: `conops`, `waiver:<leaf>`, or
-  `derived:<statement id>`. With no `ITEM`, `signoff` only lists.
-- `ALL` — sign every outstanding item, rather than one.
-- `BY` — who read it (default: git's `user.name`).
-- `DATE` — when they read it, as `YYYY-MM-DD` (default: today).
-- `NOTE` — what the review established; a later re-sign keeps it.
-
-## Repository layout
-
-| Path                     | Contents                                                                         |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| `src/types/`             | Shared type vocabulary and data-bus definitions — leaf project, SPARK-targetable |
-| `src/core/`              | Pure logic — host-buildable, SPARK-targetable                                    |
-| `src/hal/qemu_zynq7000/` | Bare-metal arm-eabi HAL (Cortex-A9, QEMU xilinx-zynq-a9, light-tasking runtime)  |
-| `src/hal/host/`          | Stub HAL for desktop simulation and unit tests                                   |
-| `src/app/`               | Top-level application                                                            |
-| `tests/`                 | Test bodies, plus the nested Alire crate for the native AUnit harness             |
-| `traffic_light_qemu/`    | Nested Alire crate for the bare-metal arm-eabi firmware build                     |
-| `traffic_light_qemu/tests/` | Nested Alire crate for the same tests cross-built and run under QEMU          |
-| `scripts/qemu/`          | Boot an arm-eabi ELF under QEMU and turn its UART output into an exit status      |
-
-## Contributing
-
-All changes go through merge requests; CI must be green; requirement IDs are
-stable forever (never reused, even if deleted).
-
-## License
-
-See [`LICENSE`](LICENSE).
+To learn more about this demo and what we're doing with it, check out our
+[blog](https://blog.adacore.com).
