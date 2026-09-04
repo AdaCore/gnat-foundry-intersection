@@ -44,37 +44,77 @@ package body Llr_3_Conflicts_Tests is
       --  W_LEFT       X  X  X  ·  X  X  X  ·
       Expected : constant Compatible_Matrix :=
         (N_Thru =>
-           (N_Thru => True,  S_Thru => True,  E_Thru => False,
-            W_Thru => False, N_Left => True,  S_Left => False,
-            E_Left => False, W_Left => False),
+           (N_Thru => True,
+            S_Thru => True,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => True,
+            S_Left => False,
+            E_Left => False,
+            W_Left => False),
          S_Thru =>
-           (N_Thru => True,  S_Thru => True,  E_Thru => False,
-            W_Thru => False, N_Left => False, S_Left => True,
-            E_Left => False, W_Left => False),
+           (N_Thru => True,
+            S_Thru => True,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => False,
+            S_Left => True,
+            E_Left => False,
+            W_Left => False),
          E_Thru =>
-           (N_Thru => False, S_Thru => False, E_Thru => True,
-            W_Thru => True,  N_Left => False, S_Left => False,
-            E_Left => True,  W_Left => False),
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => True,
+            W_Thru => True,
+            N_Left => False,
+            S_Left => False,
+            E_Left => True,
+            W_Left => False),
          W_Thru =>
-           (N_Thru => False, S_Thru => False, E_Thru => True,
-            W_Thru => True,  N_Left => False, S_Left => False,
-            E_Left => False, W_Left => True),
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => True,
+            W_Thru => True,
+            N_Left => False,
+            S_Left => False,
+            E_Left => False,
+            W_Left => True),
          N_Left =>
-           (N_Thru => True,  S_Thru => False, E_Thru => False,
-            W_Thru => False, N_Left => True,  S_Left => False,
-            E_Left => False, W_Left => False),
+           (N_Thru => True,
+            S_Thru => False,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => True,
+            S_Left => False,
+            E_Left => False,
+            W_Left => False),
          S_Left =>
-           (N_Thru => False, S_Thru => True,  E_Thru => False,
-            W_Thru => False, N_Left => False, S_Left => True,
-            E_Left => False, W_Left => False),
+           (N_Thru => False,
+            S_Thru => True,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => False,
+            S_Left => True,
+            E_Left => False,
+            W_Left => False),
          E_Left =>
-           (N_Thru => False, S_Thru => False, E_Thru => True,
-            W_Thru => False, N_Left => False, S_Left => False,
-            E_Left => True,  W_Left => False),
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => True,
+            W_Thru => False,
+            N_Left => False,
+            S_Left => False,
+            E_Left => True,
+            W_Left => False),
          W_Left =>
-           (N_Thru => False, S_Thru => False, E_Thru => False,
-            W_Thru => True,  N_Left => False, S_Left => False,
-            E_Left => False, W_Left => True));
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => False,
+            W_Thru => True,
+            N_Left => False,
+            S_Left => False,
+            E_Left => False,
+            W_Left => True));
 
    begin
 
@@ -297,9 +337,7 @@ package body Llr_3_Conflicts_Tests is
 
    end Test_04_Next_Conflicting_Through_Maps_Every_Approach;
 
-   procedure Test_05_Adjacent_Through_Maps_Every_Crosswalk
-     (T : in out Test)
-   is
+   procedure Test_05_Adjacent_Through_Maps_Every_Crosswalk (T : in out Test) is
       --@covers llr_3_conflicts.5
 
       pragma Unreferenced (T);
@@ -373,21 +411,41 @@ package body Llr_3_Conflicts_Tests is
       --  WEST_SIDE    ·  ·  X  X  X  ·  X  X
       Expected : constant Crosswalk_Matrix :=
         (North_Side =>
-           (N_Thru => True,  S_Thru => True,  E_Thru => False,
-            W_Thru => False, N_Left => True,  S_Left => True,
-            E_Left => True,  W_Left => False),
+           (N_Thru => True,
+            S_Thru => True,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => True,
+            S_Left => True,
+            E_Left => True,
+            W_Left => False),
          South_Side =>
-           (N_Thru => True,  S_Thru => True,  E_Thru => False,
-            W_Thru => False, N_Left => True,  S_Left => True,
-            E_Left => False, W_Left => True),
-         East_Side =>
-           (N_Thru => False, S_Thru => False, E_Thru => True,
-            W_Thru => True,  N_Left => False, S_Left => True,
-            E_Left => True,  W_Left => True),
-         West_Side =>
-           (N_Thru => False, S_Thru => False, E_Thru => True,
-            W_Thru => True,  N_Left => True,  S_Left => False,
-            E_Left => True,  W_Left => True));
+           (N_Thru => True,
+            S_Thru => True,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => True,
+            S_Left => True,
+            E_Left => False,
+            W_Left => True),
+         East_Side  =>
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => True,
+            W_Thru => True,
+            N_Left => False,
+            S_Left => True,
+            E_Left => True,
+            W_Left => True),
+         West_Side  =>
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => True,
+            W_Thru => True,
+            N_Left => True,
+            S_Left => False,
+            E_Left => True,
+            W_Left => True));
 
    begin
 

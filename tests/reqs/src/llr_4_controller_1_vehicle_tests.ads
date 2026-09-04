@@ -70,8 +70,7 @@ package Llr_4_Controller_1_Vehicle_Tests is
      (T : in out Test);
    procedure Test_30_NS_Both_Through_To_N_Drop_Yellow_On_South_Demand
      (T : in out Test);
-   procedure Test_31_NS_Both_Through_To_Hold_No_South_Demand
-     (T : in out Test);
+   procedure Test_31_NS_Both_Through_To_Hold_No_South_Demand (T : in out Test);
    procedure Test_32_NS_Both_Through_Hold_To_NS_Both_Drop_Yellow
      (T : in out Test);
    procedure Test_33_N_Drop_Yellow_To_N_Drop_Clear_On_Dwell_Elapse

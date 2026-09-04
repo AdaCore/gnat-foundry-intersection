@@ -186,8 +186,7 @@ package body Llr_4_Controller_Tests is
    --  Shared by the routines of .16, .20 and .22, so the four onsets are
    --  transcribed once. Only .20 reads Rises.
 
-   procedure Test_01_Controller_State_Holds_The_Five_Machines
-     (T : in out Test)
+   procedure Test_01_Controller_State_Holds_The_Five_Machines (T : in out Test)
    is
       --@covers llr_4_controller.1
 
@@ -208,16 +207,15 @@ package body Llr_4_Controller_Tests is
       --  demand is read live at the commit boundary now, so there is nothing
       --  to latch.
 
-      Idle_Mode     : constant States.Mode := Normal_Operation;
-      Idle_Vehicle  : constant States.Vehicle_Sequencer_State :=
+      Idle_Mode       : constant States.Mode := Normal_Operation;
+      Idle_Vehicle    : constant States.Vehicle_Sequencer_State :=
         EW_Barrier_Allred;
-      Idle_Timer    : constant States.Duration_Ms := 0;
-      Every_Approach : constant States.Left_Demand_Array :=
+      Idle_Timer      : constant States.Duration_Ms := 0;
+      Every_Approach  : constant States.Left_Demand_Array :=
         (others => No_Left_Demand);
       Every_Crosswalk : constant States.Pedestrian_Array :=
         (others => No_Pedestrian_Request);
-      Every_Ped_Timer : constant Controller.Pedestrian_Timers :=
-        (others => 0);
+      Every_Ped_Timer : constant Controller.Pedestrian_Timers := (others => 0);
 
       Witness : constant Controller.Controller_State :=
         (Mode      => Idle_Mode,
@@ -1748,8 +1746,7 @@ package body Llr_4_Controller_Tests is
       --  boundary cases by accident: sampling the detector only at the exit,
       --  and dropping a latched demand on a step where nothing fires.
 
-      Cases_Loop :
-      declare
+      Cases_Loop : declare
          type Commit_Case is record
             Both    : States.Vehicle_Sequencer_State;
             Lagging : States.Approach;

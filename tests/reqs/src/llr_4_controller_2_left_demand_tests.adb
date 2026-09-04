@@ -173,21 +173,13 @@ package body Llr_4_Controller_2_Left_Demand_Tests is
       --  on the rising edge and not on the level.
       Edge : constant Green_Edge_Table :=
         (North =>
-           (Before => N_Lead_Clear,
-            After  => NS_Both_Through,
-            Rising => South),
+           (Before => N_Lead_Clear, After => NS_Both_Through, Rising => South),
          South =>
-           (Before => NS_Barrier_Allred,
-            After  => E_Lead,
-            Rising => East),
+           (Before => NS_Barrier_Allred, After => E_Lead, Rising => East),
          East  =>
-           (Before => E_Lead_Clear,
-            After  => EW_Both_Through,
-            Rising => West),
+           (Before => E_Lead_Clear, After => EW_Both_Through, Rising => West),
          West  =>
-           (Before => EW_Barrier_Allred,
-            After  => N_Lead,
-            Rising => North));
+           (Before => EW_Barrier_Allred, After => N_Lead, Rising => North));
 
       State   : Controller.Controller_State;
       Outputs : States.Display_State;

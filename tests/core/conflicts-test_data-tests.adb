@@ -50,8 +50,10 @@ package body Conflicts.Test_Data.Tests is
       type Pair_List is array (Positive range <>) of Movement_Pair;
 
       Same_Approach_Pairs : constant Pair_List :=
-        ((N_Thru, N_Left), (S_Thru, S_Left),
-         (E_Thru, E_Left), (W_Thru, W_Left));
+        ((N_Thru, N_Left),
+         (S_Thru, S_Left),
+         (E_Thru, E_Left),
+         (W_Thru, W_Left));
 
       Opposing_Through_Pairs : constant Pair_List :=
         ((N_Thru, S_Thru), (E_Thru, W_Thru));
@@ -64,8 +66,7 @@ package body Conflicts.Test_Data.Tests is
       is (A = B
           or else
             (for some P of Named_Pairs =>
-               (A = P.A and then B = P.B)
-               or else (A = P.B and then B = P.A)));
+               (A = P.A and then B = P.B) or else (A = P.B and then B = P.A)));
       --  The pairs llr_3_conflicts.1 names compatible, transcribed from its
       --  three clauses rather than from the Compatible expression under test.
 
@@ -75,8 +76,11 @@ package body Conflicts.Test_Data.Tests is
          for B in States.Movement loop
             AUnit.Assertions.Assert
               (Compatible (A, B) = Expected (A, B),
-               "Compatible (" & States.Movement'Image (A) & ", "
-               & States.Movement'Image (B) & ") = "
+               "Compatible ("
+               & States.Movement'Image (A)
+               & ", "
+               & States.Movement'Image (B)
+               & ") = "
                & Boolean'Image (Compatible (A, B))
                & " but llr_3_conflicts.1 requires "
                & Boolean'Image (Expected (A, B)));
@@ -216,7 +220,7 @@ package body Conflicts.Test_Data.Tests is
    procedure Test_Crosswalk_Conflicts_740c67 (Gnattest_T : in out Test) renames Test_Crosswalk_Conflicts;
 --  id:2.2/740c67ad5c5dd0af/Crosswalk_Conflicts/1/0/
    procedure Test_Crosswalk_Conflicts (Gnattest_T : in out Test) is
-   --  conflicts.ads:141:4:Crosswalk_Conflicts
+   --  conflicts.ads:142:4:Crosswalk_Conflicts
 --  end read only
 
       --@covers llr_3_conflicts.6
@@ -241,17 +245,41 @@ package body Conflicts.Test_Data.Tests is
       --  WEST_SIDE     ·      ·      X      X      X      ·      X      X
       Expected : constant Crosswalk_Table :=
         (North_Side =>
-           (N_Thru => True,  S_Thru => True,  E_Thru => False, W_Thru => False,
-            N_Left => True,  S_Left => True,  E_Left => True,  W_Left => False),
+           (N_Thru => True,
+            S_Thru => True,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => True,
+            S_Left => True,
+            E_Left => True,
+            W_Left => False),
          South_Side =>
-           (N_Thru => True,  S_Thru => True,  E_Thru => False, W_Thru => False,
-            N_Left => True,  S_Left => True,  E_Left => False, W_Left => True),
-         East_Side =>
-           (N_Thru => False, S_Thru => False, E_Thru => True,  W_Thru => True,
-            N_Left => False, S_Left => True,  E_Left => True,  W_Left => True),
-         West_Side =>
-           (N_Thru => False, S_Thru => False, E_Thru => True,  W_Thru => True,
-            N_Left => True,  S_Left => False, E_Left => True,  W_Left => True));
+           (N_Thru => True,
+            S_Thru => True,
+            E_Thru => False,
+            W_Thru => False,
+            N_Left => True,
+            S_Left => True,
+            E_Left => False,
+            W_Left => True),
+         East_Side  =>
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => True,
+            W_Thru => True,
+            N_Left => False,
+            S_Left => True,
+            E_Left => True,
+            W_Left => True),
+         West_Side  =>
+           (N_Thru => False,
+            S_Thru => False,
+            E_Thru => True,
+            W_Thru => True,
+            N_Left => True,
+            S_Left => False,
+            E_Left => True,
+            W_Left => True));
 
    begin
 

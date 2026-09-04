@@ -220,8 +220,7 @@ package Reqs_Support is
    function Pedestrian_State
      (C         : States.Crosswalk;
       P         : States.Pedestrian_State;
-      Remaining : States.Duration_Ms := 0)
-      return Controller.Controller_State;
+      Remaining : States.Duration_Ms := 0) return Controller.Controller_State;
    --  A NORMAL_OPERATION state with crosswalk C in pedestrian state P and
    --  Remaining of its dwell left, every other crosswalk idle, and the vehicle
    --  sequencer parked mid-dwell in EW_BARRIER_ALLRED -- a state whose every

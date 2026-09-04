@@ -253,7 +253,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
      (A : States.Approach) return States.Vehicle_Sequencer_State
    is (case A is
          when North | South => EW_Barrier_Allred,
-         when East | West => NS_Barrier_Allred);
+         when East | West   => NS_Barrier_Allred);
    --  The barrier state whose exit raises approach A's through face to GREEN.
    --  From llr_4_controller_1_vehicle: EW_BARRIER_ALLRED with no north left
    --  demand enters NS_BOTH_THROUGH when T_BARRIER elapses (.26), whose row
@@ -268,7 +268,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
      (A : States.Approach) return States.Vehicle_Sequencer_State
    is (case A is
          when North | South => NS_Both_Through,
-         when East | West => EW_Both_Through);
+         when East | West   => EW_Both_Through);
    --  The state that exit enters -- the target of .26 / .39. Only the target
    --  is used, never the commit interval those two statements load, which is
    --  their own routines' to assert.
@@ -400,8 +400,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
       --  the service edge (.12) cannot key onto the crosswalk just armed.
 
       for Armed in States.Crosswalk loop
-         State :=
-           Reqs_Support.Pedestrian_State (Armed, No_Pedestrian_Request);
+         State := Reqs_Support.Pedestrian_State (Armed, No_Pedestrian_Request);
 
          Sensors := Reqs_Support.Quiet;
          Sensors.Buttons (Armed) := Pressed;
@@ -635,9 +634,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
       pragma Unreferenced (T);
    begin
       Check_Timed_Exit
-        (From   => Walk_Interval,
-         To     => Change_Interval,
-         Loaded => States.T_FDW);
+        (From => Walk_Interval, To => Change_Interval, Loaded => States.T_FDW);
    end Test_13_Walk_Elapses_To_Change;
 
    procedure Test_14_Change_Elapses_To_Buffer (T : in out Test) is
@@ -663,9 +660,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
       --  in.
 
       Check_Timed_Exit
-        (From   => Buffer_Interval,
-         To     => No_Pedestrian_Request,
-         Loaded => 0);
+        (From => Buffer_Interval, To => No_Pedestrian_Request, Loaded => 0);
    end Test_15_Buffer_Elapses_To_No_Request;
 
    procedure Test_16_Latched_Buffer_Elapses_To_Pending (T : in out Test) is
@@ -703,7 +698,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
             when Walk_Interval
                | Change_Interval
                | Buffer_Interval
-               | Buffer_Interval_Latched => True);
+               | Buffer_Interval_Latched                            => True);
       --  Serving_Pedestrian_State, transcribed from llr_1_states.15's range
       --  WALK_INTERVAL .. BUFFER_INTERVAL_LATCHED as an exhaustive case with
       --  no `others` choice: a new pedestrian state fails the build here until
@@ -737,8 +732,7 @@ package body Llr_4_Controller_3_Pedestrian_Tests is
 
       for C in States.Crosswalk loop
          for P in States.Pedestrian_State loop
-            State :=
-              Reqs_Support.Pedestrian_State (C, P, Remaining => Dwell);
+            State := Reqs_Support.Pedestrian_State (C, P, Remaining => Dwell);
 
             Controller.Step (State, Reqs_Support.Quiet, Outputs);
 

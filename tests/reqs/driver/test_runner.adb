@@ -18,8 +18,8 @@ procedure Test_Runner is
 
    use type AUnit.Status;
 
-   function Runner is new AUnit.Run.Test_Runner_With_Status
-     (Gnattest_Main_Suite.Suite);
+   function Runner is new
+     AUnit.Run.Test_Runner_With_Status (Gnattest_Main_Suite.Suite);
 
    Reporter : AUnit.Reporter.gnattest.gnattest_Reporter;
    Options  : AUnit.Options.AUnit_Options := AUnit.Options.Default_Options;

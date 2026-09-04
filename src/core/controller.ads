@@ -43,16 +43,17 @@
 --
 --  * `hlr_0_safety.2` (no two conflicting movements GREEN/YELLOW at once) is
 --    encoded as the `Conflicts.Safe_Faces` postcondition on `Project_Outputs`
---    (hence on `Step`'s outputs). It holds by construction -- each Moore output
---    row drives only a compatible face set -- and gnatprove discharges it by
---    enumeration over the literal aggregates.
+--    (hence on `Step`'s outputs). It holds by construction -- each Moore
+--    output row drives only a compatible face set -- and gnatprove discharges
+--    it by enumeration over the literal aggregates.
 --  * `hlr_0_safety.1` (SERVING => conflicting movements RED) is *not* a
 --    per-state property: it is discharged as the static timing margin
 --    `hlr_3_timing.10` (a property over the whole schedule and the chosen
---    durations); elaborating that margin is a coupled LLR item, still open.
---    It is therefore deliberately NOT encoded as a runtime contract here; doing
---    so would require an escape hatch (`pragma Assume` / suppressed checks) that
---    `CLAUDE.md` forbids. This is the expected, flagged deferral, not a hole.
+--    durations); elaborating that margin is a coupled LLR item, still
+--    open. It is therefore deliberately NOT encoded as a runtime contract
+--    here; doing so would require an escape hatch (`pragma Assume` /
+--    suppressed checks) that `CLAUDE.md` forbids. This is the expected,
+--    flagged deferral, not a hole.
 
 with States;
 with Conflicts;
@@ -114,10 +115,11 @@ is
    with
      Post =>
        Conflicts.Safe_Faces (Outputs)
-       and then (if State'Old.Mode = States.Fault
-                   or else Sensors.Fault = States.Asserted
-                   or else State'Old.Veh_Timer > States.T_Sample
-                 then State.Vehicle = State'Old.Vehicle);
+       and then
+         (if State'Old.Mode = States.Fault
+            or else Sensors.Fault = States.Asserted
+            or else State'Old.Veh_Timer > States.T_Sample
+          then State.Vehicle = State'Old.Vehicle);
    --  The frame of the vehicle sequencer
    --  (`llr_4_controller_1_vehicle.1`/`.2`, `llr_4_controller.15`): a step
    --  moves State.Vehicle only on the one branch that calls Advance_Vehicle,

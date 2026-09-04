@@ -991,7 +991,8 @@ package body Ada_Tracer.Walk is
             null;
       end case;
 
-      --  Flat, unlike the walk above: a check anchors evidence wherever it sits.
+      --  Flat, unlike the walk above: a check anchors evidence
+      --  wherever it sits.
 
       Root.Traverse (Scan_Checks'Access);
    end Unit;

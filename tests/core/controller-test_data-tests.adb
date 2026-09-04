@@ -34,7 +34,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Initialize_9cb2dc (Gnattest_T : in out Test) renames Test_Initialize;
 --  id:2.2/9cb2dc2f1d1660db/Initialize/1/0/
    procedure Test_Initialize (Gnattest_T : in out Test) is
-   --  controller.ads:88:4:Initialize
+   --  controller.ads:89:4:Initialize
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -93,7 +93,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Project_Outputs_229f82 (Gnattest_T : in out Test) renames Test_Project_Outputs;
 --  id:2.2/229f82fac868336c/Project_Outputs/1/0/
    procedure Test_Project_Outputs (Gnattest_T : in out Test) is
-   --  controller.ads:96:4:Project_Outputs
+   --  controller.ads:97:4:Project_Outputs
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -208,10 +208,11 @@ package body Controller.Test_Data.Tests is
       Assert
         (Outputs.Through (West) = Yellow
          and then Outputs.Left (West) = Yellow
-         and then (for all A in Approach =>
-                     (A = West
-                      or else (Outputs.Through (A) = Red
-                               and then Outputs.Left (A) = Red))),
+         and then
+           (for all A in Approach =>
+              (A = West
+               or else
+                 (Outputs.Through (A) = Red and then Outputs.Left (A) = Red))),
          "W_LAG_YELLOW should drive the West through and left YELLOW,"
          & " every other face RED");
 
@@ -225,7 +226,7 @@ package body Controller.Test_Data.Tests is
    procedure Test_Step_550f0c (Gnattest_T : in out Test) renames Test_Step;
 --  id:2.2/550f0cec4ac973af/Step/1/0/
    procedure Test_Step (Gnattest_T : in out Test) is
-   --  controller.ads:108:4:Step
+   --  controller.ads:109:4:Step
 --  end read only
 
       --@covers none: unattributed controller scenario, retained for
@@ -351,8 +352,7 @@ package body Controller.Test_Data.Tests is
       Step (State, Quiet, Outputs);
 
       Assert
-        (State.Vehicle = EW_Barrier_Allred
-         and then State.Veh_Timer = T_Sample,
+        (State.Vehicle = EW_Barrier_Allred and then State.Veh_Timer = T_Sample,
          "the pure sampling step should leave one T_SAMPLE of dwell"
          & " unfired");
       Assert
@@ -683,8 +683,7 @@ package body Controller.Test_Data.Tests is
          Total := Total + T_Sample;
 
          Assert
-           ((for all A in Approach =>
-               State.Left (A) = Left_Demand_Pending),
+           ((for all A in Approach => State.Left (A) = Left_Demand_Pending),
             "a sampled left-turn vehicle should latch the approach's"
             & " demand");
          Assert
@@ -696,8 +695,7 @@ package body Controller.Test_Data.Tests is
             Total := Total + T_Sample;
             Steps := Steps + 1;
             Visited (State.Vehicle) := True;
-            Seen_Walk :=
-              Seen_Walk or else Outputs.Heads (West_Side) = Walk;
+            Seen_Walk := Seen_Walk or else Outputs.Heads (West_Side) = Walk;
             Seen_FDW :=
               Seen_FDW or else Outputs.Heads (West_Side) = Flash_Dont_Walk;
             Departed := Departed or else State.Vehicle /= EW_Barrier_Allred;

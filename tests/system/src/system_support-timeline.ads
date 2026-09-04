@@ -50,8 +50,7 @@ package System_Support.Timeline is
      (For_Ms : States.Duration_Ms; Demand : Demand_Function := null)
    with
      Pre =>
-       For_Ms > 0
-       and then For_Ms <= States.Duration_Ms'Last - States.T_Sample;
+       For_Ms > 0 and then For_Ms <= States.Duration_Ms'Last - States.T_Sample;
    --  Drive the loop from power-on until For_Ms of logical time has passed,
    --  recording the timeline. Discards the previous observation. A null Demand
    --  delivers Quiet at every read.

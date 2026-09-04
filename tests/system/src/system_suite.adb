@@ -59,8 +59,8 @@ package body System_Suite is
       Timing_Caller.Create
         (Axis_Barriers,
          "hlr_3_timing: every axis-change barrier holds for T_BARRIER",
-         Hlr_3_Timing_Tests.Test_Axis_Change_Barriers_Hold_For_T_Barrier'
-           Access);
+         Hlr_3_Timing_Tests
+           .Test_Axis_Change_Barriers_Hold_For_T_Barrier'Access);
 
       Timing_Caller.Create
         (Axis_Slot,
@@ -70,8 +70,8 @@ package body System_Suite is
       Timing_Caller.Create
         (Crosswalk_Margin,
          "hlr_3_timing: crosswalk conflicts stay RED for the margin",
-         Hlr_3_Timing_Tests.Test_Crosswalk_Conflicts_Held_Red_For_The_Margin'
-           Access);
+         Hlr_3_Timing_Tests
+           .Test_Crosswalk_Conflicts_Held_Red_For_The_Margin'Access);
 
       Timing_Caller.Create
         (Acknowledgment,
