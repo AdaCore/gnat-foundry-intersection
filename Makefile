@@ -582,8 +582,12 @@ TRACER     := $(TRACER_DIR)/bin/ada_tracer
 # gpr2_shared.gpr) read `OS` as a Windows_NT/UNIX scenario variable and reject
 # other values. `-m2`: checksum-based minimal recompilation, so a restored CI
 # cache (fresh timestamps) is not rebuilt from scratch.
+# `alr update`: `alr build` reuses the solution recorded in the crate's
+# alire.lock and never re-solves it, so an incomplete first resolution -- an
+# undetected system package, an interrupted fetch -- is otherwise permanent.
 build-tracer: ## Build the Ada tracer
 ifeq ($(SETUP),community)
+	cd $(TRACER_DIR) && env -u OS alr -n update
 	cd $(TRACER_DIR) && env -u OS alr -n build -- -m2
 else
 	gprbuild -q -P $(TRACER_DIR)/ada_tracer.gpr
