@@ -288,8 +288,9 @@ package body Ada_Tracer.Comments is
                begin
                   exit when
                     Above /= No_Token
-                    and then (Kind (Data (Above)) /= Ada_Whitespace
-                              or else Line_Feeds (Token_Text (Above)) = 0);
+                    and then
+                      (Kind (Data (Above)) /= Ada_Whitespace
+                       or else Line_Feeds (Token_Text (Above)) = 0);
                end;
 
                declare

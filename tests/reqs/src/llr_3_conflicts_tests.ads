@@ -27,8 +27,7 @@ package Llr_3_Conflicts_Tests is
    procedure Test_04_Next_Conflicting_Through_Maps_Every_Approach
      (T : in out Test);
 
-   procedure Test_05_Adjacent_Through_Maps_Every_Crosswalk
-     (T : in out Test);
+   procedure Test_05_Adjacent_Through_Maps_Every_Crosswalk (T : in out Test);
 
    procedure Test_06_Crosswalk_Conflicts_Exempts_Exactly_The_Listed_Pairs
      (T : in out Test);

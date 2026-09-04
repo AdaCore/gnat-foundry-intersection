@@ -13,8 +13,7 @@ package body Reqs_Support is
    function Pedestrian_State
      (C         : States.Crosswalk;
       P         : States.Pedestrian_State;
-      Remaining : States.Duration_Ms := 0)
-      return Controller.Controller_State
+      Remaining : States.Duration_Ms := 0) return Controller.Controller_State
    is
       State : Controller.Controller_State :=
         (Mode      => States.Normal_Operation,

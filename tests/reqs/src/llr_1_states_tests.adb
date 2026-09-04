@@ -162,8 +162,7 @@ package body Llr_1_States_Tests is
    --  Statement .4 -- the fault-detection alphabet
    ------------------------------------------------------------------------
 
-   procedure Test_04_Fault_Detection_Has_Exactly_Two_Literals
-     (T : in out Test)
+   procedure Test_04_Fault_Detection_Has_Exactly_Two_Literals (T : in out Test)
    is
       --@covers llr_1_states.4
 
@@ -171,8 +170,7 @@ package body Llr_1_States_Tests is
 
       type Witness is array (States.Fault_Detection) of Boolean;
 
-      Named : constant Witness :=
-        (Not_Asserted => True, Asserted => True);
+      Named : constant Witness := (Not_Asserted => True, Asserted => True);
 
       Counted : Natural := 0;
    begin
@@ -605,10 +603,10 @@ package body Llr_1_States_Tests is
       --  array over any index at all, whereas a Through_Faces value fits the
       --  Through component only if that is its type.
 
-      Through_Row  : constant States.Through_Faces := (others => Red);
-      Left_Row     : constant States.Left_Faces := (others => Red);
-      Head_Row     : constant States.Pedestrian_Heads := (others => Dont_Walk);
-      Request_Row  : constant States.Request_Indicators :=
+      Through_Row : constant States.Through_Faces := (others => Red);
+      Left_Row    : constant States.Left_Faces := (others => Red);
+      Head_Row    : constant States.Pedestrian_Heads := (others => Dont_Walk);
+      Request_Row : constant States.Request_Indicators :=
         (others => No_Request);
 
       --  Named associations and no `others` choice, so the record holds
@@ -791,13 +789,20 @@ package body Llr_1_States_Tests is
       --  face is transcribed.
 
       Expected : constant Face_Expectation :=
-        (N_Thru => Green,          --  Through (NORTH)
-         S_Thru => Yellow,         --  Through (SOUTH)
-         E_Thru => Red,            --  Through (EAST)
-         W_Thru => Flashing_Red,   --  Through (WEST)
-         N_Left => Yellow,         --  Left (NORTH)
-         S_Left => Red,            --  Left (SOUTH)
-         E_Left => Flashing_Red,   --  Left (EAST)
+        (N_Thru => Green,
+         --  Through (NORTH)
+         S_Thru => Yellow,
+         --  Through (SOUTH)
+         E_Thru => Red,
+         --  Through (EAST)
+         W_Thru => Flashing_Red,
+         --  Through (WEST)
+         N_Left => Yellow,
+         --  Left (NORTH)
+         S_Left => Red,
+         --  Left (SOUTH)
+         E_Left => Flashing_Red,
+         --  Left (EAST)
          W_Left => Green);         --  Left (WEST)
 
       function Only_Go (M : States.Movement) return States.Display_State;
@@ -897,8 +902,7 @@ package body Llr_1_States_Tests is
    --  Statement .20 -- Is_Go holds exactly for GREEN and YELLOW
    ------------------------------------------------------------------------
 
-   procedure Test_20_Is_Go_Holds_Exactly_For_Green_And_Yellow
-     (T : in out Test)
+   procedure Test_20_Is_Go_Holds_Exactly_For_Green_And_Yellow (T : in out Test)
    is
       --@covers llr_1_states.20
 
@@ -913,10 +917,7 @@ package body Llr_1_States_Tests is
       --  "exactly when" is a claim about the whole alphabet.
 
       Expected : constant Go_Expectation :=
-        (Red          => False,
-         Yellow       => True,
-         Green        => True,
-         Flashing_Red => False);
+        (Red => False, Yellow => True, Green => True, Flashing_Red => False);
    begin
 
       --  Four values, so the domain is enumerated outright: the sweep is the

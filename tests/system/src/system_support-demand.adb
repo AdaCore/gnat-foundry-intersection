@@ -41,8 +41,7 @@ package body System_Support.Demand is
       Lefts (A) := (From => From, Before => Before);
    end Left_Turn;
 
-   function Snapshot
-     (Elapsed : States.Duration_Ms) return States.Sensors_State
+   function Snapshot (Elapsed : States.Duration_Ms) return States.Sensors_State
    is
       Result : States.Sensors_State := Quiet;
    begin

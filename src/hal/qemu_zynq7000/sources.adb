@@ -5,8 +5,8 @@
 --
 --  There is no physical GPIO on the emulated machine. Richer input simulation
 --  is a follow-up; the UART1 command-input path (the old Read_Cmd_Byte) is
---  intentionally NOT wired here -- it is deferred per the work item's Notes and
---  the architecture's "Command-input ... TODO".
+--  intentionally NOT wired here -- it is deferred per the work item's Notes
+--  and the architecture's "Command-input ... TODO".
 
 package body Sources is
 

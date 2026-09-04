@@ -141,13 +141,12 @@ package body Hlr_3_Timing_Tests is
                declare
                   Served : constant Timeline.Interval := Timeline.Nth (N);
 
-                  Shown : constant Boolean :=
-                    Served.Frame.Heads (C) = Head;
+                  Shown : constant Boolean := Served.Frame.Heads (C) = Head;
                begin
                   if Shown
-                    and then (N = 1
-                              or else Timeline.Nth (N - 1).Frame.Heads (C)
-                                      /= Head)
+                    and then
+                      (N = 1
+                       or else Timeline.Nth (N - 1).Frame.Heads (C) /= Head)
                   then
                      Runs := Runs + 1;
                      Span := 0;
@@ -220,8 +219,7 @@ package body Hlr_3_Timing_Tests is
    begin
       for Pattern in Demand_Case loop
          Observe_Pedestrian_Service (Pattern);
-         Check_Head_Interval
-           (States.Flash_Dont_Walk, T_FDW, "T_FDW", Pattern);
+         Check_Head_Interval (States.Flash_Dont_Walk, T_FDW, "T_FDW", Pattern);
       end loop;
    end Test_Flash_Dont_Walk_Holds_For_T_FDW;
 
@@ -303,8 +301,7 @@ package body Hlr_3_Timing_Tests is
                      Seen := Seen + 1;
 
                      Assert
-                       (Clear.Closed
-                        and then Clear.Span = States.T_Redclear,
+                       (Clear.Closed and then Clear.Span = States.T_Redclear,
                         "the red-clearance frame published at"
                         & States.Duration_Ms'Image (Clear.Opened_At)
                         & " ms under "
@@ -366,7 +363,8 @@ package body Hlr_3_Timing_Tests is
       Assert
         (System_Support.All_Vehicle_Red (Boot.Frame),
          "the power-on frame must hold every vehicle movement at RED, but"
-         & " released " & System_Support.Released_Movements (Boot.Frame));
+         & " released "
+         & System_Support.Released_Movements (Boot.Frame));
 
       Assert
         (Boot.Opened_At = 0,
@@ -458,12 +456,9 @@ package body Hlr_3_Timing_Tests is
       Absent : constant Arrival :=
         (From => Demand.Forever, Before => Demand.Forever);
       Held   : constant Arrival := (From => 0, Before => Demand.Forever);
-      Early  : constant Arrival :=
-        (From => 20_000, Before => Demand.Forever);
-      Late   : constant Arrival :=
-        (From => 30_000, Before => Demand.Forever);
-      Brief  : constant Arrival :=
-        (From => 0, Before => States.T_Sample + 1);
+      Early  : constant Arrival := (From => 20_000, Before => Demand.Forever);
+      Late   : constant Arrival := (From => 30_000, Before => Demand.Forever);
+      Brief  : constant Arrival := (From => 0, Before => States.T_Sample + 1);
 
       type Pattern is array (States.Approach) of Arrival;
 
@@ -557,8 +552,7 @@ package body Hlr_3_Timing_Tests is
       end loop;
    end Test_Axis_Slot_Is_Demand_Independent;
 
-   procedure Test_Crosswalk_Conflicts_Held_Red_For_The_Margin
-     (T : in out Test)
+   procedure Test_Crosswalk_Conflicts_Held_Red_For_The_Margin (T : in out Test)
    is
       --@observes hlr_3_timing.10
 
@@ -582,17 +576,17 @@ package body Hlr_3_Timing_Tests is
 
                      Greened : constant Boolean :=
                        Rise.Frame.Through (Adjacent) = States.Green
-                       and then (N = 1
-                                 or else Timeline.Nth (N - 1).Frame.Through
-                                           (Adjacent)
-                                         /= States.Green);
+                       and then
+                         (N = 1
+                          or else
+                            Timeline.Nth (N - 1).Frame.Through (Adjacent)
+                            /= States.Green);
                   begin
                      --  A window running past the end of the observation is
                      --  skipped.
 
                      if Greened
-                       and then Rise.Opened_At + Margin
-                                <= Timeline.Observed_Ms
+                       and then Rise.Opened_At + Margin <= Timeline.Observed_Ms
                      then
                         Windows := Windows + 1;
                         Check_Conflicts_Red (C, N, Margin);

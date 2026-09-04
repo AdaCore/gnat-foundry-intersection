@@ -14,7 +14,11 @@ project Shared is
    Ada_Compiler_Switches := Traffic_Light_Config.Ada_Compiler_Switches &
       ("-g", "-O0",      --  Debug, no optimization
        "-gnata",         --  Enable assertions
-       "-gnato"          --  overflow checking
+       "-gnato",         --  overflow checking
+       --  The two checks the `--@covers` trace tags cannot satisfy. Every
+       --  other inherited style check, line length included, stays on.
+       "-gnaty-c",       --  No comment-format check
+       "-gnaty0"         --  No indentation check (gnatformat owns indentation)
       );
 
    --  Build dirs relative to the repo root: a relative Object_Dir resolves

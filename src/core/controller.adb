@@ -1,9 +1,10 @@
 --  Controller body: the five communicating Moore machines. The sub-machines
---  are kept cohesive as sections of local subprograms here (rather than child
---  units): they are genuinely communicating -- the pedestrian and left-demand
---  edges observe the vehicle sequencer's GREEN edges within a single Step -- so
---  keeping them in one body with the state threaded `in out` avoids both
---  globals and a spray of cross-unit contracts, keeping the proof closure tight.
+--  are kept cohesive as sections of local subprograms here (rather than
+--  child units): they are genuinely communicating -- the pedestrian and
+--  left-demand edges observe the vehicle sequencer's GREEN edges within a
+--  single Step -- so keeping them in one body with the state threaded
+--  `in out` avoids both globals and a spray of cross-unit contracts, keeping
+--  the proof closure tight.
 
 package body Controller
   with SPARK_Mode => On
@@ -30,35 +31,35 @@ is
    is (case V is
          --  ---- NS axis (.2-.11, .48) ----
          --  .2  N_thru G, N_left G
-         when N_Lead =>
+         when N_Lead               =>
            (Through => (North => Green, others => Red),
             Left    => (North => Green, others => Red)),
          --  .3  N_thru G, N_left Y
-         when N_Lead_Yellow =>
+         when N_Lead_Yellow        =>
            (Through => (North => Green, others => Red),
             Left    => (North => Yellow, others => Red)),
          --  .4  N_thru G
-         when N_Lead_Clear =>
+         when N_Lead_Clear         =>
            (Through => (North => Green, others => Red),
             Left    => (others => Red)),
          --  .5  N_thru G, S_thru G
-         when NS_Both_Through  =>
+         when NS_Both_Through      =>
            (Through => (North => Green, South => Green, others => Red),
             Left    => (others => Red)),
          --  .6  N_thru Y, S_thru G
-         when N_Drop_Yellow =>
+         when N_Drop_Yellow        =>
            (Through => (North => Yellow, South => Green, others => Red),
             Left    => (others => Red)),
          --  .7  S_thru G
-         when N_Drop_Clear  =>
+         when N_Drop_Clear         =>
            (Through => (South => Green, others => Red),
             Left    => (others => Red)),
          --  .8  S_thru G, S_left G
-         when S_Lag  =>
+         when S_Lag                =>
            (Through => (South => Green, others => Red),
             Left    => (South => Green, others => Red)),
          --  .9  S_thru Y, S_left Y
-         when S_Lag_Yellow =>
+         when S_Lag_Yellow         =>
            (Through => (South => Yellow, others => Red),
             Left    => (South => Yellow, others => Red)),
          --  .48 N_thru G, S_thru G (as .5)
@@ -66,44 +67,44 @@ is
            (Through => (North => Green, South => Green, others => Red),
             Left    => (others => Red)),
          --  .10 N_thru Y, S_thru Y
-         when NS_Both_Drop_Yellow =>
+         when NS_Both_Drop_Yellow  =>
            (Through => (North => Yellow, South => Yellow, others => Red),
             Left    => (others => Red)),
          --  .11 all RED
-         when NS_Barrier_Allred =>
+         when NS_Barrier_Allred    =>
            (Through => (others => Red), Left => (others => Red)),
 
          --  ---- EW axis (.25-.34, .50), the exact N/S <-> E/W mirror ----
          --  .25 E_thru G, E_left G
-         when E_Lead =>
+         when E_Lead               =>
            (Through => (East => Green, others => Red),
             Left    => (East => Green, others => Red)),
          --  .26 E_thru G, E_left Y
-         when E_Lead_Yellow  =>
+         when E_Lead_Yellow        =>
            (Through => (East => Green, others => Red),
             Left    => (East => Yellow, others => Red)),
          --  .27 E_thru G
-         when E_Lead_Clear =>
+         when E_Lead_Clear         =>
            (Through => (East => Green, others => Red),
             Left    => (others => Red)),
          --  .28 E_thru G, W_thru G
-         when EW_Both_Through =>
+         when EW_Both_Through      =>
            (Through => (East => Green, West => Green, others => Red),
             Left    => (others => Red)),
          --  .29 E_thru Y, W_thru G
-         when E_Drop_Yellow =>
+         when E_Drop_Yellow        =>
            (Through => (East => Yellow, West => Green, others => Red),
             Left    => (others => Red)),
          --  .30 W_thru G
-         when E_Drop_Clear =>
+         when E_Drop_Clear         =>
            (Through => (West => Green, others => Red),
             Left    => (others => Red)),
          --  .31 W_thru G, W_left G
-         when W_Lag =>
+         when W_Lag                =>
            (Through => (West => Green, others => Red),
             Left    => (West => Green, others => Red)),
          --  .32 W_thru Y, W_left Y
-         when W_Lag_Yellow =>
+         when W_Lag_Yellow         =>
            (Through => (West => Yellow, others => Red),
             Left    => (West => Yellow, others => Red)),
          --  .50 E_thru G, W_thru G (as .28)
@@ -111,11 +112,11 @@ is
            (Through => (East => Green, West => Green, others => Red),
             Left    => (others => Red)),
          --  .33 E_thru Y, W_thru Y
-         when EW_Both_Drop_Yellow =>
+         when EW_Both_Drop_Yellow  =>
            (Through => (East => Yellow, West => Yellow, others => Red),
             Left    => (others => Red)),
          --  .34 all RED
-         when EW_Barrier_Allred =>
+         when EW_Barrier_Allred    =>
            (Through => (others => Red), Left => (others => Red)));
 
    --  The through face for one approach in a given sequencer state -- the
@@ -125,7 +126,8 @@ is
       return States.Vehicle_Face
    is (Vehicle_Face_Outputs (V).Through (A));
 
-   --  Pedestrian head output per sub-state (`hlr_6_pedestrian.3/.6/.10/.11/.14`).
+   --  Pedestrian head output per sub-state
+   --  (`hlr_6_pedestrian.3/.6/.10/.11/.14`).
    function Head_Of (P : States.Pedestrian_State) return States.Pedestrian_Head
    is (case P is
          when No_Pedestrian_Request      => Dont_Walk,        --  .3
@@ -151,8 +153,9 @@ is
    --  Durations (pure functions of state; the T_BOTH residual is not)
    -----------------------------------------------------------------------
 
-   --  A pedestrian sub-state runs a timer exactly in the SERVING superstate
-   --  (WALK / CHANGE / BUFFER / BUFFER_LATCHED); NO_REQUEST and PENDING do not.
+   --  A pedestrian sub-state runs a timer exactly in the SERVING
+   --  superstate (WALK / CHANGE / BUFFER / BUFFER_LATCHED);
+   --  NO_REQUEST and PENDING do not.
    function Running_Ped (P : States.Pedestrian_State) return Boolean
    is (P in States.Serving_Pedestrian_State);
 
@@ -455,12 +458,13 @@ is
       Prev_V : constant Vehicle_Sequencer_State := State.Vehicle;
       Rose   : Approach_Flags;
    begin
-      --  1. Fault pre-emption: entering FAULT abandons every NORMAL_OPERATION
-      --     sub-machine (`hlr_1_modes.3`); FAULT is terminal (`hlr_1_modes.4`).
-      --     In FAULT, Step just emits the fault outputs and returns without
-      --     arming, advancing, or deriving edges (`llr_4_controller.15`); the
-      --     loop's uniform T_SAMPLE cadence needs no pacing value from the
-      --     controller (`llr_5_core_loop.4` holds by construction).
+      --  1. Fault pre-emption: entering FAULT abandons every
+      --     NORMAL_OPERATION sub-machine (`hlr_1_modes.3`); FAULT is
+      --     terminal (`hlr_1_modes.4`). In FAULT, Step just emits the fault
+      --     outputs and returns without arming, advancing, or deriving
+      --     edges (`llr_4_controller.15`); the loop's uniform T_SAMPLE
+      --     cadence needs no pacing value from the controller
+      --     (`llr_5_core_loop.4` holds by construction).
       if State.Mode = Fault or else Sensors.Fault = Asserted then
          State.Mode := Fault;
          Outputs := Project_Outputs (State);

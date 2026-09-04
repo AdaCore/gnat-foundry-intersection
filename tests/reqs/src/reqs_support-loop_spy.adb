@@ -19,7 +19,7 @@ package body Reqs_Support.Loop_Spy is
    --  Filler for the unwritten tail of the trace. Never read: Nth's
    --  precondition keeps a test inside the recorded prefix.
 
-   Trace : array (Event_Index) of Event := (others => Unset);
+   Trace  : array (Event_Index) of Event := (others => Unset);
    Logged : Natural := 0;
 
    Script : Sensor_Script := All_Quiet;
@@ -125,17 +125,20 @@ package body Reqs_Support.Loop_Spy is
 
       Drive;
 
-      --  Unreachable: Drive is No_Return and only ever leaves by Escape.
+   --  Unreachable: Drive is No_Return and only ever leaves by Escape.
 
    exception
       when Escape =>
          Escaped := True;
    end Run;
 
-   function Count return Natural is (Logged);
+   function Count return Natural
+   is (Logged);
 
-   function Left_By_Escape return Boolean is (Escaped);
+   function Left_By_Escape return Boolean
+   is (Escaped);
 
-   function Nth (N : Event_Index) return Event is (Trace (N));
+   function Nth (N : Event_Index) return Event
+   is (Trace (N));
 
 end Reqs_Support.Loop_Spy;

@@ -427,7 +427,7 @@ package body Llr_5_Core_Loop_Tests is
             E : constant Spy.Event := Spy.Nth (N);
          begin
             case E.Stage is
-               when Read_Sources_Stage =>
+               when Read_Sources_Stage  =>
                   Reads := Reads + 1;
 
                   Assert
@@ -441,7 +441,7 @@ package body Llr_5_Core_Loop_Tests is
 
                   Elapsed := 0;
 
-               when Delay_For_Stage =>
+               when Delay_For_Stage     =>
                   Elapsed := Elapsed + E.Ms;
 
                when Write_Display_Stage =>
@@ -484,15 +484,15 @@ package body Llr_5_Core_Loop_Tests is
    begin
 
       --  The prologue is what the trace opens with, so it is read off the head
-      --  of the trace: a Write_Display, a Delay_For of one sampling period, and
-      --  only then iteration one's Read_Sources. Controller.Initialize leaves
-      --  no event of its own (statement .1's routine says why), so what shows
-      --  it ran before the publication is that the frame published is the
-      --  power-on one.
+      --  of the trace: a Write_Display, a Delay_For of one sampling period,
+      --  and only then iteration one's Read_Sources. Controller.Initialize
+      --  leaves no event of its own (statement .1's routine says why), so what
+      --  shows it ran before the publication is that the frame published is
+      --  the power-on one.
       --
       --  The hold is the operative half of the statement and the assertion on
-      --  Ms is what carries it: a publication with no delay after it leaves the
-      --  boot state displayed for one sampling period less than its dwell,
+      --  Ms is what carries it: a publication with no delay after it leaves
+      --  the boot state displayed for one sampling period less than its dwell,
       --  which is what the displayed-duration test in tests/system observes at
       --  the whole-run level.
 

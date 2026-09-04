@@ -58,8 +58,7 @@ package body Sources.Test_Data.Tests is
       --  output. Uses Put (not Put_Line): a trailing newline would decode as
       --  an unrecognized key, and while harmless we keep the feed exact.
 
-      function With_Button
-        (C : States.Crosswalk) return States.Sensors_State;
+      function With_Button (C : States.Crosswalk) return States.Sensors_State;
       --  All-quiet with a single crosswalk button Pressed.
 
       function With_Turn (A : States.Approach) return States.Sensors_State;
@@ -81,8 +80,7 @@ package body Sources.Test_Data.Tests is
          return Result;
       end Snapshot;
 
-      function With_Button
-        (C : States.Crosswalk) return States.Sensors_State
+      function With_Button (C : States.Crosswalk) return States.Sensors_State
       is
          Result : States.Sensors_State := All_Quiet;
       begin

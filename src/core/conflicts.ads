@@ -136,7 +136,8 @@ is
    --  crossing on the arm to its right (northbound traffic hugs the east half,
    --  so East_Side is adjacent to North, and so on around the junction).
    --  @param C The crosswalk whose adjacent through is wanted
-   --  @return The approach whose through movement is parallel to that crosswalk
+   --  @return The approach whose through movement is parallel to that
+   --  crosswalk
 
    function Crosswalk_Conflicts
      (C : States.Crosswalk; M : States.Movement) return Boolean

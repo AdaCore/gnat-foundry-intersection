@@ -55,10 +55,7 @@ package body System_Support.Timeline is
       if Logged = 0 then
          Logged := 1;
          Table (Logged) :=
-           (Frame     => Outputs,
-            Opened_At => Now,
-            Span      => 0,
-            Closed    => False);
+           (Frame => Outputs, Opened_At => Now, Span => 0, Closed => False);
 
       elsif Table (Logged).Frame /= Outputs then
 
@@ -73,10 +70,7 @@ package body System_Support.Timeline is
          else
             Logged := Logged + 1;
             Table (Logged) :=
-              (Frame     => Outputs,
-               Opened_At => Now,
-               Span      => 0,
-               Closed    => False);
+              (Frame => Outputs, Opened_At => Now, Span => 0, Closed => False);
          end if;
       end if;
    end Obs_Write_Display;
@@ -119,7 +113,7 @@ package body System_Support.Timeline is
 
       Drive;
 
-      --  Unreachable: Drive is No_Return and only ever leaves by Escape.
+   --  Unreachable: Drive is No_Return and only ever leaves by Escape.
 
    exception
       when Escape =>
@@ -132,12 +126,16 @@ package body System_Support.Timeline is
          end if;
    end Observe;
 
-   function Count return Natural is (Logged);
+   function Count return Natural
+   is (Logged);
 
-   function Nth (N : Interval_Index) return Interval is (Table (N));
+   function Nth (N : Interval_Index) return Interval
+   is (Table (N));
 
-   function Observed_Ms return States.Duration_Ms is (Now);
+   function Observed_Ms return States.Duration_Ms
+   is (Now);
 
-   function Truncated return Boolean is (Overflowed);
+   function Truncated return Boolean
+   is (Overflowed);
 
 end System_Support.Timeline;

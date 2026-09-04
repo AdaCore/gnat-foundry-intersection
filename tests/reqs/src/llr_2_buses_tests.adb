@@ -89,13 +89,13 @@ package body Llr_2_Buses_Tests is
    procedure Reset;
    --  Discard the previous routine's recording.
 
-   function Other (L : States.Pedestrian_Button)
-      return States.Pedestrian_Button
+   function Other
+     (L : States.Pedestrian_Button) return States.Pedestrian_Button
    is (if L = Pressed then Released else Pressed);
    --  The other of the two levels llr_1_states.5 gives a button.
 
-   function Other (L : States.Left_Turn_Detector)
-      return States.Left_Turn_Detector
+   function Other
+     (L : States.Left_Turn_Detector) return States.Left_Turn_Detector
    is (if L = Vehicle_Present then No_Vehicle else Vehicle_Present);
    --  The other of the two levels llr_1_states.6 gives a detector.
 
@@ -113,14 +113,14 @@ package body Llr_2_Buses_Tests is
       return States.Sensors_State;
    --  The same construction for approach A's left-turn detector.
 
-   function Fault_Line (F : States.Fault_Detection)
-      return States.Sensors_State;
+   function Fault_Line
+     (F : States.Fault_Detection) return States.Sensors_State;
    --  The idle snapshot with the fault line at level F. The fault line is
    --  intersection-wide (llr_1_states.17), so there is no index to confuse and
    --  its two levels over the idle base are the whole enumeration.
 
-   function Read_Supplying (Supply : States.Sensors_State)
-      return States.Sensors_State;
+   function Read_Supplying
+     (Supply : States.Sensors_State) return States.Sensors_State;
    --  One Bus_Read with the spy producer set to supply Supply.
 
    procedure Check_Snapshot
@@ -172,8 +172,7 @@ package body Llr_2_Buses_Tests is
       return S;
    end Only_Detector;
 
-   function Fault_Line (F : States.Fault_Detection)
-      return States.Sensors_State
+   function Fault_Line (F : States.Fault_Detection) return States.Sensors_State
    is
       S : States.Sensors_State := Reqs_Support.Quiet;
    begin
@@ -181,8 +180,8 @@ package body Llr_2_Buses_Tests is
       return S;
    end Fault_Line;
 
-   function Read_Supplying (Supply : States.Sensors_State)
-      return States.Sensors_State
+   function Read_Supplying
+     (Supply : States.Sensors_State) return States.Sensors_State
    is
       Got : States.Sensors_State;
    begin

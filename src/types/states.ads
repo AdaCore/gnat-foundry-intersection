@@ -217,9 +217,9 @@ is
    type Movement is
      (N_Thru, S_Thru, E_Thru, W_Thru, N_Left, S_Left, E_Left, W_Left);
    --  The eight vehicle movements -- the eight vehicle face output signals of
-   --  `hlr_4_signals.1`: the four through movements and the four protected-left
-   --  movements. This is the index the vehicle-conflict invariant
-   --  `hlr_0_safety.2` quantifies over.
+   --  `hlr_4_signals.1`: the four through movements and the four
+   --  protected-left movements. This is the index the vehicle-conflict
+   --  invariant `hlr_0_safety.2` quantifies over.
    --  @enum N_Thru North through movement
    --  @enum S_Thru South through movement
    --  @enum E_Thru East through movement
@@ -372,7 +372,8 @@ is
    pragma
      Compile_Time_Error
        (T_Barrier mod T_Sample /= 0,
-        "T_BARRIER must be an integral multiple of T_SAMPLE (llr_1_states.31)");
+        "T_BARRIER must be an integral multiple of T_SAMPLE"
+        & " (llr_1_states.31)");
    --@covers llr_1_states.31
    pragma
      Compile_Time_Error

@@ -8,11 +8,12 @@
 --  seen, leave the loop the only way a No_Return procedure can be left: by
 --  propagating an exception.
 --
---  The escape is raised from the spy Delay_For, the last of the four stages
---  (llr_5_core_loop.2), so an escaped run ends on an iteration boundary with
---  every stage of the final iteration already recorded, rather than mid-cycle.
---  The startup prologue's delay (llr_5_core_loop.5) precedes the first read and
---  closes no iteration, so it neither counts toward Iterations nor escapes.
+--  The escape is raised from the spy Delay_For, the last of the four
+--  stages (llr_5_core_loop.2), so an escaped run ends on an iteration
+--  boundary with every stage of the final iteration already recorded,
+--  rather than mid-cycle. The startup prologue's delay (llr_5_core_loop.5)
+--  precedes the first read and closes no iteration, so it neither counts
+--  toward Iterations nor escapes.
 --
 --  What the run leaves behind is the loop's observable trace: which stage ran,
 --  in what order, the snapshot each Read_Sources delivered, the outputs each
