@@ -31,7 +31,6 @@ so the app builds, lints clean, and the existing test suite stays green.
 5. Build, lint, and run the tests (the oracle).
 6. Edit `workflow/<feature>/notes.md` to remove any entries that are now addressed or captured in the
    implementation, and to add any notes that might be necessary for the proof or test generation phases.
-7. Remove `workflow/<feature>/implementation.md` if it exists — the plan is now implemented.
 
 ## Oracle
 
