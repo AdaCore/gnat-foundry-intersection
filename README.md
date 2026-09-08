@@ -21,6 +21,10 @@ Prerequisites:
 
 * Ubuntu 24.04 on x86_64 or aarch64
 * `git`, `make`, `curl`, `tar`, `unzip` and a Bash shell
+* `build-essential` and `libgmp-dev`. Alire resolves `make` and `libgmp` as
+  *system* packages and will not install them for you; without them its
+  dependency solution for `engine/ada_tracer` comes up short, and `make
+  report` fails to build the tracer
 * Network access for the `make setup-community` step (and probably so your
   agent can make API calls)
 * About 10 GB of free disk. Everything installs under `install/` in the

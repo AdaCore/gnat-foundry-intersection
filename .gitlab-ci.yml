@@ -333,3 +333,33 @@ community:prove:
   script:
     - make setup-community
     - make prove
+
+# The community counterpart of `pro:report`, and the only job that exercises
+# `build-tracer` and the inventories through Alire rather than a prebuilt
+# Libadalang. It does not publish pages: `pro:report` owns that.
+community:report:
+  stage: build
+  extends:
+     - .x86_64-linux-community
+     - .default_rules
+  # More than the community anchor's four: the job builds Libadalang from
+  # source, and `libadalang-implementation.adb` alone outgrows the memory that
+  # comes with a four-CPU runner.
+  services:
+    - image:serotonic
+    - cpu:8
+    - security_group:GitLabRunnerTasksExecPrivilegedSG
+  script:
+    - make setup-community
+
+    # The report engine's uv.lock pins the public index.
+    - unset PIP_INDEX_URL PIP_EXTRA_INDEX_URL UV_INDEX_URL UV_EXTRA_INDEX_URL
+        UV_INDEX
+    - export UV_DEFAULT_INDEX="https://pypi.org/simple"
+
+    - make report
+
+  artifacts:
+    when: always
+    paths:
+      - reports/
