@@ -7,6 +7,7 @@ SHELL := bash
         run-native run-target \
         prove prove-report \
         format format-ada format-python check check-ada check-shell check-python \
+        check-setup-scripts \
         check-python-reqs check-python-report \
         check-target-test-parity \
         generate-tests generate-tests-reqs test \
@@ -208,7 +209,7 @@ prove-report: generate-config ## Proof run feeding `make report`
 # ----------------------------------------------------------------------------
 
 format: format-ada format-python ## Reformat all sources (Ada and Python)
-check: check-ada check-shell check-python check-target-test-parity ## Verify formatting and lint (Ada, shell, Python)
+check: check-ada check-shell check-setup-scripts check-python check-target-test-parity ## Verify formatting and lint (Ada, shell, Python)
 
 # With pro tools (pro/external), run gnatformat directly: `alr` would fetch
 # the community gnat_arm_elf/aunit crates for the nested crates instead.
@@ -288,6 +289,10 @@ endif
 
 check-shell: ## Lint the shell scripts (shellcheck)
 	find scripts -type f -exec $(UV) tool run --from shellcheck-py shellcheck {} +
+
+# Exercises the pre-install logic of setup-pro against throwaway directories.
+check-setup-scripts: ## Run the setup scripts' own tests
+	scripts/setup/test_pro.sh
 
 # Keep every requirement-citing test on target: a unit left out of the cross
 # harness may cite a requirement id only if that id is one of the enumerated

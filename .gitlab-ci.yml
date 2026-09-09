@@ -71,7 +71,7 @@ check:
     - eval $(anod printenv gnatformat --qualifier=stable)
 
     # Run the checks
-    - make check-shell check-python-reqs check-target-test-parity
+    - make check-shell check-setup-scripts check-python-reqs check-target-test-parity
 
     # Check that the demo CONOPS patch is valid
     - git apply --check demo/conops.patch

@@ -203,18 +203,27 @@ extract_tarball_from_zip() {
   return 1
 }
 
-# Echo the newest staged tarball matching glob $1, extracting it from a staged
-# zipfile first if none is staged directly. Non-zero (and silent) if there is
-# none either way.
-find_tarball() {
-  local glob=$1 tarball
+# Echo the newest tarball staged directly in $PRO_DOWNLOADS matching glob $1;
+# non-zero (and silent) if there is none.
+staged_tarball() {
+  local tarball
   # `|| true`: when $PRO_DOWNLOADS does not exist yet, find fails and pipefail
   # would abort the script before the caller can explain.
-  tarball=$(find "$PRO_DOWNLOADS" -maxdepth 1 -name "$glob" 2>/dev/null | sort -V | tail -1 || true)
-  if [ -z "$tarball" ] && extract_tarball_from_zip "$glob"; then
-    tarball=$(find "$PRO_DOWNLOADS" -maxdepth 1 -name "$glob" 2>/dev/null | sort -V | tail -1 || true)
-  fi
+  tarball=$(find "$PRO_DOWNLOADS" -maxdepth 1 -name "$1" 2>/dev/null | sort -V | tail -1 || true)
   [ -n "$tarball" ] && printf '%s\n' "$tarball"
+}
+
+# Echo the newest staged tarball matching glob $1, extracting it from a staged
+# zipfile first if none is staged directly. Non-zero (and silent) if there is
+# none either way. Callers capture the output, so stdout carries the path and
+# nothing else: the extraction's progress line goes to stderr.
+find_tarball() {
+  local glob=$1 tarball
+  if ! tarball=$(staged_tarball "$glob"); then
+    extract_tarball_from_zip "$glob" >&2 || return 1
+    tarball=$(staged_tarball "$glob") || return 1
+  fi
+  printf '%s\n' "$tarball"
 }
 
 # The pro products, one per entry, as '|'-separated fields:
@@ -234,7 +243,8 @@ PRO_PRODUCTS=(
 
 # Check that a tarball is staged for every product not yet installed, and
 # report them all before installing anything, so one trip to GNAT Tracker
-# fetches everything that is missing.
+# fetches everything that is missing. Tarballs wrapped in staged zipfiles are
+# extracted here, so install_product finds them staged directly.
 check_downloads() {
   header "Staged pro downloads"
   local created=
@@ -272,7 +282,7 @@ the product tarballs or the zipfiles wrapping them. Copy them into the
 directory above, then re-run 'make setup-pro'.
 
 Alternatively, re-run it from an environment that already provides the pro
-tools to use them directly. If you thought your environement was already setup
+tools to use them directly. If you thought your environment was already set up
 with the required tools, run
 
     make setup-pro PRO_TOOLS=external
@@ -398,35 +408,44 @@ print_summary_external() {
 }
 
 
-mode=$(select_mode)
+main() {
+  local mode platform
+  mode=$(select_mode)
 
-if [ "$mode" = external ]; then
-  # Validate (and report) the ambient tools before installing anything else.
-  use_external_tools
-else
-  # Forced install mode needs no explanation.
-  if [ -z "${PRO_TOOLS:-}" ]; then
-    explain_install_mode
+  if [ "$mode" = external ]; then
+    # Validate (and report) the ambient tools before installing anything else.
+    use_external_tools
+  else
+    # Forced install mode needs no explanation.
+    if [ -z "${PRO_TOOLS:-}" ]; then
+      explain_install_mode
+    fi
+    # The tarball globs above are x86_64-linux only; fail before installing
+    # anything on other hosts.
+    platform=$(detect_platform)
+    if [ "$platform" != "x86_64 linux" ]; then
+      fatal "setup-pro currently supports x86_64 Linux hosts only (detected: $platform)."
+    fi
+    # Likewise, account for every download before installing anything.
+    check_downloads
   fi
-  # The tarball globs above are x86_64-linux only; fail before installing
-  # anything on other hosts.
-  platform=$(detect_platform)
-  if [ "$platform" != "x86_64 linux" ]; then
-    fatal "setup-pro currently supports x86_64 Linux hosts only (detected: $platform)."
-  fi
-  # Likewise, account for every download before installing anything.
-  check_downloads
-fi
 
-"$SCRIPT_DIR/common.sh"
-if [ "$mode" = install ]; then
-  install_pro_products
-fi
-configure_alr_offline
-if [ "$mode" = external ]; then
-  write_setup_marker external
-  print_summary_external
-else
-  write_setup_marker pro
-  print_summary
+  "$SCRIPT_DIR/common.sh"
+  if [ "$mode" = install ]; then
+    install_pro_products
+  fi
+  configure_alr_offline
+  if [ "$mode" = external ]; then
+    write_setup_marker external
+    print_summary_external
+  else
+    write_setup_marker pro
+    print_summary
+  fi
+}
+
+# Run only when executed, not when sourced (the test script sources the
+# functions above).
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main
 fi
