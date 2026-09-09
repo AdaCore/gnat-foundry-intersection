@@ -16,7 +16,7 @@ exercises. Extending a generated skeleton under `tests/core`, `tests/types` or
   `file:line:col:` lines) and `coverage.log`.
 - Existing routines under `tests/reqs/` — extend these.
 - `tests/reqs/README.md` — its rules are the review criteria for a new routine.
-- `CLAUDE.md` — the "If working on coverage augmentation" note.
+- `CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex) — the "If working on coverage augmentation" note.
 
 ## Outputs
 

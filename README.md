@@ -27,9 +27,9 @@ Prerequisites:
   report` fails to build the tracer
 * Network access for the `make setup-community` step (and probably so your
   agent can make API calls)
-* About 10 GB of free disk. Everything installs under `install/` in the
-  checkout; nothing is installed system-wide, and `make reset-hard` removes
-  it all
+* About 10 GB of free disk. Build tools install under `install/` in the
+  checkout; `make reset-hard` removes the provisioned toolchain. The
+  optional Codex plugin is installed into Codex's own configuration
 * For the change request (step 4): Claude Code or Codex, signed in to an
   account with credit available
 
@@ -48,7 +48,8 @@ Then:
 3. run the baseline: `make run-native` and view the report: `make report` and
    open `reports/report/html/index.html` (the first time you do this will take
    several minutes)
-4. run the change request: in Claude Code or Codex, `@demo/demo-prompt.md`;
+4. run the change request: ask Claude Code or Codex to "Read and execute
+   `demo/demo-prompt.md`";
    when the agent is done, `make run-native` to see the result and view the
    report with `make report` and refresh or open
    `reports/report/html/index.html`

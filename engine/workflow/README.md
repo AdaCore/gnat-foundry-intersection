@@ -3,7 +3,7 @@
 This directory is part of *the engine*: reusable, tool-agnostic definitions for
 driving a feature through a fixed, auditable process. It is the single source of
 truth for the workflow — both Claude Code (via the thin agents under
-`.claude/agents/`) and any other AI CLI read the same specs here.
+`.claude/agents/`) and Codex (via `.codex/agents/`) read the same specs here.
 
 A **feature** is added as a succession of **Tasks**. Each Task type has:
 
@@ -110,8 +110,10 @@ check — the trace waivers, the derived requirements, and the CONOPS. Running
 ## Adding or changing a task type
 
 Edit the spec here (and, if the oracle command changes, the table above and the
-matching `.claude/agents/*.md` wrapper). Keep the substance in this directory;
-the agent wrappers stay thin so the CLIs never diverge. Update `CLAUDE.md` accordingly.
+matching `.claude/agents/*.md` and `.codex/agents/*.toml` wrappers). Keep the
+substance in this directory; the agent wrappers stay thin so the CLIs never
+diverge. Update `CLAUDE.md` and `AGENTS.md` accordingly. Keep their project
+rules in sync; only the client-specific orchestration instructions differ.
 
 ## A note on GNATformat
 

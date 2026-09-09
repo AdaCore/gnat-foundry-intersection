@@ -13,7 +13,7 @@ in meaningful test bodies, so the suite builds and passes.
   `tests/core/controller-test_data-tests.adb`, `tests/core/conflicts-*`,
   `tests/types/states-*`, `tests/hal/common/`) — match their style. Only
   code outside the `begin read only` regions is yours to edit.
-- `CLAUDE.md` — the "When editing tests" rules.
+- `CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex) — the "When editing tests" rules.
 
 ## Outputs
 
