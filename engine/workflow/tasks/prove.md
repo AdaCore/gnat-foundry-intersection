@@ -13,7 +13,7 @@ errors.
   loop invariants, ghost code as needed).
 - `src/proof/state_machine_loop_proof.{ads,adb}` — the in-SPARK instantiation
   harness that exercises the generic core loop under proof.
-- `CLAUDE.md` — the "Keeping `core` proven" rules.
+- `CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex) — the "Keeping `core` proven" rules.
 
 ## Outputs
 
@@ -40,7 +40,7 @@ make prove && make trace-check-proof
 
 **Done when it exits 0 with no unproved checks or traceability gaps.**
 
-**Hard rule (from CLAUDE.md — never violate):** do **not** discharge a proof
+**Hard rule (from CLAUDE.md / AGENTS.md — never violate):** do **not** discharge a proof
 obligation with a manual escape hatch — no `pragma Annotate ... Assume`, no
 `pragma Assume`, no suppressed checks, or the like. If the core can no longer be
 proven without such an escape hatch, **stop and raise a flag** (escalate) rather
