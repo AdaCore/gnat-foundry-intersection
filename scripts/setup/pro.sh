@@ -85,9 +85,21 @@ products_installed() {
     || marker_present "$PRO_DIR/libadalang/share/gpr/libadalang.gpr"
 }
 
+# Print where each of the EXTERNAL_TOOLS and EXTERNAL_LIBRARIES was found,
+# or that it was not.
+report_environment() {
+  local cmd lib
+  for cmd in "${EXTERNAL_TOOLS[@]}"; do
+    detail "$(printf '%-14s' "$cmd") $(command -v "$cmd" 2>/dev/null || printf 'not found on PATH')"
+  done
+  for lib in "${EXTERNAL_LIBRARIES[@]}"; do
+    detail "$(printf '%-14s' "$lib") $(library_gpr "$lib" || printf 'not found on GPR_PROJECT_PATH')"
+  done
+}
+
 # Echo the mode: $PRO_TOOLS if forced; else 'install' when downloads are
 # staged or products already installed, 'external' when every tool and library
-# is present, and 'install' otherwise (its staging instructions explain both).
+# is present, and 'install' otherwise (explain_install_mode says why).
 select_mode() {
   case "${PRO_TOOLS:-}" in
     install | external)
@@ -108,40 +120,61 @@ select_mode() {
   fi
 }
 
+# Explain why the auto-detection settled on 'install' rather than using the
+# tools on PATH, so a user who expected their environment to be picked up can
+# see what it lacked and what happens next. Silent unless it looks like they
+# tried that: some (but not all) pro tools on PATH, nothing staged, nothing
+# installed. A user with no pro tools on PATH is on the default path and is
+# not told about the alternative.
+explain_install_mode() {
+  if downloads_staged || products_installed; then
+    return 0
+  fi
+  if [ "$(missing_external_tools)" = "${EXTERNAL_TOOLS[*]}" ]; then
+    return 0
+  fi
+
+  header "Pro tools from the environment"
+  detail "Checking whether your environment already provides the pro tools:"
+  printf '\n'
+  report_environment
+  printf '\n'
+  detail "Your environment can only be used as is when every one of these is"
+  detail "present. Some are missing, so setup-pro will attempt to install a "
+  detail "complete set for you from the downloads staged under "
+  detail "$PRO_DOWNLOADS instead."
+  printf '\n'
+  detail "To use your existing environment, put the missing tools on PATH (and"
+  detail "the missing libraries on GPR_PROJECT_PATH) and re-run."
+}
+
 # Check every tool/library external mode needs is on PATH/GPR_PROJECT_PATH, and
 # report where.
 use_external_tools() {
   header "Pro tools from the environment"
+  report_environment
 
-  local missing_tools missing_libs problems=()
+  local missing_tools missing_libs problems=
   missing_tools=$(missing_external_tools)
   missing_libs=$(missing_external_libraries)
   if [ -n "$missing_tools" ]; then
-    problems+=("not found on PATH: $missing_tools")
+    problems+="
+  -  not found on PATH: $missing_tools"
   fi
   if [ -n "$missing_libs" ]; then
-    problems+=("not found on GPR_PROJECT_PATH: $missing_libs")
+    problems+="
+  -  not found on GPR_PROJECT_PATH: $missing_libs"
   fi
-  if [ ${#problems[@]} -ne 0 ]; then
-    local intro='PRO_TOOLS=external, but ' indent body
-    # Align the later problems with the first.
-    indent=$(printf '%*s' "${#intro}" '')
-    printf -v body '%s\n' "${problems[@]}"
-    body=${body%$'\n'}
-    fatal "$intro${body//$'\n'/$'\n'$indent}.
-Run from an environment that provides the pro tools, or stage the GNAT
-Tracker downloads under
-$PRO_DOWNLOADS
+  if [ -n "$problems" ]; then
+    fatal "PRO_TOOLS=external, but:$problems
+
+Please try again from an environment that provides all the expected tools, or
+stage the GNAT Tracker downloads under
+
+    $PRO_DOWNLOADS
+
 and re-run 'make setup-pro' to install them locally."
   fi
-
-  local cmd lib
-  for cmd in "${EXTERNAL_TOOLS[@]}"; do
-    detail "$(printf '%-14s' "$cmd") $(command -v "$cmd")"
-  done
-  for lib in "${EXTERNAL_LIBRARIES[@]}"; do
-    detail "$(printf '%-14s' "$lib") $(library_gpr "$lib")"
-  done
 }
 
 # GNAT Tracker downloads may be zipfiles wrapping the product tarball
@@ -170,15 +203,96 @@ extract_tarball_from_zip() {
   return 1
 }
 
-# Install one pro product from its GNAT Tracker download into its own prefix
-# under $PRO_DIR, using the bundled `doinstall` script in unattended mode.
-#
-#   $1  shell glob matching the tarball in $PRO_DOWNLOADS (staged directly or
-#       wrapped in a staged zipfile)
-#   $2  prefix sub-directory under $PRO_DIR (also the PATH entry)
-#   $3  marker file (relative to the prefix) proving a successful install: a
-#       binary for the toolchains, a project file for the library products
-#   $4  human-readable label
+# Echo the newest tarball staged directly in $PRO_DOWNLOADS matching glob $1;
+# non-zero (and silent) if there is none.
+staged_tarball() {
+  local tarball
+  # `|| true`: when $PRO_DOWNLOADS does not exist yet, find fails and pipefail
+  # would abort the script before the caller can explain.
+  tarball=$(find "$PRO_DOWNLOADS" -maxdepth 1 -name "$1" 2>/dev/null | sort -V | tail -1 || true)
+  [ -n "$tarball" ] && printf '%s\n' "$tarball"
+}
+
+# Echo the newest staged tarball matching glob $1, extracting it from a staged
+# zipfile first if none is staged directly. Non-zero (and silent) if there is
+# none either way. Callers capture the output, so stdout carries the path and
+# nothing else: the extraction's progress line goes to stderr.
+find_tarball() {
+  local glob=$1 tarball
+  if ! tarball=$(staged_tarball "$glob"); then
+    extract_tarball_from_zip "$glob" >&2 || return 1
+    tarball=$(staged_tarball "$glob") || return 1
+  fi
+  printf '%s\n' "$tarball"
+}
+
+# The pro products, one per entry, as '|'-separated fields:
+#   glob    shell glob matching the tarball in $PRO_DOWNLOADS (staged directly
+#           or wrapped in a staged zipfile)
+#   subdir  prefix sub-directory under $PRO_DIR (also the PATH entry)
+#   marker  file (relative to the prefix) proving a successful install: a
+#           binary for the toolchains, a project file for the library products
+#   label   human-readable name
+PRO_PRODUCTS=(
+  'gnatpro-*-x86_64-linux-bin.tar.gz|gnatpro|bin/gnat|GNAT Pro native (gnat, gprbuild, gnatformat, AUnit)'
+  'gnatpro-*-arm-elf-*-bin.tar.gz|arm-elf|bin/arm-eabi-gnat|GNAT Pro arm-elf cross compiler'
+  'spark-pro-*-x86_64-linux-bin.tar.gz|spark|bin/gnatprove|SPARK Pro (gnatprove)'
+  'gnatdas-*-x86_64-linux-bin.tar.gz|gnatdas|bin/gnatcov|GNAT DAS (gnatcov, gnattest)'
+  'libadalang-*-x86_64-linux-bin.tar.gz|libadalang|share/gpr/libadalang.gpr|Libadalang'
+)
+
+# Check that a tarball is staged for every product not yet installed, and
+# report them all before installing anything, so one trip to GNAT Tracker
+# fetches everything that is missing. Tarballs wrapped in staged zipfiles are
+# extracted here, so install_product finds them staged directly.
+check_downloads() {
+  header "Staged pro downloads"
+  local created=
+  if [ ! -d "$PRO_DOWNLOADS" ]; then
+    mkdir -p "$PRO_DOWNLOADS"
+    created=1
+  fi
+
+  local entry glob subdir marker label tarball missing=()
+  for entry in "${PRO_PRODUCTS[@]}"; do
+    IFS='|' read -r glob subdir marker label <<<"$entry"
+    if marker_present "$PRO_DIR/$subdir/$marker"; then
+      detail "$(printf '%-38s' "$glob") already installed"
+    elif tarball=$(find_tarball "$glob"); then
+      detail "$(printf '%-38s' "$glob") ${tarball##*/}"
+    else
+      detail "$(printf '%-38s' "$glob") MISSING ($label)"
+      missing+=("$glob")
+    fi
+  done
+  [ ${#missing[@]} -eq 0 ] && return 0
+
+  local where="$PRO_DOWNLOADS"
+  [ -n "$created" ] && where="$where
+(the directory has just been created for you)"
+  fatal "no tarball (or zipfile containing one) found in
+
+    $where
+
+for ${#missing[@]} of the ${#PRO_PRODUCTS[@]} pro products, marked MISSING above.
+
+Log in to GNAT Tracker and download the x86_64-linux packages for GNAT Pro
+for Ada (native and arm-elf), SPARK Pro, GNAT DAS and Libadalang, as either
+the product tarballs or the zipfiles wrapping them. Copy them into the
+directory above, then re-run 'make setup-pro'.
+
+Alternatively, re-run it from an environment that already provides the pro
+tools to use them directly. If you thought your environment was already set up
+with the required tools, run
+
+    make setup-pro PRO_TOOLS=external
+
+to see a list of dependencies that were missing."
+}
+
+# Install one pro product (a PRO_PRODUCTS entry, fields as $1..$4) from its
+# GNAT Tracker download into its own prefix under $PRO_DIR, using the bundled
+# `doinstall` script in unattended mode.
 install_product() {
   local glob=$1 subdir=$2 marker=$3 label=$4
   header "$label"
@@ -191,24 +305,9 @@ install_product() {
 
   require_cmd tar make
 
-  # `|| true`: when $PRO_DOWNLOADS does not exist yet, find fails and pipefail
-  # would abort the script before the fatal below can explain.
   local tarball
-  tarball=$(find "$PRO_DOWNLOADS" -maxdepth 1 -name "$glob" 2>/dev/null | sort -V | tail -1 || true)
-  if [ -z "$tarball" ] && extract_tarball_from_zip "$glob"; then
-    tarball=$(find "$PRO_DOWNLOADS" -maxdepth 1 -name "$glob" 2>/dev/null | sort -V | tail -1 || true)
-  fi
-  if [ -z "$tarball" ]; then
-    mkdir -p "$PRO_DOWNLOADS"
-    fatal "no tarball (or zipfile containing one) matching '$glob' found in
-$PRO_DOWNLOADS
-(the directory has just been created for you).
-Log in to GNAT Tracker and download the x86_64-linux packages for GNAT Pro
-for Ada (native and arm-elf), SPARK Pro, GNAT DAS and Libadalang, as either
-the product tarballs or the zipfiles wrapping them. Copy them into the
-directory above, then re-run 'make setup-pro'. Alternatively, re-run it from
-an environment that already provides the pro tools to use them directly."
-  fi
+  tarball=$(find_tarball "$glob") \
+    || fatal "no tarball matching '$glob' in $PRO_DOWNLOADS (it was there a moment ago)."
   detail "Tarball:  $tarball"
 
   local tmp srcdir log
@@ -239,18 +338,14 @@ an environment that already provides the pro tools to use them directly."
   detail "Installed: ${version:-(ok)}"
 }
 
-# Install every pro product needed by the demo.
+# Install every pro product needed by the demo (check_downloads has already
+# accounted for all their downloads).
 install_pro_products() {
-  install_product 'gnatpro-*-x86_64-linux-bin.tar.gz' gnatpro bin/gnat \
-    'GNAT Pro native (gnat, gprbuild, gnatformat, AUnit)'
-  install_product 'gnatpro-*-arm-elf-*-bin.tar.gz' arm-elf bin/arm-eabi-gnat \
-    'GNAT Pro arm-elf cross compiler'
-  install_product 'spark-pro-*-x86_64-linux-bin.tar.gz' spark bin/gnatprove \
-    'SPARK Pro (gnatprove)'
-  install_product 'gnatdas-*-x86_64-linux-bin.tar.gz' gnatdas bin/gnatcov \
-    'GNAT DAS (gnatcov, gnattest)'
-  install_product 'libadalang-*-x86_64-linux-bin.tar.gz' libadalang \
-    share/gpr/libadalang.gpr 'Libadalang'
+  local entry glob subdir marker label
+  for entry in "${PRO_PRODUCTS[@]}"; do
+    IFS='|' read -r glob subdir marker label <<<"$entry"
+    install_product "$glob" "$subdir" "$marker" "$label"
+  done
 }
 
 # Deliberately leave alr unconfigured: no index, no toolchain selection.
@@ -313,29 +408,44 @@ print_summary_external() {
 }
 
 
-mode=$(select_mode)
+main() {
+  local mode platform
+  mode=$(select_mode)
 
-if [ "$mode" = external ]; then
-  # Validate (and report) the ambient tools before installing anything else.
-  use_external_tools
-else
-  # The tarball globs above are x86_64-linux only; fail before installing
-  # anything on other hosts.
-  platform=$(detect_platform)
-  if [ "$platform" != "x86_64 linux" ]; then
-    fatal "setup-pro currently supports x86_64 Linux hosts only (detected: $platform)."
+  if [ "$mode" = external ]; then
+    # Validate (and report) the ambient tools before installing anything else.
+    use_external_tools
+  else
+    # Forced install mode needs no explanation.
+    if [ -z "${PRO_TOOLS:-}" ]; then
+      explain_install_mode
+    fi
+    # The tarball globs above are x86_64-linux only; fail before installing
+    # anything on other hosts.
+    platform=$(detect_platform)
+    if [ "$platform" != "x86_64 linux" ]; then
+      fatal "setup-pro currently supports x86_64 Linux hosts only (detected: $platform)."
+    fi
+    # Likewise, account for every download before installing anything.
+    check_downloads
   fi
-fi
 
-"$SCRIPT_DIR/common.sh"
-if [ "$mode" = install ]; then
-  install_pro_products
-fi
-configure_alr_offline
-if [ "$mode" = external ]; then
-  write_setup_marker external
-  print_summary_external
-else
-  write_setup_marker pro
-  print_summary
+  "$SCRIPT_DIR/common.sh"
+  if [ "$mode" = install ]; then
+    install_pro_products
+  fi
+  configure_alr_offline
+  if [ "$mode" = external ]; then
+    write_setup_marker external
+    print_summary_external
+  else
+    write_setup_marker pro
+    print_summary
+  fi
+}
+
+# Run only when executed, not when sourced (the test script sources the
+# functions above).
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main
 fi
