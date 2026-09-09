@@ -1,6 +1,6 @@
 --- a/requirements/conops.md
 +++ b/requirements/conops.md
-@@ -58,18 +58,24 @@ The physical site.
+@@ -58,18 +58,23 @@ The physical site.
  # 3. Pedestrian Control Heads
  
  - **3.1 ◇** A pedestrian signal head serves each marked crosswalk. — *MUTCD §4D.02 ¶03*
@@ -20,15 +20,14 @@
    Example (non-normative). The North–South crosswalk on the East side of the intersection is non-conflicting with the northbound and southbound through movements and the northbound protected left turn (from the south approach, exiting west).
  
 +- **3.10 ◆** The second display field of each head presents a pedestrian change interval countdown. — *decision; MUTCD §4I.04 ¶02*
-+- **3.11 ✔** The pedestrian change interval countdown is presented as Portland orange numerals at least 6 inches high on a black opaque background, located immediately adjacent to the WALK/DON'T WALK display field. — *MUTCD §4I.04 ¶04*
-+- **3.12 ✔** Each head's countdown display is active for the full duration of that head's flashing DON'T WALK, and for the first second of the steady DON'T WALK buffer interval that follows it. The display is dark at all other times. — *MUTCD §4I.04 ¶03, ¶05*
-+- **3.13 ✔** While a head's countdown display is active it presents the whole number of seconds remaining until that crosswalk's pedestrian change interval terminates, rounded up to an integer (0 after the change interval has terminated). — *MUTCD §4I.04 ¶05, ¶06*
-+- **3.14 ◆** The pedestrian change interval countdown display is driven by this controller from the same pedestrian change interval timing that drives the head, and not by an independent timing device. — *decision; MUTCD §4I.04 ¶09*
++- **3.11 ✔** Each head's countdown display is active for the full duration of that head's flashing DON'T WALK, and for the first second of the steady DON'T WALK buffer interval that follows it. The display is dark at all other times. — *MUTCD §4I.04 ¶03, ¶05*
++- **3.12 ✔** While a head's countdown display is active it presents the whole number of seconds remaining until that crosswalk's pedestrian change interval terminates, rounded up to an integer (0 after the change interval has terminated). — *MUTCD §4I.04 ¶05, ¶06*
++- **3.13 ◆** The pedestrian change interval countdown display is driven by this controller from the same pedestrian change interval timing that drives the head, and not by an independent timing device. — *decision; MUTCD §4I.04 ¶09*
 +
  # 4. Pedestrian Detection & Request
  
  Pedestrian service is demand-led.
-@@ -89,7 +95,7 @@ Pedestrian service is demand-led.
+@@ -89,7 +94,7 @@ Pedestrian service is demand-led.
  # 6. Fault Detection & Safe State
  
  - **6.1 ◆** On detection of a major fault the controller enters flashing operation. — *decision; MUTCD Ch. 4G*
@@ -44,7 +43,7 @@
  signoffs:
    - item: conops
 -    digest: sha256:7d6dcc0733d45e7a16d0e3dbee1cc743f2d3ac8f66f55b9adeddf2873b18989a
-+    digest: sha256:b55d5696d723f74d9d13aea34e47b09d7afb47ae48c1e75e86916792620c9284
++    digest: sha256:210c6bb1b979e851c05d97387f5913d7e49a3b0afce87a83b295a6ba254d8bb0
      by: M. Anthony Aiello
      date: 2026-08-21
 +    note: Revised CONOPS, reviewed on handover; the countdown display is wanted.
