@@ -10,6 +10,16 @@ source "$SCRIPT_DIR/lib.sh"
 
 require_vars LOCAL_BIN ALIRE_SETTINGS_DIR ALIRE_PREFIX SETUP_MARKER
 
+# Increase the solver timeout to 60 seconds (since `-n` skips the "Do you want
+# to keep solving" prompt).
+ALR_SOLVER_TIMEOUT=60
+configure_alr() {
+  header "Alire configuration"
+  mkdir -p "$ALIRE_SETTINGS_DIR"
+  detail "Setting solver timeout to $ALR_SOLVER_TIMEOUT seconds ..."
+  set_alr_setting solver.timeout "$ALR_SOLVER_TIMEOUT"
+}
+
 # Deploy the GNAT toolchains needed by the demo and select the native one as
 # alr's default. gnat_native and gnat_arm_elf both provide the abstract
 # `gnat`, so this deploys all three but selects only gnat_native and
@@ -88,6 +98,7 @@ print_summary() {
 
 
 "$SCRIPT_DIR/common.sh"
+configure_alr
 deploy_toolchains
 install_tools
 write_setup_marker community
